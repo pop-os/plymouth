@@ -1,0 +1,78 @@
+plymouth - fbdev based graphical boot
+
+INSTALL
+
+Get the SRPMS and rpmbuild --rebuild them.  libpng-static is a build
+requirement of mkinitrd so build and install that before building
+mkinitrd.  To build the kernel SRPM, pass --target i686 to rpmbuild.
+
+  libpng-1.2.10-1.plymouth.src.rpm
+  initscripts-8.33-1.src.rpm
+  mkinitrd-5.0.34-1.plymouth.src.rpm
+  SysVinit-2.86-3.plymouth.src.rpm
+  rhgb-0.16.3-1.plymouth.src.rpm
+  kernel-2.6.16-1.2139_FC6.plymouth.src.rpm
+
+Then install them and run (as root) mkinitrd to create an initrd for
+your current kernel that has the graphical boot bits in it:
+
+  $ mkinitrd /boot/plymouth-initrd-$(uname -r) $(uname -r)
+
+Run grubby to add an entry to /etc/grub.conf:
+
+  $ grubby --grub --copy-default \
+	--title="Plymouth $(uname -r)" \
+	--add-kernel=/boot/vmlinuz-$(uname -r) \
+	--initrd=/boot/plymouth-initrd-$(uname -r).img \
+	--args="vga=0x318 rhgb quiet"
+
+or hand-edit /etc/grub.conf if you prefer and make an entry that boots
+with the new initrd and passes vga=0x318, rhgb, and quiet on the
+kernel command line.
+
+Edit /etc/inittab to not start a tty on vt0:
+
+  $ sed -ie 's/1:2345/# 1:2345/' /etc/inittab
+
+Reboot!
+
+
+HOW IT WORKS
+
+We're using the kernel fbdev driver to initialize the display to
+1024x768 24bpp as soon as the kernel boots up.  At this point the
+kernel boots up with a black background and shows a picture of a fat
+penguin.  The kernel patch disables the Linux logo and re-enables the
+quiet boot mode.  I'd like to teach the kernel to clear the background
+color to the background color set by nash later on, but for now the
+patch just makes it boot into a black 1024x768.  This solid color
+background patch and using fbdev are the only changes to the kernel.
+
+A few seconds after the kernel boots, the initrd starts up.  The
+changes to initrd includes making nash less chatty in quiet mode, and
+adding a 'logo' command to the nash shell that it can load and display
+a fedora PNG logo from the initrd.
+
+Next step is rhgb.  The changes to rhgb replaces all the X server
+startup/hand-holding code and the gtk+ progress screen and just paints
+on the fbdev using cairo.  Other than that, most of the rhgb progress
+feedback is reused, the initscripts report back to rhgb throughout the
+boot process as they have always done.
+
+
+NEXT STEPS
+
+- Silence grub completely - don't show the menu, don't show the info
+  about what we're booting, don't show anything.  Enter the menu only
+  if the user holds down some key.
+
+- Fall back to text mode in rhgb if something fails, or at least make
+  a note of it and let the user review the log at a later time.  Also,
+  probably bind Esc or some key to drop back into full textual boot.
+
+- Actually write the kernel patch to initialize the fbdev to a given
+  solid color.
+
+- Make the transition from the rhgb fbdev into X smoother.  Don't do
+  mode-setting in X and reuse framebuffer contents when possible or
+  crazy-talk like that.

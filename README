@@ -1,3 +1,10 @@
+Current plans are getting discussed here:
+
+http://fedoraproject.org/wiki/Releases/FeatureBetterStartup
+
+Until this file is fleshed out, I've included Kristian's old
+text below.
+
 plymouth - fbdev based graphical boot
 
 INSTALL

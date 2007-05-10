@@ -250,11 +250,9 @@ ply_video_buffer_get_value_at_pixel (PlyVideoBuffer *buffer,
         bytes_per_row = buffer->bytes_per_pixel * buffer->area.width;
         offset = (y * bytes_per_row) + (x * buffer->bytes_per_pixel);
 
-        /* FIXME: I think we're going to need to byteswap pixel_value on
-         * ppc
-         */
         memcpy (&pixel_value, buffer->shadow_layout.address + offset,
                 buffer->bytes_per_pixel);
+        pixel_value = ntohl (pixel_value);
         break;
 
       case 4:
@@ -294,7 +292,7 @@ ply_video_buffer_set_value_at_pixel (PlyVideoBuffer *buffer,
         bytes_per_row = buffer->bytes_per_pixel * buffer->area.width;
         offset = (y * bytes_per_row) + (x * buffer->bytes_per_pixel);
 
-        /* FIXME: see fixme in _get_value_at_pixel
+        /* FIXME: endianess issues here I think
          */
         memcpy (buffer->shadow_layout.address + offset, &pixel_value,
                 buffer->bytes_per_pixel);
@@ -321,13 +319,14 @@ ply_video_buffer_blend_value_at_pixel (PlyVideoBuffer *buffer,
   uint32_t old_pixel_value;
   double old_red, old_green, old_blue, old_alpha;
   double new_red, new_green, new_blue, new_alpha;
+  uint32_t new_pixel_value;
 
   old_pixel_value = ply_video_buffer_get_value_at_pixel (buffer, x, y);
 
-  old_alpha = old_pixel_value / 255.0;
-  old_red = old_pixel_value / 255.0;
-  old_green = old_pixel_value / 255.0;
-  old_blue = old_pixel_value / 255.0;
+  old_alpha = (old_pixel_value >> 24) / 255.0;
+  old_red = ((old_pixel_value >> 16) & 0xff) / 255.0;
+  old_green = ((old_pixel_value >> 8) & 0xff) / 255.0;
+  old_blue = (old_pixel_value & 0xff) / 255.0;
 
   new_alpha = (pixel_value >> 24) / 255.0;
   new_red = ((pixel_value >> 16) & 0xff) / 255.0;
@@ -344,12 +343,12 @@ ply_video_buffer_blend_value_at_pixel (PlyVideoBuffer *buffer,
   new_blue = CLAMP (new_blue * 255.0, 0, 255.0);
   new_alpha = CLAMP (new_alpha * 255.0, 0, 255.0);
 
-  pixel_value = (((uint8_t) new_alpha) << 24)
-                 | (((uint8_t) new_red) << 16)
-                 | (((uint8_t) new_green) << 8)
-                 | ((uint8_t) new_blue);
+  new_pixel_value = (((uint8_t) new_alpha) << 24)
+                     | (((uint8_t) new_red) << 16)
+                     | (((uint8_t) new_green) << 8)
+                     | ((uint8_t) new_blue);
 
-  ply_video_buffer_set_value_at_pixel (buffer, x, y, pixel_value);
+  ply_video_buffer_set_value_at_pixel (buffer, x, y, new_pixel_value);
 }
 
 static void
@@ -611,7 +610,6 @@ ply_video_buffer_fill_with_argb32_data (PlyVideoBuffer     *buffer,
                                         unsigned long       height,
                                         uint32_t           *data)
 {
-  uint32_t pixel_value;
   long row, column;
 
   assert (buffer != NULL);
@@ -624,26 +622,19 @@ ply_video_buffer_fill_with_argb32_data (PlyVideoBuffer     *buffer,
     {
       for (column = x; column < width; column++)
         {
-          uint8_t red, green, blue, alpha;
+          uint8_t alpha;
 
-          alpha = ((data[width * row + column] & 0xff000000) >> 24);
-          red = ((data[width * row + column]   & 0x00ff0000) >> 16);
-          green = ((data[width * row + column] & 0x0000ff00) >> 8);
-          blue = ((data[width * row + column]  & 0x000000ff));
-
-          pixel_value = 
-            ply_video_buffer_convert_color_to_pixel_value (buffer, red, green,
-                                                           blue, alpha);
+          alpha = data[width * row + column] >> 24;
           if (alpha == 0xff)
             ply_video_buffer_set_value_at_pixel (buffer,
                                                  area->x + (column - x),
                                                  area->y + (row - y),
-                                                 pixel_value);
+                                                 data[width * row + column]);
           else
             ply_video_buffer_blend_value_at_pixel (buffer,
                                                    area->x + (column - x),
                                                    area->y + (row - y),
-                                                   pixel_value);
+                                                   data[width * row + column]);
         }
     }
 

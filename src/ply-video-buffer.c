@@ -330,13 +330,10 @@ ply_video_buffer_blend_value_at_pixel (PlyVideoBuffer *buffer,
   old_green = ((old_pixel_value >> 8) & 0xff) / 255.0;
   old_blue = (old_pixel_value & 0xff) / 255.0;
 
-  new_alpha = (pixel_value >> 24) / 255.0;
+  new_alpha = ((pixel_value >> 24) & 0xff) / 255.0;
   new_red = ((pixel_value >> 16) & 0xff) / 255.0;
-  new_red *= new_alpha;
   new_green = ((pixel_value >> 8) & 0xff) / 255.0;
-  new_green *= new_alpha;
   new_blue = (pixel_value & 0xff) / 255.0;
-  new_blue *= new_alpha;
 
   new_red = new_red + old_red * (1.0 - new_alpha);
   new_green = new_green + old_green * (1.0 - new_alpha);
@@ -614,6 +611,10 @@ ply_video_buffer_fill_with_color (PlyVideoBuffer      *buffer,
 
   if (area == NULL)
     area = &buffer->area;
+
+  red *= alpha;
+  green *= alpha;
+  blue *= alpha;
 
   pixel_value = 
     ply_video_buffer_convert_color_to_pixel_value (buffer, 

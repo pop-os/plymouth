@@ -36,6 +36,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <values.h>
 #include <unistd.h>
 
 #include <linux/fb.h>
@@ -81,12 +82,28 @@ static uint32_t ply_video_buffer_convert_color_to_pixel_value (
     uint8_t         green,
     uint8_t         blue, 
     uint8_t         alpha);
-static void ply_video_buffer_set_pixel_to_value (PlyVideoBuffer *buffer,
+static uint32_t ply_video_buffer_get_value_at_pixel (PlyVideoBuffer *buffer,
+                                                     int             x,
+                                                     int             y);
+static void ply_video_buffer_set_value_at_pixel (PlyVideoBuffer *buffer,
                                                  int             x,
                                                  int             y,
                                                  uint32_t        pixel_value);
+static void ply_video_buffer_blend_value_at_pixel (PlyVideoBuffer *buffer,
+    int             x,
+    int             y,
+    uint32_t        pixel_value);
 
-static void ply_video_buffer_add_area_to_flush_area (PlyVideoBuffer     *buffer, 
+static void ply_video_buffer_set_area_to_pixel_value (
+    PlyVideoBuffer     *buffer,
+    PlyVideoBufferArea *area,
+    uint32_t            pixel_value);
+static void ply_video_buffer_blend_area_with_pixel_value (
+    PlyVideoBuffer     *buffer,
+    PlyVideoBufferArea *area,
+    uint32_t            pixel_value);
+
+static void ply_video_buffer_add_area_to_flush_area (PlyVideoBuffer     *buffer,
                                                      PlyVideoBufferArea *area);
 static bool ply_video_buffer_flush (PlyVideoBuffer *buffer);
 
@@ -201,6 +218,51 @@ ply_video_buffer_convert_color_to_pixel_value (PlyVideoBuffer *buffer,
         break;
 
       default:
+        pixel_value = 0;
+        assert ((buffer->bytes_per_pixel == 2) 
+                || (buffer->bytes_per_pixel == 3) 
+                || (buffer->bytes_per_pixel == 4));
+        break;
+    }
+
+  return pixel_value;
+}
+
+static uint32_t
+ply_video_buffer_get_value_at_pixel (PlyVideoBuffer *buffer,
+                                     int             x,
+                                     int             y)
+{
+  unsigned long bytes_per_row;
+  unsigned long offset;
+  uint32_t pixel_value;
+
+  assert (buffer != NULL);
+
+  switch (buffer->bytes_per_pixel)
+    {
+      case 2:
+        pixel_value = 
+          buffer->shadow_layout.for_16bpp[y * buffer->area.width + x];
+        break;
+
+      case 3:
+        bytes_per_row = buffer->bytes_per_pixel * buffer->area.width;
+        offset = (y * bytes_per_row) + (x * buffer->bytes_per_pixel);
+
+        /* FIXME: I think we're going to need to byteswap pixel_value on
+         * ppc
+         */
+        memcpy (&pixel_value, buffer->shadow_layout.address + offset,
+                buffer->bytes_per_pixel);
+        break;
+
+      case 4:
+        pixel_value = 
+          buffer->shadow_layout.for_16bpp[y * buffer->area.width + x];
+        break;
+
+      default:
         assert ((buffer->bytes_per_pixel == 2) 
                 || (buffer->bytes_per_pixel == 3) 
                 || (buffer->bytes_per_pixel == 4));
@@ -211,7 +273,7 @@ ply_video_buffer_convert_color_to_pixel_value (PlyVideoBuffer *buffer,
 }
 
 static void
-ply_video_buffer_set_pixel_to_value (PlyVideoBuffer *buffer,
+ply_video_buffer_set_value_at_pixel (PlyVideoBuffer *buffer,
                                      int             x,
                                      int             y,
                                      uint32_t        pixel_value)
@@ -232,8 +294,7 @@ ply_video_buffer_set_pixel_to_value (PlyVideoBuffer *buffer,
         bytes_per_row = buffer->bytes_per_pixel * buffer->area.width;
         offset = (y * bytes_per_row) + (x * buffer->bytes_per_pixel);
 
-        /* FIXME: I think we're going to need to byteswap pixel_value on
-         * ppc
+        /* FIXME: see fixme in _get_value_at_pixel
          */
         memcpy (buffer->shadow_layout.address + offset, &pixel_value,
                 buffer->bytes_per_pixel);
@@ -248,6 +309,80 @@ ply_video_buffer_set_pixel_to_value (PlyVideoBuffer *buffer,
                 || (buffer->bytes_per_pixel == 3) 
                 || (buffer->bytes_per_pixel == 4));
         break;
+    }
+}
+
+static void 
+ply_video_buffer_blend_value_at_pixel (PlyVideoBuffer *buffer,
+                                       int             x,
+                                       int             y,
+                                       uint32_t        pixel_value)
+{
+  uint32_t old_pixel_value;
+  double old_red, old_green, old_blue, old_alpha;
+  double new_red, new_green, new_blue, new_alpha;
+
+  old_pixel_value = ply_video_buffer_get_value_at_pixel (buffer, x, y);
+
+  old_alpha = old_pixel_value / 255.0;
+  old_red = old_pixel_value / 255.0;
+  old_green = old_pixel_value / 255.0;
+  old_blue = old_pixel_value / 255.0;
+
+  new_alpha = (pixel_value >> 24) / 255.0;
+  new_red = ((pixel_value >> 16) & 0xff) / 255.0;
+  new_green = ((pixel_value >> 8) & 0xff) / 255.0;
+  new_blue = (pixel_value & 0xff) / 255.0;
+
+  new_red = new_red * new_alpha + old_red * old_alpha * (1.0 - new_alpha);
+  new_green = new_green * new_alpha + old_green * old_alpha * (1.0 - new_alpha);
+  new_blue = new_blue * new_alpha + old_blue * old_alpha * (1.0 - new_alpha);
+  new_alpha = new_alpha * (1.0 - old_alpha); 
+
+  new_red = CLAMP (new_red * 255.0, 0, 255.0);
+  new_green = CLAMP (new_green * 255.0, 0, 255.0);
+  new_blue = CLAMP (new_blue * 255.0, 0, 255.0);
+  new_alpha = CLAMP (new_alpha * 255.0, 0, 255.0);
+
+  pixel_value = (((uint8_t) new_alpha) << 24)
+                 | (((uint8_t) new_red) << 16)
+                 | (((uint8_t) new_green) << 8)
+                 | ((uint8_t) new_blue);
+
+  ply_video_buffer_set_value_at_pixel (buffer, x, y, pixel_value);
+}
+
+static void
+ply_video_buffer_set_area_to_pixel_value (PlyVideoBuffer     *buffer,
+                                          PlyVideoBufferArea *area,
+                                          uint32_t            pixel_value)
+{
+  long row, column;
+
+  for (row = 0; row < area->height; row++)
+    {
+      for (column = 0; column < area->width; column++)
+        {
+          ply_video_buffer_set_value_at_pixel (buffer, column, row,
+                                               pixel_value);
+        }
+    }
+}
+
+static void
+ply_video_buffer_blend_area_with_pixel_value (PlyVideoBuffer     *buffer,
+                                              PlyVideoBufferArea *area,
+                                              uint32_t            pixel_value)
+{
+  long row, column;
+
+  for (row = 0; row < area->height; row++)
+    {
+      for (column = 0; column < area->width; column++)
+        {
+          ply_video_buffer_blend_value_at_pixel (buffer, column, row, 
+                                                 pixel_value);
+        }
     }
 }
 
@@ -357,6 +492,7 @@ ply_video_buffer_open (PlyVideoBuffer *buffer)
     realloc (buffer->shadow_layout.address,
              buffer->layout_size);
   memset (buffer->shadow_layout.address, 0, buffer->layout_size);
+  ply_video_buffer_fill_with_color (buffer, NULL, 0.0, 0.0, 0.0, 1.0);
 
   is_open = true;
 
@@ -442,7 +578,6 @@ ply_video_buffer_fill_with_color (PlyVideoBuffer      *buffer,
                                   double               alpha)
 {
   uint32_t pixel_value;
-  long row, column;
 
   assert (buffer != NULL);
   assert (ply_video_buffer_device_is_open (buffer));
@@ -456,14 +591,11 @@ ply_video_buffer_fill_with_color (PlyVideoBuffer      *buffer,
                                                    CLAMP (green * 255.0, 0, 255), 
                                                    CLAMP (blue * 255.0, 0, 255),
                                                    CLAMP (alpha * 255.0, 0, 255));
-  for (row = 0; row < area->height; row++)
-    {
-      for (column = 0; column < area->width; column++)
-        {
-          ply_video_buffer_set_pixel_to_value (buffer, column, row,
-                                               pixel_value);
-        }
-    }
+
+  if (abs (alpha - 1.0) <= DBL_MIN) 
+    ply_video_buffer_set_area_to_pixel_value (buffer, area, pixel_value);
+  else
+    ply_video_buffer_blend_area_with_pixel_value (buffer, area, pixel_value);
 
   ply_video_buffer_add_area_to_flush_area (buffer, area);
 
@@ -504,8 +636,12 @@ ply_video_buffer_fill_with_argb32_data (PlyVideoBuffer     *buffer,
           pixel_value = 
             ply_video_buffer_convert_color_to_pixel_value (buffer, red, green,
                                                            blue, alpha);
-          ply_video_buffer_set_pixel_to_value (buffer, column, row,
-                                               pixel_value);
+          if (alpha == 0xff)
+            ply_video_buffer_set_value_at_pixel (buffer, column, row,
+                                                 pixel_value);
+          else
+            ply_video_buffer_blend_value_at_pixel (buffer, column, row,
+                                                   pixel_value);
         }
     }
 

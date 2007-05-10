@@ -450,6 +450,10 @@ ply_video_buffer_fill_with_color (PlyVideoBuffer      *buffer,
   if (area == NULL)
     area = &buffer->area;
 
+  red *= alpha;
+  green *= alpha;
+  blue *= alpha;
+
   pixel_value = 
     ply_video_buffer_convert_color_to_pixel_value (buffer, 
                                                    CLAMP (red * 255.0, 0, 255),

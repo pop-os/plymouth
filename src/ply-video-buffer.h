@@ -41,6 +41,8 @@ struct _PlyVideoBufferArea
 PlyVideoBuffer *ply_video_buffer_new (const char *device_name);
 void ply_video_buffer_free (PlyVideoBuffer *buffer);
 bool ply_video_buffer_open (PlyVideoBuffer *buffer);
+void ply_video_buffer_pause_updates (PlyVideoBuffer *buffer);
+bool ply_video_buffer_unpause_updates (PlyVideoBuffer *buffer);
 bool ply_video_buffer_device_is_open (PlyVideoBuffer *buffer); 
 char *ply_video_buffer_get_device_name (PlyVideoBuffer *buffer);
 void ply_video_buffer_set_device_name (PlyVideoBuffer *buffer,

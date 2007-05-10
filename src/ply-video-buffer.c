@@ -70,6 +70,8 @@ struct _PlyVideoBuffer
   unsigned int bytes_per_pixel;
   PlyVideoBufferArea area;
   PlyVideoBufferArea area_to_flush;
+
+  uint32_t is_paused : 1;
 };
 
 static bool ply_video_buffer_open_device (PlyVideoBuffer  *buffer);
@@ -330,13 +332,16 @@ ply_video_buffer_blend_value_at_pixel (PlyVideoBuffer *buffer,
 
   new_alpha = (pixel_value >> 24) / 255.0;
   new_red = ((pixel_value >> 16) & 0xff) / 255.0;
+  new_red *= new_alpha;
   new_green = ((pixel_value >> 8) & 0xff) / 255.0;
+  new_green *= new_alpha;
   new_blue = (pixel_value & 0xff) / 255.0;
+  new_blue *= new_alpha;
 
-  new_red = new_red * new_alpha + old_red * old_alpha * (1.0 - new_alpha);
-  new_green = new_green * new_alpha + old_green * old_alpha * (1.0 - new_alpha);
-  new_blue = new_blue * new_alpha + old_blue * old_alpha * (1.0 - new_alpha);
-  new_alpha = new_alpha * (1.0 - old_alpha); 
+  new_red = new_red + old_red * (1.0 - new_alpha);
+  new_green = new_green + old_green * (1.0 - new_alpha);
+  new_blue = new_blue + old_blue * (1.0 - new_alpha);
+  new_alpha = new_alpha + (1.0 - old_alpha);
 
   new_red = CLAMP (new_red * 255.0, 0, 255.0);
   new_green = CLAMP (new_green * 255.0, 0, 255.0);
@@ -358,11 +363,12 @@ ply_video_buffer_set_area_to_pixel_value (PlyVideoBuffer     *buffer,
 {
   long row, column;
 
-  for (row = 0; row < area->height; row++)
+  for (row = area->y; row < area->y + area->height; row++)
     {
-      for (column = 0; column < area->width; column++)
+      for (column = area->x; column < area->x + area->width; column++)
         {
-          ply_video_buffer_set_value_at_pixel (buffer, column, row,
+          ply_video_buffer_set_value_at_pixel (buffer, 
+                                               column, row,
                                                pixel_value);
         }
     }
@@ -375,11 +381,12 @@ ply_video_buffer_blend_area_with_pixel_value (PlyVideoBuffer     *buffer,
 {
   long row, column;
 
-  for (row = 0; row < area->height; row++)
+  for (row = area->y; row < area->y + area->height; row++)
     {
-      for (column = 0; column < area->width; column++)
+      for (column = area->x; column < area->x + area->width; column++)
         {
-          ply_video_buffer_blend_value_at_pixel (buffer, column, row, 
+          ply_video_buffer_blend_value_at_pixel (buffer, 
+                                                 column, row,
                                                  pixel_value);
         }
     }
@@ -412,7 +419,12 @@ ply_video_buffer_flush (PlyVideoBuffer *buffer)
   unsigned long start_offset;
   size_t size;
 
-  bytes_per_row = buffer->bytes_per_pixel * buffer->area.width;
+  assert (buffer != NULL);
+
+  if (buffer->is_paused)
+    return true;
+
+  bytes_per_row = buffer->bytes_per_pixel * buffer->area_to_flush.width;
   start_offset = (buffer->area_to_flush.y * bytes_per_row)
                  + (buffer->area_to_flush.x * buffer->bytes_per_pixel);
   size = buffer->area_to_flush.width * buffer->area_to_flush.height
@@ -446,6 +458,8 @@ ply_video_buffer_new (const char *device_name)
 
   buffer->layout.address = MAP_FAILED;
   buffer->shadow_layout.address = NULL;
+
+  buffer->is_paused = false;
 
   return buffer;
 }
@@ -507,6 +521,23 @@ out:
     }
 
   return is_open;
+}
+
+void
+ply_video_buffer_pause_updates (PlyVideoBuffer *buffer)
+{
+  assert (buffer != NULL);
+
+  buffer->is_paused = true;
+}
+
+bool
+ply_video_buffer_unpause_updates (PlyVideoBuffer *buffer)
+{
+  assert (buffer != NULL);
+  
+  buffer->is_paused = false;
+  return ply_video_buffer_flush (buffer);
 }
 
 bool 
@@ -618,9 +649,9 @@ ply_video_buffer_fill_with_argb32_data (PlyVideoBuffer     *buffer,
   if (area == NULL)
     area = &buffer->area;
 
-  for (row = y; row < height; row++)
+  for (row = y; row < y + height; row++)
     {
-      for (column = x; column < width; column++)
+      for (column = x; column < x + width; column++)
         {
           uint8_t alpha;
 

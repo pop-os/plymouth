@@ -61,7 +61,6 @@ bool ply_video_buffer_fill_with_argb32_data (PlyVideoBuffer      *buffer,
                                              unsigned long        y,
                                              unsigned long        width,
                                              unsigned long        height,
-                                             unsigned long        bytes_per_row,
                                              uint32_t            *data);
 
 

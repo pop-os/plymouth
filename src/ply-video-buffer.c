@@ -609,7 +609,6 @@ ply_video_buffer_fill_with_argb32_data (PlyVideoBuffer     *buffer,
                                         unsigned long       y,
                                         unsigned long       width,
                                         unsigned long       height,
-                                        unsigned long       bytes_per_row,
                                         uint32_t           *data)
 {
   uint32_t pixel_value;
@@ -617,7 +616,6 @@ ply_video_buffer_fill_with_argb32_data (PlyVideoBuffer     *buffer,
 
   assert (buffer != NULL);
   assert (ply_video_buffer_device_is_open (buffer));
-  assert (width * 4 <= bytes_per_row);
 
   if (area == NULL)
     area = &buffer->area;
@@ -628,19 +626,23 @@ ply_video_buffer_fill_with_argb32_data (PlyVideoBuffer     *buffer,
         {
           uint8_t red, green, blue, alpha;
 
-          alpha = ((data[bytes_per_row / 4 * row + column] & 0xff000000) >> 24);
-          red = ((data[bytes_per_row / 4 * row + column]   & 0x00ff0000) >> 16);
-          green = ((data[bytes_per_row / 4 * row + column] & 0x0000ff00) >> 8);
-          blue = ((data[bytes_per_row / 4 * row + column]  & 0x000000ff));
+          alpha = ((data[width * row + column] & 0xff000000) >> 24);
+          red = ((data[width * row + column]   & 0x00ff0000) >> 16);
+          green = ((data[width * row + column] & 0x0000ff00) >> 8);
+          blue = ((data[width * row + column]  & 0x000000ff));
 
           pixel_value = 
             ply_video_buffer_convert_color_to_pixel_value (buffer, red, green,
                                                            blue, alpha);
           if (alpha == 0xff)
-            ply_video_buffer_set_value_at_pixel (buffer, column, row,
+            ply_video_buffer_set_value_at_pixel (buffer,
+                                                 area->x + (column - x),
+                                                 area->y + (row - y),
                                                  pixel_value);
           else
-            ply_video_buffer_blend_value_at_pixel (buffer, column, row,
+            ply_video_buffer_blend_value_at_pixel (buffer,
+                                                   area->x + (column - x),
+                                                   area->y + (row - y),
                                                    pixel_value);
         }
     }
@@ -698,8 +700,7 @@ animate_at_time (PlyVideoBuffer *buffer,
       }
     }
 
-  ply_video_buffer_fill_with_argb32_data (buffer, NULL, 0, 0, 1024, 768, 
-                                          1024 * 4, data);
+  ply_video_buffer_fill_with_argb32_data (buffer, NULL, 0, 0, 1024, 768, data);
 }
 
 int

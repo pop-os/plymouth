@@ -257,10 +257,10 @@ ply_video_buffer_add_area_to_flush_area (PlyVideoBuffer     *buffer,
 {
   assert (buffer != NULL);
   assert (area != NULL);
-  assert (area->x >= 0);
-  assert (area->y >= 0);
-  assert (area->x < area->width);
-  assert (area->y < area->height);
+  assert (area->x >= buffer->area.x);
+  assert (area->y >= buffer->area.y);
+  assert (area->x < buffer->area.width);
+  assert (area->y < buffer->area.height);
   assert (area->width >= 0);
   assert (area->height >= 0);
 

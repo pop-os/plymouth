@@ -427,7 +427,7 @@ ply_video_buffer_get_size (PlyVideoBuffer     *buffer,
                            PlyVideoBufferArea *size)
 {
   assert (buffer != NULL);
-  assert (!ply_video_buffer_device_is_open (buffer));
+  assert (ply_video_buffer_device_is_open (buffer));
   assert (size != NULL);
 
   *size = buffer->area;
@@ -449,10 +449,6 @@ ply_video_buffer_fill_with_color (PlyVideoBuffer      *buffer,
 
   if (area == NULL)
     area = &buffer->area;
-
-  red *= alpha;
-  green *= alpha;
-  blue *= alpha;
 
   pixel_value = 
     ply_video_buffer_convert_color_to_pixel_value (buffer, 

@@ -398,7 +398,6 @@ static bool
 ply_video_buffer_flush (PlyVideoBuffer *buffer)
 {
   assert (buffer != NULL);
-  unsigned long bytes_per_row;
   unsigned long start_offset;
   size_t size;
 
@@ -635,10 +634,10 @@ ply_video_buffer_fill_with_argb32_data_at_opacity (PlyVideoBuffer     *buffer,
   if (area == NULL)
     area = &buffer->area;
 
+  alpha_pixel_value = 0x00000000;
   if (abs (opacity - 1.0) > DBL_MIN)
     {
       uint8_t alpha;
-      alpha_pixel_value = 0x00000000;
       alpha = (uint8_t) CLAMP (opacity * 255.0, 0.0, 255.0);
       alpha_pixel_value |= alpha << 24;
       is_translucent = true;
@@ -719,7 +718,7 @@ animate_at_time (PlyVideoBuffer *buffer,
       int blue_bit_position;
       uint8_t red, green, blue, alpha;
 
-      blue_bit_position = (int) 64 * sin (time) + (255 - 64);
+      blue_bit_position = (int) 64 * (.5 * sin (time) + .5) + (255 - 64);
       blue = rand () % blue_bit_position;
       for (x = 0; x < 1024; x++)
       {

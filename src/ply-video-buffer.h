@@ -26,6 +26,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "ply-utils.h"
+
 typedef struct _PlyVideoBuffer PlyVideoBuffer;
 typedef struct _PlyVideoBufferArea PlyVideoBufferArea;
 
@@ -36,6 +38,12 @@ struct _PlyVideoBufferArea
   unsigned long width;
   unsigned long height;
 };
+
+#define PLY_VIDEO_BUFFER_COLOR_TO_PIXEL_VALUE(r,g,b,a)                        \
+    (((uint8_t) (CLAMP (a * 255.0, 0.0, 255.0)) << 24)                        \
+      | ((uint8_t) (CLAMP (r * 255.0, 0.0, 255.0)) << 16)                     \
+      | ((uint8_t) (CLAMP (g * 255.0, 0.0, 255.0)) << 8)                      \
+      | ((uint8_t) (CLAMP (b * 255.0, 0.0, 255.0))))
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 PlyVideoBuffer *ply_video_buffer_new (const char *device_name);
@@ -64,7 +72,14 @@ bool ply_video_buffer_fill_with_argb32_data (PlyVideoBuffer      *buffer,
                                              unsigned long        width,
                                              unsigned long        height,
                                              uint32_t            *data);
-
+bool ply_video_buffer_fill_with_argb32_data_at_opacity (PlyVideoBuffer     *buffer,
+                                                        PlyVideoBufferArea *area,
+                                                        unsigned long       x,
+                                                        unsigned long       y,
+                                                        unsigned long       width,
+                                                        unsigned long       height,
+                                                        uint32_t           *data,
+                                                        double              opacity);
 
 #endif
 

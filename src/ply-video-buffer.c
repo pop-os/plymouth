@@ -1,4 +1,4 @@
-/* vim: ts=4 sw=2 expandtab autoindent cindent 
+/* vim: ts=4 sw=2 expandtab autoindent cindent cino={1s,(0
  * ply-video-buffer.c - framebuffer abstraction
  *
  * Copyright (C) 2006, 2007 Red Hat, Inc.
@@ -45,26 +45,25 @@
 #define PLY_VIDEO_BUFFER_DEFAULT_FB_DEVICE_NAME "/dev/fb"
 #endif
 
-#define MIN(a,b) (a <= b? a : b)
-#define MAX(a,b) (a >= b? a : b)
-#define CLAMP(a,b,c) (((a) > (c)) ? (c) : (((a) < (b)) ? (b) : (a)))
-
-typedef union 
-{
-  uint16_t *for_16bpp;
-  uint32_t *for_32bpp;
-  char *address;
-} PlyVideoBufferPixelLayout;
-
 struct _PlyVideoBuffer
 {
-  char  *device_name;
-  int    device_fd;
+  char *device_name;
+  int   device_fd;
 
-  PlyVideoBufferPixelLayout layout;
-  size_t layout_size;
+  char *map_address;
+  size_t size;
 
-  PlyVideoBufferPixelLayout shadow_layout;
+  uint32_t *shadow_buffer;
+
+  uint32_t red_bit_position;
+  uint32_t green_bit_position;
+  uint32_t blue_bit_position;
+  uint32_t alpha_bit_position;
+
+  uint32_t bits_for_red;
+  uint32_t bits_for_green;
+  uint32_t bits_for_blue;
+  uint32_t bits_for_alpha;
 
   unsigned int bits_per_pixel;
   unsigned int bytes_per_pixel;
@@ -77,13 +76,11 @@ struct _PlyVideoBuffer
 static bool ply_video_buffer_open_device (PlyVideoBuffer  *buffer);
 static void ply_video_buffer_close_device (PlyVideoBuffer *buffer);
 static bool ply_video_buffer_query_device (PlyVideoBuffer *buffer);
-static bool ply_video_buffer_map_to_layout (PlyVideoBuffer *buffer);
-static uint32_t ply_video_buffer_convert_color_to_pixel_value (
+static bool ply_video_buffer_map_to_device (PlyVideoBuffer *buffer);
+static uint_least32_t ply_video_buffer_pixel_value_to_device_pixel_value (
     PlyVideoBuffer *buffer,
-    uint8_t         red, 
-    uint8_t         green,
-    uint8_t         blue, 
-    uint8_t         alpha);
+    uint32_t        pixel_value);
+
 static uint32_t ply_video_buffer_get_value_at_pixel (PlyVideoBuffer *buffer,
                                                      int             x,
                                                      int             y);
@@ -92,9 +89,9 @@ static void ply_video_buffer_set_value_at_pixel (PlyVideoBuffer *buffer,
                                                  int             y,
                                                  uint32_t        pixel_value);
 static void ply_video_buffer_blend_value_at_pixel (PlyVideoBuffer *buffer,
-    int             x,
-    int             y,
-    uint32_t        pixel_value);
+                                                   int             x,
+                                                   int             y,
+                                                   uint32_t        pixel_value);
 
 static void ply_video_buffer_set_area_to_pixel_value (
     PlyVideoBuffer     *buffer,
@@ -107,6 +104,12 @@ static void ply_video_buffer_blend_area_with_pixel_value (
 
 static void ply_video_buffer_add_area_to_flush_area (PlyVideoBuffer     *buffer,
                                                      PlyVideoBufferArea *area);
+static bool ply_video_buffer_copy_to_device (PlyVideoBuffer *buffer,
+                                             unsigned long   x,
+                                             unsigned long   y,
+                                             unsigned long   width,
+                                             unsigned long   height);
+
 static bool ply_video_buffer_flush (PlyVideoBuffer *buffer);
 
 static bool
@@ -130,10 +133,10 @@ ply_video_buffer_close_device (PlyVideoBuffer *buffer)
 {
   assert (buffer != NULL);
 
-  if (buffer->layout.address != MAP_FAILED)
+  if (buffer->map_address != MAP_FAILED)
     {
-      munmap (buffer->layout.address, buffer->layout_size);
-      buffer->layout.address = MAP_FAILED;
+      munmap (buffer->map_address, buffer->size);
+      buffer->map_address = MAP_FAILED;
     }
 
   if (buffer->device_fd >= 0)
@@ -164,70 +167,65 @@ ply_video_buffer_query_device (PlyVideoBuffer *buffer)
   buffer->area.width = variable_screen_info.xres;
   buffer->area.height = variable_screen_info.yres;
 
+  buffer->red_bit_position = variable_screen_info.red.offset;
+  buffer->bits_for_red = variable_screen_info.red.length;
+
+  buffer->green_bit_position = variable_screen_info.green.offset;
+  buffer->bits_for_green = variable_screen_info.green.length;
+
+  buffer->blue_bit_position = variable_screen_info.blue.offset;
+  buffer->bits_for_blue = variable_screen_info.blue.length;
+
+  buffer->alpha_bit_position = variable_screen_info.transp.offset;
+  buffer->bits_for_alpha = variable_screen_info.transp.length;
+
   if (ioctl(buffer->device_fd, FBIOGET_FSCREENINFO, &fixed_screen_info) < 0) 
     {
       return false;
     }
 
   bytes_per_row = fixed_screen_info.line_length;
-  buffer->layout_size = buffer->area.height * bytes_per_row;
+  buffer->size = buffer->area.height * bytes_per_row;
   buffer->bytes_per_pixel = bytes_per_row / buffer->area.width;
 
   return true;
 }
 
 static bool
-ply_video_buffer_map_to_layout (PlyVideoBuffer *buffer)
+ply_video_buffer_map_to_device (PlyVideoBuffer *buffer)
 {
   assert (buffer != NULL);
   assert (buffer->device_fd >= 0);
-  assert (buffer->layout_size > 0);
+  assert (buffer->size > 0);
 
-  buffer->layout.address = mmap (NULL, buffer->layout_size, PROT_WRITE,
-                                     MAP_SHARED, buffer->device_fd, 0);
+  buffer->map_address = mmap (NULL, buffer->size, PROT_WRITE,
+                              MAP_SHARED, buffer->device_fd, 0);
 
-  return buffer->layout.address != MAP_FAILED;
+  return buffer->map_address != MAP_FAILED;
 }
 
-static uint32_t
-ply_video_buffer_convert_color_to_pixel_value (PlyVideoBuffer *buffer,
-                                               uint8_t         red, 
-                                               uint8_t         green,
-                                               uint8_t         blue, 
-                                               uint8_t         alpha)
+static uint_least32_t 
+ply_video_buffer_pixel_value_to_device_pixel_value (PlyVideoBuffer *buffer,
+                                                    uint32_t        pixel_value)
 {
-  uint32_t pixel_value;
+  uint8_t r, g, b, a;
 
-  assert (buffer != NULL);
+  a = pixel_value >> 24; 
+  a >>= (8 - buffer->bits_for_alpha);
 
-  switch (buffer->bytes_per_pixel)
-    {
-      case 2:
+  r = (pixel_value >> 16) & 0xff; 
+  r >>= (8 - buffer->bits_for_red);
 
-        red >>= 3;
-        green >>= 2;
-        blue >>= 3;
+  g = (pixel_value >> 8) & 0xff; 
+  g >>= (8 - buffer->bits_for_green);
 
-        pixel_value = (red << 11) | (green << 5) | blue;
-        break;
+  b = pixel_value & 0xff; 
+  b >>= (8 - buffer->bits_for_blue);
 
-      case 3:
-        pixel_value = (red << 16) | (green << 8) | blue;
-        break;
-
-      case 4:
-        pixel_value = (alpha << 24) | (red << 16) | (green << 8) | blue;
-        break;
-
-      default:
-        pixel_value = 0;
-        assert ((buffer->bytes_per_pixel == 2) 
-                || (buffer->bytes_per_pixel == 3) 
-                || (buffer->bytes_per_pixel == 4));
-        break;
-    }
-
-  return pixel_value;
+  return ((a << buffer->alpha_bit_position)
+          | (r << buffer->red_bit_position)
+          | (g << buffer->green_bit_position)
+          | (b << buffer->blue_bit_position));
 }
 
 static uint32_t
@@ -235,39 +233,11 @@ ply_video_buffer_get_value_at_pixel (PlyVideoBuffer *buffer,
                                      int             x,
                                      int             y)
 {
-  unsigned long bytes_per_row;
-  unsigned long offset;
   uint32_t pixel_value;
 
   assert (buffer != NULL);
 
-  switch (buffer->bytes_per_pixel)
-    {
-      case 2:
-        pixel_value = 
-          buffer->shadow_layout.for_16bpp[y * buffer->area.width + x];
-        break;
-
-      case 3:
-        bytes_per_row = buffer->bytes_per_pixel * buffer->area.width;
-        offset = (y * bytes_per_row) + (x * buffer->bytes_per_pixel);
-
-        memcpy (&pixel_value, buffer->shadow_layout.address + offset,
-                buffer->bytes_per_pixel);
-        pixel_value = ntohl (pixel_value);
-        break;
-
-      case 4:
-        pixel_value = 
-          buffer->shadow_layout.for_16bpp[y * buffer->area.width + x];
-        break;
-
-      default:
-        assert ((buffer->bytes_per_pixel == 2) 
-                || (buffer->bytes_per_pixel == 3) 
-                || (buffer->bytes_per_pixel == 4));
-        break;
-    }
+  pixel_value = buffer->shadow_buffer[y * buffer->area.width + x];
 
   return pixel_value;
 }
@@ -278,38 +248,37 @@ ply_video_buffer_set_value_at_pixel (PlyVideoBuffer *buffer,
                                      int             y,
                                      uint32_t        pixel_value)
 {
-  unsigned long bytes_per_row;
-  unsigned long offset;
-
   assert (buffer != NULL);
 
-  switch (buffer->bytes_per_pixel)
-    {
-      case 2:
-        buffer->shadow_layout.for_16bpp[y * buffer->area.width + x] = 
-          (uint16_t) pixel_value;
-        break;
+  /* FIXME: endianess issues here I think
+   */
+  memcpy (&buffer->shadow_buffer[y * buffer->area.width + x],
+          &pixel_value, sizeof (uint32_t));
+}
 
-      case 3:
-        bytes_per_row = buffer->bytes_per_pixel * buffer->area.width;
-        offset = (y * bytes_per_row) + (x * buffer->bytes_per_pixel);
+static uint32_t
+blend_two_pixel_values (uint32_t pixel_value_1,
+                        uint32_t pixel_value_2)
+{
+  double alpha, red, green, blue;
+  double alpha_2, red_2, green_2, blue_2;
 
-        /* FIXME: endianess issues here I think
-         */
-        memcpy (buffer->shadow_layout.address + offset, &pixel_value,
-                buffer->bytes_per_pixel);
-        break;
+  alpha = (double) (pixel_value_1 >> 24) / 255.0;
+  red = (double) ((pixel_value_1 >> 16) & 0xff) / 255.0;
+  green = (double) ((pixel_value_1 >> 8) & 0xff) / 255.0;
+  blue = (double) (pixel_value_1 & 0xff) / 255.0;
 
-      case 4:
-        buffer->shadow_layout.for_32bpp[y * buffer->area.width + x] = pixel_value;
-        break;
+  alpha_2 = (double) (pixel_value_2 >> 24) / 255.0;
+  red_2 = (double) ((pixel_value_2 >> 26) & 0xff) / 255.0;
+  green_2 = (double) ((pixel_value_2 >> 8) & 0xff) / 255.0;
+  blue_2 = (double) (pixel_value_2 & 0xff) / 255.0;
 
-      default:
-        assert ((buffer->bytes_per_pixel == 2) 
-                || (buffer->bytes_per_pixel == 3) 
-                || (buffer->bytes_per_pixel == 4));
-        break;
-    }
+  red = red + red_2 * (1.0 - alpha); 
+  green = green + green_2 * (1.0 - alpha); 
+  blue = blue + blue_2 * (1.0 - alpha); 
+  alpha = alpha + alpha_2 * (1.0 - alpha);
+
+  return PLY_VIDEO_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
 }
 
 static void 
@@ -318,37 +287,10 @@ ply_video_buffer_blend_value_at_pixel (PlyVideoBuffer *buffer,
                                        int             y,
                                        uint32_t        pixel_value)
 {
-  uint32_t old_pixel_value;
-  double old_red, old_green, old_blue, old_alpha;
-  double new_red, new_green, new_blue, new_alpha;
-  uint32_t new_pixel_value;
+  uint32_t old_pixel_value, new_pixel_value;
 
   old_pixel_value = ply_video_buffer_get_value_at_pixel (buffer, x, y);
-
-  old_alpha = (old_pixel_value >> 24) / 255.0;
-  old_red = ((old_pixel_value >> 16) & 0xff) / 255.0;
-  old_green = ((old_pixel_value >> 8) & 0xff) / 255.0;
-  old_blue = (old_pixel_value & 0xff) / 255.0;
-
-  new_alpha = ((pixel_value >> 24) & 0xff) / 255.0;
-  new_red = ((pixel_value >> 16) & 0xff) / 255.0;
-  new_green = ((pixel_value >> 8) & 0xff) / 255.0;
-  new_blue = (pixel_value & 0xff) / 255.0;
-
-  new_red = new_red + old_red * (1.0 - new_alpha);
-  new_green = new_green + old_green * (1.0 - new_alpha);
-  new_blue = new_blue + old_blue * (1.0 - new_alpha);
-  new_alpha = new_alpha + (1.0 - old_alpha);
-
-  new_red = CLAMP (new_red * 255.0, 0, 255.0);
-  new_green = CLAMP (new_green * 255.0, 0, 255.0);
-  new_blue = CLAMP (new_blue * 255.0, 0, 255.0);
-  new_alpha = CLAMP (new_alpha * 255.0, 0, 255.0);
-
-  new_pixel_value = (((uint8_t) new_alpha) << 24)
-                     | (((uint8_t) new_red) << 16)
-                     | (((uint8_t) new_green) << 8)
-                     | ((uint8_t) new_blue);
+  new_pixel_value = blend_two_pixel_values (pixel_value, old_pixel_value);
 
   ply_video_buffer_set_value_at_pixel (buffer, x, y, new_pixel_value);
 }
@@ -408,6 +350,50 @@ ply_video_buffer_add_area_to_flush_area (PlyVideoBuffer     *buffer,
   buffer->area_to_flush.height = MAX (buffer->area_to_flush.height, area->height);
 }
 
+static bool
+ply_video_buffer_copy_to_device (PlyVideoBuffer *buffer,
+                                 unsigned long   x,
+                                 unsigned long   y,
+                                 unsigned long   width,
+                                 unsigned long   height)
+{
+  unsigned long row, column;
+  unsigned long start_offset;
+  unsigned long size;
+
+  unsigned long bytes_per_row;
+  
+  bytes_per_row = buffer->area.width * buffer->bytes_per_pixel;
+  start_offset = y * bytes_per_row + x * buffer->bytes_per_pixel;
+  size = width * height * buffer->bytes_per_pixel;
+
+  for (row = y; row < y + height; row++)
+    {
+      for (column = x; column < x + width; column++)
+        { 
+          uint32_t pixel_value;
+          uint_least32_t device_pixel_value;
+          unsigned long offset;
+
+          pixel_value = buffer->shadow_buffer[width * row + column];
+
+          device_pixel_value = 
+            ply_video_buffer_pixel_value_to_device_pixel_value (buffer,
+                                                                pixel_value);
+
+          offset = row * bytes_per_row + column * buffer->bytes_per_pixel;
+
+          memcpy (buffer->map_address + offset, &device_pixel_value,
+                  buffer->bits_per_pixel);
+        }
+    }
+
+  if (msync (buffer->map_address + start_offset, size, MS_SYNC) < 0)
+    return false;
+
+  return true;
+}
+
 static bool 
 ply_video_buffer_flush (PlyVideoBuffer *buffer)
 {
@@ -421,15 +407,15 @@ ply_video_buffer_flush (PlyVideoBuffer *buffer)
   if (buffer->is_paused)
     return true;
 
-  bytes_per_row = buffer->bytes_per_pixel * buffer->area_to_flush.width;
-  start_offset = (buffer->area_to_flush.y * bytes_per_row)
-                 + (buffer->area_to_flush.x * buffer->bytes_per_pixel);
-  size = buffer->area_to_flush.width * buffer->area_to_flush.height
-         * buffer->bytes_per_pixel; 
+  start_offset = (buffer->area_to_flush.y * 4 * buffer->area_to_flush.width)
+                 + (buffer->area_to_flush.x * 4);
+  size = buffer->area_to_flush.width * buffer->area_to_flush.height;
 
-  memcpy (buffer->layout.address + start_offset,
-          buffer->shadow_layout.address + start_offset, size);
-  if (msync (buffer->layout.address + start_offset, size, MS_SYNC) < 0)
+  if (!ply_video_buffer_copy_to_device (buffer,
+                                        buffer->area_to_flush.x,
+                                        buffer->area_to_flush.y,
+                                        buffer->area_to_flush.width,
+                                        buffer->area_to_flush.height))
     return false;
 
   buffer->area_to_flush.x = 0; 
@@ -453,8 +439,8 @@ ply_video_buffer_new (const char *device_name)
     buffer->device_name = 
       strdup (PLY_VIDEO_BUFFER_DEFAULT_FB_DEVICE_NAME);
 
-  buffer->layout.address = MAP_FAILED;
-  buffer->shadow_layout.address = NULL;
+  buffer->map_address = MAP_FAILED;
+  buffer->shadow_buffer = NULL;
 
   buffer->is_paused = false;
 
@@ -470,7 +456,7 @@ ply_video_buffer_free (PlyVideoBuffer *buffer)
     ply_video_buffer_close (buffer);
 
   free (buffer->device_name);
-  free (buffer->shadow_layout.address);
+  free (buffer->shadow_buffer);
   free (buffer);
 }
 
@@ -493,15 +479,16 @@ ply_video_buffer_open (PlyVideoBuffer *buffer)
       goto out;
     }
 
-  if (!ply_video_buffer_map_to_layout (buffer))
+  if (!ply_video_buffer_map_to_device (buffer))
     {
       goto out;
     }
 
-  buffer->shadow_layout.address = 
-    realloc (buffer->shadow_layout.address,
-             buffer->layout_size);
-  memset (buffer->shadow_layout.address, 0, buffer->layout_size);
+  buffer->shadow_buffer = 
+    realloc (buffer->shadow_buffer,
+             4 * buffer->area.width * buffer->area.height);
+  memset (buffer->shadow_buffer, 0, 
+          4 * buffer->area.width * buffer->area.height);
   ply_video_buffer_fill_with_color (buffer, NULL, 0.0, 0.0, 0.0, 1.0);
 
   is_open = true;
@@ -541,7 +528,7 @@ bool
 ply_video_buffer_device_is_open (PlyVideoBuffer *buffer)
 {
   assert (buffer != NULL);
-  return buffer->device_fd >= 0 && buffer->layout.address != MAP_FAILED;
+  return buffer->device_fd >= 0 && buffer->map_address != MAP_FAILED;
 }
 
 char *
@@ -616,17 +603,68 @@ ply_video_buffer_fill_with_color (PlyVideoBuffer      *buffer,
   green *= alpha;
   blue *= alpha;
 
-  pixel_value = 
-    ply_video_buffer_convert_color_to_pixel_value (buffer, 
-                                                   CLAMP (red * 255.0, 0, 255),
-                                                   CLAMP (green * 255.0, 0, 255), 
-                                                   CLAMP (blue * 255.0, 0, 255),
-                                                   CLAMP (alpha * 255.0, 0, 255));
+  pixel_value = PLY_VIDEO_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
 
   if (abs (alpha - 1.0) <= DBL_MIN) 
     ply_video_buffer_set_area_to_pixel_value (buffer, area, pixel_value);
   else
     ply_video_buffer_blend_area_with_pixel_value (buffer, area, pixel_value);
+
+  ply_video_buffer_add_area_to_flush_area (buffer, area);
+
+  return ply_video_buffer_flush (buffer);
+}
+
+bool 
+ply_video_buffer_fill_with_argb32_data_at_opacity (PlyVideoBuffer     *buffer,
+                                                   PlyVideoBufferArea *area,
+                                                   unsigned long       x,
+                                                   unsigned long       y,
+                                                   unsigned long       width,
+                                                   unsigned long       height,
+                                                   uint32_t           *data,
+                                                   double              opacity)
+{
+  long row, column;
+  bool is_translucent;
+  uint32_t alpha_pixel_value;
+
+  assert (buffer != NULL);
+  assert (ply_video_buffer_device_is_open (buffer));
+
+  if (area == NULL)
+    area = &buffer->area;
+
+  if (abs (opacity - 1.0) > DBL_MIN)
+    {
+      uint8_t alpha;
+      alpha_pixel_value = 0x00000000;
+      alpha = (uint8_t) CLAMP (opacity * 255.0, 0.0, 255.0);
+      alpha_pixel_value |= alpha << 24;
+      is_translucent = true;
+    }
+  else
+    is_translucent = false;
+
+  for (row = y; row < y + height; row++)
+    {
+      for (column = x; column < x + width; column++)
+        {
+          uint32_t pixel_value;
+
+          pixel_value = data[width * row + column];
+
+          if (is_translucent)
+            {
+              pixel_value = 
+                blend_two_pixel_values (alpha_pixel_value, pixel_value);
+            }
+          ply_video_buffer_blend_value_at_pixel (buffer,
+                                                 area->x + (column - x),
+                                                 area->y + (row - y),
+                                                 pixel_value);
+        }
+    }
 
   ply_video_buffer_add_area_to_flush_area (buffer, area);
 
@@ -642,37 +680,9 @@ ply_video_buffer_fill_with_argb32_data (PlyVideoBuffer     *buffer,
                                         unsigned long       height,
                                         uint32_t           *data)
 {
-  long row, column;
-
-  assert (buffer != NULL);
-  assert (ply_video_buffer_device_is_open (buffer));
-
-  if (area == NULL)
-    area = &buffer->area;
-
-  for (row = y; row < y + height; row++)
-    {
-      for (column = x; column < x + width; column++)
-        {
-          uint8_t alpha;
-
-          alpha = data[width * row + column] >> 24;
-          if (alpha == 0xff)
-            ply_video_buffer_set_value_at_pixel (buffer,
-                                                 area->x + (column - x),
-                                                 area->y + (row - y),
-                                                 data[width * row + column]);
-          else
-            ply_video_buffer_blend_value_at_pixel (buffer,
-                                                   area->x + (column - x),
-                                                   area->y + (row - y),
-                                                   data[width * row + column]);
-        }
-    }
-
-  ply_video_buffer_add_area_to_flush_area (buffer, area);
-
-  return ply_video_buffer_flush (buffer);
+  return ply_video_buffer_fill_with_argb32_data_at_opacity (buffer, area,
+                                                            x, y, width, 
+                                                            height, data, 1.0);
 }
 
 #ifdef PLY_VIDEO_BUFFER_ENABLE_TEST
@@ -706,11 +716,11 @@ animate_at_time (PlyVideoBuffer *buffer,
 
   for (y = 0; y < 768; y++)
     {
-      int blue_offset;
+      int blue_bit_position;
       uint8_t red, green, blue, alpha;
 
-      blue_offset = (int) 64 * sin (time) + (255 - 64);
-      blue = rand () % blue_offset;
+      blue_bit_position = (int) 64 * sin (time) + (255 - 64);
+      blue = rand () % blue_bit_position;
       for (x = 0; x < 1024; x++)
       {
         alpha = 0xff;

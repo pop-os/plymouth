@@ -278,6 +278,18 @@ ply_image_get_height (PlyImage *image)
 #define FRAMES_PER_SECOND 30
 #endif
 
+static bool
+hide_cursor (void)
+{
+  static const char invisible_cursor[] = "\033[?25l\033[?1c";
+
+  if (write (STDOUT_FILENO, invisible_cursor, 
+             sizeof (invisible_cursor) - 1) != sizeof (invisible_cursor) - 1)
+    return false;
+
+  return true;
+}
+
 static double
 get_current_time (void)
 {
@@ -332,6 +344,8 @@ main (int    argc,
   double start_time;
 
   exit_code = 0;
+
+  hide_cursor ();
 
   image = ply_image_new ("booting.png");
 

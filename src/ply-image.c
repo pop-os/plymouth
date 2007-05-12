@@ -324,10 +324,10 @@ animate_at_time (PlyVideoBuffer *buffer,
   area.width = width;
   area.height = height;
 
-  opacity = .5 * sin (time * (2 * M_PI)) + .5;
+  opacity = .5 * sin ((time/5) * (2 * M_PI)) + .8;
+  opacity = CLAMP (opacity, 0, 1.0);
   ply_video_buffer_pause_updates (buffer);
-  ply_video_buffer_fill_with_color (buffer, &area,
-                                    60.0/256.0, 110.0/256.0, 180.0/256.0, 1.0);
+  ply_video_buffer_fill_with_color (buffer, &area, 0.0, 0.0, 0.0, 1.0);
   ply_video_buffer_fill_with_argb32_data_at_opacity (buffer, &area, 
                                                      0, 0, width, height, 
                                                      data, opacity);
@@ -366,8 +366,7 @@ main (int    argc,
     }
 
   start_time = get_current_time ();
-  ply_video_buffer_fill_with_color (buffer, NULL,
-                                    60.0/256.0, 110.0/256.0, 180.0/256.0, 1.0);
+  ply_video_buffer_fill_with_color (buffer, NULL, 0.0, 0.0, 0.0, 1.0);
   while ("we want to see ad-hoc animations")
     {
       animate_at_time (buffer, image, get_current_time () - start_time);

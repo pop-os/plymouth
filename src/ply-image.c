@@ -52,25 +52,25 @@ typedef union
  uint32_t *as_pixels;
  png_byte *as_png_bytes;
  char *address;
-} PlyImageLayout;
+} ply_image_layout_t;
 
-struct _PlyImage
+struct _ply_image
 {
   char  *filename;
   FILE  *fp;
 
-  PlyImageLayout layout;
+  ply_image_layout_t layout;
   size_t size;
 
   long width;
   long height;
 };
 
-static bool ply_image_open_file (PlyImage *image);
-static void ply_image_close_file (PlyImage *image);
+static bool ply_image_open_file (ply_image_t *image);
+static void ply_image_close_file (ply_image_t *image);
 
 static bool
-ply_image_open_file (PlyImage *image)
+ply_image_open_file (ply_image_t *image)
 {
   assert (image != NULL);
 
@@ -82,7 +82,7 @@ ply_image_open_file (PlyImage *image)
 }
 
 static void
-ply_image_close_file (PlyImage *image)
+ply_image_close_file (ply_image_t *image)
 {
   assert (image != NULL);
 
@@ -92,14 +92,14 @@ ply_image_close_file (PlyImage *image)
   image->fp = NULL;
 }
 
-PlyImage *
+ply_image_t *
 ply_image_new (const char *filename)
 {
-  PlyImage *image;
+  ply_image_t *image;
 
   assert (filename != NULL);
 
-  image = calloc (1, sizeof (PlyImage));
+  image = calloc (1, sizeof (ply_image_t));
 
   image->filename = strdup (filename);
   image->fp = NULL;
@@ -112,7 +112,7 @@ ply_image_new (const char *filename)
 }
 
 void
-ply_image_free (PlyImage *image)
+ply_image_free (ply_image_t *image)
 {
   assert (image != NULL);
   assert (image->filename != NULL);
@@ -155,7 +155,7 @@ transform_to_argb32 (png_struct   *png,
 }
 
 bool
-ply_image_load (PlyImage *image)
+ply_image_load (ply_image_t *image)
 {
   png_struct *png;
   png_info *info;
@@ -235,7 +235,7 @@ ply_image_load (PlyImage *image)
 }
 
 uint32_t *
-ply_image_get_data (PlyImage *image)
+ply_image_get_data (ply_image_t *image)
 {
   assert (image != NULL);
 
@@ -243,7 +243,7 @@ ply_image_get_data (PlyImage *image)
 }
 
 ssize_t
-ply_image_get_size (PlyImage *image)
+ply_image_get_size (ply_image_t *image)
 {
   assert (image != NULL);
 
@@ -251,7 +251,7 @@ ply_image_get_size (PlyImage *image)
 }
 
 long
-ply_image_get_width (PlyImage *image)
+ply_image_get_width (ply_image_t *image)
 {
   assert (image != NULL);
 
@@ -259,7 +259,7 @@ ply_image_get_width (PlyImage *image)
 }
 
 long
-ply_image_get_height (PlyImage *image)
+ply_image_get_height (ply_image_t *image)
 {
   assert (image != NULL);
 
@@ -305,11 +305,11 @@ get_current_time (void)
 }
 
 static void
-animate_at_time (PlyFrameBuffer *buffer,
-                 PlyImage       *image,
+animate_at_time (ply_frame_buffer_t *buffer,
+                 ply_image_t       *image,
                  double          time)
 {
-  PlyFrameBufferArea area;
+  ply_frame_buffer_area_t area;
   uint32_t *data;
   long width, height;
   double opacity = 0.0;
@@ -338,8 +338,8 @@ int
 main (int    argc,
       char **argv)
 {
-  PlyImage *image;
-  PlyFrameBuffer *buffer;
+  ply_image_t *image;
+  ply_frame_buffer_t *buffer;
   int exit_code;
   double start_time;
 

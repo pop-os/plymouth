@@ -27,16 +27,16 @@
 #include <stdint.h>
 #include <unistd.h>
 
-typedef struct _PlyImage PlyImage;
+typedef struct _ply_image ply_image_t;
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-PlyImage *ply_image_new (const char *filename);
-void ply_image_free (PlyImage *image);
-bool ply_image_load (PlyImage *image);
-uint32_t *ply_image_get_data (PlyImage *image);
-ssize_t ply_image_get_size (PlyImage *image);
-long ply_image_get_width (PlyImage *image);
-long ply_image_get_height (PlyImage *image);
+ply_image_t *ply_image_new (const char *filename);
+void ply_image_free (ply_image_t *image);
+bool ply_image_load (ply_image_t *image);
+uint32_t *ply_image_get_data (ply_image_t *image);
+ssize_t ply_image_get_size (ply_image_t *image);
+long ply_image_get_width (ply_image_t *image);
+long ply_image_get_height (ply_image_t *image);
 
 #endif
 

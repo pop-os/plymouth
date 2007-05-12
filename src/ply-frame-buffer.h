@@ -28,10 +28,10 @@
 
 #include "ply-utils.h"
 
-typedef struct _PlyFrameBuffer PlyFrameBuffer;
-typedef struct _PlyFrameBufferArea PlyFrameBufferArea;
+typedef struct _ply_frame_buffer ply_frame_buffer_t;
+typedef struct _ply_frame_buffer_area ply_frame_buffer_area_t;
 
-struct _PlyFrameBufferArea
+struct _ply_frame_buffer_area
 {
   unsigned long x;
   unsigned long y;
@@ -46,34 +46,34 @@ struct _PlyFrameBufferArea
       | ((uint8_t) (CLAMP (b * 255.0, 0.0, 255.0))))
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-PlyFrameBuffer *ply_frame_buffer_new (const char *device_name);
-void ply_frame_buffer_free (PlyFrameBuffer *buffer);
-bool ply_frame_buffer_open (PlyFrameBuffer *buffer);
-void ply_frame_buffer_pause_updates (PlyFrameBuffer *buffer);
-bool ply_frame_buffer_unpause_updates (PlyFrameBuffer *buffer);
-bool ply_frame_buffer_device_is_open (PlyFrameBuffer *buffer); 
-char *ply_frame_buffer_get_device_name (PlyFrameBuffer *buffer);
-void ply_frame_buffer_set_device_name (PlyFrameBuffer *buffer,
+ply_frame_buffer_t *ply_frame_buffer_new (const char *device_name);
+void ply_frame_buffer_free (ply_frame_buffer_t *buffer);
+bool ply_frame_buffer_open (ply_frame_buffer_t *buffer);
+void ply_frame_buffer_pause_updates (ply_frame_buffer_t *buffer);
+bool ply_frame_buffer_unpause_updates (ply_frame_buffer_t *buffer);
+bool ply_frame_buffer_device_is_open (ply_frame_buffer_t *buffer); 
+char *ply_frame_buffer_get_device_name (ply_frame_buffer_t *buffer);
+void ply_frame_buffer_set_device_name (ply_frame_buffer_t *buffer,
                                        const char     *device_name);
-void ply_frame_buffer_close (PlyFrameBuffer *buffer);
-void ply_frame_buffer_get_size (PlyFrameBuffer     *buffer,
-                                PlyFrameBufferArea *size);
-bool ply_frame_buffer_fill_with_color (PlyFrameBuffer      *buffer,
-                                       PlyFrameBufferArea  *area,
+void ply_frame_buffer_close (ply_frame_buffer_t *buffer);
+void ply_frame_buffer_get_size (ply_frame_buffer_t     *buffer,
+                                ply_frame_buffer_area_t *size);
+bool ply_frame_buffer_fill_with_color (ply_frame_buffer_t      *buffer,
+                                       ply_frame_buffer_area_t  *area,
                                        double               red, 
                                        double               green,
                                        double               blue, 
                                        double               alpha);
 
-bool ply_frame_buffer_fill_with_argb32_data (PlyFrameBuffer      *buffer,
-                                             PlyFrameBufferArea  *area,
+bool ply_frame_buffer_fill_with_argb32_data (ply_frame_buffer_t      *buffer,
+                                             ply_frame_buffer_area_t  *area,
                                              unsigned long        x,
                                              unsigned long        y,
                                              unsigned long        width,
                                              unsigned long        height,
                                              uint32_t            *data);
-bool ply_frame_buffer_fill_with_argb32_data_at_opacity (PlyFrameBuffer     *buffer,
-                                                        PlyFrameBufferArea *area,
+bool ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t     *buffer,
+                                                        ply_frame_buffer_area_t *area,
                                                         unsigned long       x,
                                                         unsigned long       y,
                                                         unsigned long       width,

@@ -45,7 +45,7 @@
 #define PLY_FRAME_BUFFER_DEFAULT_FB_DEVICE_NAME "/dev/fb"
 #endif
 
-struct _PlyFrameBuffer
+struct _ply_frame_buffer
 {
   char *device_name;
   int   device_fd;
@@ -67,42 +67,42 @@ struct _PlyFrameBuffer
 
   unsigned int bits_per_pixel;
   unsigned int bytes_per_pixel;
-  PlyFrameBufferArea area;
-  PlyFrameBufferArea area_to_flush;
+  ply_frame_buffer_area_t area;
+  ply_frame_buffer_area_t area_to_flush;
 
   uint32_t is_paused : 1;
 };
 
-static bool ply_frame_buffer_open_device (PlyFrameBuffer  *buffer);
-static void ply_frame_buffer_close_device (PlyFrameBuffer *buffer);
-static bool ply_frame_buffer_query_device (PlyFrameBuffer *buffer);
-static bool ply_frame_buffer_map_to_device (PlyFrameBuffer *buffer);
+static bool ply_frame_buffer_open_device (ply_frame_buffer_t  *buffer);
+static void ply_frame_buffer_close_device (ply_frame_buffer_t *buffer);
+static bool ply_frame_buffer_query_device (ply_frame_buffer_t *buffer);
+static bool ply_frame_buffer_map_to_device (ply_frame_buffer_t *buffer);
 static uint_least32_t ply_frame_buffer_pixel_value_to_device_pixel_value (
-    PlyFrameBuffer *buffer,
+    ply_frame_buffer_t *buffer,
     uint32_t        pixel_value);
 
-static void ply_frame_buffer_blend_value_at_pixel (PlyFrameBuffer *buffer,
+static void ply_frame_buffer_blend_value_at_pixel (ply_frame_buffer_t *buffer,
                                                    int             x,
                                                    int             y,
                                                    uint32_t        pixel_value);
 
 static void ply_frame_buffer_fill_area_with_pixel_value (
-    PlyFrameBuffer     *buffer,
-    PlyFrameBufferArea *area,
+    ply_frame_buffer_t     *buffer,
+    ply_frame_buffer_area_t *area,
     uint32_t            pixel_value);
 
-static void ply_frame_buffer_add_area_to_flush_area (PlyFrameBuffer     *buffer,
-                                                     PlyFrameBufferArea *area);
-static bool ply_frame_buffer_copy_to_device (PlyFrameBuffer *buffer,
+static void ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t     *buffer,
+                                                     ply_frame_buffer_area_t *area);
+static bool ply_frame_buffer_copy_to_device (ply_frame_buffer_t *buffer,
                                              unsigned long   x,
                                              unsigned long   y,
                                              unsigned long   width,
                                              unsigned long   height);
 
-static bool ply_frame_buffer_flush (PlyFrameBuffer *buffer);
+static bool ply_frame_buffer_flush (ply_frame_buffer_t *buffer);
 
 static bool
-ply_frame_buffer_open_device (PlyFrameBuffer  *buffer)
+ply_frame_buffer_open_device (ply_frame_buffer_t  *buffer)
 {
   assert (buffer != NULL);
   assert (buffer->device_name != NULL);
@@ -118,7 +118,7 @@ ply_frame_buffer_open_device (PlyFrameBuffer  *buffer)
 }
 
 static void
-ply_frame_buffer_close_device (PlyFrameBuffer *buffer)
+ply_frame_buffer_close_device (ply_frame_buffer_t *buffer)
 {
   assert (buffer != NULL);
 
@@ -136,7 +136,7 @@ ply_frame_buffer_close_device (PlyFrameBuffer *buffer)
 }
 
 static bool 
-ply_frame_buffer_query_device (PlyFrameBuffer *buffer)
+ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
 {
   struct fb_var_screeninfo variable_screen_info;
   struct fb_fix_screeninfo fixed_screen_info;
@@ -181,7 +181,7 @@ ply_frame_buffer_query_device (PlyFrameBuffer *buffer)
 }
 
 static bool
-ply_frame_buffer_map_to_device (PlyFrameBuffer *buffer)
+ply_frame_buffer_map_to_device (ply_frame_buffer_t *buffer)
 {
   assert (buffer != NULL);
   assert (buffer->device_fd >= 0);
@@ -194,7 +194,7 @@ ply_frame_buffer_map_to_device (PlyFrameBuffer *buffer)
 }
 
 static uint_least32_t 
-ply_frame_buffer_pixel_value_to_device_pixel_value (PlyFrameBuffer *buffer,
+ply_frame_buffer_pixel_value_to_device_pixel_value (ply_frame_buffer_t *buffer,
                                                     uint32_t        pixel_value)
 {
   uint8_t r, g, b, a;
@@ -267,7 +267,7 @@ make_pixel_value_translucent (uint32_t pixel_value,
 }
 
 static void 
-ply_frame_buffer_blend_value_at_pixel (PlyFrameBuffer *buffer,
+ply_frame_buffer_blend_value_at_pixel (ply_frame_buffer_t *buffer,
                                        int             x,
                                        int             y,
                                        uint32_t        pixel_value)
@@ -284,8 +284,8 @@ ply_frame_buffer_blend_value_at_pixel (PlyFrameBuffer *buffer,
 }
 
 static void
-ply_frame_buffer_fill_area_with_pixel_value (PlyFrameBuffer     *buffer,
-                                             PlyFrameBufferArea *area,
+ply_frame_buffer_fill_area_with_pixel_value (ply_frame_buffer_t     *buffer,
+                                             ply_frame_buffer_area_t *area,
                                              uint32_t            pixel_value)
 {
   long row, column;
@@ -302,8 +302,8 @@ ply_frame_buffer_fill_area_with_pixel_value (PlyFrameBuffer     *buffer,
 }
 
 static void
-ply_frame_buffer_add_area_to_flush_area (PlyFrameBuffer     *buffer, 
-                                         PlyFrameBufferArea *area)
+ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t     *buffer, 
+                                         ply_frame_buffer_area_t *area)
 {
   assert (buffer != NULL);
   assert (area != NULL);
@@ -321,7 +321,7 @@ ply_frame_buffer_add_area_to_flush_area (PlyFrameBuffer     *buffer,
 }
 
 static bool
-ply_frame_buffer_copy_to_device (PlyFrameBuffer *buffer,
+ply_frame_buffer_copy_to_device (ply_frame_buffer_t *buffer,
                                  unsigned long   x,
                                  unsigned long   y,
                                  unsigned long   width,
@@ -365,7 +365,7 @@ ply_frame_buffer_copy_to_device (PlyFrameBuffer *buffer,
 }
 
 static bool 
-ply_frame_buffer_flush (PlyFrameBuffer *buffer)
+ply_frame_buffer_flush (ply_frame_buffer_t *buffer)
 {
   assert (buffer != NULL);
   unsigned long start_offset;
@@ -395,12 +395,12 @@ ply_frame_buffer_flush (PlyFrameBuffer *buffer)
   return true;
 }
 
-PlyFrameBuffer *
+ply_frame_buffer_t *
 ply_frame_buffer_new (const char *device_name)
 {
-  PlyFrameBuffer *buffer;
+  ply_frame_buffer_t *buffer;
 
-  buffer = calloc (1, sizeof (PlyFrameBuffer));
+  buffer = calloc (1, sizeof (ply_frame_buffer_t));
 
   if (device_name != NULL)
     buffer->device_name = strdup (device_name);
@@ -417,7 +417,7 @@ ply_frame_buffer_new (const char *device_name)
 }
 
 void
-ply_frame_buffer_free (PlyFrameBuffer *buffer)
+ply_frame_buffer_free (ply_frame_buffer_t *buffer)
 {
   assert (buffer != NULL);
 
@@ -430,7 +430,7 @@ ply_frame_buffer_free (PlyFrameBuffer *buffer)
 }
 
 bool 
-ply_frame_buffer_open (PlyFrameBuffer *buffer)
+ply_frame_buffer_open (ply_frame_buffer_t *buffer)
 {
   bool is_open;
 
@@ -477,7 +477,7 @@ out:
 }
 
 void
-ply_frame_buffer_pause_updates (PlyFrameBuffer *buffer)
+ply_frame_buffer_pause_updates (ply_frame_buffer_t *buffer)
 {
   assert (buffer != NULL);
 
@@ -485,7 +485,7 @@ ply_frame_buffer_pause_updates (PlyFrameBuffer *buffer)
 }
 
 bool
-ply_frame_buffer_unpause_updates (PlyFrameBuffer *buffer)
+ply_frame_buffer_unpause_updates (ply_frame_buffer_t *buffer)
 {
   assert (buffer != NULL);
   
@@ -494,14 +494,14 @@ ply_frame_buffer_unpause_updates (PlyFrameBuffer *buffer)
 }
 
 bool 
-ply_frame_buffer_device_is_open (PlyFrameBuffer *buffer)
+ply_frame_buffer_device_is_open (ply_frame_buffer_t *buffer)
 {
   assert (buffer != NULL);
   return buffer->device_fd >= 0 && buffer->map_address != MAP_FAILED;
 }
 
 char *
-ply_frame_buffer_get_device_name (PlyFrameBuffer *buffer)
+ply_frame_buffer_get_device_name (ply_frame_buffer_t *buffer)
 {
   assert (buffer != NULL);
   assert (ply_frame_buffer_device_is_open (buffer));
@@ -511,7 +511,7 @@ ply_frame_buffer_get_device_name (PlyFrameBuffer *buffer)
 }
 
 void
-ply_frame_buffer_set_device_name (PlyFrameBuffer *buffer,
+ply_frame_buffer_set_device_name (ply_frame_buffer_t *buffer,
                                   const char     *device_name)
 {
   assert (buffer != NULL);
@@ -527,7 +527,7 @@ ply_frame_buffer_set_device_name (PlyFrameBuffer *buffer,
 }
 
 void 
-ply_frame_buffer_close (PlyFrameBuffer *buffer)
+ply_frame_buffer_close (ply_frame_buffer_t *buffer)
 {
   assert (buffer != NULL);
 
@@ -542,8 +542,8 @@ ply_frame_buffer_close (PlyFrameBuffer *buffer)
 }
 
 void 
-ply_frame_buffer_get_size (PlyFrameBuffer     *buffer,
-                           PlyFrameBufferArea *size)
+ply_frame_buffer_get_size (ply_frame_buffer_t     *buffer,
+                           ply_frame_buffer_area_t *size)
 {
   assert (buffer != NULL);
   assert (ply_frame_buffer_device_is_open (buffer));
@@ -553,8 +553,8 @@ ply_frame_buffer_get_size (PlyFrameBuffer     *buffer,
 }
 
 bool 
-ply_frame_buffer_fill_with_color (PlyFrameBuffer      *buffer,
-                                  PlyFrameBufferArea  *area,
+ply_frame_buffer_fill_with_color (ply_frame_buffer_t      *buffer,
+                                  ply_frame_buffer_area_t  *area,
                                   double               red, 
                                   double               green,
                                   double               blue, 
@@ -582,8 +582,8 @@ ply_frame_buffer_fill_with_color (PlyFrameBuffer      *buffer,
 }
 
 bool 
-ply_frame_buffer_fill_with_argb32_data_at_opacity (PlyFrameBuffer     *buffer,
-                                                   PlyFrameBufferArea *area,
+ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t     *buffer,
+                                                   ply_frame_buffer_area_t *area,
                                                    unsigned long       x,
                                                    unsigned long       y,
                                                    unsigned long       width,
@@ -620,8 +620,8 @@ ply_frame_buffer_fill_with_argb32_data_at_opacity (PlyFrameBuffer     *buffer,
 }
 
 bool 
-ply_frame_buffer_fill_with_argb32_data (PlyFrameBuffer     *buffer,
-                                        PlyFrameBufferArea *area,
+ply_frame_buffer_fill_with_argb32_data (ply_frame_buffer_t     *buffer,
+                                        ply_frame_buffer_area_t *area,
                                         unsigned long       x,
                                         unsigned long       y,
                                         unsigned long       width,
@@ -654,7 +654,7 @@ get_current_time (void)
 }
 
 static void
-animate_at_time (PlyFrameBuffer *buffer,
+animate_at_time (ply_frame_buffer_t *buffer,
                  double          time)
 {
   int x, y;
@@ -689,7 +689,7 @@ main (int    argc,
       char **argv)
 {
   static unsigned int seed = 0;
-  PlyFrameBuffer *buffer;
+  ply_frame_buffer_t *buffer;
   int exit_code;
 
   exit_code = 0;

@@ -1,5 +1,5 @@
 /* vim: ts=4 sw=2 expandtab autoindent cindent cino={1s,(0
- * ply-video-buffer.c - framebuffer abstraction
+ * ply-frame-buffer.c - framebuffer abstraction
  *
  * Copyright (C) 2006, 2007 Red Hat, Inc.
  *
@@ -22,7 +22,7 @@
  *             Ray Strode <rstrode@redhat.com>
  */
 #include "config.h"
-#include "ply-video-buffer.h"
+#include "ply-frame-buffer.h"
 
 #include <arpa/inet.h>
 #include <assert.h>
@@ -41,11 +41,11 @@
 
 #include <linux/fb.h>
 
-#ifndef PLY_VIDEO_BUFFER_DEFAULT_FB_DEVICE_NAME
-#define PLY_VIDEO_BUFFER_DEFAULT_FB_DEVICE_NAME "/dev/fb"
+#ifndef PLY_FRAME_BUFFER_DEFAULT_FB_DEVICE_NAME
+#define PLY_FRAME_BUFFER_DEFAULT_FB_DEVICE_NAME "/dev/fb"
 #endif
 
-struct _PlyVideoBuffer
+struct _PlyFrameBuffer
 {
   char *device_name;
   int   device_fd;
@@ -67,42 +67,42 @@ struct _PlyVideoBuffer
 
   unsigned int bits_per_pixel;
   unsigned int bytes_per_pixel;
-  PlyVideoBufferArea area;
-  PlyVideoBufferArea area_to_flush;
+  PlyFrameBufferArea area;
+  PlyFrameBufferArea area_to_flush;
 
   uint32_t is_paused : 1;
 };
 
-static bool ply_video_buffer_open_device (PlyVideoBuffer  *buffer);
-static void ply_video_buffer_close_device (PlyVideoBuffer *buffer);
-static bool ply_video_buffer_query_device (PlyVideoBuffer *buffer);
-static bool ply_video_buffer_map_to_device (PlyVideoBuffer *buffer);
-static uint_least32_t ply_video_buffer_pixel_value_to_device_pixel_value (
-    PlyVideoBuffer *buffer,
+static bool ply_frame_buffer_open_device (PlyFrameBuffer  *buffer);
+static void ply_frame_buffer_close_device (PlyFrameBuffer *buffer);
+static bool ply_frame_buffer_query_device (PlyFrameBuffer *buffer);
+static bool ply_frame_buffer_map_to_device (PlyFrameBuffer *buffer);
+static uint_least32_t ply_frame_buffer_pixel_value_to_device_pixel_value (
+    PlyFrameBuffer *buffer,
     uint32_t        pixel_value);
 
-static void ply_video_buffer_blend_value_at_pixel (PlyVideoBuffer *buffer,
+static void ply_frame_buffer_blend_value_at_pixel (PlyFrameBuffer *buffer,
                                                    int             x,
                                                    int             y,
                                                    uint32_t        pixel_value);
 
-static void ply_video_buffer_fill_area_with_pixel_value (
-    PlyVideoBuffer     *buffer,
-    PlyVideoBufferArea *area,
+static void ply_frame_buffer_fill_area_with_pixel_value (
+    PlyFrameBuffer     *buffer,
+    PlyFrameBufferArea *area,
     uint32_t            pixel_value);
 
-static void ply_video_buffer_add_area_to_flush_area (PlyVideoBuffer     *buffer,
-                                                     PlyVideoBufferArea *area);
-static bool ply_video_buffer_copy_to_device (PlyVideoBuffer *buffer,
+static void ply_frame_buffer_add_area_to_flush_area (PlyFrameBuffer     *buffer,
+                                                     PlyFrameBufferArea *area);
+static bool ply_frame_buffer_copy_to_device (PlyFrameBuffer *buffer,
                                              unsigned long   x,
                                              unsigned long   y,
                                              unsigned long   width,
                                              unsigned long   height);
 
-static bool ply_video_buffer_flush (PlyVideoBuffer *buffer);
+static bool ply_frame_buffer_flush (PlyFrameBuffer *buffer);
 
 static bool
-ply_video_buffer_open_device (PlyVideoBuffer  *buffer)
+ply_frame_buffer_open_device (PlyFrameBuffer  *buffer)
 {
   assert (buffer != NULL);
   assert (buffer->device_name != NULL);
@@ -118,7 +118,7 @@ ply_video_buffer_open_device (PlyVideoBuffer  *buffer)
 }
 
 static void
-ply_video_buffer_close_device (PlyVideoBuffer *buffer)
+ply_frame_buffer_close_device (PlyFrameBuffer *buffer)
 {
   assert (buffer != NULL);
 
@@ -136,7 +136,7 @@ ply_video_buffer_close_device (PlyVideoBuffer *buffer)
 }
 
 static bool 
-ply_video_buffer_query_device (PlyVideoBuffer *buffer)
+ply_frame_buffer_query_device (PlyFrameBuffer *buffer)
 {
   struct fb_var_screeninfo variable_screen_info;
   struct fb_fix_screeninfo fixed_screen_info;
@@ -181,7 +181,7 @@ ply_video_buffer_query_device (PlyVideoBuffer *buffer)
 }
 
 static bool
-ply_video_buffer_map_to_device (PlyVideoBuffer *buffer)
+ply_frame_buffer_map_to_device (PlyFrameBuffer *buffer)
 {
   assert (buffer != NULL);
   assert (buffer->device_fd >= 0);
@@ -194,7 +194,7 @@ ply_video_buffer_map_to_device (PlyVideoBuffer *buffer)
 }
 
 static uint_least32_t 
-ply_video_buffer_pixel_value_to_device_pixel_value (PlyVideoBuffer *buffer,
+ply_frame_buffer_pixel_value_to_device_pixel_value (PlyFrameBuffer *buffer,
                                                     uint32_t        pixel_value)
 {
   uint8_t r, g, b, a;
@@ -239,7 +239,7 @@ blend_two_pixel_values (uint32_t pixel_value_1,
   blue = blue + blue_2 * (1.0 - alpha); 
   alpha = alpha + alpha_2 * (1.0 - alpha);
 
-  return PLY_VIDEO_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
+  return PLY_FRAME_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
 }
 
 static uint32_t
@@ -263,11 +263,11 @@ make_pixel_value_translucent (uint32_t pixel_value,
   blue *= opacity;
   alpha *= opacity;
 
-  return PLY_VIDEO_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
+  return PLY_FRAME_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
 }
 
 static void 
-ply_video_buffer_blend_value_at_pixel (PlyVideoBuffer *buffer,
+ply_frame_buffer_blend_value_at_pixel (PlyFrameBuffer *buffer,
                                        int             x,
                                        int             y,
                                        uint32_t        pixel_value)
@@ -284,8 +284,8 @@ ply_video_buffer_blend_value_at_pixel (PlyVideoBuffer *buffer,
 }
 
 static void
-ply_video_buffer_fill_area_with_pixel_value (PlyVideoBuffer     *buffer,
-                                             PlyVideoBufferArea *area,
+ply_frame_buffer_fill_area_with_pixel_value (PlyFrameBuffer     *buffer,
+                                             PlyFrameBufferArea *area,
                                              uint32_t            pixel_value)
 {
   long row, column;
@@ -294,7 +294,7 @@ ply_video_buffer_fill_area_with_pixel_value (PlyVideoBuffer     *buffer,
     {
       for (column = area->x; column < area->x + area->width; column++)
         {
-          ply_video_buffer_blend_value_at_pixel (buffer, 
+          ply_frame_buffer_blend_value_at_pixel (buffer, 
                                                  column, row,
                                                  pixel_value);
         }
@@ -302,8 +302,8 @@ ply_video_buffer_fill_area_with_pixel_value (PlyVideoBuffer     *buffer,
 }
 
 static void
-ply_video_buffer_add_area_to_flush_area (PlyVideoBuffer     *buffer, 
-                                         PlyVideoBufferArea *area)
+ply_frame_buffer_add_area_to_flush_area (PlyFrameBuffer     *buffer, 
+                                         PlyFrameBufferArea *area)
 {
   assert (buffer != NULL);
   assert (area != NULL);
@@ -321,7 +321,7 @@ ply_video_buffer_add_area_to_flush_area (PlyVideoBuffer     *buffer,
 }
 
 static bool
-ply_video_buffer_copy_to_device (PlyVideoBuffer *buffer,
+ply_frame_buffer_copy_to_device (PlyFrameBuffer *buffer,
                                  unsigned long   x,
                                  unsigned long   y,
                                  unsigned long   width,
@@ -348,7 +348,7 @@ ply_video_buffer_copy_to_device (PlyVideoBuffer *buffer,
           pixel_value = buffer->shadow_buffer[width * row + column];
 
           device_pixel_value = 
-            ply_video_buffer_pixel_value_to_device_pixel_value (buffer,
+            ply_frame_buffer_pixel_value_to_device_pixel_value (buffer,
                                                                 pixel_value);
 
           offset = row * bytes_per_row + column * buffer->bytes_per_pixel;
@@ -365,7 +365,7 @@ ply_video_buffer_copy_to_device (PlyVideoBuffer *buffer,
 }
 
 static bool 
-ply_video_buffer_flush (PlyVideoBuffer *buffer)
+ply_frame_buffer_flush (PlyFrameBuffer *buffer)
 {
   assert (buffer != NULL);
   unsigned long start_offset;
@@ -380,7 +380,7 @@ ply_video_buffer_flush (PlyVideoBuffer *buffer)
                  + (buffer->area_to_flush.x * 4);
   size = buffer->area_to_flush.width * buffer->area_to_flush.height;
 
-  if (!ply_video_buffer_copy_to_device (buffer,
+  if (!ply_frame_buffer_copy_to_device (buffer,
                                         buffer->area_to_flush.x,
                                         buffer->area_to_flush.y,
                                         buffer->area_to_flush.width,
@@ -395,18 +395,18 @@ ply_video_buffer_flush (PlyVideoBuffer *buffer)
   return true;
 }
 
-PlyVideoBuffer *
-ply_video_buffer_new (const char *device_name)
+PlyFrameBuffer *
+ply_frame_buffer_new (const char *device_name)
 {
-  PlyVideoBuffer *buffer;
+  PlyFrameBuffer *buffer;
 
-  buffer = calloc (1, sizeof (PlyVideoBuffer));
+  buffer = calloc (1, sizeof (PlyFrameBuffer));
 
   if (device_name != NULL)
     buffer->device_name = strdup (device_name);
   else
     buffer->device_name = 
-      strdup (PLY_VIDEO_BUFFER_DEFAULT_FB_DEVICE_NAME);
+      strdup (PLY_FRAME_BUFFER_DEFAULT_FB_DEVICE_NAME);
 
   buffer->map_address = MAP_FAILED;
   buffer->shadow_buffer = NULL;
@@ -417,12 +417,12 @@ ply_video_buffer_new (const char *device_name)
 }
 
 void
-ply_video_buffer_free (PlyVideoBuffer *buffer)
+ply_frame_buffer_free (PlyFrameBuffer *buffer)
 {
   assert (buffer != NULL);
 
-  if (ply_video_buffer_device_is_open (buffer))
-    ply_video_buffer_close (buffer);
+  if (ply_frame_buffer_device_is_open (buffer))
+    ply_frame_buffer_close (buffer);
 
   free (buffer->device_name);
   free (buffer->shadow_buffer);
@@ -430,7 +430,7 @@ ply_video_buffer_free (PlyVideoBuffer *buffer)
 }
 
 bool 
-ply_video_buffer_open (PlyVideoBuffer *buffer)
+ply_frame_buffer_open (PlyFrameBuffer *buffer)
 {
   bool is_open;
 
@@ -438,17 +438,17 @@ ply_video_buffer_open (PlyVideoBuffer *buffer)
 
   is_open = false;
 
-  if (!ply_video_buffer_open_device (buffer))
+  if (!ply_frame_buffer_open_device (buffer))
     {
       goto out;
     }
 
-  if (!ply_video_buffer_query_device (buffer))
+  if (!ply_frame_buffer_query_device (buffer))
     {
       goto out;
     }
 
-  if (!ply_video_buffer_map_to_device (buffer))
+  if (!ply_frame_buffer_map_to_device (buffer))
     {
       goto out;
     }
@@ -458,7 +458,7 @@ ply_video_buffer_open (PlyVideoBuffer *buffer)
              4 * buffer->area.width * buffer->area.height);
   memset (buffer->shadow_buffer, 0, 
           4 * buffer->area.width * buffer->area.height);
-  ply_video_buffer_fill_with_color (buffer, NULL, 0.0, 0.0, 0.0, 1.0);
+  ply_frame_buffer_fill_with_color (buffer, NULL, 0.0, 0.0, 0.0, 1.0);
 
   is_open = true;
 
@@ -469,7 +469,7 @@ out:
       int saved_errno;
 
       saved_errno = errno;
-      ply_video_buffer_close_device (buffer);
+      ply_frame_buffer_close_device (buffer);
       errno = saved_errno;
     }
 
@@ -477,7 +477,7 @@ out:
 }
 
 void
-ply_video_buffer_pause_updates (PlyVideoBuffer *buffer)
+ply_frame_buffer_pause_updates (PlyFrameBuffer *buffer)
 {
   assert (buffer != NULL);
 
@@ -485,37 +485,37 @@ ply_video_buffer_pause_updates (PlyVideoBuffer *buffer)
 }
 
 bool
-ply_video_buffer_unpause_updates (PlyVideoBuffer *buffer)
+ply_frame_buffer_unpause_updates (PlyFrameBuffer *buffer)
 {
   assert (buffer != NULL);
   
   buffer->is_paused = false;
-  return ply_video_buffer_flush (buffer);
+  return ply_frame_buffer_flush (buffer);
 }
 
 bool 
-ply_video_buffer_device_is_open (PlyVideoBuffer *buffer)
+ply_frame_buffer_device_is_open (PlyFrameBuffer *buffer)
 {
   assert (buffer != NULL);
   return buffer->device_fd >= 0 && buffer->map_address != MAP_FAILED;
 }
 
 char *
-ply_video_buffer_get_device_name (PlyVideoBuffer *buffer)
+ply_frame_buffer_get_device_name (PlyFrameBuffer *buffer)
 {
   assert (buffer != NULL);
-  assert (ply_video_buffer_device_is_open (buffer));
+  assert (ply_frame_buffer_device_is_open (buffer));
   assert (buffer->device_name != NULL);
 
   return strdup (buffer->device_name);
 }
 
 void
-ply_video_buffer_set_device_name (PlyVideoBuffer *buffer,
+ply_frame_buffer_set_device_name (PlyFrameBuffer *buffer,
                                   const char     *device_name)
 {
   assert (buffer != NULL);
-  assert (!ply_video_buffer_device_is_open (buffer));
+  assert (!ply_frame_buffer_device_is_open (buffer));
   assert (device_name != NULL);
   assert (buffer->device_name != NULL);
 
@@ -527,12 +527,12 @@ ply_video_buffer_set_device_name (PlyVideoBuffer *buffer,
 }
 
 void 
-ply_video_buffer_close (PlyVideoBuffer *buffer)
+ply_frame_buffer_close (PlyFrameBuffer *buffer)
 {
   assert (buffer != NULL);
 
-  assert (ply_video_buffer_device_is_open (buffer));
-  ply_video_buffer_close_device (buffer);
+  assert (ply_frame_buffer_device_is_open (buffer));
+  ply_frame_buffer_close_device (buffer);
 
   buffer->bytes_per_pixel = 0;
   buffer->area.x = 0;
@@ -542,19 +542,19 @@ ply_video_buffer_close (PlyVideoBuffer *buffer)
 }
 
 void 
-ply_video_buffer_get_size (PlyVideoBuffer     *buffer,
-                           PlyVideoBufferArea *size)
+ply_frame_buffer_get_size (PlyFrameBuffer     *buffer,
+                           PlyFrameBufferArea *size)
 {
   assert (buffer != NULL);
-  assert (ply_video_buffer_device_is_open (buffer));
+  assert (ply_frame_buffer_device_is_open (buffer));
   assert (size != NULL);
 
   *size = buffer->area;
 }
 
 bool 
-ply_video_buffer_fill_with_color (PlyVideoBuffer      *buffer,
-                                  PlyVideoBufferArea  *area,
+ply_frame_buffer_fill_with_color (PlyFrameBuffer      *buffer,
+                                  PlyFrameBufferArea  *area,
                                   double               red, 
                                   double               green,
                                   double               blue, 
@@ -563,7 +563,7 @@ ply_video_buffer_fill_with_color (PlyVideoBuffer      *buffer,
   uint32_t pixel_value;
 
   assert (buffer != NULL);
-  assert (ply_video_buffer_device_is_open (buffer));
+  assert (ply_frame_buffer_device_is_open (buffer));
 
   if (area == NULL)
     area = &buffer->area;
@@ -572,18 +572,18 @@ ply_video_buffer_fill_with_color (PlyVideoBuffer      *buffer,
   green *= alpha;
   blue *= alpha;
 
-  pixel_value = PLY_VIDEO_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
+  pixel_value = PLY_FRAME_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
 
-  ply_video_buffer_fill_area_with_pixel_value (buffer, area, pixel_value);
+  ply_frame_buffer_fill_area_with_pixel_value (buffer, area, pixel_value);
 
-  ply_video_buffer_add_area_to_flush_area (buffer, area);
+  ply_frame_buffer_add_area_to_flush_area (buffer, area);
 
-  return ply_video_buffer_flush (buffer);
+  return ply_frame_buffer_flush (buffer);
 }
 
 bool 
-ply_video_buffer_fill_with_argb32_data_at_opacity (PlyVideoBuffer     *buffer,
-                                                   PlyVideoBufferArea *area,
+ply_frame_buffer_fill_with_argb32_data_at_opacity (PlyFrameBuffer     *buffer,
+                                                   PlyFrameBufferArea *area,
                                                    unsigned long       x,
                                                    unsigned long       y,
                                                    unsigned long       width,
@@ -594,7 +594,7 @@ ply_video_buffer_fill_with_argb32_data_at_opacity (PlyVideoBuffer     *buffer,
   long row, column;
 
   assert (buffer != NULL);
-  assert (ply_video_buffer_device_is_open (buffer));
+  assert (ply_frame_buffer_device_is_open (buffer));
 
   if (area == NULL)
     area = &buffer->area;
@@ -607,33 +607,33 @@ ply_video_buffer_fill_with_argb32_data_at_opacity (PlyVideoBuffer     *buffer,
 
           pixel_value = data[width * row + column];
           pixel_value = make_pixel_value_translucent (pixel_value, opacity);
-          ply_video_buffer_blend_value_at_pixel (buffer,
+          ply_frame_buffer_blend_value_at_pixel (buffer,
                                                  area->x + (column - x),
                                                  area->y + (row - y),
                                                  pixel_value);
         }
     }
 
-  ply_video_buffer_add_area_to_flush_area (buffer, area);
+  ply_frame_buffer_add_area_to_flush_area (buffer, area);
 
-  return ply_video_buffer_flush (buffer);
+  return ply_frame_buffer_flush (buffer);
 }
 
 bool 
-ply_video_buffer_fill_with_argb32_data (PlyVideoBuffer     *buffer,
-                                        PlyVideoBufferArea *area,
+ply_frame_buffer_fill_with_argb32_data (PlyFrameBuffer     *buffer,
+                                        PlyFrameBufferArea *area,
                                         unsigned long       x,
                                         unsigned long       y,
                                         unsigned long       width,
                                         unsigned long       height,
                                         uint32_t           *data)
 {
-  return ply_video_buffer_fill_with_argb32_data_at_opacity (buffer, area,
+  return ply_frame_buffer_fill_with_argb32_data_at_opacity (buffer, area,
                                                             x, y, width, 
                                                             height, data, 1.0);
 }
 
-#ifdef PLY_VIDEO_BUFFER_ENABLE_TEST
+#ifdef PLY_FRAME_BUFFER_ENABLE_TEST
 
 #include <math.h>
 #include <stdio.h>
@@ -654,7 +654,7 @@ get_current_time (void)
 }
 
 static void
-animate_at_time (PlyVideoBuffer *buffer,
+animate_at_time (PlyFrameBuffer *buffer,
                  double          time)
 {
   int x, y;
@@ -681,7 +681,7 @@ animate_at_time (PlyVideoBuffer *buffer,
       }
     }
 
-  ply_video_buffer_fill_with_argb32_data (buffer, NULL, 0, 0, 1024, 768, data);
+  ply_frame_buffer_fill_with_argb32_data (buffer, NULL, 0, 0, 1024, 768, data);
 }
 
 int
@@ -689,14 +689,14 @@ main (int    argc,
       char **argv)
 {
   static unsigned int seed = 0;
-  PlyVideoBuffer *buffer;
+  PlyFrameBuffer *buffer;
   int exit_code;
 
   exit_code = 0;
 
-  buffer = ply_video_buffer_new (NULL);
+  buffer = ply_frame_buffer_new (NULL);
 
-  if (!ply_video_buffer_open (buffer))
+  if (!ply_frame_buffer_open (buffer))
     {
       exit_code = errno;
       perror ("could not open frame buffer");
@@ -715,10 +715,10 @@ main (int    argc,
       usleep (1000000/30.);
     }
 
-  ply_video_buffer_close (buffer);
-  ply_video_buffer_free (buffer);
+  ply_frame_buffer_close (buffer);
+  ply_frame_buffer_free (buffer);
 
   return main (argc, argv);
 }
 
-#endif /* PLY_VIDEO_BUFFER_ENABLE_TEST */
+#endif /* PLY_FRAME_BUFFER_ENABLE_TEST */

@@ -1,5 +1,5 @@
 /* vim: ts=4 sw=2 expandtab autoindent cindent 
- * ply-video-buffer.h - framebuffer abstraction
+ * ply-frame-buffer.h - framebuffer abstraction
  *
  * Copyright (C) 2007 Red Hat, Inc.
  *
@@ -20,18 +20,18 @@
  *
  * Written By: Ray Strode <rstrode@redhat.com>
  */
-#ifndef PLY_VIDEO_BUFFER_H
-#define PLY_VIDEO_BUFFER_H
+#ifndef PLY_FRAME_BUFFER_H
+#define PLY_FRAME_BUFFER_H
 
 #include <stdbool.h>
 #include <stdint.h>
 
 #include "ply-utils.h"
 
-typedef struct _PlyVideoBuffer PlyVideoBuffer;
-typedef struct _PlyVideoBufferArea PlyVideoBufferArea;
+typedef struct _PlyFrameBuffer PlyFrameBuffer;
+typedef struct _PlyFrameBufferArea PlyFrameBufferArea;
 
-struct _PlyVideoBufferArea
+struct _PlyFrameBufferArea
 {
   unsigned long x;
   unsigned long y;
@@ -39,41 +39,41 @@ struct _PlyVideoBufferArea
   unsigned long height;
 };
 
-#define PLY_VIDEO_BUFFER_COLOR_TO_PIXEL_VALUE(r,g,b,a)                        \
+#define PLY_FRAME_BUFFER_COLOR_TO_PIXEL_VALUE(r,g,b,a)                        \
     (((uint8_t) (CLAMP (a * 255.0, 0.0, 255.0)) << 24)                        \
       | ((uint8_t) (CLAMP (r * 255.0, 0.0, 255.0)) << 16)                     \
       | ((uint8_t) (CLAMP (g * 255.0, 0.0, 255.0)) << 8)                      \
       | ((uint8_t) (CLAMP (b * 255.0, 0.0, 255.0))))
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-PlyVideoBuffer *ply_video_buffer_new (const char *device_name);
-void ply_video_buffer_free (PlyVideoBuffer *buffer);
-bool ply_video_buffer_open (PlyVideoBuffer *buffer);
-void ply_video_buffer_pause_updates (PlyVideoBuffer *buffer);
-bool ply_video_buffer_unpause_updates (PlyVideoBuffer *buffer);
-bool ply_video_buffer_device_is_open (PlyVideoBuffer *buffer); 
-char *ply_video_buffer_get_device_name (PlyVideoBuffer *buffer);
-void ply_video_buffer_set_device_name (PlyVideoBuffer *buffer,
+PlyFrameBuffer *ply_frame_buffer_new (const char *device_name);
+void ply_frame_buffer_free (PlyFrameBuffer *buffer);
+bool ply_frame_buffer_open (PlyFrameBuffer *buffer);
+void ply_frame_buffer_pause_updates (PlyFrameBuffer *buffer);
+bool ply_frame_buffer_unpause_updates (PlyFrameBuffer *buffer);
+bool ply_frame_buffer_device_is_open (PlyFrameBuffer *buffer); 
+char *ply_frame_buffer_get_device_name (PlyFrameBuffer *buffer);
+void ply_frame_buffer_set_device_name (PlyFrameBuffer *buffer,
                                        const char     *device_name);
-void ply_video_buffer_close (PlyVideoBuffer *buffer);
-void ply_video_buffer_get_size (PlyVideoBuffer     *buffer,
-                                PlyVideoBufferArea *size);
-bool ply_video_buffer_fill_with_color (PlyVideoBuffer      *buffer,
-                                       PlyVideoBufferArea  *area,
+void ply_frame_buffer_close (PlyFrameBuffer *buffer);
+void ply_frame_buffer_get_size (PlyFrameBuffer     *buffer,
+                                PlyFrameBufferArea *size);
+bool ply_frame_buffer_fill_with_color (PlyFrameBuffer      *buffer,
+                                       PlyFrameBufferArea  *area,
                                        double               red, 
                                        double               green,
                                        double               blue, 
                                        double               alpha);
 
-bool ply_video_buffer_fill_with_argb32_data (PlyVideoBuffer      *buffer,
-                                             PlyVideoBufferArea  *area,
+bool ply_frame_buffer_fill_with_argb32_data (PlyFrameBuffer      *buffer,
+                                             PlyFrameBufferArea  *area,
                                              unsigned long        x,
                                              unsigned long        y,
                                              unsigned long        width,
                                              unsigned long        height,
                                              uint32_t            *data);
-bool ply_video_buffer_fill_with_argb32_data_at_opacity (PlyVideoBuffer     *buffer,
-                                                        PlyVideoBufferArea *area,
+bool ply_frame_buffer_fill_with_argb32_data_at_opacity (PlyFrameBuffer     *buffer,
+                                                        PlyFrameBufferArea *area,
                                                         unsigned long       x,
                                                         unsigned long       y,
                                                         unsigned long       width,
@@ -83,4 +83,4 @@ bool ply_video_buffer_fill_with_argb32_data_at_opacity (PlyVideoBuffer     *buff
 
 #endif
 
-#endif /* PLY_VIDEO_BUFFER_H */
+#endif /* PLY_FRAME_BUFFER_H */

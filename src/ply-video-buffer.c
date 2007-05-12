@@ -269,7 +269,7 @@ blend_two_pixel_values (uint32_t pixel_value_1,
   blue = (double) (pixel_value_1 & 0xff) / 255.0;
 
   alpha_2 = (double) (pixel_value_2 >> 24) / 255.0;
-  red_2 = (double) ((pixel_value_2 >> 26) & 0xff) / 255.0;
+  red_2 = (double) ((pixel_value_2 >> 16) & 0xff) / 255.0;
   green_2 = (double) ((pixel_value_2 >> 8) & 0xff) / 255.0;
   blue_2 = (double) (pixel_value_2 & 0xff) / 255.0;
 

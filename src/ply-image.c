@@ -268,7 +268,7 @@ ply_image_get_height (PlyImage *image)
 
 #ifdef PLY_IMAGE_ENABLE_TEST
 
-#include "ply-video-buffer.h"
+#include "ply-frame-buffer.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -305,11 +305,11 @@ get_current_time (void)
 }
 
 static void
-animate_at_time (PlyVideoBuffer *buffer,
+animate_at_time (PlyFrameBuffer *buffer,
                  PlyImage       *image,
                  double          time)
 {
-  PlyVideoBufferArea area;
+  PlyFrameBufferArea area;
   uint32_t *data;
   long width, height;
   double opacity = 0.0;
@@ -318,7 +318,7 @@ animate_at_time (PlyVideoBuffer *buffer,
   width = ply_image_get_width (image);
   height = ply_image_get_height (image);
 
-  ply_video_buffer_get_size (buffer, &area);
+  ply_frame_buffer_get_size (buffer, &area);
   area.x = (area.width / 2) - (width / 2);
   area.y = (area.height / 2) - (height / 2);
   area.width = width;
@@ -326,12 +326,12 @@ animate_at_time (PlyVideoBuffer *buffer,
 
   opacity = .5 * sin ((time/5) * (2 * M_PI)) + .8;
   opacity = CLAMP (opacity, 0, 1.0);
-  ply_video_buffer_pause_updates (buffer);
-  ply_video_buffer_fill_with_color (buffer, &area, 0.0, 0.0, 0.0, 1.0);
-  ply_video_buffer_fill_with_argb32_data_at_opacity (buffer, &area, 
+  ply_frame_buffer_pause_updates (buffer);
+  ply_frame_buffer_fill_with_color (buffer, &area, 0.0, 0.0, 0.0, 1.0);
+  ply_frame_buffer_fill_with_argb32_data_at_opacity (buffer, &area, 
                                                      0, 0, width, height, 
                                                      data, opacity);
-  ply_video_buffer_unpause_updates (buffer);
+  ply_frame_buffer_unpause_updates (buffer);
 }
 
 int
@@ -339,7 +339,7 @@ main (int    argc,
       char **argv)
 {
   PlyImage *image;
-  PlyVideoBuffer *buffer;
+  PlyFrameBuffer *buffer;
   int exit_code;
   double start_time;
 
@@ -356,9 +356,9 @@ main (int    argc,
       return exit_code;
     }
 
-  buffer = ply_video_buffer_new (NULL);
+  buffer = ply_frame_buffer_new (NULL);
 
-  if (!ply_video_buffer_open (buffer))
+  if (!ply_frame_buffer_open (buffer))
     {
       exit_code = errno;
       perror ("could not open framebuffer");
@@ -366,14 +366,14 @@ main (int    argc,
     }
 
   start_time = get_current_time ();
-  ply_video_buffer_fill_with_color (buffer, NULL, 0.0, 0.0, 0.0, 1.0);
+  ply_frame_buffer_fill_with_color (buffer, NULL, 0.0, 0.0, 0.0, 1.0);
   while ("we want to see ad-hoc animations")
     {
       animate_at_time (buffer, image, get_current_time () - start_time);
       usleep ((long) (1000000 / FRAMES_PER_SECOND));
     }
-  ply_video_buffer_close (buffer);
-  ply_video_buffer_free (buffer);
+  ply_frame_buffer_close (buffer);
+  ply_frame_buffer_free (buffer);
 
   ply_image_free (image);
 

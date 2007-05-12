@@ -1,5 +1,4 @@
-/* vim: ts=4 sw=2 expandtab autoindent cindent cino={1s,(0
- * ply-frame-buffer.c - framebuffer abstraction
+/* ply-frame-buffer.c - framebuffer abstraction
  *
  * Copyright (C) 2006, 2007 Red Hat, Inc.
  *
@@ -722,3 +721,5 @@ main (int    argc,
 }
 
 #endif /* PLY_FRAME_BUFFER_ENABLE_TEST */
+
+/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

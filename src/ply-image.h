@@ -1,5 +1,4 @@
-/* vim: ts=4 sw=2 expandtab autoindent cindent 
- * ply-video-buffer.h - framebuffer abstraction
+/* ply-video-buffer.h - framebuffer abstraction
  *
  * Copyright (C) 2007 Red Hat, Inc.
  *
@@ -41,3 +40,4 @@ long ply_image_get_height (ply_image_t *image);
 #endif
 
 #endif /* PLY_IMAGE_H */
+/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

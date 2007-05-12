@@ -1,5 +1,4 @@
-/* vim: ts=4 sw=2 expandtab autoindent cindent 
- * ply-frame-buffer.h - framebuffer abstraction
+/* ply-frame-buffer.h - framebuffer abstraction
  *
  * Copyright (C) 2007 Red Hat, Inc.
  *
@@ -84,3 +83,4 @@ bool ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t     *
 #endif
 
 #endif /* PLY_FRAME_BUFFER_H */
+/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

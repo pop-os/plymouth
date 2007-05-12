@@ -1,5 +1,4 @@
-/* vim: ts=4 sw=2 expandtab autoindent cindent
- * ply-image.c - png file loader
+/* ply-image.c - png file loader
  *
  * Copyright (C) 2006, 2007 Red Hat, Inc.
  * Copyright (C) 2003 University of Southern California
@@ -381,3 +380,4 @@ main (int    argc,
 }
 
 #endif /* PLY_IMAGE_ENABLE_TEST */
+/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

@@ -1,5 +1,4 @@
-/* vim: ts=4 sw=2 expandtab autoindent cindent 
- * main.c - graphical boot splash screen
+/* main.c - graphical boot splash screen
  *
  * Copyright (C) 2007 Red Hat, Inc
  * All rights reserved.
@@ -27,3 +26,4 @@ main (int    argc,
 {
   return 0;
 }
+/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

@@ -1,5 +1,4 @@
-/* vim: ts=4 sw=2 expandtab autoindent cindent cino={1s
- * ply-utils.h - random useful functions and macros
+/* ply-utils.h - random useful functions and macros
  *
  * Copyright (C) 2007 Red Hat, Inc.
  *
@@ -36,3 +35,4 @@
 #endif
 
 #endif /* PLY_UTILS_H */
+/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

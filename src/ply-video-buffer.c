@@ -281,6 +281,25 @@ blend_two_pixel_values (uint32_t pixel_value_1,
   return PLY_VIDEO_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
 }
 
+static uint32_t
+make_pixel_value_translucent (uint32_t pixel_value, 
+                              double   opacity)
+{
+  double alpha, red, green, blue;
+
+  alpha = (double) (pixel_value >> 24) / 255.0;
+  red = (double) ((pixel_value >> 16) & 0xff) / 255.0;
+  green = (double) ((pixel_value >> 8) & 0xff) / 255.0;
+  blue = (double) (pixel_value & 0xff) / 255.0;
+
+  alpha *= opacity;
+  red *= opacity;
+  green *= opacity;
+  blue *= opacity;
+
+  return PLY_VIDEO_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
+}
+
 static void 
 ply_video_buffer_blend_value_at_pixel (PlyVideoBuffer *buffer,
                                        int             x,
@@ -625,25 +644,12 @@ ply_video_buffer_fill_with_argb32_data_at_opacity (PlyVideoBuffer     *buffer,
                                                    double              opacity)
 {
   long row, column;
-  bool is_translucent;
-  uint32_t alpha_pixel_value;
 
   assert (buffer != NULL);
   assert (ply_video_buffer_device_is_open (buffer));
 
   if (area == NULL)
     area = &buffer->area;
-
-  alpha_pixel_value = 0x00000000;
-  if (abs (opacity - 1.0) > DBL_MIN)
-    {
-      uint8_t alpha;
-      alpha = (uint8_t) CLAMP (opacity * 255.0, 0.0, 255.0);
-      alpha_pixel_value |= alpha << 24;
-      is_translucent = true;
-    }
-  else
-    is_translucent = false;
 
   for (row = y; row < y + height; row++)
     {
@@ -652,12 +658,7 @@ ply_video_buffer_fill_with_argb32_data_at_opacity (PlyVideoBuffer     *buffer,
           uint32_t pixel_value;
 
           pixel_value = data[width * row + column];
-
-          if (is_translucent)
-            {
-              pixel_value = 
-                blend_two_pixel_values (alpha_pixel_value, pixel_value);
-            }
+          pixel_value = make_pixel_value_translucent (pixel_value, opacity);
           ply_video_buffer_blend_value_at_pixel (buffer,
                                                  area->x + (column - x),
                                                  area->y + (row - y),

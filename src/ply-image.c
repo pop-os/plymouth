@@ -318,7 +318,7 @@ animate_at_time (PlyVideoBuffer *buffer,
                                     60.0/256.0, 110.0/256.0, 180.0/256.0, 1.0);
   ply_video_buffer_fill_with_argb32_data_at_opacity (buffer, &area, 
                                                      0, 0, width, height, 
-                                                     data, 0.3);
+                                                     data, opacity);
   ply_video_buffer_unpause_updates (buffer);
 }
 

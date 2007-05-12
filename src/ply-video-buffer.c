@@ -81,23 +81,12 @@ static uint_least32_t ply_video_buffer_pixel_value_to_device_pixel_value (
     PlyVideoBuffer *buffer,
     uint32_t        pixel_value);
 
-static uint32_t ply_video_buffer_get_value_at_pixel (PlyVideoBuffer *buffer,
-                                                     int             x,
-                                                     int             y);
-static void ply_video_buffer_set_value_at_pixel (PlyVideoBuffer *buffer,
-                                                 int             x,
-                                                 int             y,
-                                                 uint32_t        pixel_value);
 static void ply_video_buffer_blend_value_at_pixel (PlyVideoBuffer *buffer,
                                                    int             x,
                                                    int             y,
                                                    uint32_t        pixel_value);
 
-static void ply_video_buffer_set_area_to_pixel_value (
-    PlyVideoBuffer     *buffer,
-    PlyVideoBufferArea *area,
-    uint32_t            pixel_value);
-static void ply_video_buffer_blend_area_with_pixel_value (
+static void ply_video_buffer_fill_area_with_pixel_value (
     PlyVideoBuffer     *buffer,
     PlyVideoBufferArea *area,
     uint32_t            pixel_value);
@@ -229,34 +218,6 @@ ply_video_buffer_pixel_value_to_device_pixel_value (PlyVideoBuffer *buffer,
 }
 
 static uint32_t
-ply_video_buffer_get_value_at_pixel (PlyVideoBuffer *buffer,
-                                     int             x,
-                                     int             y)
-{
-  uint32_t pixel_value;
-
-  assert (buffer != NULL);
-
-  pixel_value = buffer->shadow_buffer[y * buffer->area.width + x];
-
-  return pixel_value;
-}
-
-static void
-ply_video_buffer_set_value_at_pixel (PlyVideoBuffer *buffer,
-                                     int             x,
-                                     int             y,
-                                     uint32_t        pixel_value)
-{
-  assert (buffer != NULL);
-
-  /* FIXME: endianess issues here I think
-   */
-  memcpy (&buffer->shadow_buffer[y * buffer->area.width + x],
-          &pixel_value, sizeof (uint32_t));
-}
-
-static uint32_t
 blend_two_pixel_values (uint32_t pixel_value_1,
                         uint32_t pixel_value_2)
 {
@@ -287,15 +248,20 @@ make_pixel_value_translucent (uint32_t pixel_value,
 {
   double alpha, red, green, blue;
 
+  opacity = CLAMP (opacity, 0.0, 1.0);
+
+  if (opacity > .999)
+    return pixel_value;
+
   alpha = (double) (pixel_value >> 24) / 255.0;
   red = (double) ((pixel_value >> 16) & 0xff) / 255.0;
   green = (double) ((pixel_value >> 8) & 0xff) / 255.0;
   blue = (double) (pixel_value & 0xff) / 255.0;
 
-  alpha *= opacity;
   red *= opacity;
   green *= opacity;
   blue *= opacity;
+  alpha *= opacity;
 
   return PLY_VIDEO_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
 }
@@ -306,36 +272,21 @@ ply_video_buffer_blend_value_at_pixel (PlyVideoBuffer *buffer,
                                        int             y,
                                        uint32_t        pixel_value)
 {
-  uint32_t old_pixel_value, new_pixel_value;
+  uint32_t old_pixel_value;
 
-  old_pixel_value = ply_video_buffer_get_value_at_pixel (buffer, x, y);
-  new_pixel_value = blend_two_pixel_values (pixel_value, old_pixel_value);
-
-  ply_video_buffer_set_value_at_pixel (buffer, x, y, new_pixel_value);
-}
-
-static void
-ply_video_buffer_set_area_to_pixel_value (PlyVideoBuffer     *buffer,
-                                          PlyVideoBufferArea *area,
-                                          uint32_t            pixel_value)
-{
-  long row, column;
-
-  for (row = area->y; row < area->y + area->height; row++)
+  if ((pixel_value >> 24) != 0xff)
     {
-      for (column = area->x; column < area->x + area->width; column++)
-        {
-          ply_video_buffer_set_value_at_pixel (buffer, 
-                                               column, row,
-                                               pixel_value);
-        }
+      old_pixel_value = buffer->shadow_buffer[y * buffer->area.width + x];
+      pixel_value = blend_two_pixel_values (pixel_value, old_pixel_value);
     }
+
+  buffer->shadow_buffer[y * buffer->area.width + x] = pixel_value;
 }
 
 static void
-ply_video_buffer_blend_area_with_pixel_value (PlyVideoBuffer     *buffer,
-                                              PlyVideoBufferArea *area,
-                                              uint32_t            pixel_value)
+ply_video_buffer_fill_area_with_pixel_value (PlyVideoBuffer     *buffer,
+                                             PlyVideoBufferArea *area,
+                                             uint32_t            pixel_value)
 {
   long row, column;
 
@@ -623,10 +574,7 @@ ply_video_buffer_fill_with_color (PlyVideoBuffer      *buffer,
 
   pixel_value = PLY_VIDEO_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
 
-  if (abs (alpha - 1.0) <= DBL_MIN) 
-    ply_video_buffer_set_area_to_pixel_value (buffer, area, pixel_value);
-  else
-    ply_video_buffer_blend_area_with_pixel_value (buffer, area, pixel_value);
+  ply_video_buffer_fill_area_with_pixel_value (buffer, area, pixel_value);
 
   ply_video_buffer_add_area_to_flush_area (buffer, area);
 

@@ -305,8 +305,8 @@ get_current_time (void)
 
 static void
 animate_at_time (ply_frame_buffer_t *buffer,
-                 ply_image_t       *image,
-                 double          time)
+                 ply_image_t        *image,
+                 double              time)
 {
   ply_frame_buffer_area_t area;
   uint32_t *data;

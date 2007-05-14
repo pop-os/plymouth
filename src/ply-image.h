@@ -1,4 +1,4 @@
-/* ply-video-buffer.h - framebuffer abstraction
+/* ply-image.h - png file loader 
  *
  * Copyright (C) 2007 Red Hat, Inc.
  *

@@ -2,11 +2,16 @@
 
 #include "ply-utils.h"
 
+#include <assert.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <sys/types.h>
+
 bool 
 ply_open_unidirectional_pipe (int *sender_fd,
                               int *receiver_fd)
 {
-  init pipe_fds[2];
+  int pipe_fds[2];
 
   assert (sender_fd != NULL);
   assert (receiver_fd != NULL);

@@ -23,6 +23,7 @@
 #define PLY_UTILS_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifndef MIN
 #define MIN(a,b) ((a) <= (b)? (a) : (b))

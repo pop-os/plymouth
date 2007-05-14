@@ -22,6 +22,8 @@
 #ifndef PLY_UTILS_H
 #define PLY_UTILS_H
 
+#include <stdint.h>
+
 #ifndef MIN
 #define MIN(a,b) ((a) <= (b)? (a) : (b))
 #endif
@@ -32,6 +34,11 @@
 
 #ifndef CLAMP
 #define CLAMP(a,b,c) (MIN (MAX ((a), (b)), (c)))
+#endif
+
+#ifndef PLY_HIDE_FUNCTION_DECLARATIONS
+bool ply_open_unidirectional_pipe (int *sender_fd,
+                                   int *receiver_fd);
 #endif
 
 #endif /* PLY_UTILS_H */

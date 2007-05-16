@@ -8,6 +8,7 @@ AC_INIT(plymouth, 0.0.1-unstable, "rstrode@redhat.com")
 AC_CONFIG_SRCDIR(src/main.c)
 AC_CONFIG_HEADER(config.h)
 
+AC_GNU_SOURCE
 AC_PROG_AWK
 AC_PROG_CC
 AM_PROG_CC_C_O

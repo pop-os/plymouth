@@ -47,6 +47,7 @@ struct _ply_init_control
 {
   int fd;
   ply_terminal_t *terminal;
+  int terminal_device_fd;
 
   uint32_t is_trapping_messages : 1;
 };
@@ -58,9 +59,9 @@ static bool ply_init_control_is_trapping_messages (ply_init_control_t *control);
 static bool
 ply_init_control_open_terminal (ply_init_control_t *control)
 {
-  assert (!ply_terminal_is_open (control->terminal));
+  assert (!ply_terminal_has_device (control->terminal));
 
-  if (!ply_terminal_open (control->terminal))
+  if (!ply_terminal_create_device (control->terminal))
     return false;
 
   return true;
@@ -69,8 +70,8 @@ ply_init_control_open_terminal (ply_init_control_t *control)
 static void
 ply_init_control_close_terminal (ply_init_control_t *control)
 {
-  assert (ply_terminal_is_open (control->terminal));
-  ply_terminal_close (control->terminal);
+  assert (ply_terminal_has_device (control->terminal));
+  ply_terminal_destroy_device (control->terminal);
 }
 
 static bool
@@ -87,6 +88,7 @@ ply_init_control_new (void)
   control = calloc (1, sizeof (ply_init_control_t));
   control->fd = -1;
   control->terminal = ply_terminal_new ();
+  control->terminal_device_fd = -1;
   return control;
 }
 
@@ -97,6 +99,9 @@ ply_init_control_free (ply_init_control_t *control)
 
   if (ply_init_control_is_open (control))
     ply_init_control_close (control);
+
+  close (control->terminal_device_fd);
+  control->terminal_device_fd = -1;
 
   ply_init_control_close_terminal (control);
   ply_terminal_free (control->terminal);
@@ -165,16 +170,36 @@ bool
 ply_init_control_trap_messages (ply_init_control_t *control)
 {
   const char *terminal_name;
+  int saved_errno;
 
   assert (control != NULL);
   assert (ply_init_control_is_open (control));
   assert (!ply_init_control_is_trapping_messages (control));
 
-  ply_init_control_open_terminal (control);
-  terminal_name = ply_terminal_get_name (control->terminal);
+  if (!ply_init_control_open_terminal (control))
+    return false;
+
+  terminal_name = ply_terminal_get_device_name (control->terminal);
+
+  /* we open up the device ourselves, so we don't get hangups every
+   * time /bin/init opens and closes the device (which it seems to
+   * do a lot)
+   */
+  control->terminal_device_fd = open (terminal_name, O_RDWR | O_NOCTTY);
+
+  if (control->terminal_device_fd < 0)
+    goto failed;
 
   control->is_trapping_messages = true;
-  return ply_init_control_change_console (control, terminal_name);
+  if (!ply_init_control_change_console (control, terminal_name))
+    goto failed;
+
+  return true;
+failed:
+  saved_errno = errno;
+  ply_init_control_close_terminal (control);
+  errno = saved_errno;
+  return false;
 }
 
 void
@@ -232,10 +257,11 @@ main (int    argc,
 
   fd = ply_init_control_get_messages_fd (control);
 
-  if (read (fd, buf, sizeof (buf) - 1) < 0)
-    perror ("couldn't read from messages fd");
-  else
-    printf ("trapped {%s}\n", buf);
+  while (read (fd, buf, sizeof (buf) - 1) > 0)
+    {
+      printf ("%s", buf);
+      memset (buf, '\0', sizeof (buf));
+    }
 
   ply_init_control_untrap_messages (control);
   ply_init_control_close (control);

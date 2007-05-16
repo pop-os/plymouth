@@ -83,7 +83,9 @@ ply_fd_has_data (int fd)
   poll_data.revents = 0;
   result = poll (&poll_data, 1, 10);
 
-  return result == 1;
+  return result == 1 
+	  && ((poll_data.revents & POLLIN) 
+	  || (poll_data.revents & POLLPRI));
 }
 
 bool 

@@ -24,6 +24,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 #ifndef MIN
 #define MIN(a,b) ((a) <= (b)? (a) : (b))
@@ -40,6 +41,9 @@
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 bool ply_open_unidirectional_pipe (int *sender_fd,
                                    int *receiver_fd);
+bool ply_write (int         fd,
+                const void *buffer,
+                size_t      number_of_bytes); 
 #endif
 
 #endif /* PLY_UTILS_H */

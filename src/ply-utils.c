@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <stdlib.h>
 #include <sys/types.h>
 
@@ -69,4 +70,32 @@ ply_write (int         fd,
   while (bytes_left_to_write > 0);
 
   return bytes_left_to_write == 0;
+}
+
+bool 
+ply_fd_has_data (int fd)
+{
+  struct pollfd poll_data;
+  int result;
+
+  poll_data.fd = fd;
+  poll_data.events = POLLIN | POLLPRI;
+  poll_data.revents = 0;
+  result = poll (&poll_data, 1, 10);
+
+  return result == 1;
+}
+
+bool 
+ply_fd_can_take_data (int fd)
+{
+  struct pollfd poll_data;
+  int result;
+
+  poll_data.fd = fd;
+  poll_data.events = POLLOUT;
+  poll_data.revents = 0;
+  result = poll (&poll_data, 1, 10);
+
+  return result == 1;
 }

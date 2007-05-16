@@ -58,17 +58,17 @@ ply_terminal_free (ply_terminal_t *terminal)
 {
   assert (terminal != NULL);
 
-  ply_terminal_close (terminal);
+  ply_terminal_destroy_device (terminal);
   free (terminal);
 }
 
 bool
-ply_terminal_open (ply_terminal_t *terminal)
+ply_terminal_create_device (ply_terminal_t *terminal)
 {
   int saved_errno;
 
   assert (terminal != NULL);
-  assert (!ply_terminal_is_open (terminal));
+  assert (!ply_terminal_has_device (terminal));
 
   terminal->fd = posix_openpt (O_RDWR | O_NOCTTY);
 
@@ -78,7 +78,7 @@ ply_terminal_open (ply_terminal_t *terminal)
   if (grantpt (terminal->fd) < 0)
     {
       saved_errno = errno;
-      ply_terminal_close (terminal);
+      ply_terminal_destroy_device (terminal);
       errno = saved_errno;
       return false;
     }
@@ -86,7 +86,7 @@ ply_terminal_open (ply_terminal_t *terminal)
   if (unlockpt (terminal->fd) < 0)
     {
       saved_errno = errno;
-      ply_terminal_close (terminal);
+      ply_terminal_destroy_device (terminal);
       errno = saved_errno;
       return false;
     }
@@ -97,7 +97,7 @@ ply_terminal_open (ply_terminal_t *terminal)
 }
 
 bool
-ply_terminal_is_open (ply_terminal_t *terminal)
+ply_terminal_has_device (ply_terminal_t *terminal)
 {
   assert (terminal != NULL);
 
@@ -105,7 +105,7 @@ ply_terminal_is_open (ply_terminal_t *terminal)
 }
 
 void
-ply_terminal_close (ply_terminal_t *terminal)
+ply_terminal_destroy_device (ply_terminal_t *terminal)
 {
   assert (terminal != NULL);
 
@@ -125,10 +125,10 @@ ply_terminal_get_fd (ply_terminal_t *terminal)
 }
 
 const char *
-ply_terminal_get_name (ply_terminal_t *terminal)
+ply_terminal_get_device_name (ply_terminal_t *terminal)
 {
   assert (terminal != NULL);
-  assert (ply_terminal_is_open (terminal));
+  assert (ply_terminal_has_device (terminal));
 
   assert (terminal->name != NULL);
   return terminal->name;
@@ -151,14 +151,14 @@ main (int    argc,
 
   terminal = ply_terminal_new ();
 
-  if (!ply_terminal_open (terminal))
+  if (!ply_terminal_create_device (terminal))
     {
       exit_code = errno;
       perror ("could not open new terminal");
       return exit_code;
     }
 
-  name = ply_terminal_get_name (terminal);
+  name = ply_terminal_get_device_name (terminal);
   printf ("terminal name is '%s'\n", name);
 
   while (read (ply_terminal_get_fd (terminal), 

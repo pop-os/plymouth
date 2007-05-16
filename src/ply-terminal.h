@@ -31,11 +31,11 @@ typedef struct _ply_terminal ply_terminal_t;
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_terminal_t *ply_terminal_new ();
 void ply_terminal_free (ply_terminal_t *terminal);
-bool ply_terminal_open (ply_terminal_t *terminal);
-bool ply_terminal_is_open (ply_terminal_t *terminal);
-void ply_terminal_close (ply_terminal_t *terminal);
+bool ply_terminal_create_device (ply_terminal_t *terminal);
+bool ply_terminal_has_device (ply_terminal_t *terminal);
+void ply_terminal_destroy_device (ply_terminal_t *terminal);
 int ply_terminal_get_fd (ply_terminal_t *terminal);
-const char *ply_terminal_get_name (ply_terminal_t *terminal);
+const char *ply_terminal_get_device_name (ply_terminal_t *terminal);
 #endif
 
 #endif /* PLY_TERMINAL_H */

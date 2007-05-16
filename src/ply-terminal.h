@@ -35,7 +35,7 @@ bool ply_terminal_open (ply_terminal_t *terminal);
 bool ply_terminal_is_open (ply_terminal_t *terminal);
 void ply_terminal_close (ply_terminal_t *terminal);
 int ply_terminal_get_fd (ply_terminal_t *terminal);
-char *ply_terminal_get_name (ply_terminal_t *terminal);
+const char *ply_terminal_get_name (ply_terminal_t *terminal);
 #endif
 
 #endif /* PLY_TERMINAL_H */

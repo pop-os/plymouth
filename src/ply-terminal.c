@@ -124,14 +124,14 @@ ply_terminal_get_fd (ply_terminal_t *terminal)
   return terminal->fd;
 }
 
-char *
+const char *
 ply_terminal_get_name (ply_terminal_t *terminal)
 {
   assert (terminal != NULL);
   assert (ply_terminal_is_open (terminal));
 
   assert (terminal->name != NULL);
-  return strdup (terminal->name);
+  return terminal->name;
 }
 
 #ifdef PLY_TERMINAL_ENABLE_TEST
@@ -143,7 +143,7 @@ main (int    argc,
       char **argv)
 {
   ply_terminal_t *terminal;
-  char *name;
+  const char *name;
   uint8_t byte;
   int exit_code;
 

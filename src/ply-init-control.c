@@ -36,6 +36,7 @@
 
 #include <initreq.h>
 
+#include "ply-terminal.h"
 #include "ply-utils.h"
 
 #ifndef PLY_INIT_CONTROL_DEVICE_NAME
@@ -45,7 +46,38 @@
 struct _ply_init_control
 {
   int fd;
+  ply_terminal_t *terminal;
+
+  uint32_t is_trapping_messages : 1;
 };
+
+static bool ply_init_control_open_terminal (ply_init_control_t *control);
+static void ply_init_control_close_terminal (ply_init_control_t *control);
+static bool ply_init_control_is_trapping_messages (ply_init_control_t *control);
+
+static bool
+ply_init_control_open_terminal (ply_init_control_t *control)
+{
+  assert (!ply_terminal_is_open (control->terminal));
+
+  if (!ply_terminal_open (control->terminal))
+    return false;
+
+  return true;
+}
+
+static void
+ply_init_control_close_terminal (ply_init_control_t *control)
+{
+  assert (ply_terminal_is_open (control->terminal));
+  ply_terminal_close (control->terminal);
+}
+
+static bool
+ply_init_control_is_trapping_messages (ply_init_control_t *control)
+{
+  return control->is_trapping_messages;
+}
 
 ply_init_control_t *
 ply_init_control_new (void)
@@ -54,6 +86,7 @@ ply_init_control_new (void)
 
   control = calloc (1, sizeof (ply_init_control_t));
   control->fd = -1;
+  control->terminal = ply_terminal_new ();
   return control;
 }
 
@@ -64,6 +97,11 @@ ply_init_control_free (ply_init_control_t *control)
 
   if (ply_init_control_is_open (control))
     ply_init_control_close (control);
+
+  ply_init_control_close_terminal (control);
+  ply_terminal_free (control->terminal);
+
+  free (control);
 }
 
 bool
@@ -98,7 +136,8 @@ ply_init_control_close (ply_init_control_t *control)
 }
 
 bool
-ply_init_control_redirect_messages (ply_init_control_t *control)
+ply_init_control_change_console (ply_init_control_t *control,
+                                 const char         *console_name)
 {
   struct init_request request;
 
@@ -109,16 +148,53 @@ ply_init_control_redirect_messages (ply_init_control_t *control)
   request.magic = INIT_MAGIC;
   request.cmd = INIT_CMD_CHANGECONS;
 
-  /* XXX: this is so gross, initreq.h needs to be updated to handle
-   * this command better
+  /* XXX: this is so gross, initreq.h really needs to be updated 
+   * to handle this command better
    */
-  strncpy (request.i.bsd.reserved, "/dev/null",
-           sizeof (request.i.bsd.reserved));
+  if (console_name != NULL)
+    strncpy (request.i.bsd.reserved, console_name,
+             sizeof (request.i.bsd.reserved));
 
   if (!ply_write (control->fd, &request, sizeof (request)))
     return false;
 
   return true;
+}
+
+bool
+ply_init_control_trap_messages (ply_init_control_t *control)
+{
+  const char *terminal_name;
+
+  assert (control != NULL);
+  assert (ply_init_control_is_open (control));
+  assert (!ply_init_control_is_trapping_messages (control));
+
+  ply_init_control_open_terminal (control);
+  terminal_name = ply_terminal_get_name (control->terminal);
+
+  control->is_trapping_messages = true;
+  return ply_init_control_change_console (control, terminal_name);
+}
+
+void
+ply_init_control_untrap_messages (ply_init_control_t *control)
+{
+  assert (control != NULL);
+  assert (ply_init_control_is_open (control));
+  assert (ply_init_control_is_trapping_messages (control));
+
+  ply_init_control_change_console (control, NULL);
+  control->is_trapping_messages = false;
+}
+
+int
+ply_init_control_get_messages_fd (ply_init_control_t *control)
+{
+  assert (control != NULL);
+  assert (ply_init_control_is_open (control));
+  assert (ply_init_control_is_trapping_messages (control));
+  return ply_terminal_get_fd (control->terminal);
 }
 
 #ifdef PLY_INIT_CONTROL_ENABLE_TEST
@@ -133,6 +209,8 @@ main (int    argc,
 {
   ply_init_control_t *control;
   int exit_code;
+  int fd;
+  char buf[64] = "";
 
   exit_code = 0;
 
@@ -145,13 +223,21 @@ main (int    argc,
       return exit_code;
     }
 
-  if (!ply_init_control_redirect_messages (control))
+  if (!ply_init_control_trap_messages (control))
     {
       exit_code = errno;
-      perror ("could not redirect init messages");
+      perror ("could not trap init messages");
       return exit_code;
     }
 
+  fd = ply_init_control_get_messages_fd (control);
+
+  if (read (fd, buf, sizeof (buf) - 1) < 0)
+    perror ("couldn't read from messages fd");
+  else
+    printf ("trapped {%s}\n", buf);
+
+  ply_init_control_untrap_messages (control);
   ply_init_control_close (control);
   ply_init_control_free (control);
 

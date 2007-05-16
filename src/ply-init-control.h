@@ -34,7 +34,9 @@ void ply_init_control_free (ply_init_control_t *init_control);
 bool ply_init_control_is_open (ply_init_control_t *control);
 bool ply_init_control_open (ply_init_control_t *init_control);
 void ply_init_control_close (ply_init_control_t *init_control);
-bool ply_init_control_redirect_messages (ply_init_control_t *init_control);
+bool ply_init_control_trap_messages (ply_init_control_t *init_control);
+void ply_init_control_untrap_messages (ply_init_control_t *init_control);
+int ply_init_control_get_messages_fd (ply_init_control_t *init_control);
 #endif
 
 #endif /* PLY_INIT_CONTROL_H */

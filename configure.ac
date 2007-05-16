@@ -27,8 +27,8 @@ ALL_LINGUAS=""
 IT_PROG_INTLTOOL
 PKG_PROG_PKG_CONFIG
 
-PKG_CHECK_MODULES(PLYMOUTH, [glib-2.0   >= 2.12.11 
-                             cairo      >= 1.4.2   
+PKG_CHECK_MODULES(PLYMOUTH, [libpng >= 1.2.16
+                             
 ]) 
 AC_SUBST(PLYMOUTH_CFLAGS)
 AC_SUBST(PLYMOUTH_LIBS)
@@ -37,5 +37,6 @@ AC_PATH_PROG(GLIB_GENMARSHAL, glib-genmarshal)
 
 AC_OUTPUT([Makefile
            src/Makefile
+           src/tests/Makefile
            po/Makefile.in
 ])

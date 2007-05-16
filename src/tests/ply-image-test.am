@@ -1,0 +1,10 @@
+TESTS += ply-image-test
+
+ply_image_test_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLY_IMAGE_ENABLE_TEST
+ply_image_test_LDADD = $(PLYMOUTH_LIBS) -lm -lpng
+ply_image_test_SOURCES =                                                      \
+                          $(srcdir)/../ply-utils.h                            \
+                          $(srcdir)/../ply-frame-buffer.h                     \
+                          $(srcdir)/../ply-frame-buffer.c                     \
+                          $(srcdir)/../ply-image.h                            \
+                          $(srcdir)/../ply-image.c 

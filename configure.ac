@@ -33,8 +33,6 @@ PKG_CHECK_MODULES(PLYMOUTH, [libpng >= 1.2.16
 AC_SUBST(PLYMOUTH_CFLAGS)
 AC_SUBST(PLYMOUTH_LIBS)
 
-AC_PATH_PROG(GLIB_GENMARSHAL, glib-genmarshal)
-
 AC_OUTPUT([Makefile
            src/Makefile
            src/tests/Makefile

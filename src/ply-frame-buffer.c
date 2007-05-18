@@ -30,6 +30,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -287,7 +288,7 @@ ply_frame_buffer_fill_area_with_pixel_value (ply_frame_buffer_t     *buffer,
                                              ply_frame_buffer_area_t *area,
                                              uint32_t            pixel_value)
 {
-  long row, column;
+  unsigned long row, column;
 
   for (row = area->y; row < area->y + area->height; row++)
     {
@@ -327,14 +328,9 @@ ply_frame_buffer_copy_to_device (ply_frame_buffer_t *buffer,
                                  unsigned long   height)
 {
   unsigned long row, column;
-  unsigned long start_offset;
-  unsigned long size;
-
   unsigned long bytes_per_row;
   
   bytes_per_row = buffer->area.width * buffer->bytes_per_pixel;
-  start_offset = y * bytes_per_row + x * buffer->bytes_per_pixel;
-  size = width * height * buffer->bytes_per_pixel;
 
   for (row = y; row < y + height; row++)
     {
@@ -344,7 +340,7 @@ ply_frame_buffer_copy_to_device (ply_frame_buffer_t *buffer,
           uint_least32_t device_pixel_value;
           unsigned long offset;
 
-          pixel_value = buffer->shadow_buffer[width * row + column];
+          pixel_value = buffer->shadow_buffer[row * buffer->area.width + column];
 
           device_pixel_value = 
             ply_frame_buffer_pixel_value_to_device_pixel_value (buffer,
@@ -353,12 +349,9 @@ ply_frame_buffer_copy_to_device (ply_frame_buffer_t *buffer,
           offset = row * bytes_per_row + column * buffer->bytes_per_pixel;
 
           memcpy (buffer->map_address + offset, &device_pixel_value,
-                  buffer->bits_per_pixel);
+                  buffer->bytes_per_pixel);
         }
     }
-
-  if (msync (buffer->map_address + start_offset, size, MS_SYNC) < 0)
-    return false;
 
   return true;
 }
@@ -367,17 +360,9 @@ static bool
 ply_frame_buffer_flush (ply_frame_buffer_t *buffer)
 {
   assert (buffer != NULL);
-  unsigned long start_offset;
-  size_t size;
-
-  assert (buffer != NULL);
 
   if (buffer->is_paused)
     return true;
-
-  start_offset = (buffer->area_to_flush.y * 4 * buffer->area_to_flush.width)
-                 + (buffer->area_to_flush.x * 4);
-  size = buffer->area_to_flush.width * buffer->area_to_flush.height;
 
   if (!ply_frame_buffer_copy_to_device (buffer,
                                         buffer->area_to_flush.x,
@@ -386,8 +371,8 @@ ply_frame_buffer_flush (ply_frame_buffer_t *buffer)
                                         buffer->area_to_flush.height))
     return false;
 
-  buffer->area_to_flush.x = 0; 
-  buffer->area_to_flush.y = 0; 
+  buffer->area_to_flush.x = buffer->area.width - 1;
+  buffer->area_to_flush.y = buffer->area.height - 1;
   buffer->area_to_flush.width = 0; 
   buffer->area_to_flush.height = 0; 
 

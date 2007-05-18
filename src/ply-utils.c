@@ -117,4 +117,21 @@ ply_copy_string_array (const char * const *array)
 
   return copy;
 }
+
+void 
+ply_free_string_array (char **array)
+{
+  int i;
+
+  if (array == NULL)
+    return;
+
+  for (i = 0; array[i] != NULL; i++)
+    {
+      free (array[i]);
+      array[i] = NULL;
+    }
+
+  free (array);
+}
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

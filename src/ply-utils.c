@@ -84,8 +84,8 @@ ply_fd_has_data (int fd)
   result = poll (&poll_data, 1, 10);
 
   return result == 1 
-	  && ((poll_data.revents & POLLIN) 
-	  || (poll_data.revents & POLLPRI));
+         && ((poll_data.revents & POLLIN) 
+         || (poll_data.revents & POLLPRI));
 }
 
 bool 
@@ -101,3 +101,20 @@ ply_fd_can_take_data (int fd)
 
   return result == 1;
 }
+
+char **
+ply_copy_string_array (const char * const *array)
+{
+  char **copy;
+  int i;
+
+  for (i = 0; array[i] != NULL; i++);
+
+  copy = calloc (i + 1, char *);
+
+  for (i = 0; array[i] != NULL, i++)
+    copy[i] = strdup (array[i]);
+
+  return copy;
+}
+/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

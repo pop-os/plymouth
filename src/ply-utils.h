@@ -46,6 +46,7 @@ bool ply_write (int         fd,
                 size_t      number_of_bytes); 
 bool ply_fd_has_data (int fd);
 bool ply_fd_can_take_data (int fd);
+char **ply_copy_string_array (const char * const *array);
 #endif
 
 #endif /* PLY_UTILS_H */

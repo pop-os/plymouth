@@ -34,12 +34,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "ply-logger.h"
 #include "ply-terminal.h"
 #include "ply-utils.h"
 
 struct _ply_terminal_session
 {
   ply_terminal_t *terminal;
+  ply_logger_t *logger;
   char **argv;
 };
 
@@ -113,6 +115,7 @@ ply_terminal_session_new (const char * const *argv)
   session = calloc (1, sizeof (ply_terminal_session_t));
   session->argv = ply_copy_string_array (argv);
   session->terminal = ply_terminal_new ();
+  session->logger = ply_logger_new ();
 
   return session;
 }
@@ -122,6 +125,9 @@ ply_terminal_session_free (ply_terminal_session_t *session)
 {
   if (session == NULL)
     return;
+
+  ply_terminal_session_stop_logging (session);
+  ply_logger_free (session->logger);
 
   ply_free_string_array (session->argv);
   ply_terminal_free (session->terminal);
@@ -165,6 +171,37 @@ ply_terminal_session_get_fd (ply_terminal_session_t *session)
   return ply_terminal_get_fd (session->terminal);
 }
 
+void 
+ply_terminal_session_start_logging (ply_terminal_session_t *session)
+{
+  uint8_t byte;
+
+  assert (session != NULL);
+  assert (session->logger != NULL);
+
+  if (!ply_logger_is_logging (session->logger))
+    ply_logger_toggle_logging (session->logger);
+
+  /* FIXME: this doesn't belong here
+   */
+  while (read (ply_terminal_session_get_fd (session), 
+               &byte, sizeof (byte)) == 1)
+    ply_logger_inject (session->logger, "%c", byte);
+
+  ply_logger_set_output_fd (session->logger, STDOUT_FILENO);
+  ply_logger_flush (session->logger);
+}
+
+void
+ply_terminal_session_stop_logging (ply_terminal_session_t *session)
+{
+  assert (session != NULL);
+  assert (session->logger != NULL);
+
+  if (ply_logger_is_logging (session->logger))
+    ply_logger_toggle_logging (session->logger);
+}
+
 #ifdef PLY_TERMINAL_SESSION_ENABLE_TEST
 
 #include <stdio.h>
@@ -174,7 +211,6 @@ main (int    argc,
       char **argv)
 {
   ply_terminal_session_t *session;
-  uint8_t byte;
   int exit_code;
   ply_terminal_session_flags_t flags;
 
@@ -191,9 +227,8 @@ main (int    argc,
       return errno;
     }
 
-  while (read (ply_terminal_session_get_fd (session), 
-               &byte, sizeof (byte)) == 1)
-    printf ("%c", byte);
+  ply_terminal_session_start_logging (session);
+  ply_terminal_session_stop_logging (session);
 
   ply_terminal_session_free (session);
 

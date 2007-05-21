@@ -42,6 +42,9 @@ void ply_terminal_session_free (ply_terminal_session_t *session);
 bool ply_terminal_session_run (ply_terminal_session_t *session,
                                ply_terminal_session_flags_t flags);
 int ply_terminal_session_get_fd (ply_terminal_session_t *session);
+void ply_terminal_session_start_logging (ply_terminal_session_t *session);
+void ply_terminal_session_stop_logging (ply_terminal_session_t *session);
+
 #endif
 
 #endif /* PLY_TERMINAL_SESSION_H */

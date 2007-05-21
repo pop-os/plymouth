@@ -29,6 +29,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -70,7 +71,10 @@ ply_terminal_create_device (ply_terminal_t *terminal)
   assert (terminal != NULL);
   assert (!ply_terminal_has_device (terminal));
 
+#if 0
   terminal->fd = posix_openpt (O_RDWR | O_NOCTTY);
+#endif
+  terminal->fd = open ("/dev/ptmx", O_RDWR | O_NOCTTY);
 
   if (terminal->fd < 0)
     return false;

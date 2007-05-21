@@ -228,4 +228,18 @@ ply_close_all_fds (void)
     close (fd);
 }
 
+double 
+ply_get_timestamp (void)
+{
+  const double microseconds_per_second = 1000000.0;
+  double timestamp;
+  struct timeval now = { 0L, /* zero-filled */ };
+
+  gettimeofday (&now, NULL);
+  timestamp = ((microseconds_per_second * now.tv_sec) + now.tv_usec) /
+               microseconds_per_second;
+
+  return timestamp;
+}
+
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

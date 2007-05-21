@@ -43,31 +43,9 @@ struct _ply_terminal_session
   char **argv;
 };
 
-ply_terminal_session_t *
-ply_terminal_session_new (const char * const *argv)
-                          
-{
-  ply_terminal_session_t *session;
-
-  assert (argv != NULL);
-
-  session = calloc (1, sizeof (ply_terminal_session_t));
-  session->argv = ply_copy_string_array (argv);
-  session->terminal = ply_terminal_new ();
-
-  return session;
-}
-
-void
-ply_terminal_session_free (ply_terminal_session_t *session)
-{
-  if (session == NULL)
-    return;
-
-  ply_free_string_array (session->argv);
-  ply_terminal_free (session->terminal);
-  free (session);
-}
+static bool ply_terminal_session_open_console (ply_terminal_session_t *session);
+static bool ply_terminal_session_execute (ply_terminal_session_t *session,
+                                          bool                    look_in_path);
 
 static bool
 ply_terminal_session_open_console (ply_terminal_session_t *session)
@@ -122,6 +100,32 @@ ply_terminal_session_execute (ply_terminal_session_t *session,
     execv (session->argv[0], session->argv);
 
   return false;
+}
+
+ply_terminal_session_t *
+ply_terminal_session_new (const char * const *argv)
+                          
+{
+  ply_terminal_session_t *session;
+
+  assert (argv != NULL);
+
+  session = calloc (1, sizeof (ply_terminal_session_t));
+  session->argv = ply_copy_string_array (argv);
+  session->terminal = ply_terminal_new ();
+
+  return session;
+}
+
+void
+ply_terminal_session_free (ply_terminal_session_t *session)
+{
+  if (session == NULL)
+    return;
+
+  ply_free_string_array (session->argv);
+  ply_terminal_free (session->terminal);
+  free (session);
 }
 
 bool 

@@ -7,6 +7,7 @@ TESTS =
 include $(srcdir)/ply-frame-buffer-test.am
 include $(srcdir)/ply-image-test.am
 include $(srcdir)/ply-terminal-test.am
+include $(srcdir)/ply-terminal-session-test.am
 include $(srcdir)/ply-init-control-test.am
 
 noinst_PROGRAMS = $(TESTS)

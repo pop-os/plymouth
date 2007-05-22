@@ -410,7 +410,7 @@ ply_logger_inject_with_non_literal_format_string (ply_logger_t   *logger,
 
 void 
 ply_logger_inject_bytes (ply_logger_t *logger, 
-		                 uint8_t      *bytes,
+		                 const void   *bytes,
 		                 size_t        number_of_bytes)
 {
   assert (logger != NULL);

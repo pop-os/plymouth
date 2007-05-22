@@ -135,9 +135,9 @@ ply_read_some_bytes (int     fd,
   while (bytes_left_to_read > 0);
 
   if (errno != EAGAIN)
-    bytes_left_to_read = -1;
+    total_bytes_read = -1;
 
-  return bytes_left_to_read;
+  return total_bytes_read;
 }
 
 bool 

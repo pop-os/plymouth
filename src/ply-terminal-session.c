@@ -34,6 +34,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "ply-event-loop.h"
 #include "ply-logger.h"
 #include "ply-terminal.h"
 #include "ply-utils.h"
@@ -42,6 +43,7 @@ struct _ply_terminal_session
 {
   ply_terminal_t *terminal;
   ply_logger_t *logger;
+  ply_event_loop_t *loop;
   char **argv;
 };
 
@@ -111,6 +113,7 @@ ply_terminal_session_new (const char * const *argv)
   ply_terminal_session_t *session;
 
   assert (argv != NULL);
+  assert (argv[0] != NULL);
 
   session = calloc (1, sizeof (ply_terminal_session_t));
   session->argv = ply_copy_string_array (argv);
@@ -134,14 +137,37 @@ ply_terminal_session_free (ply_terminal_session_t *session)
   free (session);
 }
 
+static void
+ply_terminal_session_detach_from_event_loop (ply_terminal_session_t *session)
+{
+  assert (session != NULL);
+  session->loop = NULL;
+}
+
+void 
+ply_terminal_session_attach_to_event_loop (ply_terminal_session_t *session,
+                                           ply_event_loop_t       *loop)
+{
+  assert (session != NULL);
+  assert (loop != NULL);
+  assert (session->loop == NULL);
+
+  session->loop = loop;
+
+  ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t) 
+                                 ply_terminal_session_detach_from_event_loop,
+                                 session); 
+}
+
 bool 
-ply_terminal_session_run (ply_terminal_session_t *session,
-                          ply_terminal_session_flags_t flags)
+ply_terminal_session_run (ply_terminal_session_t       *session,
+                          ply_terminal_session_flags_t  flags)
 {
   int pid;
   bool run_in_parent, look_in_path;
-  
+
   assert (session != NULL);
+  assert (session->loop != NULL);
 
   run_in_parent = (flags & PLY_TERMINAL_SESSION_FLAGS_RUN_IN_PARENT) != 0;
   look_in_path = (flags & PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH) != 0;
@@ -171,10 +197,37 @@ ply_terminal_session_get_fd (ply_terminal_session_t *session)
   return ply_terminal_get_fd (session->terminal);
 }
 
+static void
+ply_terminal_session_on_new_data (ply_terminal_session_t *session,
+                                  int                     session_fd)
+{
+  char buffer[4096];
+  ssize_t bytes_read;
+
+  assert (session != NULL);
+  assert (session_fd >= 0);
+
+  bytes_read = read (session_fd, buffer, sizeof (buffer));
+
+  if (bytes_read > 0)
+    ply_logger_inject_bytes (session->logger, buffer, bytes_read);
+
+  ply_logger_flush (session->logger);
+}
+
+static void
+ply_terminal_session_on_hangup (ply_terminal_session_t *session)
+{
+  assert (session != NULL);
+
+  ply_logger_flush (session->logger);
+  ply_event_loop_exit (session->loop, 0);
+}
+
 void 
 ply_terminal_session_start_logging (ply_terminal_session_t *session)
 {
-  uint8_t byte;
+  int session_fd;
 
   assert (session != NULL);
   assert (session->logger != NULL);
@@ -182,11 +235,12 @@ ply_terminal_session_start_logging (ply_terminal_session_t *session)
   if (!ply_logger_is_logging (session->logger))
     ply_logger_toggle_logging (session->logger);
 
-  /* FIXME: this doesn't belong here
-   */
-  while (read (ply_terminal_session_get_fd (session), 
-               &byte, sizeof (byte)) == 1)
-    ply_logger_inject (session->logger, "%c", byte);
+  session_fd = ply_terminal_session_get_fd (session);
+  ply_event_loop_watch_fd (session->loop, session_fd,
+                           (ply_event_handler_t)
+                           ply_terminal_session_on_new_data, 
+                           (ply_event_handler_t)
+                           ply_terminal_session_on_hangup, session);
 
   ply_logger_set_output_fd (session->logger, STDOUT_FILENO);
   ply_logger_flush (session->logger);
@@ -206,20 +260,28 @@ ply_terminal_session_stop_logging (ply_terminal_session_t *session)
 
 #include <stdio.h>
 
+#include "ply-event-loop.h"
+#include "ply-terminal-session.h"
+
 int
 main (int    argc,
       char **argv)
 {
+  ply_event_loop_t *loop;
   ply_terminal_session_t *session;
   int exit_code;
   ply_terminal_session_flags_t flags;
 
   exit_code = 0;
 
+  loop = ply_event_loop_new ();
+
   session = ply_terminal_session_new ((const char * const *) (argv + 1));
 
   flags = PLY_TERMINAL_SESSION_FLAGS_RUN_IN_PARENT;
   flags |= PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH;
+
+  ply_terminal_session_attach_to_event_loop (session, loop);
 
   if (!ply_terminal_session_run (session, flags))
     {
@@ -228,6 +290,7 @@ main (int    argc,
     }
 
   ply_terminal_session_start_logging (session);
+  exit_code = ply_event_loop_run (loop);
   ply_terminal_session_stop_logging (session);
 
   ply_terminal_session_free (session);

@@ -70,12 +70,20 @@ typedef struct
   ply_list_t *sources;
 } ply_signal_dispatcher_t;
 
+typedef struct
+{
+  ply_event_loop_exit_handler_t  handler;
+  void                          *user_data;
+} ply_event_loop_exit_closure_t;
+
 struct _ply_event_loop
 {
   int epoll_fd;                      
   int exit_code;                    
 
   ply_list_t *sources;
+  ply_list_t *exit_closures;
+
   ply_signal_dispatcher_t *signal_dispatcher; 
 
   uint32_t should_exit : 1; 
@@ -284,6 +292,7 @@ ply_event_loop_new (void)
   loop->exit_code = 0;
 
   loop->sources = ply_list_new ();
+  loop->exit_closures = ply_list_new ();
 
   loop->signal_dispatcher = ply_signal_dispatcher_new ();
 
@@ -301,15 +310,10 @@ ply_event_loop_new (void)
   return loop;
 }
 
-void
-ply_event_loop_free (ply_event_loop_t *loop)
+static void
+ply_event_loop_free_sources (ply_event_loop_t *loop)
 {
   ply_list_node_t *node;
-
-  if (loop == NULL)
-    return;
-
-  ply_signal_dispatcher_free (loop->signal_dispatcher);
 
   node = ply_list_get_first_node (loop->sources);
   while (node != NULL)
@@ -318,16 +322,67 @@ ply_event_loop_free (ply_event_loop_t *loop)
       ply_event_source_t *source;
 
       source = (ply_event_source_t *) ply_list_node_get_data (node);
-
       next_node = ply_list_get_next_node (loop->sources, node);
-
       ply_event_loop_remove_source (loop, source);
-
       ply_event_source_free (source);
 
       node = next_node;
     }
   ply_list_free (loop->sources);
+}
+
+static void
+ply_event_loop_free_exit_closures (ply_event_loop_t *loop)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (loop->exit_closures);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_event_loop_exit_closure_t *closure;
+
+      closure = (ply_event_loop_exit_closure_t *) ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (loop->exit_closures, node);
+      free (closure);
+
+      node = next_node;
+    }
+  ply_list_free (loop->exit_closures);
+}
+
+static void
+ply_event_loop_run_exit_closures (ply_event_loop_t *loop)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (loop->exit_closures);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_event_loop_exit_closure_t *closure;
+
+      closure = (ply_event_loop_exit_closure_t *) ply_list_node_get_data (node);
+
+      assert (closure->handler != NULL);
+      next_node = ply_list_get_next_node (loop->exit_closures, node);
+
+      closure->handler (closure->user_data, loop->exit_code, loop);
+
+      node = next_node;
+    }
+}
+
+void
+ply_event_loop_free (ply_event_loop_t *loop)
+{
+
+  if (loop == NULL)
+    return;
+
+  ply_signal_dispatcher_free (loop->signal_dispatcher);
+  ply_event_loop_free_sources (loop);
+  ply_event_loop_free_exit_closures (loop);
 
   close (loop->epoll_fd);
   free (loop);
@@ -520,6 +575,23 @@ ply_event_loop_stop_watching_signal (ply_event_loop_t *loop,
   ply_signal_dispatcher_remove_source_node (loop->signal_dispatcher, node);
 }
 
+void 
+ply_event_loop_watch_for_exit (ply_event_loop_t              *loop,
+                               ply_event_loop_exit_handler_t  exit_handler,
+                               void                          *user_data)
+{
+  ply_event_loop_exit_closure_t *exit_closure;
+
+  assert (loop != NULL);
+  assert (exit_handler != NULL);
+
+  exit_closure = calloc (1, sizeof (ply_event_loop_exit_closure_t));
+  exit_closure->handler = exit_handler;
+  exit_closure->user_data = user_data;
+
+  ply_list_append_data (loop->exit_closures, exit_closure);
+}
+
 static void
 ply_event_loop_process_pending_events (ply_event_loop_t *loop)
 {
@@ -596,6 +668,8 @@ ply_event_loop_run (ply_event_loop_t *loop)
       ply_event_loop_process_pending_events (loop);
     }
   while (!loop->should_exit);
+
+  ply_event_loop_run_exit_closures (loop);
 
   loop->should_exit = false;
 

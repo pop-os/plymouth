@@ -660,14 +660,8 @@ ply_event_loop_exit (ply_event_loop_t *loop, int exit_code)
 int
 ply_event_loop_run (ply_event_loop_t *loop)
 {
-  if (loop->should_exit)
-    return loop->exit_code;
-
-  do
-    {
-      ply_event_loop_process_pending_events (loop);
-    }
-  while (!loop->should_exit);
+  while (!loop->should_exit)
+    ply_event_loop_process_pending_events (loop);
 
   ply_event_loop_run_exit_closures (loop);
 

@@ -11,5 +11,6 @@ include $(srcdir)/ply-terminal-session-test.am
 include $(srcdir)/ply-init-control-test.am
 include $(srcdir)/ply-logger-test.am
 include $(srcdir)/ply-list-test.am
+include $(srcdir)/ply-event-loop-test.am
 
 noinst_PROGRAMS = $(TESTS)

@@ -104,7 +104,7 @@ ply_write (int         fd,
   return bytes_left_to_write == 0;
 }
 
-static ssize_t
+ssize_t
 ply_read_some_bytes (int     fd,
                      void   *buffer,
                      size_t  max_bytes)
@@ -150,16 +150,6 @@ ply_read (int     fd,
   assert (number_of_bytes != 0);
 
   return ply_read_some_bytes (fd, buffer, number_of_bytes) == number_of_bytes;
-}
-
-ssize_t
-ply_read_chunk (int   fd,
-                void *buffer)
-{
-  assert (fd >= 0);
-  assert (!ply_fd_may_block (fd));
-
-  return ply_read_some_bytes (fd, buffer, 4096); 
 }
 
 bool 

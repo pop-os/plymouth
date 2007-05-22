@@ -82,6 +82,37 @@ ply_write (int         fd,
 }
 
 bool 
+ply_read (int     fd,
+          void   *buffer,
+          size_t  number_of_bytes)
+{
+  size_t bytes_left_to_read;
+  size_t total_bytes_read = 0;
+
+  bytes_left_to_read = number_of_bytes;
+
+  do
+    {
+      ssize_t bytes_read = 0;
+
+      bytes_read = read (fd,
+                         ((uint8_t *) buffer) + total_bytes_read,
+                         bytes_left_to_read);
+
+      if (bytes_read > 0)
+        {
+          total_bytes_read += bytes_read;
+          bytes_left_to_read -= bytes_read;
+        }
+      else if ((errno != EINTR))
+        break;
+    }
+  while (bytes_left_to_read > 0);
+
+  return bytes_left_to_read == 0;
+}
+
+bool 
 ply_fd_has_data (int fd)
 {
   struct pollfd poll_data;

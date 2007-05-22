@@ -388,21 +388,21 @@ ply_event_loop_free (ply_event_loop_t *loop)
   free (loop);
 }
 
-static bool
+static void
 ply_event_loop_add_source (ply_event_loop_t    *loop,
                            ply_event_source_t  *source)
 {
   struct epoll_event event = { 0 };
+  int status;
 
   event.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
   event.data.ptr = source;
 
-  if (epoll_ctl (loop->epoll_fd, EPOLL_CTL_ADD, source->fd, &event) < 0)
-    return false;
+  status = epoll_ctl (loop->epoll_fd, EPOLL_CTL_ADD, source->fd, &event);
+  
+  assert (status == 0);
 
   ply_list_append_data (loop->sources, source);
-
-  return true;
 }
 
 static void
@@ -462,12 +462,12 @@ ply_event_loop_find_source_node (ply_event_loop_t *loop,
   return node;
 }
 
-bool
-ply_event_loop_watch_fd (ply_event_loop_t   *loop,
-                        int                  fd,
-                        ply_event_handler_t  new_data_handler,
-                        ply_event_handler_t  disconnected_handler,
-                        void                *user_data)
+void
+ply_event_loop_watch_fd (ply_event_loop_t    *loop,
+                         int                  fd,
+                         ply_event_handler_t  new_data_handler,
+                         ply_event_handler_t  disconnected_handler,
+                         void                *user_data)
 {
   ply_list_node_t *node;
   ply_event_source_t *source;
@@ -477,14 +477,11 @@ ply_event_loop_watch_fd (ply_event_loop_t   *loop,
   assert (node == NULL);
 
   source = ply_event_source_new (fd,
-                                   new_data_handler,
-                                   disconnected_handler,
-                                   user_data, NULL);
+                                 new_data_handler,
+                                 disconnected_handler,
+                                 user_data, NULL);
 
-  if (!ply_event_loop_add_source (loop, source))
-    return false;
-
-  return true;
+  ply_event_loop_add_source (loop, source);
 }
 
 void
@@ -527,7 +524,7 @@ ply_signal_dispatcher_find_source_node (ply_signal_dispatcher_t *dispatcher,
   return node;
 }
 
-bool
+void
 ply_event_loop_watch_signal (ply_event_loop_t   *loop,
                             int                  signal_number,
                             ply_event_handler_t  signal_handler,
@@ -542,13 +539,11 @@ ply_event_loop_watch_signal (ply_event_loop_t   *loop,
   source->old_posix_signal_handler = 
       signal (signal_number, ply_signal_dispatcher_posix_signal_handler);
   ply_list_append_data (loop->signal_dispatcher->sources, source);
-
-  return true;
 }
 
 static void
 ply_signal_dispatcher_remove_source_node (ply_signal_dispatcher_t  *dispatcher,
-                                           ply_list_node_t          *node)
+                                          ply_list_node_t          *node)
 {
   ply_signal_source_t *source;
 

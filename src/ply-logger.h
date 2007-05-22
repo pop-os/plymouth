@@ -40,14 +40,16 @@ int ply_logger_get_output_fd (ply_logger_t *logger);
 bool ply_logger_flush (ply_logger_t *logger);
 void ply_logger_toggle_logging (ply_logger_t *logger);
 bool ply_logger_is_logging (ply_logger_t *logger);
+void ply_logger_inject_bytes (ply_logger_t *logger, 
+		              uint8_t *bytes,
+		              size_t number_of_bytes);
 
 #define ply_logger_inject(logger, format, args...)                             \
         ply_logger_inject_with_non_literal_format_string (logger,              \
                                                           format "", ##args) 
-
 __attribute__((__format__ (__printf__, 2, 3)))
 void ply_logger_inject_with_non_literal_format_string (ply_logger_t   *logger,
-                                                       const char *format, ...);
+		                                       const char *format, ...);
                                                        
 ply_logger_t *ply_logger_get_default (void);
 /* tracing is a debugging facility that incurs a hefty performance hit on the
@@ -113,3 +115,4 @@ while (0)
 #endif /* !PLY_HIDE_FUNCTION_DECLARATIONS */
 
 #endif /* PLY_LOGGER_H */
+/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

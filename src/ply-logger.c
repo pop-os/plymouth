@@ -404,7 +404,20 @@ ply_logger_inject_with_non_literal_format_string (ply_logger_t   *logger,
              format, args);
   va_end (args);
 
-  ply_logger_buffer (logger, write_buffer, string_size - 1);
+  ply_logger_inject_bytes (logger, write_buffer, string_size - 1);
+
+}
+
+void 
+ply_logger_inject_bytes (ply_logger_t *logger, 
+		                 uint8_t      *bytes,
+		                 size_t        number_of_bytes)
+{
+  assert (logger != NULL);
+  assert (bytes != NULL);
+  assert (number_of_bytes != 0);
+
+  ply_logger_buffer (logger, bytes, number_of_bytes);
 }
 
 #ifdef PLY_ENABLE_TRACING

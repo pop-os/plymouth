@@ -82,7 +82,7 @@ struct _ply_event_loop
 };
 
 static void ply_event_loop_process_pending_events (ply_event_loop_t *loop);
-static bool ply_event_loop_remove_source (ply_event_loop_t    *loop,
+static void ply_event_loop_remove_source (ply_event_loop_t    *loop,
                                           ply_event_source_t *source);
 ply_list_node_t *ply_event_loop_find_source_node (ply_event_loop_t *loop,
                                                   int               fd);
@@ -350,27 +350,29 @@ ply_event_loop_add_source (ply_event_loop_t    *loop,
   return true;
 }
 
-static bool
+static void
 ply_event_loop_remove_source_node (ply_event_loop_t *loop,
                                    ply_list_node_t  *source_node)
 {
   ply_event_source_t *source;
   struct epoll_event event = { 0 };
+  int status;
 
   source = (ply_event_source_t *) ply_list_node_get_data (source_node);
+
+  assert (source != NULL);
 
   event.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
   event.data.ptr = source;
 
-  if (epoll_ctl (loop->epoll_fd, EPOLL_CTL_DEL, source->fd, &event) < 0)
-    return false;
+  status = epoll_ctl (loop->epoll_fd, EPOLL_CTL_DEL, source->fd, &event);
+
+  assert (status == 0);
 
   ply_list_remove_node (loop->sources, source_node);
-
-  return true;
 }
 
-static bool
+static void
 ply_event_loop_remove_source (ply_event_loop_t   *loop,
                               ply_event_source_t *source)
 {
@@ -380,7 +382,7 @@ ply_event_loop_remove_source (ply_event_loop_t   *loop,
 
   assert (source_node != NULL);
 
-  return ply_event_loop_remove_source_node (loop, source_node);
+  ply_event_loop_remove_source_node (loop, source_node);
 }
 
 ply_list_node_t *
@@ -430,7 +432,7 @@ ply_event_loop_watch_fd (ply_event_loop_t   *loop,
   return true;
 }
 
-bool
+void
 ply_event_loop_stop_watching_fd (ply_event_loop_t  *loop,
                                  int           fd)
 {
@@ -443,12 +445,9 @@ ply_event_loop_stop_watching_fd (ply_event_loop_t  *loop,
 
   source = (ply_event_source_t *) ply_list_node_get_data (node);
 
-  if (!ply_event_loop_remove_source_node (loop, node))
-    return false;
+  ply_event_loop_remove_source_node (loop, node);
 
   ply_event_source_free (source);
-
-  return true;
 }
 
 ply_list_node_t *
@@ -507,7 +506,7 @@ ply_signal_dispatcher_remove_source_node (ply_signal_dispatcher_t  *dispatcher,
   ply_list_remove_node (dispatcher->sources, node);
 }
 
-bool
+void
 ply_event_loop_stop_watching_signal (ply_event_loop_t *loop,
                                      int               signal_number)
 {
@@ -516,12 +515,9 @@ ply_event_loop_stop_watching_signal (ply_event_loop_t *loop,
   node = ply_signal_dispatcher_find_source_node (loop->signal_dispatcher,
                                                  signal_number);
 
-  if (node == NULL)
-    return false;
+  assert (node != NULL);
 
   ply_signal_dispatcher_remove_source_node (loop->signal_dispatcher, node);
-
-  return true;
 }
 
 static void
@@ -572,12 +568,7 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
           if (source->disconnected_handler != NULL)
             source->disconnected_handler (source->user_data, source->fd);
 
-          if (!ply_event_loop_remove_source (loop, source))
-            {
-              /* do nothing
-              */
-            }
-
+          ply_event_loop_remove_source (loop, source);
           ply_event_source_free (source);
           source = NULL;
         }

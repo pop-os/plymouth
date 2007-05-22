@@ -37,18 +37,18 @@ bool ply_event_loop_watch_fd (ply_event_loop_t *loop,
                               ply_event_handler_t new_data_handler,
                               ply_event_handler_t disconnected_handler,
                               void          *user_data);
-bool ply_event_loop_stop_watching_fd (ply_event_loop_t *loop, 
+void ply_event_loop_stop_watching_fd (ply_event_loop_t *loop, 
 		                      int               fd);
 bool ply_event_loop_watch_signal (ply_event_loop_t     *loop,
                                   int                   signal_number,
                                   ply_event_handler_t   signal_handler,
                                   void                  *user_data);
-bool ply_event_loop_stop_watching_signal (ply_event_loop_t *loop,
-                                          int                signal_number);
+void ply_event_loop_stop_watching_signal (ply_event_loop_t *loop,
+                                          int               signal_number);
 
 int ply_event_loop_run (ply_event_loop_t *loop);
 void ply_event_loop_exit (ply_event_loop_t *loop,
-                          int          exit_code);
+                          int               exit_code);
 #endif
 
 #endif

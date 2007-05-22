@@ -44,12 +44,15 @@ bool ply_open_unidirectional_pipe (int *sender_fd,
 bool ply_write (int         fd,
                 const void *buffer,
                 size_t      number_of_bytes); 
-bool ply_read (int         fd,
-               void *buffer,
-               size_t      number_of_bytes); 
+bool ply_read (int     fd,
+               void   *buffer,
+               size_t  number_of_bytes); 
+ssize_t ply_read_chunk (int     fd,
+                        void   *chunk);
 
 bool ply_fd_has_data (int fd);
 bool ply_fd_can_take_data (int fd);
+bool ply_fd_may_block (int fd);
 char **ply_copy_string_array (const char * const *array);
 void ply_free_string_array (char **array);
 void ply_close_all_fds (void);

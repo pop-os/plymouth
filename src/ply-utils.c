@@ -79,6 +79,8 @@ ply_write (int         fd,
   size_t bytes_left_to_write;
   size_t total_bytes_written = 0;
 
+  assert (fd >= 0);
+
   bytes_left_to_write = number_of_bytes;
 
   do
@@ -102,15 +104,17 @@ ply_write (int         fd,
   return bytes_left_to_write == 0;
 }
 
-bool 
-ply_read (int     fd,
-          void   *buffer,
-          size_t  number_of_bytes)
+static ssize_t
+ply_read_some_bytes (int     fd,
+                     void   *buffer,
+                     size_t  max_bytes)
 {
   size_t bytes_left_to_read;
   size_t total_bytes_read = 0;
 
-  bytes_left_to_read = number_of_bytes;
+  assert (fd >= 0);
+
+  bytes_left_to_read = max_bytes;
 
   do
     {
@@ -130,7 +134,32 @@ ply_read (int     fd,
     }
   while (bytes_left_to_read > 0);
 
-  return bytes_left_to_read == 0;
+  if (errno != EAGAIN)
+    bytes_left_to_read = -1;
+
+  return bytes_left_to_read;
+}
+
+bool 
+ply_read (int     fd,
+          void   *buffer,
+          size_t  number_of_bytes)
+{
+  assert (fd >= 0);
+  assert (buffer != NULL);
+  assert (number_of_bytes != 0);
+
+  return ply_read_some_bytes (fd, buffer, number_of_bytes) == number_of_bytes;
+}
+
+ssize_t
+ply_read_chunk (int   fd,
+                void *buffer)
+{
+  assert (fd >= 0);
+  assert (!ply_fd_may_block (fd));
+
+  return ply_read_some_bytes (fd, buffer, 4096); 
 }
 
 bool 
@@ -161,6 +190,18 @@ ply_fd_can_take_data (int fd)
   result = poll (&poll_data, 1, 10);
 
   return result == 1;
+}
+
+bool
+ply_fd_may_block (int fd)
+{
+  int flags;
+
+  assert (fd >= 0);
+
+  flags = fcntl (fd, F_GETFL);
+
+  return (flags & O_NONBLOCK) != 0;
 }
 
 char **

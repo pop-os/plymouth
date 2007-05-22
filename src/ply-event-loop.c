@@ -1,3 +1,24 @@
+/* ply-event-loop.c - small epoll based event loop
+ *
+ * Copyright (C) 2007 Red Hat, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+ * 02111-1307, USA.
+ *
+ * Written by: Ray Strode <rstrode@redhat.com>
+ */
 #include "config.h"
 #include "ply-event-loop.h"
 
@@ -197,7 +218,7 @@ ply_signal_dispatcher_dispatch_signal (ply_signal_dispatcher_t *dispatcher,
 
 static void
 ply_signal_dispatcher_reset_signal_sources (ply_signal_dispatcher_t *dispatcher,
-                                             int                      fd)
+                                            int                      fd)
 {
   ply_list_node_t *node;
 
@@ -218,10 +239,10 @@ ply_signal_dispatcher_reset_signal_sources (ply_signal_dispatcher_t *dispatcher,
 
 static ply_event_source_t *
 ply_event_source_new (int                  fd,
-                       ply_event_handler_t  new_data_handler,
-                       ply_event_handler_t  disconnected_handler,
-                       void                *user_data,
-                       ply_event_loop_free_handler_t  free_function)
+                      ply_event_handler_t  new_data_handler,
+                      ply_event_handler_t  disconnected_handler,
+                      void                *user_data,
+                      ply_event_loop_free_handler_t  free_function)
 {
   ply_event_source_t *source;
 

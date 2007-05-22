@@ -1,6 +1,6 @@
 /* ply-logger.c - logging and tracing facilities
  *
- * Copyright (C) 2005 Ray Strode <rstrode@redhat.com>
+ * Copyright (C) 2007 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
  * 02111-1307, USA.  
+ *
+ * Written by: Ray Strode <rstrode@redhat.com>
  */
 #include "config.h"
 #include "ply-logger.h"

@@ -45,6 +45,11 @@ struct _ply_terminal_session
   ply_logger_t *logger;
   ply_event_loop_t *loop;
   char **argv;
+
+  ply_terminal_session_done_handler_t  done_handler;
+  void                                *done_handler_user_data;
+
+  uint32_t is_running : 1;
 };
 
 static bool ply_terminal_session_open_console (ply_terminal_session_t *session);
@@ -119,6 +124,7 @@ ply_terminal_session_new (const char * const *argv)
   session->argv = ply_copy_string_array (argv);
   session->terminal = ply_terminal_new ();
   session->logger = ply_logger_new ();
+  session->is_running = false;
 
   return session;
 }
@@ -160,14 +166,18 @@ ply_terminal_session_attach_to_event_loop (ply_terminal_session_t *session,
 }
 
 bool 
-ply_terminal_session_run (ply_terminal_session_t       *session,
-                          ply_terminal_session_flags_t  flags)
+ply_terminal_session_run (ply_terminal_session_t              *session,
+                          ply_terminal_session_flags_t         flags,
+                          ply_terminal_session_done_handler_t  done_handler,
+                          void                                *user_data)
 {
   int pid;
   bool run_in_parent, look_in_path;
 
   assert (session != NULL);
   assert (session->loop != NULL);
+  assert (!session->is_running);
+  assert (session->done_handler == NULL);
 
   run_in_parent = (flags & PLY_TERMINAL_SESSION_FLAGS_RUN_IN_PARENT) != 0;
   look_in_path = (flags & PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH) != 0;
@@ -182,11 +192,18 @@ ply_terminal_session_run (ply_terminal_session_t       *session,
 
   if (((pid == 0) && run_in_parent) ||
       ((pid != 0) && !run_in_parent))
-    return true;
+    {
+      session->is_running = true;
+      session->done_handler = done_handler;
+      session->done_handler_user_data = user_data;
+
+      return true;
+    }
 
   ply_terminal_session_execute (session, look_in_path);
 
   _exit (errno);
+  return false;
 }
 
 int
@@ -221,7 +238,11 @@ ply_terminal_session_on_hangup (ply_terminal_session_t *session)
   assert (session != NULL);
 
   ply_logger_flush (session->logger);
-  ply_event_loop_exit (session->loop, 0);
+
+  session->is_running = false;
+
+  if (session->done_handler != NULL)
+    session->done_handler (session->done_handler_user_data, session);
 }
 
 void 
@@ -263,6 +284,11 @@ ply_terminal_session_stop_logging (ply_terminal_session_t *session)
 #include "ply-event-loop.h"
 #include "ply-terminal-session.h"
 
+static void
+on_finished (ply_event_loop_t *loop)
+{
+}
+
 int
 main (int    argc,
       char **argv)
@@ -283,7 +309,9 @@ main (int    argc,
 
   ply_terminal_session_attach_to_event_loop (session, loop);
 
-  if (!ply_terminal_session_run (session, flags))
+  if (!ply_terminal_session_run (session, flags, 
+                                 (ply_terminal_session_done_handler_t)
+                                 on_finished, loop))
     {
       perror ("could not start terminal session");
       return errno;

@@ -61,6 +61,9 @@ double ply_get_timestamp (void);
 
 void ply_save_errno (void);
 void ply_restore_errno (void);
+
+bool ply_directory_exists (const char *dir);
+bool ply_file_exists (const char *file);
 #endif
 
 #endif /* PLY_UTILS_H */

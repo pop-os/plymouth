@@ -349,4 +349,26 @@ ply_restore_errno (void)
   errno = errno_stack[errno_stack_position];
 }
 
+bool 
+ply_directory_exists (const char *dir)
+{
+  struct stat file_info;
+  
+  if (stat (dir, &file_info) < 0)
+    return false;
+
+  return S_ISDIR (file_info.st_mode);
+}
+
+bool
+ply_file_exists (const char *file)
+{
+  struct stat file_info;
+  
+  if (stat (file, &file_info) < 0)
+    return false;
+
+  return S_ISREG (file_info.st_mode);
+}
+
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

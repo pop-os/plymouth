@@ -70,14 +70,14 @@ do                                                                             \
     _old_errno = errno;                                                        \
     if (ply_logger_is_tracing_enabled (logger))                                \
       {                                                                        \
-        ply_logger_flush_to_disk (logger);                                     \
+        ply_logger_flush (logger);                                             \
         _pid = getpid ();                                                      \
         _timestamp = ply_get_timestamp ();                                     \
         errno = _old_errno;                                                    \
         ply_logger_inject (logger,                                             \
                            "|pid: %d| <%.4f> [%s] %45.45s:" format "\n",       \
                            _pid, _timestamp, __FILE__, __func__, ##args);      \
-        ply_logger_flush_to_disk (logger);                                     \
+        ply_logger_flush (logger);                                             \
       }                                                                        \
   }                                                                            \
 while (0)
@@ -97,8 +97,8 @@ while (0)
         ply_logger_set_output_fd (ply_logger_get_default (), fd)           
 #define ply_get_logging_fd()                                                   \
         ply_logger_get_output_fd (ply_logger_get_default ())
-#define ply_flush_log_to_disk()                                                \
-        ply_logger_flush_to_disk (ply_logger_get_default ())
+#define ply_flush_log ()                                                       \
+        ply_logger_flush (ply_logger_get_default ())
 #define ply_toggle_logging()                                                   \
         ply_logger_toggle_logging (ply_logger_get_default ())
 #define ply_is_logging()                                                       \

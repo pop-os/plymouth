@@ -106,8 +106,12 @@ while (0)
 #define ply_flush_log ()                                                       \
         ply_logger_flush (ply_logger_get_default ())
 #define ply_log(format, args...)                                               \
+        ply_logger_inject (ply_logger_get_default (), format "\n", ##args)
+#define ply_log_without_new_line(format, args...)                              \
         ply_logger_inject (ply_logger_get_default (), format, ##args)
 #define ply_error(format, args...)                                             \
+        ply_logger_inject (ply_logger_get_error_default (), format "\n", ##args)
+#define ply_error_without_new_line(format, args...)                            \
         ply_logger_inject (ply_logger_get_error_default (), format, ##args)
 
 #define ply_toggle_tracing()                                                   \

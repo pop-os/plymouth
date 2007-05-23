@@ -1,7 +1,7 @@
 TESTS += ply-frame-buffer-test
 
 ply_frame_buffer_test_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLY_FRAME_BUFFER_ENABLE_TEST
-ply_frame_buffer_test_LDADD = $(PLYMOUTH_LIBS) -lm
+ply_frame_buffer_test_LDADD = $(PLYMOUTH_LIBS)
 ply_frame_buffer_test_SOURCES = \
                           $(srcdir)/../ply-utils.h                            \
                           $(srcdir)/../ply-frame-buffer.h                     \

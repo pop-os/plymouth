@@ -8,5 +8,7 @@ ply_event_loop_test_SOURCES =                                               \
                           $(srcdir)/../ply-utils.c                          \
                           $(srcdir)/../ply-list.h                           \
                           $(srcdir)/../ply-list.c                           \
+                          $(srcdir)/../ply-logger.h                         \
+                          $(srcdir)/../ply-logger.c                         \
                           $(srcdir)/../ply-event-loop.h                     \
                           $(srcdir)/../ply-event-loop.c

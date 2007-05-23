@@ -39,6 +39,13 @@
 #define PLY_OPEN_FILE_DESCRIPTORS_DIR "/proc/self/fd"
 #endif
 
+#ifndef PLY_ERRNO_STACK_SIZE
+#define PLY_ERRNO_STACK_SIZE 256
+#endif
+
+static int errno_stack[PLY_ERRNO_STACK_SIZE];
+static int errno_stack_position = 0;
+
 bool 
 ply_open_unidirectional_pipe (int *sender_fd,
                               int *receiver_fd)
@@ -323,6 +330,23 @@ ply_get_timestamp (void)
                microseconds_per_second;
 
   return timestamp;
+}
+
+void 
+ply_save_errno (void)
+{
+  assert (errno_stack_position < PLY_ERRNO_STACK_SIZE);
+  errno_stack[errno_stack_position] = errno;
+  errno_stack_position++;
+}
+
+void
+ply_restore_errno (void)
+{
+  errno_stack_position--;
+
+  assert (errno_stack_position >= 0);
+  errno = errno_stack[errno_stack_position];
 }
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

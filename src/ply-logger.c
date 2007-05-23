@@ -58,6 +58,8 @@ struct _ply_logger
   char *buffer;
   size_t buffer_size;
   size_t buffer_capacity;
+  
+  ply_logger_flush_policy_t flush_policy;
 
   uint32_t is_enabled : 1;
   uint32_t tracing_is_enabled : 1;
@@ -222,7 +224,7 @@ ply_logger_new (void)
 
   logger = calloc (1, sizeof (ply_logger_t));
 
-  logger->output_fd = STDOUT_FILENO;
+  logger->output_fd = -1;
   logger->filename = NULL;
   logger->is_enabled = true;
   logger->tracing_is_enabled = false;
@@ -237,12 +239,31 @@ ply_logger_new (void)
 ply_logger_t *
 ply_logger_get_default (void)
 {
-  static ply_logger_t *ply_logger = NULL;
+  static ply_logger_t *logger = NULL;
 
-  if (ply_logger == NULL)
-    ply_logger = ply_logger_new ();
+  if (logger == NULL)
+    {
+      logger = ply_logger_new ();
+      ply_logger_set_output_fd (logger, STDOUT_FILENO);
+    }
 
-  return ply_logger;
+  return logger;
+}
+
+ply_logger_t *
+ply_logger_get_error_default (void)
+{
+  static ply_logger_t *logger = NULL;
+
+  if (logger == NULL)
+    {
+      logger = ply_logger_new ();
+      ply_logger_set_output_fd (logger, STDERR_FILENO);
+      ply_logger_set_flush_policy (logger, 
+                                   PLY_LOGGER_FLUSH_POLICY_EVERY_TIME);
+    }
+
+  return logger;
 }
 
 void
@@ -326,6 +347,23 @@ ply_logger_flush (ply_logger_t *logger)
     return false;
 
   return true;
+}
+
+void 
+ply_logger_set_flush_policy (ply_logger_t              *logger,
+                             ply_logger_flush_policy_t  policy)
+{
+  assert (logger != NULL);
+
+  logger->flush_policy = policy;
+}
+
+ply_logger_flush_policy_t
+ply_logger_get_flush_policy (ply_logger_t *logger)
+{
+  assert (logger != NULL);
+
+  return logger->flush_policy;
 }
 
 void 
@@ -418,6 +456,12 @@ ply_logger_inject_bytes (ply_logger_t *logger,
   assert (number_of_bytes != 0);
 
   ply_logger_buffer (logger, bytes, number_of_bytes);
+
+  assert ((logger->flush_policy == PLY_LOGGER_FLUSH_POLICY_WHEN_ASKED)
+          || (logger->flush_policy == PLY_LOGGER_FLUSH_POLICY_EVERY_TIME));
+
+  if (logger->flush_policy == PLY_LOGGER_FLUSH_POLICY_EVERY_TIME)
+    ply_logger_flush (logger);
 }
 
 #ifdef PLY_ENABLE_TRACING

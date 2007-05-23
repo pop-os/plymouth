@@ -28,6 +28,12 @@
 
 typedef struct _ply_logger ply_logger_t;
 
+typedef enum
+{
+  PLY_LOGGER_FLUSH_POLICY_WHEN_ASKED = 0,
+  PLY_LOGGER_FLUSH_POLICY_EVERY_TIME
+} ply_logger_flush_policy_t;
+
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_logger_t *ply_logger_new (void);
 void ply_logger_free (ply_logger_t *logger);
@@ -38,12 +44,14 @@ void ply_logger_set_output_fd (ply_logger_t *logger,
                                int           fd);
 int ply_logger_get_output_fd (ply_logger_t *logger);
 bool ply_logger_flush (ply_logger_t *logger);
+void ply_logger_set_flush_policy (ply_logger_t              *logger,
+                                  ply_logger_flush_policy_t  policy);
+ply_logger_flush_policy_t ply_logger_get_flush_policy (ply_logger_t *logger);
 void ply_logger_toggle_logging (ply_logger_t *logger);
 bool ply_logger_is_logging (ply_logger_t *logger);
 void ply_logger_inject_bytes (ply_logger_t *logger, 
 		                      const void   *bytes,
 		                      size_t number_of_bytes);
-
 #define ply_logger_inject(logger, format, args...)                             \
         ply_logger_inject_with_non_literal_format_string (logger,              \
                                                           format "", ##args) 
@@ -52,6 +60,8 @@ void ply_logger_inject_with_non_literal_format_string (ply_logger_t   *logger,
 		                                       const char *format, ...);
                                                        
 ply_logger_t *ply_logger_get_default (void);
+ply_logger_t *ply_logger_get_error_default (void);
+
 /* tracing is a debugging facility that incurs a hefty performance hit on the
  * program, so we conditionally compile support for it
  */
@@ -93,26 +103,21 @@ while (0)
         ply_logger_open_file (ply_logger_get_default (), filename)
 #define ply_close_log_file()                                                   \
         ply_logger_close_file (ply_logger_get_default ())
-#define ply_set_logging_fd(fd)                                                 \
-        ply_logger_set_output_fd (ply_logger_get_default (), fd)           
-#define ply_get_logging_fd()                                                   \
-        ply_logger_get_output_fd (ply_logger_get_default ())
 #define ply_flush_log ()                                                       \
         ply_logger_flush (ply_logger_get_default ())
-#define ply_toggle_logging()                                                   \
-        ply_logger_toggle_logging (ply_logger_get_default ())
-#define ply_is_logging()                                                       \
-        ply_logger_is_logging (ply_logger_get_default ())      
 #define ply_log(format, args...)                                               \
         ply_logger_inject (ply_logger_get_default (), format, ##args)
+#define ply_error(format, args...)                                             \
+        ply_logger_inject (ply_logger_get_error_default (), format, ##args)
 
 #define ply_toggle_tracing()                                                   \
-        ply_logger_toggle_tracing (ply_logger_get_default ())
+        ply_logger_toggle_tracing (ply_logger_get_error_default ())
 #define ply_is_tracing()                                                       \
-        ply_logger_is_tracing_enabled (ply_logger_get_default ())
+        ply_logger_is_tracing_enabled (ply_logger_get_error_default ())
 #define ply_trace(format, args...)                                             \
-        ply_logger_trace (ply_logger_get_default (), format, ##args)
-#endif /* !PLY_HIDE_FUNCTION_DECLARATIONS */
+        ply_logger_trace (ply_logger_get_error_default (), format, ##args)
+
+#endif
 
 #endif /* PLY_LOGGER_H */
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

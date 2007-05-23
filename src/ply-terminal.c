@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -63,6 +64,28 @@ ply_terminal_free (ply_terminal_t *terminal)
   free (terminal);
 }
 
+static bool
+ply_terminal_devpts_file_system_is_mounted (ply_terminal_t *terminal)
+{
+  if (!ply_directory_exists ("/dev/pts"))
+     return false;
+
+  /* FIXME: should check with getmntent() on /proc/mounts
+   */
+  return true;
+}
+
+static bool
+ply_terminal_mount_devpts_file_system (ply_terminal_t *terminal)
+{
+  mkdir ("/dev/pts", 0755);
+
+  if (mount ("none", "/dev/pts", "devpts", 0, "gid=5,mode=620") < 0)
+    return false;
+
+  return ply_terminal_devpts_file_system_is_mounted (terminal);
+}
+
 bool
 ply_terminal_create_device (ply_terminal_t *terminal)
 {
@@ -70,6 +93,12 @@ ply_terminal_create_device (ply_terminal_t *terminal)
 
   assert (terminal != NULL);
   assert (!ply_terminal_has_device (terminal));
+
+  if (!ply_terminal_devpts_file_system_is_mounted (terminal))
+    {
+      if (!ply_terminal_mount_devpts_file_system (terminal))
+        return false;
+    }
 
 #if 0
   terminal->fd = posix_openpt (O_RDWR | O_NOCTTY);

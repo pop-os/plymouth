@@ -195,6 +195,7 @@ ply_terminal_session_redirect_console (ply_terminal_session_t *session)
       return false;
     }
 
+  close (fd);
   session->console_is_redirected = true;
   return true;
 }
@@ -288,6 +289,7 @@ ply_terminal_session_on_new_data (ply_terminal_session_t *session,
 
   bytes_read = read (session_fd, buffer, sizeof (buffer));
 
+#if 0
   if (bytes_read > 0)
     {
       int i;
@@ -295,6 +297,7 @@ ply_terminal_session_on_new_data (ply_terminal_session_t *session,
         buffer[i] = (char) toupper ((uint8_t) buffer[i]);
       ply_logger_inject_bytes (session->logger, buffer, bytes_read);
     }
+#endif
 
   ply_logger_flush (session->logger);
 }

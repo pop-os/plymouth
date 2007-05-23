@@ -23,6 +23,7 @@
 #include "ply-terminal-session.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -227,7 +228,12 @@ ply_terminal_session_on_new_data (ply_terminal_session_t *session,
   bytes_read = read (session_fd, buffer, sizeof (buffer));
 
   if (bytes_read > 0)
-    ply_logger_inject_bytes (session->logger, buffer, bytes_read);
+    {
+      int i;
+      for (i = 0; i < bytes_read; i++)
+        buffer[i] = (char) toupper ((uint8_t) buffer[i]);
+      ply_logger_inject_bytes (session->logger, buffer, bytes_read);
+    }
 
   ply_logger_flush (session->logger);
 }
@@ -266,7 +272,7 @@ ply_terminal_session_start_logging (ply_terminal_session_t *session)
                            (ply_event_handler_t)
                            ply_terminal_session_on_hangup, session);
 
-  ply_logger_set_output_fd (session->logger, open ("/dev/null", O_WRONLY));
+  ply_logger_set_output_fd (session->logger, open ("/dev/tty1", O_WRONLY));
   ply_logger_flush (session->logger);
 }
 

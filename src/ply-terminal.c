@@ -65,14 +65,14 @@ ply_terminal_free (ply_terminal_t *terminal)
 }
 
 static bool
-ply_terminal_devpts_file_system_is_mounted (ply_terminal_t *terminal)
+ply_terminal_mount_proc_file_system (ply_terminal_t *terminal)
 {
-  if (!ply_directory_exists ("/dev/pts"))
-     return false;
+  mkdir ("/proc", 0755);
 
-  /* FIXME: should check with getmntent() on /proc/mounts
-   */
-  return true;
+  if (mount ("none", "/proc", "proc", 0, NULL) < 0)
+    return false;
+
+  return ply_file_system_is_mounted ("proc", "/proc");
 }
 
 static bool
@@ -83,7 +83,7 @@ ply_terminal_mount_devpts_file_system (ply_terminal_t *terminal)
   if (mount ("none", "/dev/pts", "devpts", 0, "gid=5,mode=620") < 0)
     return false;
 
-  return ply_terminal_devpts_file_system_is_mounted (terminal);
+  return ply_file_system_is_mounted ("devpts", "/dev/pts");
 }
 
 bool
@@ -94,7 +94,13 @@ ply_terminal_create_device (ply_terminal_t *terminal)
   assert (terminal != NULL);
   assert (!ply_terminal_has_device (terminal));
 
-  if (!ply_terminal_devpts_file_system_is_mounted (terminal))
+  if (!ply_file_system_is_mounted ("proc", "/proc"))
+    {
+      if (!ply_terminal_mount_proc_file_system (terminal))
+        return false;
+    }
+
+  if (!ply_file_system_is_mounted ("devpts", "/dev/pts"))
     {
       if (!ply_terminal_mount_devpts_file_system (terminal))
         return false;

@@ -64,6 +64,8 @@ void ply_restore_errno (void);
 
 bool ply_directory_exists (const char *dir);
 bool ply_file_exists (const char *file);
+bool ply_file_system_is_mounted (const char *type,
+                                 const char *path);
 #endif
 
 #endif /* PLY_UTILS_H */

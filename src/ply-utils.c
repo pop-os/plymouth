@@ -371,4 +371,21 @@ ply_file_exists (const char *file)
   return S_ISREG (file_info.st_mode);
 }
 
+bool
+ply_file_system_is_mounted (const char *type,
+                            const char *path)
+{
+  if (!ply_directory_exists (path))
+     return false;
+
+  /* XXX: lammmeeee
+   */
+  if (strcmp (type, "proc") == 0)
+    return ply_directory_exists ("/proc/1");
+
+  /* FIXME: should check with getmntent() on /etc/mtab or /proc/mounts
+   */
+  return true;
+}
+
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

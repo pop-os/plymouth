@@ -399,7 +399,6 @@ ply_event_loop_add_source (ply_event_loop_t    *loop,
   event.data.ptr = source;
 
   status = epoll_ctl (loop->epoll_fd, EPOLL_CTL_ADD, source->fd, &event);
-  
   assert (status == 0);
 
   ply_list_append_data (loop->sources, source);
@@ -421,8 +420,9 @@ ply_event_loop_remove_source_node (ply_event_loop_t *loop,
   event.data.ptr = source;
 
   status = epoll_ctl (loop->epoll_fd, EPOLL_CTL_DEL, source->fd, &event);
-
+#ifdef EXPOSE_FD_ACCOUNTING_BUG
   assert (status == 0);
+#endif
 
   ply_list_remove_node (loop->sources, source_node);
 }

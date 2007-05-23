@@ -103,7 +103,7 @@ while (0)
         ply_logger_open_file (ply_logger_get_default (), filename)
 #define ply_close_log_file()                                                   \
         ply_logger_close_file (ply_logger_get_default ())
-#define ply_flush_log ()                                                       \
+#define ply_flush_log()                                                        \
         ply_logger_flush (ply_logger_get_default ())
 #define ply_log(format, args...)                                               \
         ply_logger_inject (ply_logger_get_default (), format "\n", ##args)

@@ -39,6 +39,7 @@ typedef struct
 static void
 on_session_finished (state_t *state)
 {
+  ply_log ("Session finished...exiting logger\n");
   ply_flush_log ();
   ply_event_loop_exit (state->loop, 0);
 } 
@@ -53,6 +54,7 @@ spawn_session (state_t  *state,
   flags = 0;
   flags |= PLY_TERMINAL_SESSION_FLAGS_RUN_IN_PARENT;
   flags |= PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH;
+  flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
 
   session = ply_terminal_session_new ((const char * const *) argv);
   ply_terminal_session_attach_to_event_loop (session, state->loop);

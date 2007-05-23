@@ -31,8 +31,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <termios.h>
 #include <unistd.h>
 
 #include "ply-event-loop.h"
@@ -51,6 +53,7 @@ struct _ply_terminal_session
   void                                *done_handler_user_data;
 
   uint32_t is_running : 1;
+  uint32_t console_is_redirected : 1;
 };
 
 static bool ply_terminal_session_open_console (ply_terminal_session_t *session);
@@ -126,6 +129,7 @@ ply_terminal_session_new (const char * const *argv)
   session->terminal = ply_terminal_new ();
   session->logger = ply_logger_new ();
   session->is_running = false;
+  session->console_is_redirected = false;
 
   return session;
 }
@@ -166,6 +170,50 @@ ply_terminal_session_attach_to_event_loop (ply_terminal_session_t *session,
                                  session); 
 }
 
+static bool
+ply_terminal_session_redirect_console (ply_terminal_session_t *session)
+{
+  const char *terminal_name;
+  int fd;
+
+  assert (session != NULL);
+
+  terminal_name = ply_terminal_get_device_name (session->terminal);
+
+  assert (terminal_name != NULL);
+
+  fd = open (terminal_name, O_RDWR); 
+
+  if (fd < 0)
+    return false;
+
+  if (ioctl (fd, TIOCCONS) < 0)
+    {
+      ply_save_errno ();
+      close (fd);
+      ply_restore_errno ();
+      return false;
+    }
+
+  session->console_is_redirected = true;
+  return true;
+}
+
+static void
+ply_terminal_session_unredirect_console (ply_terminal_session_t *session)
+{
+  int fd;
+
+  assert (session != NULL);
+  assert (session->console_is_redirected);
+
+  fd = open ("/dev/console", O_RDWR);
+
+  ioctl (fd, TIOCCONS);
+
+  session->console_is_redirected = false;
+}
+
 bool 
 ply_terminal_session_run (ply_terminal_session_t              *session,
                           ply_terminal_session_flags_t         flags,
@@ -173,7 +221,7 @@ ply_terminal_session_run (ply_terminal_session_t              *session,
                           void                                *user_data)
 {
   int pid;
-  bool run_in_parent, look_in_path;
+  bool run_in_parent, look_in_path, should_redirect_console;
 
   assert (session != NULL);
   assert (session->loop != NULL);
@@ -182,14 +230,27 @@ ply_terminal_session_run (ply_terminal_session_t              *session,
 
   run_in_parent = (flags & PLY_TERMINAL_SESSION_FLAGS_RUN_IN_PARENT) != 0;
   look_in_path = (flags & PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH) != 0;
+  should_redirect_console = 
+    (flags & PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE) != 0;
 
   if (!ply_terminal_create_device (session->terminal))
     return false;
 
+  if (should_redirect_console && 
+      !ply_terminal_session_redirect_console (session))
+    {
+      ply_terminal_destroy_device (session->terminal);
+      return false;
+    }
+
   pid = fork ();
 
   if (pid < 0)
-    return false;
+    {
+      ply_terminal_session_unredirect_console (session);
+      ply_terminal_destroy_device (session->terminal);
+      return false;
+    }
 
   if (((pid == 0) && run_in_parent) ||
       ((pid != 0) && !run_in_parent))

@@ -88,7 +88,7 @@ main (int    argc,
 
   if (state.session == NULL)
     {
-      ply_error ("could not run '%s': %m", argv[0]);
+      ply_error ("could not run '%s': %m", argv[1]);
       return EX_UNAVAILABLE;
     }
 

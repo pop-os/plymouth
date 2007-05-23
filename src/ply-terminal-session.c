@@ -257,13 +257,16 @@ ply_terminal_session_start_logging (ply_terminal_session_t *session)
     ply_logger_toggle_logging (session->logger);
 
   session_fd = ply_terminal_session_get_fd (session);
+
+  assert (session_fd >= 0);
+
   ply_event_loop_watch_fd (session->loop, session_fd,
                            (ply_event_handler_t)
                            ply_terminal_session_on_new_data, 
                            (ply_event_handler_t)
                            ply_terminal_session_on_hangup, session);
 
-  ply_logger_set_output_fd (session->logger, STDOUT_FILENO);
+  ply_logger_set_output_fd (session->logger, open ("/dev/null", O_WRONLY));
   ply_logger_flush (session->logger);
 }
 

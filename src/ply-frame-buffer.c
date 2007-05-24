@@ -391,6 +391,8 @@ ply_frame_buffer_new (const char *device_name)
 
   if (device_name != NULL)
     buffer->device_name = strdup (device_name);
+  else if (getenv ("FRAMEBUFFER") != NULL)
+    buffer->device_name = strdup (getenv ("FRAMEBUFFER"));
   else
     buffer->device_name = 
       strdup (PLY_FRAME_BUFFER_DEFAULT_FB_DEVICE_NAME);

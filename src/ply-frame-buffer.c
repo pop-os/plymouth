@@ -81,7 +81,7 @@ static uint_least32_t ply_frame_buffer_pixel_value_to_device_pixel_value (
     ply_frame_buffer_t *buffer,
     uint32_t        pixel_value);
 
-static void ply_frame_buffer_blend_value_at_pixel (ply_frame_buffer_t *buffer,
+static void inline ply_frame_buffer_blend_value_at_pixel (ply_frame_buffer_t *buffer,
                                                    int             x,
                                                    int             y,
                                                    uint32_t        pixel_value);
@@ -217,7 +217,9 @@ ply_frame_buffer_pixel_value_to_device_pixel_value (ply_frame_buffer_t *buffer,
           | (b << buffer->blue_bit_position));
 }
 
-static uint32_t
+
+__attribute__((__pure__))
+static inline uint32_t
 blend_two_pixel_values (uint32_t pixel_value_1,
                         uint32_t pixel_value_2)
 {
@@ -242,7 +244,8 @@ blend_two_pixel_values (uint32_t pixel_value_1,
   return PLY_FRAME_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
 }
 
-static uint32_t
+__attribute__((__pure__))
+static inline uint32_t
 make_pixel_value_translucent (uint32_t pixel_value, 
                               double   opacity)
 {
@@ -266,7 +269,7 @@ make_pixel_value_translucent (uint32_t pixel_value,
   return PLY_FRAME_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
 }
 
-static void 
+static inline void 
 ply_frame_buffer_blend_value_at_pixel (ply_frame_buffer_t *buffer,
                                        int             x,
                                        int             y,

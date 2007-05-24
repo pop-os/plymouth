@@ -270,9 +270,13 @@ ply_image_get_height (ply_image_t *image)
 #include "ply-frame-buffer.h"
 
 #include <math.h>
+#include <signal.h>
 #include <stdio.h>
+#include <sys/ioctl.h>
 #include <sys/time.h>
 #include <values.h>
+
+#include <linux/kd.h>
 
 #ifndef FRAMES_PER_SECOND
 #define FRAMES_PER_SECOND 50
@@ -343,6 +347,13 @@ animate_at_time (ply_frame_buffer_t *buffer,
              strerror (errno));
 }
 
+static void
+on_death ()
+{
+  ioctl (1, KDSETMODE, KD_TEXT);
+  exit (0);
+}
+
 int
 main (int    argc,
       char **argv)
@@ -367,6 +378,11 @@ main (int    argc,
       perror ("could not load image");
       return exit_code;
     }
+
+  ioctl (1, KDSETMODE, KD_GRAPHICS);
+
+  signal (SIGTERM, on_death);
+  atexit (on_death);
 
   buffer = ply_frame_buffer_new (NULL);
 

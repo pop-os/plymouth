@@ -216,56 +216,63 @@ ply_frame_buffer_pixel_value_to_device_pixel_value (ply_frame_buffer_t *buffer,
           | (b << buffer->blue_bit_position));
 }
 
-
 __attribute__((__pure__))
 static inline uint32_t
 blend_two_pixel_values (uint32_t pixel_value_1,
                         uint32_t pixel_value_2)
 {
-  double alpha, red, green, blue;
-  double alpha_2, red_2, green_2, blue_2;
+  uint8_t alpha_1, red_1, green_1, blue_1;
+  uint8_t red_2, green_2, blue_2;
+  uint_least16_t red, green, blue;
+ 
+  assert (((uint8_t) (pixel_value_2 >> 24)) == 0xff);
 
-  alpha = (double) (pixel_value_1 >> 24) / 255.0;
-  red = (double) ((pixel_value_1 >> 16) & 0xff) / 255.0;
-  green = (double) ((pixel_value_1 >> 8) & 0xff) / 255.0;
-  blue = (double) (pixel_value_1 & 0xff) / 255.0;
+  alpha_1 = (uint8_t) (pixel_value_1 >> 24);
+  red_1 = (uint8_t) (pixel_value_1 >> 16);
+  green_1 = (uint8_t) (pixel_value_1 >> 8);
+  blue_1 = (uint8_t) pixel_value_1;
 
-  alpha_2 = (double) (pixel_value_2 >> 24) / 255.0;
-  red_2 = (double) ((pixel_value_2 >> 16) & 0xff) / 255.0;
-  green_2 = (double) ((pixel_value_2 >> 8) & 0xff) / 255.0;
-  blue_2 = (double) (pixel_value_2 & 0xff) / 255.0;
+  red_2 = (uint8_t) (pixel_value_2 >> 16);
+  green_2 = (uint8_t) (pixel_value_2 >> 8);
+  blue_2 = (uint8_t) pixel_value_2;
 
-  red = red + red_2 * (1.0 - alpha); 
-  green = green + green_2 * (1.0 - alpha); 
-  blue = blue + blue_2 * (1.0 - alpha); 
-  alpha = alpha + alpha_2 * (1.0 - alpha);
+  red = red_1 * 255 + red_2 * (255 - alpha_1); 
+  green = green_1 * 255 + green_2 * (255 - alpha_1); 
+  blue = blue_1 * 255 + blue_2 * (255 - alpha_1); 
 
-  return PLY_FRAME_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
+  red = (uint8_t) ((red + (red >> 8) + 0x80) >> 8);
+  green = (uint8_t) ((green + (green >> 8) + 0x80) >> 8);
+  blue = (uint8_t) ((blue + (blue >> 8) + 0x80) >> 8);
+
+  return 0xff000000 | (red << 16) | (green << 8) | blue;
 }
 
 __attribute__((__pure__))
 static inline uint32_t
 make_pixel_value_translucent (uint32_t pixel_value, 
-                              double   opacity)
+                              uint8_t  opacity)
 {
-  double alpha, red, green, blue;
+  uint_least16_t alpha, red, green, blue;
 
-  opacity = CLAMP (opacity, 0.0, 1.0);
-
-  if (opacity > .999)
+  if (opacity == 255)
     return pixel_value;
 
-  alpha = (double) (pixel_value >> 24) / 255.0;
-  red = (double) ((pixel_value >> 16) & 0xff) / 255.0;
-  green = (double) ((pixel_value >> 8) & 0xff) / 255.0;
-  blue = (double) (pixel_value & 0xff) / 255.0;
+  alpha = (uint8_t) (pixel_value >> 24);
+  red = (uint8_t) (pixel_value >> 16);
+  green = (uint8_t) (pixel_value >> 8);
+  blue = (uint8_t) pixel_value;
 
   red *= opacity;
   green *= opacity;
   blue *= opacity;
   alpha *= opacity;
 
-  return PLY_FRAME_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
+  red = (uint8_t) ((red + (red >> 8) + 0x80) >> 8);
+  green = (uint8_t) ((green + (green >> 8) + 0x80) >> 8);
+  blue = (uint8_t) ((blue + (blue >> 8) + 0x80) >> 8);
+  alpha = (uint8_t) ((alpha + (alpha >> 8) + 0x80) >> 8);
+
+  return (alpha << 24) | (red << 16) | (green << 8) | blue;
 }
 
 static inline void 
@@ -580,12 +587,15 @@ ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t     *buffe
                                                    double              opacity)
 {
   long row, column;
+  uint8_t opacity_as_byte;
 
   assert (buffer != NULL);
   assert (ply_frame_buffer_device_is_open (buffer));
 
   if (area == NULL)
     area = &buffer->area;
+
+  opacity_as_byte = (uint8_t) (opacity * 255.0);
 
   for (row = y; row < y + height; row++)
     {
@@ -594,7 +604,7 @@ ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t     *buffe
           uint32_t pixel_value;
 
           pixel_value = data[width * row + column];
-          pixel_value = make_pixel_value_translucent (pixel_value, opacity);
+          pixel_value = make_pixel_value_translucent (pixel_value, opacity_as_byte);
           ply_frame_buffer_blend_value_at_pixel (buffer,
                                                  area->x + (column - x),
                                                  area->y + (row - y),

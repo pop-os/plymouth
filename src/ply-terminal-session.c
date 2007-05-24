@@ -182,7 +182,7 @@ ply_terminal_session_redirect_console (ply_terminal_session_t *session)
 
   assert (terminal_name != NULL);
 
-  fd = open (terminal_name, O_RDWR); 
+  fd = open (terminal_name, O_RDWR | O_NOCTTY); 
 
   if (fd < 0)
     return false;
@@ -208,9 +208,9 @@ ply_terminal_session_unredirect_console (ply_terminal_session_t *session)
   assert (session != NULL);
   assert (session->console_is_redirected);
 
-  fd = open ("/dev/console", O_RDWR);
-
-  ioctl (fd, TIOCCONS);
+  fd = open ("/dev/console", O_RDWR | O_NOCTTY);
+  if (fd >= 0)
+    ioctl (fd, TIOCCONS);
 
   session->console_is_redirected = false;
 }
@@ -336,7 +336,7 @@ ply_terminal_session_start_logging (ply_terminal_session_t *session)
                            (ply_event_handler_t)
                            ply_terminal_session_on_hangup, session);
 
-  ply_logger_set_output_fd (session->logger, open ("/dev/tty1", O_WRONLY));
+  ply_logger_set_output_fd (session->logger, open ("/dev/tty1", O_WRONLY | O_NOCTTY));
   ply_logger_flush (session->logger);
 }
 

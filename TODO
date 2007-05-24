@@ -1,1 +1,5 @@
 - fix the tests so that they work better with "make check"
+- watch init as it progresses through boot up.  This might mean:
+  - adding the ability to monitor files for changes
+  - watching /var/run/utmp
+  - reading out the relevant INIT_PROCESS entry when /var/run/utmp changes

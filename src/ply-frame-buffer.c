@@ -76,7 +76,7 @@ static bool ply_frame_buffer_open_device (ply_frame_buffer_t  *buffer);
 static void ply_frame_buffer_close_device (ply_frame_buffer_t *buffer);
 static bool ply_frame_buffer_query_device (ply_frame_buffer_t *buffer);
 static bool ply_frame_buffer_map_to_device (ply_frame_buffer_t *buffer);
-static uint_least32_t ply_frame_buffer_pixel_value_to_device_pixel_value (
+static uint_fast32_t inline ply_frame_buffer_pixel_value_to_device_pixel_value (
     ply_frame_buffer_t *buffer,
     uint32_t        pixel_value);
 
@@ -191,7 +191,8 @@ ply_frame_buffer_map_to_device (ply_frame_buffer_t *buffer)
   return buffer->map_address != MAP_FAILED;
 }
 
-static uint_least32_t 
+__attribute__((__pure__))
+static inline uint_fast32_t 
 ply_frame_buffer_pixel_value_to_device_pixel_value (ply_frame_buffer_t *buffer,
                                                     uint32_t        pixel_value)
 {
@@ -338,7 +339,7 @@ ply_frame_buffer_copy_to_device (ply_frame_buffer_t *buffer,
       for (column = x; column < x + width; column++)
         { 
           uint32_t pixel_value;
-          uint_least32_t device_pixel_value;
+          uint_fast32_t device_pixel_value;
           unsigned long offset;
 
           pixel_value = buffer->shadow_buffer[row * buffer->area.width + column];

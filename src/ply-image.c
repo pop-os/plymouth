@@ -308,6 +308,9 @@ get_current_time (void)
   return timestamp;
 }
 
+double start_time = 0.0;
+int num_frames = 0;
+
 static void
 animate_at_time (ply_frame_buffer_t *buffer,
                  ply_image_t        *image,
@@ -332,6 +335,7 @@ animate_at_time (ply_frame_buffer_t *buffer,
   opacity = .5 * sin ((time / 4) * (2 * M_PI)) + .8;
   opacity = CLAMP (opacity, 0, 1.0);
 
+  num_frames++;
   if (fabs (opacity - last_opacity) <= DBL_MIN)
     return;
 
@@ -342,16 +346,27 @@ animate_at_time (ply_frame_buffer_t *buffer,
   ply_frame_buffer_fill_with_argb32_data_at_opacity (buffer, &area, 
                                                      0, 0, width, height, 
                                                      data, opacity);
-  if (!ply_frame_buffer_unpause_updates (buffer))
-    fprintf (stderr, "WARNING: could not unpause updates '%s'\n",
-             strerror (errno));
+  ply_frame_buffer_unpause_updates (buffer);
 }
 
 static void
 on_death ()
 {
   ioctl (1, KDSETMODE, KD_TEXT);
-  exit (0);
+  _exit (0);
+}
+
+
+static void
+on_alarm ()
+{
+  if (num_frames == 0)
+      return;
+
+  fprintf (stderr, "%f\n",
+           num_frames / (get_current_time () - start_time));
+
+  alarm (2);
 }
 
 int
@@ -361,7 +376,6 @@ main (int    argc,
   ply_image_t *image;
   ply_frame_buffer_t *buffer;
   int exit_code;
-  double start_time;
 
   exit_code = 0;
 
@@ -381,8 +395,12 @@ main (int    argc,
 
   ioctl (1, KDSETMODE, KD_GRAPHICS);
 
+  signal (SIGINT, exit);
   signal (SIGTERM, on_death);
   atexit (on_death);
+
+  signal (SIGALRM, on_alarm);
+  alarm (2);
 
   buffer = ply_frame_buffer_new (NULL);
 
@@ -397,8 +415,15 @@ main (int    argc,
   ply_frame_buffer_fill_with_color (buffer, NULL, 0.1, 0.1, .7, 1.0);
   while ("we want to see ad-hoc animations")
     {
-      animate_at_time (buffer, image, get_current_time () - start_time);
-      usleep ((long) (1000000 / FRAMES_PER_SECOND));
+      long sleep_time;
+      double now;
+
+      now = get_current_time ();
+      animate_at_time (buffer, image, now - start_time);
+      sleep_time = 1000000 / FRAMES_PER_SECOND;
+      sleep_time = MAX (sleep_time - ((get_current_time () - now) / 1000000),
+                        10000);
+      usleep (sleep_time);
     }
   ply_frame_buffer_close (buffer);
   ply_frame_buffer_free (buffer);

@@ -275,7 +275,7 @@ ply_image_get_height (ply_image_t *image)
 #include <values.h>
 
 #ifndef FRAMES_PER_SECOND
-#define FRAMES_PER_SECOND 10
+#define FRAMES_PER_SECOND 50
 #endif
 
 static bool
@@ -325,7 +325,7 @@ animate_at_time (ply_frame_buffer_t *buffer,
   area.width = width;
   area.height = height;
 
-  opacity = .5 * sin ((time / 2) * (2 * M_PI)) + .8;
+  opacity = .5 * sin ((time / 4) * (2 * M_PI)) + .8;
   opacity = CLAMP (opacity, 0, 1.0);
 
   if (fabs (opacity - last_opacity) <= DBL_MIN)
@@ -334,7 +334,7 @@ animate_at_time (ply_frame_buffer_t *buffer,
   last_opacity = opacity;
 
   ply_frame_buffer_pause_updates (buffer);
-  ply_frame_buffer_fill_with_color (buffer, &area, 0.0, 0.0, 0.0, 1.0);
+  ply_frame_buffer_fill_with_color (buffer, &area, 0.1, 0.1, .7, 1.0);
   ply_frame_buffer_fill_with_argb32_data_at_opacity (buffer, &area, 
                                                      0, 0, width, height, 
                                                      data, opacity);
@@ -378,6 +378,7 @@ main (int    argc,
     }
 
   start_time = get_current_time ();
+  ply_frame_buffer_fill_with_color (buffer, NULL, 0.1, 0.1, .7, 1.0);
   while ("we want to see ad-hoc animations")
     {
       animate_at_time (buffer, image, get_current_time () - start_time);

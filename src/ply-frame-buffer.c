@@ -65,7 +65,6 @@ struct _ply_frame_buffer
   uint32_t bits_for_blue;
   uint32_t bits_for_alpha;
 
-  unsigned int bits_per_pixel;
   unsigned int bytes_per_pixel;
   ply_frame_buffer_area_t area;
   ply_frame_buffer_area_t area_to_flush;
@@ -150,7 +149,6 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
       return false;
     }
 
-  buffer->bits_per_pixel = variable_screen_info.bits_per_pixel;
   buffer->area.x = variable_screen_info.xoffset;
   buffer->area.y = variable_screen_info.yoffset;
   buffer->area.width = variable_screen_info.xres;

@@ -345,8 +345,8 @@ ply_restore_errno (void)
 {
   errno_stack_position--;
 
-  assert (errno_stack_position >= 0);
-  errno = errno_stack[errno_stack_position];
+  assert (errno_stack_position > 0);
+  errno = errno_stack[errno_stack_position - 1];
 }
 
 bool 

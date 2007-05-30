@@ -111,7 +111,7 @@ ply_write (int         fd,
   return bytes_left_to_write == 0;
 }
 
-ssize_t
+static ssize_t
 ply_read_some_bytes (int     fd,
                      void   *buffer,
                      size_t  max_bytes)

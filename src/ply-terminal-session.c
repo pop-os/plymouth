@@ -278,10 +278,23 @@ ply_terminal_session_get_fd (ply_terminal_session_t *session)
 }
 
 static void
+ply_terminal_session_log_bytes (ply_terminal_session_t *session,
+                                const uint8_t          *bytes,
+                                size_t                  number_of_bytes)
+{
+  assert (session != NULL);
+  assert (session->logger != NULL);
+  assert (bytes != NULL);
+  assert (number_of_bytes != 0);
+
+  ply_logger_inject_bytes (session->logger, bytes, number_of_bytes);
+}
+
+static void
 ply_terminal_session_on_new_data (ply_terminal_session_t *session,
                                   int                     session_fd)
 {
-  char buffer[4096];
+  uint8_t buffer[4096];
   ssize_t bytes_read;
 
   assert (session != NULL);
@@ -289,15 +302,8 @@ ply_terminal_session_on_new_data (ply_terminal_session_t *session,
 
   bytes_read = read (session_fd, buffer, sizeof (buffer));
 
-#if 0
   if (bytes_read > 0)
-    {
-      int i;
-      for (i = 0; i < bytes_read; i++)
-        buffer[i] = (char) toupper ((uint8_t) buffer[i]);
-      ply_logger_inject_bytes (session->logger, buffer, bytes_read);
-    }
-#endif
+    ply_terminal_session_log_bytes (session, buffer, bytes_read);
 
   ply_logger_flush (session->logger);
 }
@@ -331,6 +337,7 @@ ply_terminal_session_start_logging (ply_terminal_session_t *session)
   assert (session_fd >= 0);
 
   ply_event_loop_watch_fd (session->loop, session_fd,
+                           PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
                            (ply_event_handler_t)
                            ply_terminal_session_on_new_data, 
                            (ply_event_handler_t)

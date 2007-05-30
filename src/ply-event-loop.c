@@ -47,7 +47,8 @@ typedef void (* ply_event_loop_free_handler_t) (void *);
 typedef struct
 {
   int fd;                                 
-  ply_event_handler_t new_data_handler; 
+  ply_event_loop_fd_status_t status;
+  ply_event_handler_t status_met_handler; 
   ply_event_handler_t disconnected_handler;
   void *user_data;
   ply_event_loop_free_handler_t free_function; 
@@ -92,10 +93,11 @@ struct _ply_event_loop
 static void ply_event_loop_process_pending_events (ply_event_loop_t *loop);
 static void ply_event_loop_remove_source (ply_event_loop_t    *loop,
                                           ply_event_source_t *source);
-ply_list_node_t *ply_event_loop_find_source_node (ply_event_loop_t *loop,
-                                                  int               fd);
+static ply_list_node_t *ply_event_loop_find_source_node (ply_event_loop_t *loop,
+                                                         int               fd,
+                                                         ply_event_loop_fd_status_t status);
 
-ply_list_node_t *
+static ply_list_node_t *
 ply_signal_dispatcher_find_source_node (ply_signal_dispatcher_t *dispatcher,
                                         int                      signal_number);
 
@@ -246,10 +248,11 @@ ply_signal_dispatcher_reset_signal_sources (ply_signal_dispatcher_t *dispatcher,
 }
 
 static ply_event_source_t *
-ply_event_source_new (int                  fd,
-                      ply_event_handler_t  new_data_handler,
-                      ply_event_handler_t  disconnected_handler,
-                      void                *user_data,
+ply_event_source_new (int                            fd,
+                      ply_event_loop_fd_status_t     status,
+                      ply_event_handler_t            status_met_handler,
+                      ply_event_handler_t            disconnected_handler,
+                      void                          *user_data,
                       ply_event_loop_free_handler_t  free_function)
 {
   ply_event_source_t *source;
@@ -257,7 +260,8 @@ ply_event_source_new (int                  fd,
   source = calloc (1, sizeof (ply_event_source_t));
 
   source->fd = fd;
-  source->new_data_handler = new_data_handler;
+  source->status = status;
+  source->status_met_handler = status_met_handler;
   source->disconnected_handler = disconnected_handler;
   source->user_data = user_data;
   source->free_function = free_function;
@@ -301,6 +305,7 @@ ply_event_loop_new (void)
 
   ply_event_loop_watch_fd (loop, 
                            ply_signal_dispatcher_receiver_fd,
+                           PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
                            (ply_event_handler_t)
                            ply_signal_dispatcher_dispatch_signal,
                            (ply_event_handler_t)
@@ -395,7 +400,17 @@ ply_event_loop_add_source (ply_event_loop_t    *loop,
   struct epoll_event event = { 0 };
   int status;
 
-  event.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
+  event.events = EPOLLERR | EPOLLHUP;
+
+  if (source->status & PLY_EVENT_LOOP_FD_STATUS_HAS_DATA) 
+    event.events |= EPOLLIN;
+
+  if (source->status & PLY_EVENT_LOOP_FD_STATUS_HAS_CONTROL_DATA) 
+    event.events |= EPOLLPRI;
+
+  if (source->status & PLY_EVENT_LOOP_FD_STATUS_CAN_TAKE_DATA) 
+    event.events |= EPOLLOUT;
+
   event.data.ptr = source;
 
   status = epoll_ctl (loop->epoll_fd, EPOLL_CTL_ADD, source->fd, &event);
@@ -440,9 +455,10 @@ ply_event_loop_remove_source (ply_event_loop_t   *loop,
   ply_event_loop_remove_source_node (loop, source_node);
 }
 
-ply_list_node_t *
+static ply_list_node_t *
 ply_event_loop_find_source_node (ply_event_loop_t *loop,
-                                 int               fd)
+                                 int               fd,
+                                 ply_event_loop_fd_status_t status)
 {
   ply_list_node_t *node;
 
@@ -453,7 +469,7 @@ ply_event_loop_find_source_node (ply_event_loop_t *loop,
 
       source = (ply_event_source_t *) ply_list_node_get_data (node);
       
-      if (source->fd == fd)
+      if ((source->fd == fd) && (source->status == status))
         break;
 
       node = ply_list_get_next_node (loop->sources, node);
@@ -462,22 +478,37 @@ ply_event_loop_find_source_node (ply_event_loop_t *loop,
   return node;
 }
 
+static bool
+ply_event_loop_fd_status_is_valid (ply_event_loop_fd_status_t status)
+{
+  return (status & ~(PLY_EVENT_LOOP_FD_STATUS_HAS_DATA
+                     | PLY_EVENT_LOOP_FD_STATUS_HAS_CONTROL_DATA
+                     | PLY_EVENT_LOOP_FD_STATUS_CAN_TAKE_DATA)) == 0;
+
+}
+
 void
-ply_event_loop_watch_fd (ply_event_loop_t    *loop,
-                         int                  fd,
-                         ply_event_handler_t  new_data_handler,
-                         ply_event_handler_t  disconnected_handler,
-                         void                *user_data)
+ply_event_loop_watch_fd (ply_event_loop_t           *loop,
+                         int                         fd,
+                         ply_event_loop_fd_status_t  status,
+                         ply_event_handler_t         status_met_handler,
+                         ply_event_handler_t         disconnected_handler,
+                         void                       *user_data)
 {
   ply_list_node_t *node;
   ply_event_source_t *source;
 
-  node = ply_event_loop_find_source_node (loop, fd);
+  assert (loop != NULL);
+  assert (fd >= 0);
+  assert (ply_event_loop_fd_status_is_valid (status));
+
+  node = ply_event_loop_find_source_node (loop, fd, status);
 
   assert (node == NULL);
 
   source = ply_event_source_new (fd,
-                                 new_data_handler,
+                                 status,
+                                 status_met_handler,
                                  disconnected_handler,
                                  user_data, NULL);
 
@@ -485,13 +516,14 @@ ply_event_loop_watch_fd (ply_event_loop_t    *loop,
 }
 
 void
-ply_event_loop_stop_watching_fd (ply_event_loop_t  *loop,
-                                 int           fd)
+ply_event_loop_stop_watching_fd (ply_event_loop_t           *loop,
+                                 int                         fd,
+                                 ply_event_loop_fd_status_t  status)
 {
   ply_list_node_t *node;
   ply_event_source_t *source;
 
-  node = ply_event_loop_find_source_node (loop, fd);
+  node = ply_event_loop_find_source_node (loop, fd, status);
 
   assert (node != NULL);
 
@@ -502,7 +534,7 @@ ply_event_loop_stop_watching_fd (ply_event_loop_t  *loop,
   ply_event_source_free (source);
 }
 
-ply_list_node_t *
+static ply_list_node_t *
 ply_signal_dispatcher_find_source_node (ply_signal_dispatcher_t *dispatcher,
                                         int                 signal_number)
 {
@@ -622,15 +654,26 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
   for (i = 0; i < number_of_received_events; i++)
     {
       ply_event_source_t *source;
+      ply_event_loop_fd_status_t status;
 
       source = (ply_event_source_t *) (events[i].data.ptr);
 
-      if ((events[i].events & EPOLLIN) || (events[i].events & EPOLLPRI))
-        {
-          if (source->new_data_handler != NULL)
-            source->new_data_handler (source->user_data, source->fd);
-        }
-      else if ((events[i].events & EPOLLHUP) || (events[i].events & EPOLLERR))
+      status = PLY_EVENT_LOOP_FD_STATUS_NONE;
+
+      if (events[i].events & EPOLLIN) 
+        status |= PLY_EVENT_LOOP_FD_STATUS_HAS_DATA;
+
+      if (events[i].events & EPOLLPRI)
+        status |= PLY_EVENT_LOOP_FD_STATUS_HAS_CONTROL_DATA;
+
+      if (events[i].events & EPOLLOUT)
+        status |= PLY_EVENT_LOOP_FD_STATUS_CAN_TAKE_DATA;
+
+      if (((source->status & status) != 0) 
+            && (source->status_met_handler != NULL))
+        source->status_met_handler (source->user_data, source->fd);
+
+      if ((events[i].events & EPOLLHUP) || (events[i].events & EPOLLERR))
         {
           if (source->disconnected_handler != NULL)
             source->disconnected_handler (source->user_data, source->fd);
@@ -717,7 +760,7 @@ main (int    argc,
 			     (ply_event_handler_t)
 			     usr1_signal_handler, NULL);
 
-  ply_event_loop_watch_fd (loop, 0,
+  ply_event_loop_watch_fd (loop, 0, PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
                           (ply_event_handler_t) line_received_handler,
                           (ply_event_handler_t) line_received_handler,
                           NULL);

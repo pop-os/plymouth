@@ -60,15 +60,19 @@ ply_open_unidirectional_pipe (int *sender_fd,
 
   if (fcntl (pipe_fds[0], F_SETFD, O_NONBLOCK | FD_CLOEXEC) < 0)
     {
+      ply_save_errno ();
       close (pipe_fds[0]);
       close (pipe_fds[1]);
+      ply_restore_errno ();
       return false;
     }
 
   if (fcntl (pipe_fds[1], F_SETFD, O_NONBLOCK | FD_CLOEXEC) < 0)
     {
+      ply_save_errno ();
       close (pipe_fds[0]);
       close (pipe_fds[1]);
+      ply_restore_errno ();
       return false;
     }
 

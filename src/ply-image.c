@@ -393,14 +393,15 @@ main (int    argc,
       return exit_code;
     }
 
-  ioctl (1, KDSETMODE, KD_GRAPHICS);
+  //ioctl (1, KDSETMODE, KD_GRAPHICS);
 
   signal (SIGINT, exit);
   signal (SIGTERM, on_death);
+  signal (SIGINT, on_death);
   atexit (on_death);
 
   signal (SIGALRM, on_alarm);
-  alarm (2);
+  //alarm (2);
 
   buffer = ply_frame_buffer_new (NULL);
 

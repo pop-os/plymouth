@@ -32,8 +32,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/resource.h>
+#include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/un.h>
 
 #ifndef PLY_OPEN_FILE_DESCRIPTORS_DIR
 #define PLY_OPEN_FILE_DESCRIPTORS_DIR "/proc/self/fd"
@@ -80,6 +82,46 @@ ply_open_unidirectional_pipe (int *sender_fd,
   *receiver_fd = pipe_fds[0];
 
   return true;
+}
+
+int
+ply_open_unix_socket (const char *path)
+{
+  struct sockaddr_un address; 
+  int fd;
+
+  assert (path != NULL);
+
+  fd = socket (PF_UNIX, SOCK_STREAM, 0);
+
+  if (fd < 0)
+    return -1;
+
+  if (fcntl (fd, F_SETFD, O_NONBLOCK | FD_CLOEXEC) < 0)
+    {
+      ply_save_errno ();
+      close (fd);
+      ply_restore_errno ();
+
+      return -1;
+    }
+
+  memset (&address, 0, sizeof (address));
+
+  address.sun_family = AF_UNIX;
+  memcpy (address.sun_path, path, strlen (path));
+
+  if (connect (fd, (struct sockaddr *) &address,
+               sizeof (struct sockaddr_un)) < 0)
+    {
+      ply_save_errno ();
+      close (fd);
+      ply_restore_errno ();
+
+      return -1;
+    }
+
+  return fd;
 }
 
 bool 
@@ -347,10 +389,11 @@ ply_save_errno (void)
 void
 ply_restore_errno (void)
 {
+  assert (errno_stack_position > 0);
+
   errno_stack_position--;
 
-  assert (errno_stack_position > 0);
-  errno = errno_stack[errno_stack_position - 1];
+  errno = errno_stack[errno_stack_position];
 }
 
 bool 

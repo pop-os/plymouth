@@ -58,7 +58,7 @@ struct _ply_logger
   char *buffer;
   size_t buffer_size;
   size_t buffer_capacity;
-  
+
   ply_logger_flush_policy_t flush_policy;
 
   uint32_t is_enabled : 1;

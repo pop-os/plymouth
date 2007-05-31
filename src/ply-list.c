@@ -240,6 +240,12 @@ ply_list_get_first_node (ply_list_t *list)
 }
 
 ply_list_node_t *
+ply_list_get_last_node (ply_list_t *list)
+{
+  return list->last_node;
+}
+
+ply_list_node_t *
 ply_list_get_next_node (ply_list_t     *list,
                        ply_list_node_t *node)
 {

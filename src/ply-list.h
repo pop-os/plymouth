@@ -43,6 +43,7 @@ void ply_list_remove_data (ply_list_t *list,
 void ply_list_remove_node (ply_list_t      *list,
                            ply_list_node_t *node);
 ply_list_node_t *ply_list_get_first_node (ply_list_t *list);
+ply_list_node_t *ply_list_get_last_node (ply_list_t *list);
 ply_list_node_t *ply_list_get_next_node (ply_list_t  *list,
                                          ply_list_node_t *node);
 

@@ -45,6 +45,10 @@
 #define PLY_ERRNO_STACK_SIZE 256
 #endif
 
+#ifndef PLY_SOCKET_CONNECTION_BACKLOG
+#define PLY_SOCKET_CONNECTION_BACKLOG 32
+#endif
+
 static int errno_stack[PLY_ERRNO_STACK_SIZE];
 static int errno_stack_position = 0;
 
@@ -84,8 +88,141 @@ ply_open_unidirectional_pipe (int *sender_fd,
   return true;
 }
 
-int
+static int
 ply_open_unix_socket (const char *path)
+{
+  int fd;
+
+  assert (path != NULL);
+
+  fd = socket (PF_UNIX, SOCK_STREAM, 0);
+
+  if (fd < 0)
+    return -1;
+
+  if (fcntl (fd, F_SETFD, O_NONBLOCK | FD_CLOEXEC) < 0)
+    {
+      ply_save_errno ();
+      close (fd);
+      ply_restore_errno ();
+
+      return -1;
+    }
+
+  return fd;
+}
+
+static struct sockaddr *
+create_unix_address_from_path (const char *path,
+                               bool        is_abstract,
+                               size_t     *address_size)
+{
+  struct sockaddr_un *address; 
+
+  assert (path != NULL);
+  assert (strlen (path) < sizeof (address->sun_family));
+
+  address = calloc (1, sizeof (struct sockaddr_un));
+  address->sun_family = AF_UNIX;
+
+  /* a socket is marked as abstract if its path has the
+   * NUL byte at the beginning of the buffer instead of
+   * the end
+   * 
+   * Note, we depend on the memory being zeroed by the calloc
+   * call above.
+   */
+  if (!is_abstract)
+    strncpy (address->sun_path, path, sizeof (address->sun_path) - 1);
+  else
+    strncpy (address->sun_path + 1, path, sizeof (address->sun_path) - 1);
+
+  if (address_size != NULL)
+    *address_size = sizeof (struct sockaddr_un);
+
+  return (struct sockaddr *) address;
+}
+
+int
+ply_connect_to_unix_socket (const char *path,
+                            bool        is_abstract)
+{
+  struct sockaddr *address; 
+  size_t address_size;
+  int fd;
+  
+  fd = ply_open_unix_socket (path);
+
+  if (fd < 0)
+    return -1;
+
+  address = create_unix_address_from_path (path, is_abstract, &address_size);
+
+  if (connect (fd, address, address_size) < 0)
+    {
+      ply_save_errno ();
+      free (address);
+      close (fd);
+      ply_restore_errno ();
+
+      return -1;
+    }
+  free (address);
+
+  return fd;
+}
+
+int
+ply_listen_to_unix_socket (const char *path,
+                           bool        is_abstract)
+{
+  struct sockaddr *address; 
+  size_t address_size;
+  int fd;
+  
+  fd = ply_open_unix_socket (path);
+
+  if (fd < 0)
+    return -1;
+
+  address = create_unix_address_from_path (path, is_abstract, &address_size);
+
+  if (bind (fd, address, address_size) < 0)
+    {
+      ply_save_errno ();
+      free (address);
+      close (fd);
+      ply_restore_errno ();
+
+      return -1;
+    }
+
+  free (address);
+
+  if (listen (fd, PLY_SOCKET_CONNECTION_BACKLOG) < 0)
+    {
+      ply_save_errno ();
+      close (fd);
+      ply_restore_errno ();
+      return -1;
+    }
+
+  if (!is_abstract)
+    {
+      if (fchmod (fd, 0600) < 0)
+        {
+          ply_save_errno ();
+          close (fd);
+          ply_restore_errno ();
+          return -1;
+        }
+    }
+
+  return fd;
+}
+
+int
+ply_create_unix_socket (const char *path)
 {
   struct sockaddr_un address; 
   int fd;
@@ -187,7 +324,7 @@ ply_read_some_bytes (int     fd,
     }
   while (bytes_left_to_read > 0);
 
-  if (errno != EAGAIN)
+  if ((bytes_left_to_read > 0) && (errno != EAGAIN))
     total_bytes_read = -1;
 
   return total_bytes_read;
@@ -198,11 +335,18 @@ ply_read (int     fd,
           void   *buffer,
           size_t  number_of_bytes)
 {
+  size_t total_bytes_read;
+  bool read_was_successful;
+
   assert (fd >= 0);
   assert (buffer != NULL);
   assert (number_of_bytes != 0);
 
-  return ply_read_some_bytes (fd, buffer, number_of_bytes) == number_of_bytes;
+  total_bytes_read = ply_read_some_bytes (fd, buffer, number_of_bytes);
+
+  read_was_successful = total_bytes_read == number_of_bytes;
+
+  return read_was_successful;
 }
 
 bool 
@@ -390,9 +534,7 @@ void
 ply_restore_errno (void)
 {
   assert (errno_stack_position > 0);
-
   errno_stack_position--;
-
   errno = errno_stack[errno_stack_position];
 }
 

@@ -13,5 +13,6 @@ include $(srcdir)/ply-logger-test.am
 include $(srcdir)/ply-list-test.am
 include $(srcdir)/ply-event-loop-test.am
 include $(srcdir)/ply-boot-client-test.am
+include $(srcdir)/ply-boot-server-test.am
 
 noinst_PROGRAMS = $(TESTS)

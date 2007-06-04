@@ -24,7 +24,9 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -51,7 +53,8 @@ struct _ply_boot_client
 typedef struct
 {
   ply_boot_client_t *client;
-  char *string;
+  char *command;
+  char *argument;
   ply_boot_client_response_handler_t handler;
   ply_boot_client_response_handler_t failed_handler;
   void *user_data;
@@ -59,7 +62,6 @@ typedef struct
 
 static void ply_boot_client_cancel_request (ply_boot_client_t         *client,
                                             ply_boot_client_request_t *request);
-
 
 ply_boot_client_t *
 ply_boot_client_new (void)
@@ -148,7 +150,8 @@ ply_boot_client_connect (ply_boot_client_t *client,
 
 static ply_boot_client_request_t *
 ply_boot_client_request_new (ply_boot_client_t                  *client,
-                             const char                         *request_string,
+                             const char                         *request_command,
+                             const char                         *request_argument,
                              ply_boot_client_response_handler_t  handler,
                              ply_boot_client_response_handler_t  failed_handler,
                              void                               *user_data)
@@ -156,12 +159,14 @@ ply_boot_client_request_new (ply_boot_client_t                  *client,
   ply_boot_client_request_t *request;
 
   assert (client != NULL);
-  assert (request_string != NULL);
+  assert (request_command != NULL);
   assert (handler != NULL);
 
   request = calloc (1, sizeof (ply_boot_client_request_t));
   request->client = client;
-  request->string = strdup (request_string);
+  request->command = strdup (request_command);
+  if (request_argument != NULL)
+    request->argument = strdup (request_argument);
   request->handler = handler;
   request->failed_handler = failed_handler;
   request->user_data = user_data;
@@ -174,7 +179,7 @@ ply_boot_client_request_free (ply_boot_client_request_t *request)
 {
   if (request == NULL)
     return;
-  free (request->string);
+  free (request->command);
   free (request);
 }
 
@@ -236,16 +241,55 @@ ply_boot_client_process_incoming_replies (ply_boot_client_t *client)
     }
 }
 
+static char *
+ply_boot_client_get_request_string (ply_boot_client_t         *client,
+                                    ply_boot_client_request_t *request,
+                                    size_t                    *request_size)
+{
+  char *request_string;
+
+  assert (client != NULL);
+  assert (request != NULL);
+  assert (request_size != NULL);
+
+  assert (request->command != NULL);
+
+  if (request->argument == NULL)
+    {
+      request_string = strdup (request->command);
+      *request_size = strlen (request_string) + 1;
+      return request_string;
+    }
+
+  assert (strlen (request->argument) <= UCHAR_MAX);
+
+  request_string = NULL;
+  asprintf (&request_string, "%s\002%c%s", request->command, 
+            (char) (strlen (request->argument) + 1), request->argument);
+  *request_size = strlen (request_string) + 1;
+
+  return request_string;
+}
+
 static bool
 ply_boot_client_send_request (ply_boot_client_t         *client,
                               ply_boot_client_request_t *request)
 {
-  if (!ply_write (client->socket_fd, request->string,
-                  strlen (request->string)))
+  char *request_string;
+  size_t request_size;
+
+  assert (client != NULL);
+  assert (request != NULL);
+
+  request_string = ply_boot_client_get_request_string (client, request,
+                                                       &request_size);
+  if (!ply_write (client->socket_fd, request_string, request_size))
     {
+      free (request_string);
       ply_boot_client_cancel_request (client, request);
       return false;
     }
+  free (request_string);
 
   if (client->daemon_has_reply_watch == NULL)
     {
@@ -290,32 +334,36 @@ ply_boot_client_process_pending_requests (ply_boot_client_t *client)
 }
 
 static void
-ply_boot_client_queue_request (ply_boot_client_t                 *client,
-                               const char                        *request_string,
+ply_boot_client_queue_request (ply_boot_client_t                  *client,
+                               const char                         *request_command,
+                               const char                         *request_argument,
                                ply_boot_client_response_handler_t  handler,
                                ply_boot_client_response_handler_t  failed_handler,
-                               void                              *user_data)
+                               void                               *user_data)
 {
   ply_boot_client_request_t *request;
 
   assert (client != NULL);
   assert (client->loop != NULL);
   assert (client->socket_fd >= 0);
-  assert (request_string != NULL);
+  assert (request_command != NULL);
+  assert (request_argument == NULL || strlen (request_argument) <= UCHAR_MAX);
   assert (handler != NULL);
 
   if (client->daemon_can_take_request_watch == NULL)
     {
       assert (ply_list_get_length (client->requests_to_send) == 0);
-      client->daemon_can_take_request_watch = ply_event_loop_watch_fd (client->loop, client->socket_fd,
-                                               PLY_EVENT_LOOP_FD_STATUS_CAN_TAKE_DATA,
-                                               (ply_event_handler_t)
-                                               ply_boot_client_process_pending_requests,
-                                               NULL, client);
+      client->daemon_can_take_request_watch = 
+          ply_event_loop_watch_fd (client->loop, client->socket_fd,
+                                   PLY_EVENT_LOOP_FD_STATUS_CAN_TAKE_DATA,
+                                   (ply_event_handler_t)
+                                   ply_boot_client_process_pending_requests,
+                                   NULL, client);
     }
 
-  request = ply_boot_client_request_new (client, request_string, handler,
-                                         failed_handler, user_data);
+  request = ply_boot_client_request_new (client, request_command,
+                                         request_argument, 
+                                         handler, failed_handler, user_data);
   ply_list_append_data (client->requests_to_send, request);
 }
 
@@ -328,7 +376,20 @@ ply_boot_client_ping_daemon (ply_boot_client_t                  *client,
   assert (client != NULL);
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PING,
-                                 handler, failed_handler, user_data);
+                                 NULL, handler, failed_handler, user_data);
+}
+
+void
+ply_boot_client_update_daemon (ply_boot_client_t                  *client,
+                               const char                         *status,
+                               ply_boot_client_response_handler_t  handler,
+                               ply_boot_client_response_handler_t  failed_handler,
+                               void                               *user_data)
+{
+  assert (client != NULL);
+
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_UPDATE,
+                                 status, handler, failed_handler, user_data);
 }
 
 void
@@ -393,13 +454,26 @@ static void
 on_pinged (ply_event_loop_t *loop)
 {
   printf ("PING!\n");
+}
+
+static void
+on_ping_failed (ply_event_loop_t *loop)
+{
+  printf ("PING FAILED! %m\n");
+  ply_event_loop_exit (loop, 1);
+}
+
+static void
+on_update (ply_event_loop_t *loop)
+{
+  printf ("UPDATE!\n");
   ply_event_loop_exit (loop, 0);
 }
 
 static void
-on_failed (ply_event_loop_t *loop)
+on_update_failed (ply_event_loop_t *loop)
 {
-  printf ("FAILED! %m\n");
+  printf ("UPDATE FAILED! %m\n");
   ply_event_loop_exit (loop, 1);
 }
 
@@ -435,8 +509,14 @@ main (int    argc,
   ply_boot_client_attach_to_event_loop (client, loop);
   ply_boot_client_ping_daemon (client, 
                                (ply_boot_client_response_handler_t) on_pinged,
-                               (ply_boot_client_response_handler_t) on_failed,
+                               (ply_boot_client_response_handler_t) on_ping_failed,
                                loop);
+
+  ply_boot_client_update_daemon (client, 
+                                 "loading",
+                                 (ply_boot_client_response_handler_t) on_update,
+                                 (ply_boot_client_response_handler_t) on_update_failed,
+                                 loop);
 
   exit_code = ply_event_loop_run (loop);
 

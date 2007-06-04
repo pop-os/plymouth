@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -118,20 +119,63 @@ ply_boot_server_stop_listening (ply_boot_server_t *server)
   assert (server != NULL);
 }
 
-static void
-ply_boot_connection_on_request (ply_boot_connection_t *connection)
+static bool
+ply_boot_connection_read_request (ply_boot_connection_t  *connection,
+                                  char                  **command,
+                                  char                  **argument)
 {
-  uint8_t byte;
+  uint8_t header[2];
 
   assert (connection != NULL);
   assert (connection->fd >= 0);
 
-  if (read (connection->fd, &byte, sizeof (byte)) != 1)
-    return;
+  if (!ply_read (connection->fd, header, sizeof (header)))
+    return false;
 
-  ply_write (connection->fd, 
+  *command = calloc (2, sizeof (char));
+  *command[0] = header[0];
+
+  *argument = NULL;
+  if (header[1] == '\002')
+    {
+      uint8_t argument_size;
+
+      if (!ply_read (connection->fd, &argument_size, sizeof (uint8_t)))
+        return false;
+
+      *argument = calloc (argument_size, sizeof (char));
+
+      if (!ply_read (connection->fd, *argument, argument_size))
+        return false;
+    }
+  return true;
+}
+
+static void
+ply_boot_connection_on_request (ply_boot_connection_t *connection)
+{
+  char *command, *argument;
+
+  assert (connection != NULL);
+  assert (connection->fd >= 0);
+
+  if (!ply_boot_connection_read_request (connection,
+                                         &command, &argument))
+    {
+      close (connection->fd);
+      return;
+    }
+
+  if (argument != NULL)
+    printf ("got command '%s' with argument '%s'\n",
+            command, argument);
+  else
+    printf ("got command '%s'\n", command);
+
+  if (!ply_write (connection->fd, 
              PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
-             strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK));
+             strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+    close (connection->fd);
 }
 
 static void

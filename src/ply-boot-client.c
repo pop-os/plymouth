@@ -82,33 +82,66 @@ ply_boot_client_new (void)
 }
 
 static void
-ply_boot_client_cancel_requests (ply_boot_client_t *client)
+ply_boot_client_cancel_unsent_requests (ply_boot_client_t *client)
 {
   ply_list_node_t *node;
+
+  if (ply_list_get_length (client->requests_to_send) == 0)
+      return;
 
   node = ply_list_get_first_node (client->requests_to_send);
   while (node != NULL)
     {
+      ply_list_node_t *next_node;
       ply_boot_client_request_t *request;
 
       request = (ply_boot_client_request_t *) ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (client->requests_to_send, node);
 
       ply_boot_client_cancel_request (client, request);
+      ply_list_remove_node (client->requests_to_send, node);
 
-      node = ply_list_get_next_node (client->requests_to_send, node);
+      node = next_node;
     }
+
+  ply_event_loop_stop_watching_fd (client->loop, 
+                                   client->daemon_can_take_request_watch);
+  client->daemon_can_take_request_watch = NULL;
+}
+
+static void
+ply_boot_client_cancel_requests_waiting_for_replies (ply_boot_client_t *client)
+{
+  ply_list_node_t *node;
+
+  if (ply_list_get_length (client->requests_waiting_for_replies) == 0)
+      return;
 
   node = ply_list_get_first_node (client->requests_waiting_for_replies);
   while (node != NULL)
     {
+      ply_list_node_t *next_node;
       ply_boot_client_request_t *request;
 
       request = (ply_boot_client_request_t *) ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (client->requests_waiting_for_replies, node);
 
       ply_boot_client_cancel_request (client, request);
+      ply_list_remove_node (client->requests_waiting_for_replies, node);
 
-      node = ply_list_get_next_node (client->requests_waiting_for_replies, node);
+      node = next_node;
     }
+
+  ply_event_loop_stop_watching_fd (client->loop, 
+                                   client->daemon_has_reply_watch);
+  client->daemon_has_reply_watch = NULL;
+}
+
+static void
+ply_boot_client_cancel_requests (ply_boot_client_t *client)
+{
+  ply_boot_client_cancel_unsent_requests (client);
+  ply_boot_client_cancel_requests_waiting_for_replies (client);
 }
 
 void
@@ -301,7 +334,6 @@ ply_boot_client_send_request (ply_boot_client_t         *client,
                                    ply_boot_client_process_incoming_replies,
                                    NULL, client);
     }
-
   return true;
 }
 
@@ -393,6 +425,18 @@ ply_boot_client_update_daemon (ply_boot_client_t                  *client,
 }
 
 void
+ply_boot_client_tell_daemon_to_quit (ply_boot_client_t                  *client,
+                                     ply_boot_client_response_handler_t  handler,
+                                     ply_boot_client_response_handler_t  failed_handler,
+                                     void                               *user_data)
+{
+  assert (client != NULL);
+
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_QUIT,
+                                 NULL, handler, failed_handler, user_data);
+}
+
+void
 ply_boot_client_disconnect (ply_boot_client_t *client)
 {
   assert (client != NULL);
@@ -467,7 +511,6 @@ static void
 on_update (ply_event_loop_t *loop)
 {
   printf ("UPDATE!\n");
-  ply_event_loop_exit (loop, 0);
 }
 
 static void
@@ -475,6 +518,20 @@ on_update_failed (ply_event_loop_t *loop)
 {
   printf ("UPDATE FAILED! %m\n");
   ply_event_loop_exit (loop, 1);
+}
+
+static void
+on_quit (ply_event_loop_t *loop)
+{
+  printf ("QUIT!\n");
+  ply_event_loop_exit (loop, 0);
+}
+
+static void
+on_quit_failed (ply_event_loop_t *loop)
+{
+  printf ("QUIT FAILED! %m\n");
+  ply_event_loop_exit (loop, 2);
 }
 
 static void
@@ -517,6 +574,17 @@ main (int    argc,
                                  (ply_boot_client_response_handler_t) on_update,
                                  (ply_boot_client_response_handler_t) on_update_failed,
                                  loop);
+
+  ply_boot_client_update_daemon (client, 
+                                 "loading more",
+                                 (ply_boot_client_response_handler_t) on_update,
+                                 (ply_boot_client_response_handler_t) on_update_failed,
+                                 loop);
+
+  ply_boot_client_tell_daemon_to_quit (client, 
+                                       (ply_boot_client_response_handler_t) on_quit,
+                                       (ply_boot_client_response_handler_t) on_quit_failed,
+                                       loop);
 
   exit_code = ply_event_loop_run (loop);
 

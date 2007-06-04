@@ -49,11 +49,17 @@ struct _ply_boot_server
   ply_list_t *connections;
   int socket_fd;
 
+  ply_boot_server_update_handler_t update_handler;
+  ply_boot_server_quit_handler_t quit_handler;
+  void *user_data;
+
   uint32_t is_listening : 1;
 };
 
 ply_boot_server_t *
-ply_boot_server_new (void)
+ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
+                     ply_boot_server_quit_handler_t    quit_handler,
+                     void                             *user_data)
 {
   ply_boot_server_t *server;
 
@@ -61,6 +67,9 @@ ply_boot_server_new (void)
   server->connections = ply_list_new ();
   server->loop = NULL;
   server->is_listening = false;
+  server->update_handler = update_handler;
+  server->quit_handler = quit_handler;
+  server->user_data = user_data;
 
   return server;
 }
@@ -154,10 +163,14 @@ ply_boot_connection_read_request (ply_boot_connection_t  *connection,
 static void
 ply_boot_connection_on_request (ply_boot_connection_t *connection)
 {
+  ply_boot_server_t *server;
   char *command, *argument;
 
   assert (connection != NULL);
   assert (connection->fd >= 0);
+
+  server = connection->server;
+  assert (server != NULL);
 
   if (!ply_boot_connection_read_request (connection,
                                          &command, &argument))
@@ -166,16 +179,33 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       return;
     }
 
-  if (argument != NULL)
-    printf ("got command '%s' with argument '%s'\n",
-            command, argument);
+  if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PING) == 0)
+    {
+      ply_log ("PING");
+    }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_UPDATE) == 0)
+    {
+      if (server->update_handler != NULL)
+        server->update_handler (server->user_data, argument, server);
+    }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_QUIT) == 0)
+    {
+      if (server->quit_handler != NULL)
+        server->quit_handler (server->user_data, server);
+    }
   else
-    printf ("got command '%s'\n", command);
+    {
+      ply_error ("received unknown request from client");
+      close (connection->fd);
+    }
 
   if (!ply_write (connection->fd, 
-             PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
-             strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
-    close (connection->fd);
+                  PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
+                  strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+    {
+      ply_error ("could not write bytes: %m");
+      close (connection->fd);
+    }
 }
 
 static void
@@ -267,6 +297,20 @@ ply_boot_server_attach_to_event_loop (ply_boot_server_t *server,
 #include "ply-event-loop.h"
 #include "ply-boot-server.h"
 
+static void 
+on_update (ply_event_loop_t  *loop,
+           const char        *status)
+{
+  printf ("new status is '%s'\n", status);
+}
+
+static void
+on_quit (ply_event_loop_t *loop)
+{
+  printf ("got quit request, quiting...\n");
+  ply_event_loop_exit (loop, 0);
+}
+
 int
 main (int    argc,
       char **argv)
@@ -279,7 +323,9 @@ main (int    argc,
 
   loop = ply_event_loop_new ();
 
-  server = ply_boot_server_new ();
+  server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
+                                (ply_boot_server_quit_handler_t) on_quit,
+                                loop);
 
   if (!ply_boot_server_listen (server))
     {
@@ -289,7 +335,6 @@ main (int    argc,
 
   ply_boot_server_attach_to_event_loop (server, loop);
   exit_code = ply_event_loop_run (loop);
-
   ply_boot_server_free (server);
 
   return exit_code;

@@ -23,8 +23,10 @@
 #define PLY_EVENT_LOOP_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef struct _ply_event_loop ply_event_loop_t;
+typedef intptr_t ply_fd_watch_t;
 
 typedef enum {
   PLY_EVENT_LOOP_FD_STATUS_NONE = 0,
@@ -43,15 +45,14 @@ typedef void (* ply_event_loop_exit_handler_t) (void *user_data,
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_event_loop_t *ply_event_loop_new (void);
 void ply_event_loop_free (ply_event_loop_t *loop);
-void ply_event_loop_watch_fd (ply_event_loop_t *loop,
-                              int               fd,
-                              ply_event_loop_fd_status_t status,
-                              ply_event_handler_t status_met_handler,
-                              ply_event_handler_t disconnected_handler,
-                              void             *user_data);
+ply_fd_watch_t *ply_event_loop_watch_fd (ply_event_loop_t *loop,
+                                         int               fd,
+                                         ply_event_loop_fd_status_t status,
+                                         ply_event_handler_t status_met_handler,
+                                         ply_event_handler_t disconnected_handler,
+                                         void             *user_data);
 void ply_event_loop_stop_watching_fd (ply_event_loop_t *loop, 
-		                              int               fd,
-                                      ply_event_loop_fd_status_t status);
+                                      ply_fd_watch_t   *watch);
 void ply_event_loop_watch_signal (ply_event_loop_t     *loop,
                                   int                   signal_number,
                                   ply_event_handler_t   signal_handler,

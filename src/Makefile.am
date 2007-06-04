@@ -18,5 +18,18 @@ plymouth_SOURCES =                                                            \
 		   ply-utils.h                                                \
                    ply-utils.c                                                \
                    main.c
+rhgb_client_CFLAGS =
+rhgb_client_LDADD =
+rhgb_client_SOURCES = ply-utils.h                                             \
+                      ply-utils.c                                             \
+                      ply-logger.h                                            \
+                      ply-logger.c                                            \
+                      ply-list.h                                              \
+                      ply-list.c                                              \
+                      ply-event-loop.h                                        \
+                      ply-event-loop.c                                        \
+                      ply-boot-client.h                                       \
+                      ply-boot-client.c                                       \
+                      rhgb-client.c
 
-noinst_PROGRAMS = plymouth
+noinst_PROGRAMS = plymouth rhgb-client

@@ -174,10 +174,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
   if (!ply_boot_connection_read_request (connection,
                                          &command, &argument))
-    {
-      close (connection->fd);
-      return;
-    }
+    return;
 
   if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PING) == 0)
     {
@@ -196,7 +193,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
   else
     {
       ply_error ("received unknown request from client");
-      close (connection->fd);
+      return;
     }
 
   if (!ply_write (connection->fd, 
@@ -204,7 +201,6 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                   strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
     {
       ply_error ("could not write bytes: %m");
-      close (connection->fd);
     }
 }
 

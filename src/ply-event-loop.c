@@ -372,7 +372,6 @@ ply_event_loop_update_source_event_mask (ply_event_loop_t   *loop,
   if (source->is_getting_polled)
     {
       status = epoll_ctl (loop->epoll_fd, EPOLL_CTL_MOD, source->fd, &event);
-      assert (status == 0);
     }
 }
 
@@ -587,7 +586,6 @@ ply_event_loop_remove_source_node (ply_event_loop_t *loop,
   if (source->is_getting_polled)
     {
       status = epoll_ctl (loop->epoll_fd, EPOLL_CTL_DEL, source->fd, NULL);
-      assert (status == 0);
       source->is_getting_polled = false;
     }
 

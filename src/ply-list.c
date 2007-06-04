@@ -204,33 +204,50 @@ ply_list_remove_data (ply_list_t *list,
     ply_list_remove_node (list, node);
 }
 
+static void 
+ply_list_unlink_node (ply_list_t      *list,
+                      ply_list_node_t *node)
+{
+  ply_list_node_t *node_before, *node_after;
+
+  assert (list != NULL);
+
+  if (node == NULL)
+    return;
+
+  assert (ply_list_find_node (list, node->data) == node);
+
+  node_before = node->previous;
+  node_after = node->next;
+
+  if (node_before != NULL)
+    node_before->next = node_after;
+
+  if (node_after != NULL)
+    node_after->previous = node_before;
+
+  if (list->first_node == node)
+    list->first_node = node_after;
+
+  if (list->last_node == node)
+    list->last_node = node_before;
+
+  node->previous = NULL;
+  node->next = NULL;
+
+  list->number_of_nodes--;
+  assert (ply_list_find_node (list, node->data) != node);
+  assert (ply_list_find_node (list, node->data) == NULL);
+}
+
 void 
 ply_list_remove_node (ply_list_t      *list,
                       ply_list_node_t *node)
 {
-  if (node == NULL)
-    return;
-
-  if (node == list->first_node)
-    list->first_node = node->next;
-
-  if (node == list->last_node)
-    list->last_node = node->previous;
-
-  if (node->previous != NULL)
-    {
-      node->previous->next = node->next;
-      node->previous = NULL;
-    }
-
-  if (node->next != NULL)
-    {
-      node->next->previous = node->previous;
-      node->next = NULL;
-    }
-
+  assert (ply_list_find_node (list, node->data) != NULL);
+  ply_list_unlink_node (list, node);
+  assert (ply_list_find_node (list, node->data) == NULL);
   ply_list_node_free (node);
-  list->number_of_nodes--;
 }
 
 ply_list_node_t *

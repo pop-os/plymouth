@@ -42,13 +42,13 @@
 #define PLY_EVENT_LOOP_NUM_EVENT_HANDLERS 64
 #endif
 
-typedef void (* ply_event_loop_free_handler_t) (void *);
-
 typedef struct
 {
   int fd;                                 
   ply_list_t *destinations;
-  uint32_t is_being_watched : 1;
+  ply_list_t *fd_watches;
+  uint32_t is_getting_polled : 1;
+  uint32_t is_disconnected : 1;
 } ply_event_source_t;
 
 typedef struct
@@ -59,8 +59,12 @@ typedef struct
   ply_event_handler_t status_met_handler; 
   ply_event_handler_t disconnected_handler;
   void *user_data;
-  ply_event_loop_free_handler_t free_function; 
 } ply_event_destination_t;
+
+struct _ply_fd_watch
+{
+  ply_event_destination_t *destination;
+};
 
 typedef struct
 {
@@ -258,8 +262,7 @@ static ply_event_destination_t *
 ply_event_destination_new (ply_event_loop_fd_status_t     status,
                            ply_event_handler_t            status_met_handler,
                            ply_event_handler_t            disconnected_handler,
-                           void                          *user_data,
-                           ply_event_loop_free_handler_t  free_function)
+                           void                          *user_data)
 {
   ply_event_destination_t *destination;
 
@@ -270,7 +273,6 @@ ply_event_destination_new (ply_event_loop_fd_status_t     status,
   destination->status_met_handler = status_met_handler;
   destination->disconnected_handler = disconnected_handler;
   destination->user_data = user_data;
-  destination->free_function = free_function;
 
   return destination;
 }
@@ -281,10 +283,25 @@ ply_event_destination_free (ply_event_destination_t *destination)
   if (destination == NULL)
     return;
 
-  if (destination->free_function != NULL)
-    destination->free_function ((void *) destination->user_data);
-
   free (destination);
+}
+
+static ply_fd_watch_t *
+ply_fd_watch_new (ply_event_destination_t *destination)
+{
+  ply_fd_watch_t *watch;
+
+  watch = calloc (1, sizeof (ply_fd_watch_t));
+  watch->destination = destination;
+
+  return watch;
+}
+
+static void
+ply_fd_watch_free (ply_fd_watch_t *watch)
+{
+  watch->destination = NULL;
+  free (watch);
 }
 
 static ply_event_source_t *
@@ -296,7 +313,9 @@ ply_event_source_new (int fd)
 
   source->fd = fd;
   source->destinations = ply_list_new ();
-  source->is_being_watched = false;
+  source->fd_watches = ply_list_new ();
+  source->is_getting_polled = false;
+  source->is_disconnected = false;
 
   return source;
 }
@@ -310,6 +329,7 @@ ply_event_source_free (ply_event_source_t *source)
   assert (ply_list_get_length (source->destinations) == 0);
 
   ply_list_free (source->destinations);
+  ply_list_free (source->fd_watches);
   free (source);
 }
 
@@ -349,7 +369,7 @@ ply_event_loop_update_source_event_mask (ply_event_loop_t   *loop,
     }
   event.data.ptr = source;
 
-  if (source->is_being_watched)
+  if (source->is_getting_polled)
     {
       status = epoll_ctl (loop->epoll_fd, EPOLL_CTL_MOD, source->fd, &event);
       assert (status == 0);
@@ -362,6 +382,7 @@ ply_event_loop_add_destination_for_source (ply_event_loop_t        *loop,
                                            ply_event_source_t      *source)
 {
   ply_list_node_t *destination_node;
+  ply_fd_watch_t *watch;
 
   assert (loop != NULL);
   assert (destination != NULL);
@@ -375,73 +396,47 @@ ply_event_loop_add_destination_for_source (ply_event_loop_t        *loop,
 
   ply_event_loop_update_source_event_mask (loop, source);
 
-  return (ply_fd_watch_t *) destination_node;
+  watch = ply_fd_watch_new (destination);
+
+  ply_list_append_data (source->fd_watches, watch);
+
+  return watch;
 }
 
 static ply_event_destination_t *
 ply_event_loop_get_destination_from_fd_watch (ply_event_loop_t *loop,
                                               ply_fd_watch_t   *watch)
 {
-   ply_list_node_t *destination_node;
    ply_event_destination_t *destination;
 
    assert (loop != NULL);
    assert (watch != NULL);
-   destination_node = (ply_list_node_t *) watch;
+   assert (watch->destination != NULL);
 
-   destination = (ply_event_destination_t *) 
-       ply_list_node_get_data (destination_node);
+   destination = watch->destination;
 
    return destination;
 }
 
 static void
-ply_event_loop_remove_destination_by_watch (ply_event_loop_t  *loop,
-                                            ply_fd_watch_t    *watch)
+ply_event_loop_remove_destination_by_fd_watch (ply_event_loop_t *loop,
+                                               ply_fd_watch_t   *watch)
 {
-  ply_list_node_t *destination_node;
   ply_event_destination_t *destination;
   ply_event_source_t *source;
   
   assert (loop != NULL);
   assert (watch != NULL);
 
-  destination_node = (ply_list_node_t *) watch;
   destination = ply_event_loop_get_destination_from_fd_watch (loop, watch);
   assert (destination != NULL);
 
   source = destination->source;
   assert (source != NULL);
 
-  ply_list_remove_node (source->destinations, destination_node);
+  ply_list_remove_data (source->destinations, destination);
+  assert (ply_list_find_node (source->destinations, destination) == NULL);
   ply_event_loop_update_source_event_mask (loop, source);
-}
-
-static void
-ply_event_loop_remove_destinations_for_source (ply_event_loop_t   *loop,
-                                               ply_event_source_t *source)
-{
-  ply_list_node_t *destination_node;
-
-  destination_node = ply_list_get_first_node (source->destinations);
-  while (destination_node != NULL)
-    {
-      ply_list_node_t *next_node;
-      ply_event_destination_t *destination;
-
-      destination = (ply_event_destination_t *) 
-          ply_list_node_get_data (destination_node);
-      assert (destination != NULL);
-      assert (destination->source == source);
-
-      next_node = ply_list_get_next_node (source->destinations,
-                                          destination_node);
-      ply_list_remove_node (source->destinations, destination_node);
-      ply_event_loop_update_source_event_mask (loop, source);
-      ply_event_destination_free (destination);
-
-      destination_node = next_node;
-    }
 }
 
 ply_event_loop_t *
@@ -476,27 +471,6 @@ ply_event_loop_new (void)
                            loop->signal_dispatcher);
 
   return loop;
-}
-
-static void
-ply_event_loop_free_sources (ply_event_loop_t *loop)
-{
-  ply_list_node_t *node;
-
-  node = ply_list_get_first_node (loop->sources);
-  while (node != NULL)
-    {
-      ply_list_node_t *next_node;
-      ply_event_source_t *source;
-
-      source = (ply_event_source_t *) ply_list_node_get_data (node);
-      next_node = ply_list_get_next_node (loop->sources, node);
-      ply_event_loop_remove_source (loop, source);
-      ply_event_source_free (source);
-
-      node = next_node;
-    }
-  ply_list_free (loop->sources);
 }
 
 static void
@@ -544,12 +518,12 @@ ply_event_loop_run_exit_closures (ply_event_loop_t *loop)
 void
 ply_event_loop_free (ply_event_loop_t *loop)
 {
-
   if (loop == NULL)
     return;
 
+  assert (ply_list_get_length (loop->sources) == 0);
+
   ply_signal_dispatcher_free (loop->signal_dispatcher);
-  ply_event_loop_free_sources (loop);
   ply_event_loop_free_exit_closures (loop);
 
   close (loop->epoll_fd);
@@ -586,7 +560,7 @@ ply_event_loop_add_source (ply_event_loop_t    *loop,
   int status;
 
   assert (ply_event_loop_find_source_node (loop, source->fd) == NULL);
-  assert (source->is_being_watched == false);
+  assert (source->is_getting_polled == false);
 
   event.events = EPOLLERR | EPOLLHUP;
   event.data.ptr = source;
@@ -594,7 +568,7 @@ ply_event_loop_add_source (ply_event_loop_t    *loop,
   status = epoll_ctl (loop->epoll_fd, EPOLL_CTL_ADD, source->fd, &event);
   assert (status == 0);
 
-  source->is_being_watched = true;
+  source->is_getting_polled = true;
 
   ply_list_append_data (loop->sources, source);
 }
@@ -610,11 +584,11 @@ ply_event_loop_remove_source_node (ply_event_loop_t *loop,
 
   assert (source != NULL);
 
-  if (source->is_being_watched)
+  if (source->is_getting_polled)
     {
       status = epoll_ctl (loop->epoll_fd, EPOLL_CTL_DEL, source->fd, NULL);
       assert (status == 0);
-      source->is_being_watched = false;
+      source->is_getting_polled = false;
     }
 
   ply_list_remove_node (loop->sources, source_node);
@@ -625,12 +599,12 @@ ply_event_loop_remove_source (ply_event_loop_t   *loop,
                               ply_event_source_t *source)
 {
   ply_list_node_t *source_node;
+  assert (ply_list_get_length (source->destinations) == 0);
 
   source_node = ply_list_find_node (loop->sources, source);
 
   assert (source_node != NULL);
 
-  ply_event_loop_remove_destinations_for_source (loop, source);
   ply_event_loop_remove_source_node (loop, source_node);
 }
 
@@ -690,8 +664,7 @@ ply_event_loop_watch_fd (ply_event_loop_t           *loop,
   assert (source != NULL);
 
   destination = ply_event_destination_new (status, status_met_handler,
-                                           disconnected_handler, user_data,
-                                           NULL);
+                                           disconnected_handler, user_data);
   watch = ply_event_loop_add_destination_for_source (loop, destination, source);
 
   return watch;
@@ -711,7 +684,21 @@ ply_event_loop_stop_watching_fd (ply_event_loop_t *loop,
   assert (source != NULL);
   assert (source->fd >= 0);
 
-  ply_event_loop_remove_destination_by_watch (loop, watch);
+  /* if we're already disconnected then the watch is already scheduled
+   * to be removed by ply_event_loop_disconnect_source
+   */
+  if (source->is_disconnected)
+    {
+      ply_list_remove_data (source->fd_watches, watch);
+      ply_fd_watch_free (watch);
+      return;
+    }
+
+  ply_event_loop_remove_destination_by_fd_watch (loop, watch);
+
+  ply_list_remove_data (source->fd_watches, watch);
+  ply_fd_watch_free (watch);
+  ply_event_destination_free (destination);
 
   if (ply_list_get_length (source->destinations) == 0)
     {
@@ -826,13 +813,43 @@ ply_event_loop_get_fd_status_from_poll_mask (uint32_t mask)
   return status;
 }
 
-static void
-ply_event_loop_dispatch_event_for_source (ply_event_loop_t           *loop,
-                                          ply_event_source_t         *source,
-                                          ply_event_loop_fd_status_t  status,
-                                          bool                        is_disconnected)
+static bool
+ply_event_loop_source_has_met_status (ply_event_source_t         *source,
+                                      ply_event_loop_fd_status_t  status)
 {
   ply_list_node_t *node;
+
+  assert (source != NULL);
+  assert (ply_event_loop_fd_status_is_valid (status));
+
+  node = ply_list_get_first_node (source->destinations);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_event_destination_t *destination;
+
+      destination = (ply_event_destination_t *) ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (source->destinations, node);
+
+      if (((destination->status & status) != 0) 
+          && (destination->status_met_handler != NULL))
+        return true;
+
+      node = next_node;
+    }
+  return false;
+}
+
+static void
+ply_event_loop_handle_met_status_for_source (ply_event_loop_t           *loop,
+                                             ply_event_source_t         *source,
+                                             ply_event_loop_fd_status_t  status)
+{
+  ply_list_node_t *node;
+
+  assert (loop != NULL);
+  assert (source != NULL);
+  assert (ply_event_loop_fd_status_is_valid (status));
 
   node = ply_list_get_first_node (source->destinations);
   while (node != NULL)
@@ -849,27 +866,103 @@ ply_event_loop_dispatch_event_for_source (ply_event_loop_t           *loop,
 
       node = next_node;
     }
+}
 
-  if (is_disconnected)
+static void
+ply_event_loop_handle_disconnect_for_source (ply_event_loop_t   *loop,
+                                             ply_event_source_t *source)
+{
+  ply_list_node_t *node;
+
+  assert (loop != NULL);
+  assert (source != NULL);
+
+  source->is_disconnected = true;
+  node = ply_list_get_first_node (source->destinations);
+  while (node != NULL)
     {
-      node = ply_list_get_first_node (source->destinations);
-      while (node != NULL)
-        {
-          ply_list_node_t *next_node;
-          ply_event_destination_t *destination;
+      ply_list_node_t *next_node;
+      ply_event_destination_t *destination;
 
-          destination = (ply_event_destination_t *) ply_list_node_get_data (node);
-          next_node = ply_list_get_next_node (source->destinations, node);
+      destination = (ply_event_destination_t *) ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (source->destinations, node);
 
-          if (destination->disconnected_handler != NULL)
-            destination->disconnected_handler (destination->user_data,
-                                               source->fd);
+      if (destination->disconnected_handler != NULL)
+        destination->disconnected_handler (destination->user_data, source->fd);
 
-          node = next_node;
-        }
-
-      ply_event_loop_remove_source (loop, source);
+      node = next_node;
     }
+}
+
+static void
+ply_event_loop_free_watches_for_source (ply_event_loop_t   *loop,
+                                        ply_event_source_t *source)
+{
+  ply_list_node_t *node;
+
+  assert (loop != NULL);
+  assert (source != NULL);
+
+  node = ply_list_get_first_node (source->fd_watches);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_fd_watch_t *watch;
+
+      next_node = ply_list_get_next_node (source->fd_watches, node);
+
+      watch = (ply_fd_watch_t *) ply_list_node_get_data (node);
+
+      assert (watch != NULL);
+      ply_fd_watch_free (watch);
+      ply_list_remove_node (source->fd_watches, node);
+      node = next_node;
+    }
+}
+
+static void
+ply_event_loop_free_destinations_for_source (ply_event_loop_t   *loop,
+                                             ply_event_source_t *source)
+{
+  ply_list_node_t *node;
+
+  assert (loop != NULL);
+  assert (source != NULL);
+
+  node = ply_list_get_first_node (source->destinations);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_event_destination_t *destination;
+
+      next_node = ply_list_get_next_node (source->destinations, node);
+
+      destination = 
+          (ply_event_destination_t *) ply_list_node_get_data (node);
+
+      assert (destination != NULL);
+      ply_event_destination_free (destination);
+      ply_list_remove_node (source->destinations, node);
+      node = next_node;
+    }
+}
+
+static void
+ply_event_loop_disconnect_source (ply_event_loop_t           *loop,
+                                  ply_event_source_t         *source)
+{
+  ply_event_loop_handle_disconnect_for_source (loop, source);
+
+  /* at this point, we've told the event loop users about the 
+   * fd disconnection, so we can invalidate any outstanding
+   * watches and free the destinations.
+   */
+  ply_event_loop_free_watches_for_source (loop, source);
+  ply_event_loop_free_destinations_for_source (loop, source);
+  assert (ply_list_get_length (source->destinations) == 0);
+
+  ply_event_loop_remove_source (loop, source);
+  ply_event_source_free (source);
 }
 
 static void
@@ -908,21 +1001,17 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
     {
       ply_event_source_t *source;
       ply_event_loop_fd_status_t status;
-      bool is_disconnected;
 
       source = (ply_event_source_t *) (events[i].data.ptr);
       status = ply_event_loop_get_fd_status_from_poll_mask (events[i].events);
 
-      if ((events[i].events & EPOLLHUP) || (events[i].events & EPOLLERR))
-        is_disconnected = true;
-      else
-        is_disconnected = false;
-
-      if (is_disconnected)
-        source->is_being_watched = false;
-
-      ply_event_loop_dispatch_event_for_source (loop, source, status,
-                                                is_disconnected);
+      if (ply_event_loop_source_has_met_status (source, status))
+        ply_event_loop_handle_met_status_for_source (loop, source, status);
+      else if ((events[i].events & EPOLLHUP) || (events[i].events & EPOLLERR))
+        {
+          source->is_getting_polled = false;
+          ply_event_loop_disconnect_source (loop, source);
+        }
 
       if (loop->should_exit)
         break;

@@ -26,7 +26,7 @@
 #include <stdint.h>
 
 typedef struct _ply_event_loop ply_event_loop_t;
-typedef intptr_t ply_fd_watch_t;
+typedef struct _ply_fd_watch ply_fd_watch_t;
 
 typedef enum {
   PLY_EVENT_LOOP_FD_STATUS_NONE = 0,

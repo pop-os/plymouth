@@ -41,7 +41,10 @@
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 bool ply_open_unidirectional_pipe (int *sender_fd,
                                    int *receiver_fd);
-int ply_open_unix_socket (const char *path);
+int ply_connect_to_unix_socket (const char *path,
+                                bool        is_abstract);
+int ply_listen_to_unix_socket (const char *path,
+                               bool        is_abstract);
 
 bool ply_write (int         fd,
                 const void *buffer,

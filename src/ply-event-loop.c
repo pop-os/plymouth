@@ -32,6 +32,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/epoll.h>
+#include <sys/ioctl.h>
+#include <sys/termios.h>
 #include <unistd.h>
 
 #include "ply-logger.h"
@@ -999,17 +1001,31 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
     {
       ply_event_source_t *source;
       ply_event_loop_fd_status_t status;
+      bool is_disconnected;
 
       source = (ply_event_source_t *) (events[i].data.ptr);
       status = ply_event_loop_get_fd_status_from_poll_mask (events[i].events);
 
-      if (ply_event_loop_source_has_met_status (source, status))
-        ply_event_loop_handle_met_status_for_source (loop, source, status);
-      else if ((events[i].events & EPOLLHUP) || (events[i].events & EPOLLERR))
+      is_disconnected = false;
+      if ((events[i].events & EPOLLHUP) || (events[i].events & EPOLLERR))
+        {
+          int bytes_ready;
+
+          bytes_ready = 0;
+          if (ioctl (source->fd, FIONREAD, &bytes_ready) < 0)
+            bytes_ready = 0;
+
+          if (bytes_ready <= 0)
+            is_disconnected = true;
+        }
+
+      if (is_disconnected)
         {
           source->is_getting_polled = false;
           ply_event_loop_disconnect_source (loop, source);
         }
+      else if (ply_event_loop_source_has_met_status (source, status))
+        ply_event_loop_handle_met_status_for_source (loop, source, status);
 
       if (loop->should_exit)
         break;

@@ -336,8 +336,12 @@ bool
 ply_logger_flush (ply_logger_t *logger)
 {
   assert (logger != NULL);
-  assert (logger->output_fd >= 0);
-  assert (ply_logger_is_logging (logger));
+  
+  if (!ply_logger_is_logging (logger))
+    return false;
+
+  if (logger->output_fd < 0)
+    return false;
 
   if (!ply_logger_flush_buffer (logger))
     return false;

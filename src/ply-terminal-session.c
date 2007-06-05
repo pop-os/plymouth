@@ -59,6 +59,8 @@ struct _ply_terminal_session
 static bool ply_terminal_session_open_console (ply_terminal_session_t *session);
 static bool ply_terminal_session_execute (ply_terminal_session_t *session,
                                           bool                    look_in_path);
+static void ply_terminal_session_start_logging (ply_terminal_session_t *session);
+static void ply_terminal_session_stop_logging (ply_terminal_session_t *session);
 
 static bool
 ply_terminal_session_open_console (ply_terminal_session_t *session)
@@ -259,6 +261,7 @@ ply_terminal_session_run (ply_terminal_session_t              *session,
       session->is_running = true;
       session->done_handler = done_handler;
       session->done_handler_user_data = user_data;
+      ply_terminal_session_start_logging (session);
 
       return true;
     }
@@ -306,8 +309,8 @@ ply_terminal_session_on_new_data (ply_terminal_session_t *session,
     {
       int i;
       for (i = 0; i < bytes_read; i++)
-          if (isprint (buffer[i]))
-              buffer[i] = toupper(buffer[i]);
+        if (isprint (buffer[i]))
+          buffer[i] = toupper(buffer[i]);
       ply_terminal_session_log_bytes (session, buffer, bytes_read);
     }
 
@@ -325,9 +328,11 @@ ply_terminal_session_on_hangup (ply_terminal_session_t *session)
 
   if (session->done_handler != NULL)
     session->done_handler (session->done_handler_user_data, session);
+
+  ply_terminal_session_stop_logging (session);
 }
 
-void 
+static void 
 ply_terminal_session_start_logging (ply_terminal_session_t *session)
 {
   int session_fd;
@@ -348,9 +353,12 @@ ply_terminal_session_start_logging (ply_terminal_session_t *session)
                            ply_terminal_session_on_new_data, 
                            (ply_event_handler_t)
                            ply_terminal_session_on_hangup, session);
+
+  ply_logger_set_output_fd (session->logger, 
+                            open ("/dev/tty1", O_RDWR));
 }
 
-void
+static void
 ply_terminal_session_stop_logging (ply_terminal_session_t *session)
 {
   assert (session != NULL);
@@ -358,6 +366,34 @@ ply_terminal_session_stop_logging (ply_terminal_session_t *session)
 
   if (ply_logger_is_logging (session->logger))
     ply_logger_toggle_logging (session->logger);
+}
+
+bool 
+ply_terminal_session_open_log (ply_terminal_session_t *session,
+                               const char             *filename)
+{
+  bool log_is_opened;
+
+  assert (session != NULL);
+  assert (filename != NULL);
+  assert (session->logger != NULL);
+
+  ply_save_errno ();
+  log_is_opened = ply_logger_open_file (session->logger, filename);
+  if (log_is_opened)
+    ply_logger_flush (session->logger);
+  ply_restore_errno ();
+
+  return log_is_opened;
+}
+
+void 
+ply_terminal_session_close_log (ply_terminal_session_t *session)
+{
+  assert (session != NULL);
+  assert (session->logger != NULL);
+
+  return ply_logger_close_file (session->logger);
 }
 
 #ifdef PLY_TERMINAL_SESSION_ENABLE_TEST
@@ -370,6 +406,7 @@ ply_terminal_session_stop_logging (ply_terminal_session_t *session)
 static void
 on_finished (ply_event_loop_t *loop)
 {
+  ply_event_loop_exit (loop, 0);
 }
 
 int
@@ -389,7 +426,6 @@ main (int    argc,
 
   flags = PLY_TERMINAL_SESSION_FLAGS_RUN_IN_PARENT;
   flags |= PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH;
-  flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
 
   ply_terminal_session_attach_to_event_loop (session, loop);
 
@@ -401,9 +437,9 @@ main (int    argc,
       return errno;
     }
 
-  ply_terminal_session_start_logging (session);
+  ply_terminal_session_open_log (session, "foo.log");
+
   exit_code = ply_event_loop_run (loop);
-  ply_terminal_session_stop_logging (session);
 
   ply_terminal_session_free (session);
 

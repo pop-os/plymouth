@@ -23,6 +23,7 @@
 #define PLY_EVENT_LOOP_H
 
 #include <stdbool.h>
+#include <signal.h>
 #include <stdint.h>
 
 typedef struct _ply_event_loop ply_event_loop_t;

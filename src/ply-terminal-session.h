@@ -51,9 +51,9 @@ bool ply_terminal_session_run (ply_terminal_session_t       *session,
                                ply_terminal_session_done_handler_t  done_handler,
                                void                                *user_data);
 int ply_terminal_session_get_fd (ply_terminal_session_t *session);
-void ply_terminal_session_start_logging (ply_terminal_session_t *session);
-void ply_terminal_session_stop_logging (ply_terminal_session_t *session);
-
+bool ply_terminal_session_open_log (ply_terminal_session_t *session,
+                                    const char             *filename);
+void ply_terminal_session_close_log (ply_terminal_session_t *session);
 #endif
 
 #endif /* PLY_TERMINAL_SESSION_H */

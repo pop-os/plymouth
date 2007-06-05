@@ -62,6 +62,7 @@ on_system_initialized (state_t *state)
 {
   ply_log ("\nGot told system is initialized...\n");
   ply_flush_log ();
+  pause ();
 }
 
 static void
@@ -69,7 +70,14 @@ on_quit (state_t *state)
 {
   ply_log ("\nGot quit request, quitting...\n");
   ply_flush_log ();
-  //ply_event_loop_exit (state->loop, 0);
+//  ply_event_loop_exit (state->loop, 0);
+}
+
+static void
+on_sigusr1 (state_t *state)
+{
+  ply_terminal_session_open_log (state->session, 
+                                 "/var/log/bootmessages.log");
 }
 
 static ply_boot_server_t *
@@ -119,6 +127,11 @@ spawn_session (state_t  *state,
       return NULL;
     }
 
+  ply_event_loop_watch_signal (state->loop,
+                               SIGUSR1,
+                               (ply_event_handler_t) on_sigusr1,
+                               state);
+
   return session;
 }
 
@@ -145,9 +158,7 @@ main (int    argc,
       return EX_UNAVAILABLE;
     }
 
-  ply_terminal_session_start_logging (state.session);
   exit_code = ply_event_loop_run (state.loop);
-  ply_terminal_session_stop_logging (state.session);
 
   ply_terminal_session_free (state.session);
   ply_event_loop_free (state.loop);

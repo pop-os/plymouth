@@ -61,7 +61,7 @@ main (int    argc,
 {
   ply_event_loop_t *loop;
   ply_boot_client_t *client;
-  bool should_quit, should_ping, should_update;
+  bool should_quit, should_ping, should_update, should_sysinit;
   char *status;
   int exit_code;
   int i;
@@ -92,6 +92,8 @@ main (int    argc,
         should_quit = true;
       else if (strstr (argv[i], "--ping") != NULL)
         should_ping = true;
+      else if (strstr (argv[i], "--sysinit") != NULL)
+        should_sysinit = true;
       else if (strstr (argv[i], "--update") != NULL)
         {
           const char *update_argument;
@@ -114,13 +116,16 @@ main (int    argc,
       if (should_ping)
          return 1;
 
+#if 0
       ply_save_errno ();
+
       if (errno == ECONNREFUSED)
         ply_error ("error: boot status daemon not running "
                    "(use --ping to check ahead of time)");
       else
         ply_error ("could not connect to boot status daemon: %m");
       ply_restore_errno ();
+#endif
       return errno;
     }
 
@@ -144,6 +149,14 @@ main (int    argc,
                                    on_success, 
                                    (ply_boot_client_response_handler_t)
                                    on_failure, loop);
+  else if (should_sysinit)
+    ply_boot_client_tell_daemon_system_is_initialized (client,
+                                   (ply_boot_client_response_handler_t)
+                                   on_success, 
+                                   (ply_boot_client_response_handler_t)
+                                   on_failure, loop);
+  else
+    return 1;
 
   exit_code = ply_event_loop_run (loop);
 

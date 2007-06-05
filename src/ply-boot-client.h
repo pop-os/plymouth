@@ -51,6 +51,10 @@ void ply_boot_client_update_daemon (ply_boot_client_t                  *client,
                                     ply_boot_client_response_handler_t  handler,
                                     ply_boot_client_response_handler_t  failed_handler,
                                     void                               *user_data);
+void ply_boot_client_tell_daemon_system_is_initialized (ply_boot_client_t                  *client,
+                                                        ply_boot_client_response_handler_t  handler,
+                                                        ply_boot_client_response_handler_t  failed_handler,
+                                                        void                               *user_data);
 void ply_boot_client_tell_daemon_to_quit (ply_boot_client_t                  *client,
                                           ply_boot_client_response_handler_t  handler,
                                           ply_boot_client_response_handler_t  failed_handler,

@@ -425,6 +425,19 @@ ply_boot_client_update_daemon (ply_boot_client_t                  *client,
 }
 
 void
+ply_boot_client_tell_daemon_system_is_initialized (ply_boot_client_t                  *client,
+                                                   ply_boot_client_response_handler_t  handler,
+                                                   ply_boot_client_response_handler_t  failed_handler,
+                                                   void                               *user_data)
+{
+  assert (client != NULL);
+
+  ply_boot_client_queue_request (client,
+                                 PLY_BOOT_PROTOCOL_REQUEST_TYPE_SYSTEM_INITIALIZED,
+                                 NULL, handler, failed_handler, user_data);
+}
+
+void
 ply_boot_client_tell_daemon_to_quit (ply_boot_client_t                  *client,
                                      ply_boot_client_response_handler_t  handler,
                                      ply_boot_client_response_handler_t  failed_handler,
@@ -521,6 +534,19 @@ on_update_failed (ply_event_loop_t *loop)
 }
 
 static void
+on_system_initialized (ply_event_loop_t *loop)
+{
+  printf ("SYSTEM INITIALIZED!\n");
+}
+
+static void
+on_system_initialized_failed (ply_event_loop_t *loop)
+{
+  printf ("SYSTEM INITIALIZATION REQUEST FAILED!\n");
+  ply_event_loop_exit (loop, 1);
+}
+
+static void
 on_quit (ply_event_loop_t *loop)
 {
   printf ("QUIT!\n");
@@ -580,6 +606,13 @@ main (int    argc,
                                  (ply_boot_client_response_handler_t) on_update,
                                  (ply_boot_client_response_handler_t) on_update_failed,
                                  loop);
+
+  ply_boot_client_tell_daemon_system_is_initialized (client, 
+                                       (ply_boot_client_response_handler_t) 
+                                       on_system_initialized,
+                                       (ply_boot_client_response_handler_t) 
+                                       on_system_initialized_failed,
+                                       loop);
 
   ply_boot_client_tell_daemon_to_quit (client, 
                                        (ply_boot_client_response_handler_t) on_quit,

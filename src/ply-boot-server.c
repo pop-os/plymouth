@@ -50,6 +50,7 @@ struct _ply_boot_server
   int socket_fd;
 
   ply_boot_server_update_handler_t update_handler;
+  ply_boot_server_system_initialized_handler_t system_initialized_handler;
   ply_boot_server_quit_handler_t quit_handler;
   void *user_data;
 
@@ -58,6 +59,7 @@ struct _ply_boot_server
 
 ply_boot_server_t *
 ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
+                     ply_boot_server_system_initialized_handler_t initialized_handler,
                      ply_boot_server_quit_handler_t    quit_handler,
                      void                             *user_data)
 {
@@ -68,6 +70,7 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
   server->loop = NULL;
   server->is_listening = false;
   server->update_handler = update_handler;
+  server->system_initialized_handler = initialized_handler;
   server->quit_handler = quit_handler;
   server->user_data = user_data;
 
@@ -185,6 +188,11 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (server->update_handler != NULL)
         server->update_handler (server->user_data, argument, server);
     }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_SYSTEM_INITIALIZED) == 0)
+    {
+      if (server->system_initialized_handler != NULL)
+        server->system_initialized_handler (server->user_data, server);
+    }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_QUIT) == 0)
     {
       if (server->quit_handler != NULL)
@@ -192,7 +200,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
     }
   else
     {
-      ply_error ("received unknown request from client");
+      ply_error ("received unknown command '%s' from client", command);
       return;
     }
 
@@ -301,6 +309,12 @@ on_update (ply_event_loop_t  *loop,
 }
 
 static void
+on_system_initialized (ply_event_loop_t *loop)
+{
+  printf ("got sysinit done request\n");
+}
+
+static void
 on_quit (ply_event_loop_t *loop)
 {
   printf ("got quit request, quiting...\n");
@@ -320,6 +334,7 @@ main (int    argc,
   loop = ply_event_loop_new ();
 
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
+                                (ply_boot_server_system_initialized_handler_t) on_system_initialized,
                                 (ply_boot_server_quit_handler_t) on_quit,
                                 loop);
 

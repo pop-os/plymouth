@@ -21,12 +21,15 @@
  */
 #include "config.h"
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <sys/mount.h>
 #include <sys/types.h>
 #include <sysexits.h>
+#include <unistd.h>
 
 #include "ply-boot-server.h"
 #include "ply-event-loop.h"
@@ -46,38 +49,30 @@ on_session_finished (state_t *state)
 {
   ply_log ("\nSession finished...exiting logger\n");
   ply_flush_log ();
-  //ply_event_loop_exit (state->loop, 0);
+  ply_event_loop_exit (state->loop, 1);
 } 
 
 static void 
 on_update (state_t     *state,
            const char  *status)
 {
-  ply_log ("\nSession now at boot status '%s'\n", status);
-  ply_flush_log ();
 }
 
 static void
 on_system_initialized (state_t *state)
 {
-  ply_log ("\nGot told system is initialized...\n");
-  ply_flush_log ();
-  pause ();
+  mknod ("/dev/root", 0600 | S_IFBLK, makedev (253, 0));
+  mount("/dev/root", "/sysroot", "ext3", 0, NULL);
+  ply_terminal_session_open_log (state->session, 
+                                 "/sysroot/var/log/bootmessages.log");
 }
 
 static void
 on_quit (state_t *state)
 {
-  ply_log ("\nGot quit request, quitting...\n");
-  ply_flush_log ();
-//  ply_event_loop_exit (state->loop, 0);
-}
-
-static void
-on_sigusr1 (state_t *state)
-{
-  ply_terminal_session_open_log (state->session, 
-                                 "/var/log/bootmessages.log");
+  ply_terminal_session_close_log (state->session);
+  umount ("/dev/root");
+  ply_event_loop_exit (state->loop, 0);
 }
 
 static ply_boot_server_t *
@@ -126,11 +121,6 @@ spawn_session (state_t  *state,
       ply_restore_errno ();
       return NULL;
     }
-
-  ply_event_loop_watch_signal (state->loop,
-                               SIGUSR1,
-                               (ply_event_handler_t) on_sigusr1,
-                               state);
 
   return session;
 }

@@ -179,11 +179,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                                          &command, &argument))
     return;
 
-  if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PING) == 0)
-    {
-      ply_log ("PING");
-    }
-  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_UPDATE) == 0)
+  if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_UPDATE) == 0)
     {
       if (server->update_handler != NULL)
         server->update_handler (server->user_data, argument, server);
@@ -198,7 +194,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (server->quit_handler != NULL)
         server->quit_handler (server->user_data, server);
     }
-  else
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PING) != 0)
     {
       ply_error ("received unknown command '%s' from client", command);
       return;

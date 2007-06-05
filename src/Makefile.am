@@ -5,6 +5,8 @@ INCLUDES = -I$(top_srcdir)                                                    \
 plymouth_CFLAGS =
 plymouth_LDADD = 
 plymouth_SOURCES =                                                            \
+                   ply-boot-server.h                                          \
+                   ply-boot-server.c                                          \
                    ply-list.h                                                 \
                    ply-list.c                                                 \
                    ply-logger.h                                               \

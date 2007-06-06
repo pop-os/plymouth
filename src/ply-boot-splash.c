@@ -155,7 +155,8 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
 
   splash->plugin_interface->attach_to_event_loop (splash->plugin,
                                                   splash->loop);
-  splash->plugin_interface->show_splash_screen (splash->plugin);
+  if (!splash->plugin_interface->show_splash_screen (splash->plugin))
+    return false;
 
   splash->is_shown = true;
   return true;
@@ -230,7 +231,7 @@ main (int    argc,
 
   loop = ply_event_loop_new ();
 
-  splash = ply_boot_splash_new ("./fedora-fade-in.so");
+  splash = ply_boot_splash_new ("../splash-plugins/.libs/fedora-fade-in.so");
   ply_boot_splash_attach_to_event_loop (splash, loop);
 
   if (!ply_boot_splash_show (splash))

@@ -1,8 +1,2 @@
 - fix the tests so that they work better with "make check"
-- watch init as it progresses through boot up.  This might mean:
-  - adding the ability to monitor files for changes
-  - watching /var/run/utmp
-  - reading out the relevant INIT_PROCESS entry when /var/run/utmp changes
-- move most of the code to a separate runtime library (libplyre maybe?) and
-  have the various binaries link to it
 - add the ability to watch for timeouts in the event loop

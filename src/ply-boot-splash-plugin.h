@@ -28,7 +28,7 @@
 
 #include "ply-event-loop.h"
 
-typedef intptr_t ply_boot_splash_plugin_t;
+typedef struct _ply_boot_splash_plugin ply_boot_splash_plugin_t;
 
 typedef struct 
 {

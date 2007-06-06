@@ -71,7 +71,7 @@ static void
 on_quit (state_t *state)
 {
   ply_terminal_session_close_log (state->session);
-  umount ("/dev/root");
+  umount ("/sysroot");
   ply_event_loop_exit (state->loop, 0);
 }
 

@@ -37,6 +37,8 @@
 #include <sys/types.h>
 #include <sys/un.h>
 
+#include <dlfcn.h>
+
 #ifndef PLY_OPEN_FILE_DESCRIPTORS_DIR
 #define PLY_OPEN_FILE_DESCRIPTORS_DIR "/proc/self/fd"
 #endif
@@ -577,4 +579,51 @@ ply_file_system_is_mounted (const char *type,
   return true;
 }
 
+ply_module_handle_t *
+ply_open_module (const char *module_path)
+{
+  ply_module_handle_t *handle;
+
+  assert (module_path != NULL);
+
+  handle = (ply_module_handle_t *) dlopen (module_path, RTLD_NOW | RTLD_LOCAL);
+
+  if (handle == NULL)
+    {
+      dlerror ();
+      if (errno == 0)
+        errno = ELIBACC;
+    }
+
+  return handle;
+}
+
+ply_module_function_t
+ply_module_look_up_function (ply_module_handle_t *handle,
+                             const char          *function_name)
+{
+  ply_module_function_t function;
+
+  assert (handle != NULL);
+  assert (function_name != NULL);
+
+  dlerror ();
+  function = (ply_module_function_t) dlsym (handle, function_name);
+
+  if (dlerror () == NULL)
+    {
+      if (errno == 0)
+        errno = ELIBACC;
+
+      return NULL;
+    }
+
+  return function;
+}
+
+void
+ply_close_module (ply_module_handle_t *handle)
+{
+  dlclose (handle);
+}
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

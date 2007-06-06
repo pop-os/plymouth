@@ -32,6 +32,7 @@
 #include <unistd.h>
 
 #include "ply-boot-server.h"
+#include "ply-boot-splash.h"
 #include "ply-event-loop.h"
 #include "ply-logger.h"
 #include "ply-terminal-session.h"
@@ -41,6 +42,7 @@ typedef struct
 {
   ply_event_loop_t *loop;
   ply_boot_server_t *boot_server;
+  ply_boot_splash_t *boot_splash;
   ply_terminal_session_t *session;
 } state_t;
 
@@ -56,6 +58,8 @@ static void
 on_update (state_t     *state,
            const char  *status)
 {
+  ply_boot_splash_update_status (state->boot_splash,
+                                 status);
 }
 
 static void
@@ -72,6 +76,7 @@ on_quit (state_t *state)
 {
   ply_terminal_session_close_log (state->session);
   umount ("/sysroot");
+  ply_boot_splash_hide (state->boot_splash);
   ply_event_loop_exit (state->loop, 0);
 }
 
@@ -90,11 +95,33 @@ start_boot_server (state_t *state)
       ply_save_errno ();
       ply_boot_server_free (server);
       ply_restore_errno ();
+      return NULL;
     }
 
   ply_boot_server_attach_to_event_loop (server, state->loop);
 
   return server;
+}
+
+static ply_boot_splash_t *
+start_boot_splash (state_t    *state,
+                   const char *module_path)
+{
+  ply_boot_splash_t *splash;
+
+  splash = ply_boot_splash_new (module_path);
+
+  if (!ply_boot_splash_show (splash))
+    {
+      ply_save_errno ();
+      ply_boot_splash_free (splash);
+      ply_restore_errno ();
+      return NULL;
+    }
+
+  ply_boot_splash_attach_to_event_loop (splash, state->loop);
+
+  return splash;
 }
 
 static ply_terminal_session_t *
@@ -140,6 +167,22 @@ main (int    argc,
 
   state.loop = ply_event_loop_new ();
   state.boot_server = start_boot_server (&state); 
+
+  if (state.boot_server == NULL)
+    {
+      ply_error ("could not log bootup: %m");
+      return EX_UNAVAILABLE;
+    }
+
+  state.boot_splash = start_boot_splash (&state,
+                                         "fedora-fade-in.so");
+
+  if (state.boot_splash == NULL)
+    {
+      ply_error ("could not start boot splash: %m");
+      return EX_UNAVAILABLE;
+    }
+
   state.session = spawn_session (&state, argv + 1);
 
   if (state.session == NULL)

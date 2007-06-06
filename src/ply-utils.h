@@ -38,6 +38,9 @@
 #define CLAMP(a,b,c) (MIN (MAX ((a), (b)), (c)))
 #endif
 
+typedef intptr_t ply_module_handle_t;
+typedef void (* ply_module_function_t) (void);
+
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 bool ply_open_unidirectional_pipe (int *sender_fd,
                                    int *receiver_fd);
@@ -68,6 +71,12 @@ bool ply_directory_exists (const char *dir);
 bool ply_file_exists (const char *file);
 bool ply_file_system_is_mounted (const char *type,
                                  const char *path);
+
+ply_module_handle_t *ply_open_module (const char *module_path);
+ply_module_function_t ply_module_look_up_function (ply_module_handle_t *handle,
+                                                   const char  *function_name);
+void ply_close_module (ply_module_handle_t *handle);
+
 #endif
 
 #endif /* PLY_UTILS_H */

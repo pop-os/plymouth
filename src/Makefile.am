@@ -2,11 +2,14 @@ SUBDIRS = tests
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)
 
-plymouth_CFLAGS =
-plymouth_LDADD = 
+plymouth_CFLAGS = $(PLYMOUTH_CFLAGS)
+plymouth_LDADD = $(PLYMOUTH_LIBS)
 plymouth_SOURCES =                                                            \
                    ply-boot-server.h                                          \
                    ply-boot-server.c                                          \
+                   ply-boot-splash-plugin.h                                   \
+                   ply-boot-splash.h                                          \
+                   ply-boot-splash.c                                          \
                    ply-list.h                                                 \
                    ply-list.c                                                 \
                    ply-logger.h                                               \
@@ -20,8 +23,8 @@ plymouth_SOURCES =                                                            \
 		   ply-utils.h                                                \
                    ply-utils.c                                                \
                    main.c
-rhgb_client_CFLAGS =
-rhgb_client_LDADD =
+rhgb_client_CFLAGS = $(PLYMOUTH_CFLAGS)
+rhgb_client_LDADD = $(PLYMOUTH_LIBS)
 rhgb_client_SOURCES = ply-utils.h                                             \
                       ply-utils.c                                             \
                       ply-logger.h                                            \

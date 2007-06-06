@@ -282,6 +282,8 @@ ply_image_get_height (ply_image_t *image)
 #define FRAMES_PER_SECOND 50
 #endif
 
+static int console_fd;
+
 static bool
 hide_cursor (void)
 {
@@ -347,6 +349,9 @@ animate_at_time (ply_frame_buffer_t *buffer,
                                                      0, 0, width, height, 
                                                      data, opacity);
   ply_frame_buffer_unpause_updates (buffer);
+
+  if (time > 60.0)
+    ioctl (console_fd, KDSETMODE, KD_TEXT);
 }
 
 static void
@@ -393,7 +398,9 @@ main (int    argc,
       return exit_code;
     }
 
-  //ioctl (1, KDSETMODE, KD_GRAPHICS);
+  console_fd = open ("/dev/tty0", O_RDWR);
+  ioctl (console_fd, KDSETMODE, KD_GRAPHICS);
+  daemon (false, false);
 
   signal (SIGINT, exit);
   signal (SIGTERM, on_death);

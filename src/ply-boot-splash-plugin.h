@@ -35,7 +35,7 @@ typedef struct
   ply_boot_splash_plugin_t * (* create_plugin) (void);
   void (* destroy_plugin) (ply_boot_splash_plugin_t *plugin);
 
-  void (* show_splash_screen) (ply_boot_splash_plugin_t *plugin);
+  bool (* show_splash_screen) (ply_boot_splash_plugin_t *plugin);
   void (* update_status) (ply_boot_splash_plugin_t *plugin,
                           const char               *status);
   void (* hide_splash_screen) (ply_boot_splash_plugin_t *plugin);

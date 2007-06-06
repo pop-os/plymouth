@@ -230,12 +230,12 @@ main (int    argc,
 
   loop = ply_event_loop_new ();
 
-  splash = ply_boot_splash_new ("fedora-fade-in.so");
+  splash = ply_boot_splash_new ("./fedora-fade-in.so");
   ply_boot_splash_attach_to_event_loop (splash, loop);
 
   if (!ply_boot_splash_show (splash))
     {
-      perror ("could not start boot status daemon");
+      perror ("could not show splash screen");
       return errno;
     }
 

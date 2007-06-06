@@ -610,7 +610,7 @@ ply_module_look_up_function (ply_module_handle_t *handle,
   dlerror ();
   function = (ply_module_function_t) dlsym (handle, function_name);
 
-  if (dlerror () == NULL)
+  if (dlerror () != NULL)
     {
       if (errno == 0)
         errno = ELIBACC;

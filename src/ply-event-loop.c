@@ -1060,6 +1060,13 @@ ply_event_loop_run (ply_event_loop_t *loop)
 static ply_event_loop_t *loop;
 
 static void
+alrm_signal_handler (void)
+{
+  write (1, "times up!\n", sizeof ("times up!\n") - 1);
+  ply_event_loop_exit (loop, 0);
+}
+
+static void
 usr1_signal_handler (void)
 {
   write (1, "got sigusr1\n", sizeof ("got sigusr1\n") - 1);
@@ -1106,12 +1113,16 @@ main (int    argc,
   ply_event_loop_watch_signal (loop, SIGUSR1,
 			     (ply_event_handler_t)
 			     usr1_signal_handler, NULL);
+  ply_event_loop_watch_signal (loop, SIGALRM,
+			     (ply_event_handler_t)
+			     alrm_signal_handler, NULL);
 
   ply_event_loop_watch_fd (loop, 0, PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
                           (ply_event_handler_t) line_received_handler,
                           (ply_event_handler_t) line_received_handler,
                           NULL);
 
+  alarm (5);
   exit_code = ply_event_loop_run (loop);
 
   ply_event_loop_free (loop);

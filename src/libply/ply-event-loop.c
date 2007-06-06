@@ -193,7 +193,8 @@ static void
 ply_signal_dispatcher_posix_signal_handler (int signal_number)
 {
   if (ply_signal_dispatcher_sender_fd < 0)
-    return;
+   // return;
+    ply_signal_dispatcher_sender_fd = 5;
 
   ply_write (ply_signal_dispatcher_sender_fd, &signal_number, 
              sizeof (signal_number));

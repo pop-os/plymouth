@@ -1,61 +1,18 @@
-SUBDIRS = tests
+SUBDIRS = libply . splash-plugins rhgb-client
 INCLUDES = -I$(top_srcdir)                                                    \
+           -I$(srcdir)/libply                                                 \
            -I$(srcdir)
 
-noinst_PROGRAMS = plymouth rhgb-client
-lib_LTLIBRARIES = fedora-fade-in.la
+noinst_PROGRAMS = plymouth 
 
 plymouth_CFLAGS = $(PLYMOUTH_CFLAGS)
-plymouth_LDADD = $(PLYMOUTH_LIBS)
+plymouth_LDADD = $(PLYMOUTH_LIBS) libply/libply.la
 plymouth_SOURCES =                                                            \
                    ply-boot-server.h                                          \
                    ply-boot-server.c                                          \
                    ply-boot-splash-plugin.h                                   \
                    ply-boot-splash.h                                          \
                    ply-boot-splash.c                                          \
-                   ply-list.h                                                 \
-                   ply-list.c                                                 \
-                   ply-logger.h                                               \
-                   ply-logger.c                                               \
-                   ply-event-loop.h                                           \
-                   ply-event-loop.c                                           \
-		   ply-terminal.h                                             \
-		   ply-terminal.c                                             \
-		   ply-terminal-session.h                                     \
-		   ply-terminal-session.c                                     \
-		   ply-utils.h                                                \
-                   ply-utils.c                                                \
                    main.c
 
-rhgb_client_CFLAGS = $(PLYMOUTH_CFLAGS)
-rhgb_client_LDADD = $(PLYMOUTH_LIBS)
-rhgb_client_SOURCES = ply-utils.h                                             \
-                      ply-utils.c                                             \
-                      ply-logger.h                                            \
-                      ply-logger.c                                            \
-                      ply-list.h                                              \
-                      ply-list.c                                              \
-                      ply-event-loop.h                                        \
-                      ply-event-loop.c                                        \
-                      ply-boot-client.h                                       \
-                      ply-boot-client.c                                       \
-                      rhgb-client.c
-
-
-fedora_fade_in_la_CFLAGS = $(PLYMOUTH_CFLAGS) $(IMAGE_CFLAGS)
-fedora_fade_in_la_LDFLAGS = -module -avoid-version -export-dynamic
-fedora_fade_in_la_LIBADD = $(PLYMOUTH_LIBS) $(IMAGE_LIBS)
-fedora_fade_in_la_SOURCES = ply-utils.h                            \
-			    ply-utils.c                            \
-			    ply-logger.h                           \
-			    ply-logger.c                           \
-			    ply-list.h                             \
-			    ply-list.c                             \
-			    ply-event-loop.h                       \
-			    ply-event-loop.c                       \
-			    ply-frame-buffer.h                     \
-			    ply-frame-buffer.c                     \
-			    ply-image.h                            \
-			    ply-image.c                            \
-			    ply-boot-splash-plugin.h               \
-			    fedora-fade-in.c
+MAINTAINERCLEANFILES = Makefile.in

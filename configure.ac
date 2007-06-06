@@ -32,14 +32,20 @@ PKG_CHECK_MODULES(IMAGE, [libpng >= 1.2.16 ])
 AC_SUBST(IMAGE_CFLAGS)
 AC_SUBST(IMAGE_LIBS)
 
-PLYMOUTH_CFLAGS=""
-PLYMOUTH_LIBS="-lm -ldl"
+PLYMOUTH_CFLAGS="$IMAGE_CFLAGS"
+PLYMOUTH_LIBS="-lm -ldl $IMAGE_LIBS"
 
 AC_SUBST(PLYMOUTH_CFLAGS)
 AC_SUBST(PLYMOUTH_LIBS)
 
 AC_OUTPUT([Makefile
+           src/libply/Makefile
+           src/splash-plugins/Makefile
            src/Makefile
+           src/rhgb-client/Makefile
            src/tests/Makefile
+           src/libply/tests/Makefile
+           src/rhgb-client/tests/Makefile
+           src/splash-plugins/tests/Makefile
            po/Makefile.in
 ])

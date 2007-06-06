@@ -4,8 +4,14 @@ INCLUDES =                                                                    \
            -I$(srcdir)
 TESTS = 
 
-include $(srcdir)/ply-boot-server-test.am
-include $(srcdir)/ply-boot-splash-test.am
+include $(srcdir)/ply-frame-buffer-test.am
+include $(srcdir)/ply-image-test.am
+include $(srcdir)/ply-terminal-test.am
+include $(srcdir)/ply-terminal-session-test.am
+include $(srcdir)/ply-logger-test.am
+include $(srcdir)/ply-list-test.am
+include $(srcdir)/ply-event-loop-test.am
 
 noinst_PROGRAMS = $(TESTS)
+
 MAINTAINERCLEANFILES = Makefile.in

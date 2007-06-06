@@ -2,6 +2,9 @@ SUBDIRS = tests
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)
 
+noinst_PROGRAMS = plymouth rhgb-client
+lib_LTLIBRARIES = fedora-fade-in.la
+
 plymouth_CFLAGS = $(PLYMOUTH_CFLAGS)
 plymouth_LDADD = $(PLYMOUTH_LIBS)
 plymouth_SOURCES =                                                            \
@@ -23,6 +26,7 @@ plymouth_SOURCES =                                                            \
 		   ply-utils.h                                                \
                    ply-utils.c                                                \
                    main.c
+
 rhgb_client_CFLAGS = $(PLYMOUTH_CFLAGS)
 rhgb_client_LDADD = $(PLYMOUTH_LIBS)
 rhgb_client_SOURCES = ply-utils.h                                             \
@@ -37,4 +41,21 @@ rhgb_client_SOURCES = ply-utils.h                                             \
                       ply-boot-client.c                                       \
                       rhgb-client.c
 
-noinst_PROGRAMS = plymouth rhgb-client
+
+fedora_fade_in_la_CFLAGS = $(PLYMOUTH_CFLAGS) $(IMAGE_CFLAGS)
+fedora_fade_in_la_LDFLAGS = -module -avoid-version -export-dynamic
+fedora_fade_in_la_LIBADD = $(PLYMOUTH_LIBS) $(IMAGE_LIBS)
+fedora_fade_in_la_SOURCES = ply-utils.h                            \
+			    ply-utils.c                            \
+			    ply-logger.h                           \
+			    ply-logger.c                           \
+			    ply-list.h                             \
+			    ply-list.c                             \
+			    ply-event-loop.h                       \
+			    ply-event-loop.c                       \
+			    ply-frame-buffer.h                     \
+			    ply-frame-buffer.c                     \
+			    ply-image.h                            \
+			    ply-image.c                            \
+			    ply-boot-splash-plugin.h               \
+			    fedora-fade-in.c

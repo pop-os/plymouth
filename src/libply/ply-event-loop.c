@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <math.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -42,6 +43,10 @@
 
 #ifndef PLY_EVENT_LOOP_NUM_EVENT_HANDLERS 
 #define PLY_EVENT_LOOP_NUM_EVENT_HANDLERS 64
+#endif
+
+#ifndef PLY_EVENT_LOOP_NO_TIMED_WAKEUP
+#define PLY_EVENT_LOOP_NO_TIMED_WAKEUP 0.0
 #endif
 
 typedef struct
@@ -89,15 +94,24 @@ typedef struct
 {
   ply_event_loop_exit_handler_t  handler;
   void                          *user_data;
-} ply_event_loop_closure_t;
+} ply_event_loop_exit_closure_t;
+
+typedef struct
+{
+  double timeout;
+  ply_event_loop_timeout_handler_t  handler;
+  void                             *user_data;
+} ply_event_loop_timeout_watch_t;
 
 struct _ply_event_loop
 {
   int epoll_fd;                      
   int exit_code;                    
+  double wakeup_time;
 
   ply_list_t *sources;
-  ply_list_t *closures;
+  ply_list_t *exit_closures;
+  ply_list_t *timeout_watches;
 
   ply_signal_dispatcher_t *signal_dispatcher; 
 
@@ -448,6 +462,7 @@ ply_event_loop_new (void)
   loop = calloc (1, sizeof (ply_event_loop_t));
 
   loop->epoll_fd = epoll_create (PLY_EVENT_LOOP_NUM_EVENT_HANDLERS);
+  loop->wakeup_time = PLY_EVENT_LOOP_NO_TIMED_WAKEUP;
 
   assert (loop->epoll_fd >= 0);
 
@@ -455,7 +470,8 @@ ply_event_loop_new (void)
   loop->exit_code = 0;
 
   loop->sources = ply_list_new ();
-  loop->closures = ply_list_new ();
+  loop->exit_closures = ply_list_new ();
+  loop->timeout_watches = ply_list_new ();
 
   loop->signal_dispatcher = ply_signal_dispatcher_new ();
 
@@ -479,19 +495,19 @@ ply_event_loop_free_exit_closures (ply_event_loop_t *loop)
 {
   ply_list_node_t *node;
 
-  node = ply_list_get_first_node (loop->closures);
+  node = ply_list_get_first_node (loop->exit_closures);
   while (node != NULL)
     {
       ply_list_node_t *next_node;
-      ply_event_loop_closure_t *closure;
+      ply_event_loop_exit_closure_t *closure;
 
-      closure = (ply_event_loop_closure_t *) ply_list_node_get_data (node);
-      next_node = ply_list_get_next_node (loop->closures, node);
+      closure = (ply_event_loop_exit_closure_t *) ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (loop->exit_closures, node);
       free (closure);
 
       node = next_node;
     }
-  ply_list_free (loop->closures);
+  ply_list_free (loop->exit_closures);
 }
 
 static void
@@ -499,16 +515,16 @@ ply_event_loop_run_exit_closures (ply_event_loop_t *loop)
 {
   ply_list_node_t *node;
 
-  node = ply_list_get_first_node (loop->closures);
+  node = ply_list_get_first_node (loop->exit_closures);
   while (node != NULL)
     {
       ply_list_node_t *next_node;
-      ply_event_loop_closure_t *closure;
+      ply_event_loop_exit_closure_t *closure;
 
-      closure = (ply_event_loop_closure_t *) ply_list_node_get_data (node);
+      closure = (ply_event_loop_exit_closure_t *) ply_list_node_get_data (node);
 
       assert (closure->handler != NULL);
-      next_node = ply_list_get_next_node (loop->closures, node);
+      next_node = ply_list_get_next_node (loop->exit_closures, node);
 
       closure->handler (closure->user_data, loop->exit_code, loop);
 
@@ -523,9 +539,13 @@ ply_event_loop_free (ply_event_loop_t *loop)
     return;
 
   assert (ply_list_get_length (loop->sources) == 0);
+  assert (ply_list_get_length (loop->timeout_watches) == 0);
 
   ply_signal_dispatcher_free (loop->signal_dispatcher);
   ply_event_loop_free_exit_closures (loop);
+
+  ply_list_free (loop->sources);
+  ply_list_free (loop->timeout_watches);
 
   close (loop->epoll_fd);
   free (loop);
@@ -606,6 +626,24 @@ ply_event_loop_remove_source (ply_event_loop_t   *loop,
   assert (source_node != NULL);
 
   ply_event_loop_remove_source_node (loop, source_node);
+}
+
+void
+ply_event_loop_free_sources (ply_event_loop_t *loop)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (loop->sources);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_event_source_t *source;
+
+      source = (ply_event_source_t *) ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (loop->sources, node);
+      ply_event_loop_remove_source_node (loop, node);
+      node = next_node;
+    }
 }
 
 static bool
@@ -782,16 +820,41 @@ ply_event_loop_watch_for_exit (ply_event_loop_t              *loop,
                                ply_event_loop_exit_handler_t  exit_handler,
                                void                          *user_data)
 {
-  ply_event_loop_closure_t *closure;
+  ply_event_loop_exit_closure_t *closure;
 
   assert (loop != NULL);
   assert (exit_handler != NULL);
 
-  closure = calloc (1, sizeof (ply_event_loop_closure_t));
+  closure = calloc (1, sizeof (ply_event_loop_exit_closure_t));
   closure->handler = exit_handler;
   closure->user_data = user_data;
 
-  ply_list_append_data (loop->closures, closure);
+  ply_list_append_data (loop->exit_closures, closure);
+}
+
+void
+ply_event_loop_watch_for_timeout (ply_event_loop_t    *loop,
+                                  double               seconds,             
+                                  ply_event_loop_timeout_handler_t timeout_handler,
+                                  void                *user_data)
+{
+  ply_event_loop_timeout_watch_t *timeout_watch;
+
+  assert (loop != NULL);
+  assert (timeout_handler != NULL);
+  assert (seconds > 0.0);
+
+  timeout_watch = calloc (1, sizeof (ply_event_loop_timeout_watch_t));
+  timeout_watch->timeout = ply_get_timestamp () + seconds;
+  timeout_watch->handler = timeout_handler;
+  timeout_watch->user_data = user_data;
+
+  if (fabs (loop->wakeup_time - PLY_EVENT_LOOP_NO_TIMED_WAKEUP) <= 0)
+    loop->wakeup_time = timeout_watch->timeout;
+  else
+    loop->wakeup_time = MIN (loop->wakeup_time, timeout_watch->timeout);
+
+  ply_list_append_data (loop->timeout_watches, timeout_watch);
 }
 
 static ply_event_loop_fd_status_t 
@@ -921,6 +984,34 @@ ply_event_loop_free_watches_for_source (ply_event_loop_t   *loop,
 }
 
 static void
+ply_event_loop_free_timeout_watches (ply_event_loop_t *loop)
+{
+  ply_list_node_t *node;
+  double now;
+
+  assert (loop != NULL);
+
+  now = ply_get_timestamp ();
+  node = ply_list_get_first_node (loop->timeout_watches);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_event_loop_timeout_watch_t *watch;
+
+      watch = (ply_event_loop_timeout_watch_t *) ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (loop->timeout_watches, node);
+
+      free (watch);
+      ply_list_remove_node (loop->timeout_watches, node);
+
+      node = next_node;
+    }
+
+  assert (ply_list_get_length (loop->timeout_watches) == 0);
+  loop->wakeup_time = PLY_EVENT_LOOP_NO_TIMED_WAKEUP;
+}
+
+static void
 ply_event_loop_free_destinations_for_source (ply_event_loop_t   *loop,
                                              ply_event_source_t *source)
 {
@@ -966,11 +1057,45 @@ ply_event_loop_disconnect_source (ply_event_loop_t           *loop,
 }
 
 static void
+ply_event_loop_handle_timeouts (ply_event_loop_t *loop)
+{
+  ply_list_node_t *node;
+  double now;
+
+  assert (loop != NULL);
+
+  now = ply_get_timestamp ();
+  node = ply_list_get_first_node (loop->timeout_watches);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_event_loop_timeout_watch_t *watch;
+
+      watch = (ply_event_loop_timeout_watch_t *) ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (loop->timeout_watches, node);
+
+      if (watch->timeout <= now)
+        {
+          assert (watch->handler != NULL);
+          watch->handler (watch->user_data, loop);
+          free (watch);
+          ply_list_remove_node (loop->timeout_watches, node);
+        }
+
+      node = next_node;
+    }
+
+  if (ply_list_get_length (loop->timeout_watches) == 0)
+    loop->wakeup_time = PLY_EVENT_LOOP_NO_TIMED_WAKEUP;
+}
+
+static void
 ply_event_loop_process_pending_events (ply_event_loop_t *loop)
 {
   int number_of_received_events, i;
   static struct epoll_event *events = NULL;
-  int saved_errno;
+
+  assert (loop != NULL);
 
   if (events == NULL)
     events = 
@@ -981,21 +1106,28 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
 
   do
    {
+     int timeout;
+
+     if (fabs (loop->wakeup_time - PLY_EVENT_LOOP_NO_TIMED_WAKEUP) <= 0)
+       timeout = -1;
+     else
+       timeout = (int) ((loop->wakeup_time - ply_get_timestamp ()) * 1000);
+
      number_of_received_events = epoll_wait (loop->epoll_fd, events,
-                                             sizeof (events), -1);
+                                             sizeof (events), timeout);
+
+     ply_event_loop_handle_timeouts (loop);
 
      if (number_of_received_events < 0)
        {
-         saved_errno = errno;
-
-         if (saved_errno != EINTR)
+         if (errno != EINTR)
            {
              ply_event_loop_exit (loop, 255);
              return;
            }
        }
     } 
-  while ((number_of_received_events < 0) && (saved_errno == EINTR));
+  while ((number_of_received_events < 0) && (errno == EINTR));
 
   for (i = 0; i < number_of_received_events; i++)
     {
@@ -1049,6 +1181,8 @@ ply_event_loop_run (ply_event_loop_t *loop)
     ply_event_loop_process_pending_events (loop);
 
   ply_event_loop_run_exit_closures (loop);
+  ply_event_loop_free_sources (loop);
+  ply_event_loop_free_timeout_watches (loop);
 
   loop->should_exit = false;
 
@@ -1096,6 +1230,12 @@ line_received_handler (void)
   printf ("%s", line);
 }
 
+static void
+on_timeout (ply_event_loop_t *loop)
+{
+  printf ("timeout elapsed\n");
+}
+
 int
 main (int    argc, 
       char **argv)
@@ -1117,6 +1257,9 @@ main (int    argc,
 			     (ply_event_handler_t)
 			     alrm_signal_handler, NULL);
 
+  ply_event_loop_watch_for_timeout (loop, 2.0, 
+                                    (ply_event_loop_timeout_handler_t)
+                                    on_timeout, loop);
   ply_event_loop_watch_fd (loop, 0, PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
                           (ply_event_handler_t) line_received_handler,
                           (ply_event_handler_t) line_received_handler,

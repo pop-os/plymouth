@@ -42,6 +42,8 @@ typedef void (* ply_event_handler_t) (void *user_data,
 typedef void (* ply_event_loop_exit_handler_t) (void *user_data,
                                                 int   exit_code,
                                                 ply_event_loop_t *loop);
+typedef void (* ply_event_loop_timeout_handler_t) (void             *user_data,
+                                                   ply_event_loop_t *loop);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_event_loop_t *ply_event_loop_new (void);
@@ -64,6 +66,10 @@ void ply_event_loop_stop_watching_signal (ply_event_loop_t *loop,
 void ply_event_loop_watch_for_exit (ply_event_loop_t              *loop,
                                     ply_event_loop_exit_handler_t  exit_handler,
                                     void                          *user_data);
+void ply_event_loop_watch_for_timeout (ply_event_loop_t    *loop,
+                                       double               seconds,             
+                                       ply_event_loop_timeout_handler_t timeout_handler,
+                                       void                 *user_data);
 
 int ply_event_loop_run (ply_event_loop_t *loop);
 void ply_event_loop_exit (ply_event_loop_t *loop,

@@ -1111,7 +1111,10 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
      if (fabs (loop->wakeup_time - PLY_EVENT_LOOP_NO_TIMED_WAKEUP) <= 0)
        timeout = -1;
      else
-       timeout = (int) ((loop->wakeup_time - ply_get_timestamp ()) * 1000);
+       {
+         timeout = (int) ((loop->wakeup_time - ply_get_timestamp ()) * 1000);
+         timeout = MAX (timeout, 0);
+       }
 
      number_of_received_events = epoll_wait (loop->epoll_fd, events,
                                              sizeof (events), timeout);

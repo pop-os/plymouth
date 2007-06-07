@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -69,7 +70,7 @@ create_plugin (void)
   plugin->start_time = 0.0;
 
   plugin->frame_buffer = ply_frame_buffer_new (NULL);
-  plugin->image = ply_image_new ("booting.png");
+  plugin->image = ply_image_new ("/booting.png");
 
   return plugin;
 }
@@ -89,8 +90,6 @@ static bool
 set_graphics_mode (ply_boot_splash_plugin_t *plugin)
 {
   assert (plugin != NULL);
-
-  return true;
 
   if (ioctl (plugin->console_fd, KDSETMODE, KD_GRAPHICS) < 0)
     return false;
@@ -170,44 +169,33 @@ animate_at_time (ply_boot_splash_plugin_t *plugin,
 static void
 on_timeout (ply_boot_splash_plugin_t *plugin)
 {
-  struct itimerval timer;
-  long sleep_time;
-
+  double sleep_time;
   double now;
 
+  set_graphics_mode (plugin);
   now = ply_get_timestamp ();
   animate_at_time (plugin,
                    now - plugin->start_time);
-  sleep_time = 1000000 / FRAMES_PER_SECOND;
-  sleep_time = MAX (sleep_time - ((ply_get_timestamp () - now) / 1000000),
-                    10000);
+  sleep_time = 1.0 / FRAMES_PER_SECOND;
+  sleep_time = MAX (sleep_time - (ply_get_timestamp () - now),
+                    0.010);
 
-  timer.it_value.tv_sec = 0;
-  timer.it_value.tv_usec = sleep_time;
-  timer.it_interval.tv_sec = 0;
-  timer.it_interval.tv_usec = sleep_time;
-  setitimer (ITIMER_REAL, &timer, NULL);
+  ply_event_loop_watch_for_timeout (plugin->loop, 
+                                    sleep_time,
+                                    (ply_event_loop_timeout_handler_t)
+                                    on_timeout, plugin);
 }
 
 static void
 start_animation (ply_boot_splash_plugin_t *plugin)
 {
-  struct itimerval timer;
-  double interval;
-
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
     
-  ply_event_loop_watch_signal (plugin->loop, SIGALRM,
-                               (ply_event_handler_t) on_timeout, plugin);
-
-  interval = 1000000.0 / FRAMES_PER_SECOND;
-  timer.it_value.tv_sec = 0;
-  timer.it_value.tv_usec = interval;
-  timer.it_interval.tv_sec = 0;
-  timer.it_interval.tv_usec = interval;
-
-  setitimer (ITIMER_REAL, &timer, NULL);
+  ply_event_loop_watch_for_timeout (plugin->loop, 
+                                    1.0 / FRAMES_PER_SECOND,
+                                    (ply_event_loop_timeout_handler_t)
+                                    on_timeout, plugin);
 
   plugin->start_time = ply_get_timestamp ();
   ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL, 
@@ -217,22 +205,12 @@ start_animation (ply_boot_splash_plugin_t *plugin)
 static void
 stop_animation (ply_boot_splash_plugin_t *plugin)
 {
-  struct itimerval timer;
-
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
     
-  timer.it_interval.tv_sec = 0;
-  timer.it_interval.tv_usec = 0;
-  timer.it_value.tv_sec = 0;
-  timer.it_value.tv_usec = 0;
-
-  setitimer (ITIMER_REAL, &timer, NULL);
-
-  ply_event_loop_stop_watching_signal (plugin->loop, SIGALRM);
-
   ply_frame_buffer_fill_with_color (plugin->frame_buffer, 
                                     NULL, 0.0, 0.0, 0.0, 1.0);
+  set_text_mode (plugin);
 }
 
 bool
@@ -284,6 +262,8 @@ static void
 detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
 {
   plugin->loop = NULL;
+
+  set_text_mode (plugin);
 }
 
 void

@@ -109,7 +109,9 @@ start_boot_splash (state_t    *state,
 {
   ply_boot_splash_t *splash;
 
+  mknod ("/dev/fb", 0600 | S_IFCHR, makedev (29, 0));
   splash = ply_boot_splash_new (module_path);
+  ply_boot_splash_attach_to_event_loop (splash, state->loop);
 
   if (!ply_boot_splash_show (splash))
     {
@@ -118,8 +120,6 @@ start_boot_splash (state_t    *state,
       ply_restore_errno ();
       return NULL;
     }
-
-  ply_boot_splash_attach_to_event_loop (splash, state->loop);
 
   return splash;
 }
@@ -175,7 +175,7 @@ main (int    argc,
     }
 
   state.boot_splash = start_boot_splash (&state,
-                                         "fedora-fade-in.so");
+                                         "/lib/fedora-fade-in.so");
 
   if (state.boot_splash == NULL)
     {

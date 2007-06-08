@@ -5,7 +5,7 @@ INCLUDES = -I$(top_srcdir)                                                    \
 plymouthbindir = $(libexecdir)/plymouth
 plymouthbin_PROGRAMS = plymouth 
 
-plymouth_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLYMOUTH_PLUGIN_PATH=\"$(prefix)/$${LIB}/plymouth/\"
+plymouth_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLYMOUTH_PLUGIN_PATH=\"$(prefix)/\$${LIB}/plymouth/\"
 plymouth_LDADD = $(PLYMOUTH_LIBS) libply/libply.la
 plymouth_SOURCES =                                                            \
                    ply-boot-server.h                                          \

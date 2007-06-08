@@ -4,7 +4,8 @@ INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/..                                                     \
            -I$(srcdir)
 
-lib_LTLIBRARIES = fedora-fade-in.la
+plugindir = $(libdir)/plymouth
+plugin_LTLIBRARIES = fedora-fade-in.la
 
 fedora_fade_in_la_CFLAGS = $(PLYMOUTH_CFLAGS)
 fedora_fade_in_la_LDFLAGS = -module -avoid-version -export-dynamic

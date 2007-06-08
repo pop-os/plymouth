@@ -311,20 +311,30 @@ ply_frame_buffer_fill_area_with_pixel_value (ply_frame_buffer_t     *buffer,
 }
 
 static void
-ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t     *buffer, 
+ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t      *buffer,
                                          ply_frame_buffer_area_t *area)
 {
   assert (buffer != NULL);
   assert (area != NULL);
   assert (area->x >= buffer->area.x);
   assert (area->y >= buffer->area.y);
-  assert (area->x < buffer->area.width);
-  assert (area->y < buffer->area.height);
+  assert (area->x + area->width <= buffer->area.x + buffer->area.width);
+  assert (area->y + area->height <= buffer->area.y + buffer->area.height);
   assert (area->width >= 0);
   assert (area->height >= 0);
 
-  buffer->area_to_flush.x = MIN (buffer->area_to_flush.x, area->x);
-  buffer->area_to_flush.y = MIN (buffer->area_to_flush.y, area->y);
+  if (area->x < buffer->area_to_flush.x)
+    {
+      buffer->area_to_flush.width += buffer->area_to_flush.x - area->x;
+      buffer->area_to_flush.x = area->x;
+    }
+
+  if (area->y < buffer->area_to_flush.y)
+    {
+      buffer->area_to_flush.height += buffer->area_to_flush.y - area->y;
+      buffer->area_to_flush.y = area->y;
+    }
+
   buffer->area_to_flush.width = MAX (buffer->area_to_flush.width, area->width);
   buffer->area_to_flush.height = MAX (buffer->area_to_flush.height, area->height);
 }
@@ -547,6 +557,24 @@ ply_frame_buffer_get_size (ply_frame_buffer_t     *buffer,
   *size = buffer->area;
 }
 
+static void
+ply_frame_buffer_area_crop (ply_frame_buffer_area_t *area,
+                            ply_frame_buffer_area_t *mask_area,
+                            ply_frame_buffer_area_t *cropped_area)
+{
+
+  cropped_area->x = MAX (area->x, mask_area->x);
+  cropped_area->y = MAX (area->y, mask_area->y);
+  cropped_area->width = MIN (area->width, mask_area->width);
+  cropped_area->height = MIN (area->height, mask_area->height);
+
+  if (cropped_area->x + cropped_area->width > mask_area->x + mask_area->width)
+    cropped_area->width = (mask_area->x + mask_area->width) - cropped_area->x;
+
+  if (cropped_area->y + cropped_area->height > mask_area->y + mask_area->height)
+    cropped_area->height = (mask_area->y + mask_area->height) - cropped_area->y;
+}
+
 bool 
 ply_frame_buffer_fill_with_color (ply_frame_buffer_t      *buffer,
                                   ply_frame_buffer_area_t  *area,
@@ -556,6 +584,7 @@ ply_frame_buffer_fill_with_color (ply_frame_buffer_t      *buffer,
                                   double               alpha)
 {
   uint32_t pixel_value;
+  ply_frame_buffer_area_t cropped_area;
 
   assert (buffer != NULL);
   assert (ply_frame_buffer_device_is_open (buffer));
@@ -563,15 +592,17 @@ ply_frame_buffer_fill_with_color (ply_frame_buffer_t      *buffer,
   if (area == NULL)
     area = &buffer->area;
 
+  ply_frame_buffer_area_crop (area, &buffer->area, &cropped_area);
+
   red *= alpha;
   green *= alpha;
   blue *= alpha;
 
   pixel_value = PLY_FRAME_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
 
-  ply_frame_buffer_fill_area_with_pixel_value (buffer, area, pixel_value);
+  ply_frame_buffer_fill_area_with_pixel_value (buffer, &cropped_area, pixel_value);
 
-  ply_frame_buffer_add_area_to_flush_area (buffer, area);
+  ply_frame_buffer_add_area_to_flush_area (buffer, &cropped_area);
 
   return ply_frame_buffer_flush (buffer);
 }
@@ -588,12 +619,15 @@ ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t     *buffe
 {
   long row, column;
   uint8_t opacity_as_byte;
+  ply_frame_buffer_area_t cropped_area;
 
   assert (buffer != NULL);
   assert (ply_frame_buffer_device_is_open (buffer));
 
   if (area == NULL)
     area = &buffer->area;
+
+  ply_frame_buffer_area_crop (area, &buffer->area, &cropped_area);
 
   opacity_as_byte = (uint8_t) (opacity * 255.0);
 
@@ -606,13 +640,13 @@ ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t     *buffe
           pixel_value = data[width * row + column];
           pixel_value = make_pixel_value_translucent (pixel_value, opacity_as_byte);
           ply_frame_buffer_blend_value_at_pixel (buffer,
-                                                 area->x + (column - x),
-                                                 area->y + (row - y),
+                                                 cropped_area.x + (column - x),
+                                                 cropped_area.y + (row - y),
                                                  pixel_value);
         }
     }
 
-  ply_frame_buffer_add_area_to_flush_area (buffer, area);
+  ply_frame_buffer_add_area_to_flush_area (buffer, &cropped_area);
 
   return ply_frame_buffer_flush (buffer);
 }

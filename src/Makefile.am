@@ -2,8 +2,8 @@ SUBDIRS = libply . splash-plugins rhgb-client
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/libply                                                 \
            -I$(srcdir)
-
-noinst_PROGRAMS = plymouth 
+plymouthbindir = $(libexecdir)/plymouth
+plymouthbin_PROGRAMS = plymouth 
 
 plymouth_CFLAGS = $(PLYMOUTH_CFLAGS)
 plymouth_LDADD = $(PLYMOUTH_LIBS) libply/libply.la

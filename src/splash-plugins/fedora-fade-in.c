@@ -155,7 +155,6 @@ set_graphics_mode (ply_boot_splash_plugin_t *plugin)
 {
   assert (plugin != NULL);
 
-  return true;
   if (ioctl (plugin->console_fd, KDSETMODE, KD_GRAPHICS) < 0)
     return false;
 

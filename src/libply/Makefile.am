@@ -6,6 +6,9 @@ lib_LTLIBRARIES = libply.la
 
 libply_la_CFLAGS = $(PLYMOUTH_CFLAGS)
 libply_la_LIBADD = $(PLYMOUTH_LIBS)
+libply_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
+		    -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
+		    -no-undefined
 libply_la_SOURCES = ply-event-loop.c                                          \
 		    ply-event-loop.h                                          \
 		    ply-frame-buffer.h                                        \

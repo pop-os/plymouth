@@ -219,6 +219,17 @@ ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
 #include "ply-event-loop.h"
 #include "ply-boot-splash.h"
 
+static void
+on_timeout (ply_boot_splash_t *splash)
+{
+  ply_boot_splash_update_status (splash, "foo");
+  ply_event_loop_watch_for_timeout (splash->loop, 
+                                    5.0,
+                                   (ply_event_loop_timeout_handler_t)
+                                   on_timeout,
+                                   splash);
+}
+
 int
 main (int    argc,
       char **argv)
@@ -226,12 +237,18 @@ main (int    argc,
   ply_event_loop_t *loop;
   ply_boot_splash_t *splash;
   int exit_code;
+  const char *module_name;
 
   exit_code = 0;
 
   loop = ply_event_loop_new ();
 
-  splash = ply_boot_splash_new ("../splash-plugins/.libs/fedora-fade-in.so");
+  if (argc > 1)
+    module_name = argv[1];
+  else
+    module_name = "../splash-plugins/.libs/fedora-fade-in.so";
+
+  splash = ply_boot_splash_new (module_name);
   ply_boot_splash_attach_to_event_loop (splash, loop);
 
   if (!ply_boot_splash_show (splash))
@@ -240,6 +257,11 @@ main (int    argc,
       return errno;
     }
 
+  ply_event_loop_watch_for_timeout (loop, 
+                                    5.0,
+                                   (ply_event_loop_timeout_handler_t)
+                                   on_timeout,
+                                   splash);
   exit_code = ply_event_loop_run (loop);
   ply_boot_splash_free (splash);
 

@@ -175,7 +175,7 @@ main (int    argc,
     }
 
   state.boot_splash = start_boot_splash (&state,
-                                         "/lib/fedora-fade-in.so");
+                                         PLYMOUTH_PLUGIN_PATH "fedora-fade-in.so");
 
   if (state.boot_splash == NULL)
     {

@@ -602,7 +602,11 @@ ply_frame_buffer_fill_with_color (ply_frame_buffer_t      *buffer,
 
   ply_frame_buffer_fill_area_with_pixel_value (buffer, &cropped_area, pixel_value);
 
+#ifdef DEBUGGING_FLUSHING_BUG
   ply_frame_buffer_add_area_to_flush_area (buffer, &cropped_area);
+#else
+  ply_frame_buffer_add_area_to_flush_area (buffer, &buffer->area);
+#endif
 
   return ply_frame_buffer_flush (buffer);
 }
@@ -646,7 +650,11 @@ ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t     *buffe
         }
     }
 
+#ifdef DEBUGGING_FLUSHING_BUG
   ply_frame_buffer_add_area_to_flush_area (buffer, &cropped_area);
+#else
+  ply_frame_buffer_add_area_to_flush_area (buffer, &buffer->area);
+#endif
 
   return ply_frame_buffer_flush (buffer);
 }

@@ -46,3 +46,11 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
 )
 
 rm -rf "$TMPDIR"
+
+CURRENT_KERNEL=$(/sbin/grubby --default-kernel)
+
+/sbin/grubby --title="Graphical Bootup"       \
+             --add-kernel="$CURRENT_KERNEL"   \
+	     --copy-default                   \
+	     --args="vga=0x318 rhgb quiet"    \
+	     --initrd="$NEW_INITRD"

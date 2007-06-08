@@ -202,10 +202,10 @@ animate_at_time (ply_boot_splash_plugin_t *plugin,
 
   ply_frame_buffer_pause_updates (plugin->frame_buffer);
 
-  logo_data = ply_image_get_data (plugin->logo_image);
-  ply_frame_buffer_get_size (plugin->frame_buffer, &logo_area);
   width = ply_image_get_width (plugin->logo_image);
   height = ply_image_get_height (plugin->logo_image);
+  logo_data = ply_image_get_data (plugin->logo_image);
+  ply_frame_buffer_get_size (plugin->frame_buffer, &logo_area);
   logo_area.x = (logo_area.width / 2) - (width / 2);
   logo_area.y = (logo_area.height / 2) - (height / 2);
   logo_area.width = width;
@@ -243,8 +243,6 @@ animate_at_time (ply_boot_splash_plugin_t *plugin,
                                         0.1, 0.1, .7, 1.0);
       ply_frame_buffer_fill_with_argb32_data_at_opacity (plugin->frame_buffer, 
                                                          &star_area, 0, 0, 
-                                                         star_area.width, 
-                                                         star_area.height,
                                                          star_data, opacity);
 
       node = next_node;
@@ -264,7 +262,7 @@ animate_at_time (ply_boot_splash_plugin_t *plugin,
   ply_frame_buffer_fill_with_color (plugin->frame_buffer, &logo_area,
                                     0.1, 0.1, .7, 1.0);
   ply_frame_buffer_fill_with_argb32_data_at_opacity (plugin->frame_buffer, 
-                                                     &logo_area, 0, 0, width, height,
+                                                     &logo_area, 0, 0,
                                                      logo_data, opacity);
   ply_frame_buffer_unpause_updates (plugin->frame_buffer);
 }
@@ -361,7 +359,7 @@ add_star (ply_boot_splash_plugin_t *plugin)
   x = rand () % area.width;
   y = rand () % area.height;
 
-  star = star_new (x, y, (double) ((rand () % 10) + 1));
+  star = star_new (x, y, (double) ((rand () % 50) + 1));
   ply_list_append_data (plugin->stars, star);
 }
 

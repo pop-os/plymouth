@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ "x$PLYMOUTH_DISABLE_INITRD" = "x1" ]; then 
+  exit 0
+fi
+
 set -e
 
 [ -z "$LIB" ] && LIB="lib"

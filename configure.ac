@@ -41,11 +41,13 @@ AC_SUBST(PLYMOUTH_LIBS)
 AC_OUTPUT([Makefile
            src/libply/Makefile
            src/splash-plugins/Makefile
+           src/splash-plugins/fedora-fade-in/Makefile
            src/Makefile
            src/rhgb-client/Makefile
            src/tests/Makefile
            src/libply/tests/Makefile
            src/rhgb-client/tests/Makefile
            src/splash-plugins/tests/Makefile
+	   scripts/Makefile
            po/Makefile.in
 ])

@@ -1,4 +1,4 @@
-SUBDIRS = src po
+SUBDIRS = src po scripts 
 
 EXTRA_DIST = ChangeLog                                                         \
              README                                                            \

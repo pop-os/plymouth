@@ -562,9 +562,19 @@ ply_frame_buffer_area_crop (ply_frame_buffer_area_t *area,
                             ply_frame_buffer_area_t *mask_area,
                             ply_frame_buffer_area_t *cropped_area)
 {
+  *cropped_area = *area;
+  if (cropped_area->x <= mask_area->x)
+    {
+      cropped_area->x = mask_area->x;
+      cropped_area->width -= mask_area->x - cropped_area->x;
+    }
 
-  cropped_area->x = MAX (area->x, mask_area->x);
-  cropped_area->y = MAX (area->y, mask_area->y);
+  if (cropped_area->y <= mask_area->y)
+    {
+      cropped_area->y = mask_area->y;
+      cropped_area->height -= mask_area->y - cropped_area->y;
+    }
+
   cropped_area->width = MIN (area->width, mask_area->width);
   cropped_area->height = MIN (area->height, mask_area->height);
 

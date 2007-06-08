@@ -83,8 +83,8 @@ create_plugin (void)
   plugin->start_time = 0.0;
 
   plugin->frame_buffer = ply_frame_buffer_new (NULL);
-  plugin->logo_image = ply_image_new ("/booting.png");
-  plugin->star_image = ply_image_new ("/star.png");
+  plugin->logo_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-logo.png");
+  plugin->star_image = ply_image_new (PLYMOUTH_IMAGE_DIR "star.png");
   plugin->stars = ply_list_new ();
 
   return plugin;

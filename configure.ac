@@ -1,10 +1,4 @@
-# the versioning scheme is 0.0.1-unstable
-# followed by 0.1.0 for initial release
-# followed by 0.1.0-stable and 0.1.0-unstable
-# followed by 0.1.1 and 0.2.0
-# followed by 0.1.1-stable and 0.2.0-unstable
-# etc., etc.
-AC_INIT(plymouth, 0.0.1-unstable, "rstrode@redhat.com")
+AC_INIT(plymouth, 0.0.1, "rstrode@redhat.com")
 AC_CONFIG_SRCDIR(src/main.c)
 AC_CONFIG_HEADER(config.h)
 

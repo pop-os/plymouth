@@ -1,11 +1,10 @@
-SUBDIRS = 
-
 noinst_SCRIPTS = new-object.sh 
 
-scriptsdir = $(libexecdir)/plymouth
-scripts_SCRIPTS = plymouth-update-initrd
+initrdscriptdir = $(libexecdir)/plymouth
+initrdscript_SCRIPTS = plymouth-update-initrd
 
-install-exec-hook: 
-	$(scriptsdir)/plymouth-update-initrd
+install-data-hook: 
+	$(initrdscriptdir)/plymouth-update-initrd
 
+EXTRA_DIST=$(initrdscript_SCRIPTS)
 MAINTAINERCLEANFILES = Makefile.in

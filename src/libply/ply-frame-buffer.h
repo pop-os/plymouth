@@ -68,17 +68,13 @@ bool ply_frame_buffer_fill_with_argb32_data (ply_frame_buffer_t      *buffer,
                                              ply_frame_buffer_area_t  *area,
                                              unsigned long        x,
                                              unsigned long        y,
-                                             unsigned long        width,
-                                             unsigned long        height,
                                              uint32_t            *data);
-bool ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t     *buffer,
+bool ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t      *buffer,
                                                         ply_frame_buffer_area_t *area,
-                                                        unsigned long       x,
-                                                        unsigned long       y,
-                                                        unsigned long       width,
-                                                        unsigned long       height,
-                                                        uint32_t           *data,
-                                                        double              opacity);
+                                                        unsigned long            x,
+                                                        unsigned long            y,
+                                                        uint32_t                *data,
+                                                        double                   opacity);
 
 #endif
 

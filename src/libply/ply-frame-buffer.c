@@ -286,6 +286,7 @@ ply_frame_buffer_blend_value_at_pixel (ply_frame_buffer_t *buffer,
   if ((pixel_value >> 24) != 0xff)
     {
       old_pixel_value = buffer->shadow_buffer[y * buffer->area.width + x];
+
       pixel_value = blend_two_pixel_values (pixel_value, old_pixel_value);
     }
 
@@ -583,6 +584,11 @@ ply_frame_buffer_area_crop (ply_frame_buffer_area_t *area,
 
   if (cropped_area->y + cropped_area->height > mask_area->y + mask_area->height)
     cropped_area->height = (mask_area->y + mask_area->height) - cropped_area->y;
+
+  assert (cropped_area->x >= mask_area->x);
+  assert (cropped_area->y >= mask_area->y);
+  assert (cropped_area->x + cropped_area->width <= mask_area->x + mask_area->width);
+  assert (cropped_area->y + cropped_area->height <= mask_area->x + mask_area->height);
 }
 
 bool 
@@ -612,24 +618,18 @@ ply_frame_buffer_fill_with_color (ply_frame_buffer_t      *buffer,
 
   ply_frame_buffer_fill_area_with_pixel_value (buffer, &cropped_area, pixel_value);
 
-#ifdef DEBUGGING_FLUSHING_BUG
   ply_frame_buffer_add_area_to_flush_area (buffer, &cropped_area);
-#else
-  ply_frame_buffer_add_area_to_flush_area (buffer, &buffer->area);
-#endif
 
   return ply_frame_buffer_flush (buffer);
 }
 
 bool 
-ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t     *buffer,
+ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t      *buffer,
                                                    ply_frame_buffer_area_t *area,
-                                                   unsigned long       x,
-                                                   unsigned long       y,
-                                                   unsigned long       width,
-                                                   unsigned long       height,
-                                                   uint32_t           *data,
-                                                   double              opacity)
+                                                   unsigned long            x,
+                                                   unsigned long            y,
+                                                   uint32_t                *data,
+                                                   double                   opacity)
 {
   long row, column;
   uint8_t opacity_as_byte;
@@ -645,26 +645,23 @@ ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t     *buffe
 
   opacity_as_byte = (uint8_t) (opacity * 255.0);
 
-  for (row = y; row < y + height; row++)
+  for (row = y; row < y + cropped_area.height; row++)
     {
-      for (column = x; column < x + width; column++)
+      for (column = x; column < x + cropped_area.width; column++)
         {
           uint32_t pixel_value;
 
-          pixel_value = data[width * row + column];
+          pixel_value = data[cropped_area.width * row + column];
           pixel_value = make_pixel_value_translucent (pixel_value, opacity_as_byte);
           ply_frame_buffer_blend_value_at_pixel (buffer,
                                                  cropped_area.x + (column - x),
                                                  cropped_area.y + (row - y),
                                                  pixel_value);
+
         }
     }
 
-#ifdef DEBUGGING_FLUSHING_BUG
   ply_frame_buffer_add_area_to_flush_area (buffer, &cropped_area);
-#else
-  ply_frame_buffer_add_area_to_flush_area (buffer, &buffer->area);
-#endif
 
   return ply_frame_buffer_flush (buffer);
 }
@@ -674,13 +671,10 @@ ply_frame_buffer_fill_with_argb32_data (ply_frame_buffer_t     *buffer,
                                         ply_frame_buffer_area_t *area,
                                         unsigned long       x,
                                         unsigned long       y,
-                                        unsigned long       width,
-                                        unsigned long       height,
                                         uint32_t           *data)
 {
   return ply_frame_buffer_fill_with_argb32_data_at_opacity (buffer, area,
-                                                            x, y, width, 
-                                                            height, data, 1.0);
+                                                            x, y, data, 1.0);
 }
 
 #ifdef PLY_FRAME_BUFFER_ENABLE_TEST
@@ -731,7 +725,7 @@ animate_at_time (ply_frame_buffer_t *buffer,
       }
     }
 
-  ply_frame_buffer_fill_with_argb32_data (buffer, NULL, 0, 0, 1024, 768, data);
+  ply_frame_buffer_fill_with_argb32_data (buffer, NULL, 0, 0, data);
 }
 
 int

@@ -346,8 +346,7 @@ animate_at_time (ply_frame_buffer_t *buffer,
   ply_frame_buffer_pause_updates (buffer);
   ply_frame_buffer_fill_with_color (buffer, &area, 0.1, 0.1, .7, 1.0);
   ply_frame_buffer_fill_with_argb32_data_at_opacity (buffer, &area, 
-                                                     0, 0, width, height, 
-                                                     data, opacity);
+                                                     0, 0, data, opacity);
   ply_frame_buffer_unpause_updates (buffer);
 
   if (time > 60.0)

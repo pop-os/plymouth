@@ -626,4 +626,45 @@ ply_close_module (ply_module_handle_t *handle)
 {
   dlclose (handle);
 }
+
+bool
+ply_create_directory (const char *directory)
+{
+  assert (directory != NULL);
+  assert (directory[0] != '\0');
+
+  if (ply_directory_exists (directory))
+    return true;
+
+  if (ply_file_exists (directory))
+    {
+      errno = EEXIST;
+      return false;
+    }
+
+  if (mkdir (directory, 0755) < 0)
+    {
+      char *parent_directory;
+      char *last_path_component;
+      bool parent_is_created;
+
+      parent_is_created = false;
+      if (errno == ENOENT)
+        {
+          parent_directory = strdup (directory);
+          last_path_component = strrchr (parent_directory, '/');
+          *last_path_component = '\0';
+          parent_is_created = ply_create_directory (parent_directory);
+
+          ply_save_errno ();
+          free (parent_directory);
+          ply_restore_errno ();
+        }
+
+      return parent_is_created;
+    }
+
+
+  return true;
+}
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

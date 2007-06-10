@@ -77,6 +77,8 @@ ply_module_function_t ply_module_look_up_function (ply_module_handle_t *handle,
                                                    const char  *function_name);
 void ply_close_module (ply_module_handle_t *handle);
 
+bool ply_create_directory (const char *directory);
+
 #endif
 
 #endif /* PLY_UTILS_H */

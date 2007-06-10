@@ -1,4 +1,4 @@
-SUBDIRS = libply . splash-plugins rhgb-client
+SUBDIRS = libply . splash-plugins rhgb-client tests
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/libply                                                 \
            -I$(srcdir)
@@ -8,6 +8,7 @@ plymouthbin_PROGRAMS = plymouth
 plymouth_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLYMOUTH_PLUGIN_PATH=\"$(prefix)/\$${LIB}/plymouth/\"
 plymouth_LDADD = $(PLYMOUTH_LIBS) libply/libply.la
 plymouth_SOURCES =                                                            \
+	           ply-boot-protocol.h                                        \
                    ply-boot-server.h                                          \
                    ply-boot-server.c                                          \
                    ply-boot-splash-plugin.h                                   \

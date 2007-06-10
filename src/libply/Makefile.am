@@ -1,4 +1,4 @@
-SUBDIRS =
+SUBDIRS = tests
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)
 

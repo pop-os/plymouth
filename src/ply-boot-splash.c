@@ -246,7 +246,7 @@ main (int    argc,
   if (argc > 1)
     module_name = argv[1];
   else
-    module_name = "../splash-plugins/.libs/fedora-fade-in.so";
+    module_name = "../splash-plugins/fedora-fade-in/.libs/fedora-fade-in.so";
 
   splash = ply_boot_splash_new (module_name);
   ply_boot_splash_attach_to_event_loop (splash, loop);
@@ -258,7 +258,7 @@ main (int    argc,
     }
 
   ply_event_loop_watch_for_timeout (loop, 
-                                    5.0,
+                                    1.0,
                                    (ply_event_loop_timeout_handler_t)
                                    on_timeout,
                                    splash);

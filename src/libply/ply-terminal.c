@@ -64,28 +64,6 @@ ply_terminal_free (ply_terminal_t *terminal)
   free (terminal);
 }
 
-static bool
-ply_terminal_mount_proc_file_system (ply_terminal_t *terminal)
-{
-  mkdir ("/proc", 0755);
-
-  if (mount ("none", "/proc", "proc", 0, NULL) < 0)
-    return false;
-
-  return ply_file_system_is_mounted ("proc", "/proc");
-}
-
-static bool
-ply_terminal_mount_devpts_file_system (ply_terminal_t *terminal)
-{
-  mkdir ("/dev/pts", 0755);
-
-  if (mount ("none", "/dev/pts", "devpts", 0, "gid=5,mode=620") < 0)
-    return false;
-
-  return ply_file_system_is_mounted ("devpts", "/dev/pts");
-}
-
 bool
 ply_terminal_create_device (ply_terminal_t *terminal)
 {
@@ -93,18 +71,6 @@ ply_terminal_create_device (ply_terminal_t *terminal)
 
   assert (terminal != NULL);
   assert (!ply_terminal_has_device (terminal));
-
-  if (!ply_file_system_is_mounted ("proc", "/proc"))
-    {
-      if (!ply_terminal_mount_proc_file_system (terminal))
-        return false;
-    }
-
-  if (!ply_file_system_is_mounted ("devpts", "/dev/pts"))
-    {
-      if (!ply_terminal_mount_devpts_file_system (terminal))
-        return false;
-    }
 
 #if 0
   terminal->fd = posix_openpt (O_RDWR | O_NOCTTY);

@@ -78,6 +78,7 @@ ply_module_function_t ply_module_look_up_function (ply_module_handle_t *handle,
 void ply_close_module (ply_module_handle_t *handle);
 
 bool ply_create_directory (const char *directory);
+bool ply_create_scratch_directory (const char *directory);
 
 #endif
 

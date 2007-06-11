@@ -31,6 +31,7 @@
 #include <poll.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mount.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -49,6 +50,10 @@
 
 #ifndef PLY_SOCKET_CONNECTION_BACKLOG
 #define PLY_SOCKET_CONNECTION_BACKLOG 32
+#endif
+
+#ifndef PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG
+#define PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG 2
 #endif
 
 static int errno_stack[PLY_ERRNO_STACK_SIZE];
@@ -667,4 +672,40 @@ ply_create_directory (const char *directory)
 
   return true;
 }
+
+bool 
+ply_create_scratch_directory (const char *directory)
+{
+  int dir_fd;
+  assert (directory != NULL);
+  assert (directory[0] != NULL);
+  
+  if (!ply_create_directory (directory))
+    return false;
+
+  if (mount ("none", directory, "ramfs", 0, NULL) < 0)
+    return false;
+
+  dir_fd = open (directory, O_RDONLY);
+
+  if (dir_fd < 0)
+    {
+      ply_save_errno ();
+      umount (directory);
+      ply_restore_errno ();
+      return false;
+    }
+
+  umount2 (directory, PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG);
+
+  /* contents of directory will remain visible to process
+   * (and children) until the file descriptor is closed.
+   *
+   * We're leaking the file descriptor below, so it will
+   * remain around until the process exits
+   */
+
+  return true;
+}
+
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

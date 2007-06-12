@@ -248,7 +248,7 @@ animate_at_time (ply_boot_splash_plugin_t *plugin,
       node = next_node;
     }
 
-  opacity = .5 * sin ((time / 10) * (2 * M_PI)) + .8;
+  opacity = .5 * sin ((time / 5) * (2 * M_PI)) + .8;
   opacity = CLAMP (opacity, 0, 1.0);
 
   if (fabs (opacity - last_opacity) <= DBL_MIN)
@@ -274,8 +274,29 @@ on_timeout (ply_boot_splash_plugin_t *plugin)
 
   set_graphics_mode (plugin);
   plugin->now = ply_get_timestamp ();
+
+
+  /* The choice below is between
+   *
+   * 1) keeping a constant animation speed, and dropping
+   * frames when necessary
+   * 2) showing every frame, but slowing down the animation
+   * when a frame would be otherwise dropped.
+   *
+   * It turns out there are parts of boot up where the animation
+   * can get sort of choppy.  By default we choose 2, since the
+   * nature of this animation means it looks natural even when it
+   * is slowed down
+   */
+#ifdef REAL_TIME_ANIMATION
   animate_at_time (plugin,
                    plugin->now - plugin->start_time);
+#else
+  static double time = 0.0;
+  time += 1.0 / FRAMES_PER_SECOND;
+  animate_at_time (plugin, time);
+#endif
+
   sleep_time = 1.0 / FRAMES_PER_SECOND;
   sleep_time = MAX (sleep_time - (ply_get_timestamp () - plugin->now),
                     0.005);
@@ -305,12 +326,37 @@ start_animation (ply_boot_splash_plugin_t *plugin)
 static void
 stop_animation (ply_boot_splash_plugin_t *plugin)
 {
+  int i;
+
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
     
-  ply_frame_buffer_fill_with_color (plugin->frame_buffer, 
-                                    NULL, 0.0, 0.0, 0.0, 1.0);
+  for (i = 0; i < 10; i++)
+    {
+      ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL,
+                                        0.1, 0.1, .7, .1 + .1 * i);
+    }
+
+  ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL,
+                                    0.1, 0.1, 0.7, 1.0);
+
+  for (i = 0; i < 20; i++)
+    {
+      ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL,
+                                        0.0, 0.0, 0.0, .05 + .05 * i);
+    }
+
+  ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL,
+                                    0.0, 0.0, 0.0, 1.0);
+
   set_text_mode (plugin);
+}
+
+static void
+on_interrupt (ply_boot_splash_plugin_t *plugin)
+{
+  ply_event_loop_exit (plugin->loop, 1);
+  stop_animation (plugin);
 }
 
 bool
@@ -339,6 +385,11 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin)
       ply_restore_errno ();
       return false;
     }
+
+  ply_event_loop_watch_signal (plugin->loop,
+                               SIGINT,
+                               (ply_event_handler_t) 
+                               on_interrupt, plugin);
   
   start_animation (plugin);
 
@@ -377,7 +428,9 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin)
 {
   assert (plugin != NULL);
 
-  stop_animation (plugin);
+  if (plugin->loop != NULL)
+    stop_animation (plugin);
+
   ply_frame_buffer_close (plugin->frame_buffer);
 }
 

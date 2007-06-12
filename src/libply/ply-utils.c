@@ -29,11 +29,13 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <poll.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mount.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/un.h>
@@ -661,7 +663,7 @@ ply_create_scratch_directory (const char *directory)
 {
   int dir_fd;
   assert (directory != NULL);
-  assert (directory[0] != NULL);
+  assert (directory[0] != '\0');
   
   if (!ply_create_directory (directory))
     return false;
@@ -687,6 +689,163 @@ ply_create_scratch_directory (const char *directory)
    * We're leaking the file descriptor below, so it will
    * remain around until the process exits
    */
+
+  return true;
+}
+
+static bool
+ply_copy_subdirectory (const char *subdirectory,
+                       const char *parent,
+                       const char *destination)
+{
+  char *source, *target;
+
+  source = NULL;
+  asprintf (&source, "%s/%s", parent, subdirectory);
+
+  target = NULL;
+  asprintf (&target, "%s/%s", destination, subdirectory);
+
+  if (!ply_copy_directory (source, target))
+    {
+      ply_save_errno ();
+      free (source);
+      free (target);
+      ply_restore_errno ();
+      return false;
+    }
+  free (source);
+  free (target);
+
+  return true;
+}
+
+bool
+ply_copy_file (const char *source,
+               const char *destination)
+{
+  char buffer[4096];
+  int source_fd, destination_fd;
+  struct stat file_info;
+
+  source_fd = open (source, O_RDONLY | O_NOFOLLOW);
+
+  if (source_fd < 0)
+    return false;
+
+  if (fstat (source_fd, &file_info) < 0)
+    return false;
+
+  destination_fd = open (destination, O_WRONLY | O_NOFOLLOW | O_CREAT,
+                         file_info.st_mode);
+
+  if (destination_fd < 0)
+    return false;
+
+  while ("we want to copy the file")
+    {
+      size_t bytes_read;
+      bytes_read = read (source_fd, buffer, sizeof (buffer));
+
+      if (bytes_read < 0)
+        {
+          if (errno == EINTR)
+            continue;
+
+          return false;
+        }
+      else if (bytes_read == 0)
+        break;
+
+      if (!ply_write (destination_fd, buffer, bytes_read))
+        return false;
+    }
+
+  return true;
+}
+
+static bool
+ply_copy_file_in_direcetory (const char *filename,
+                             const char *parent,
+                             const char *destination)
+{
+  char *source, *target;
+
+  source = NULL;
+  asprintf (&source, "%s/%s", parent, filename);
+
+  target = NULL;
+  asprintf (&target, "%s/%s", destination, filename);
+
+  if (!ply_copy_file (source, target))
+    {
+      ply_save_errno ();
+      free (source);
+      free (target);
+      ply_restore_errno ();
+      return false;
+    }
+  free (source);
+  free (target);
+
+  return true;
+}
+
+bool 
+ply_copy_directory (const char *source,
+                    const char *destination)
+{
+  DIR *dir;
+  struct dirent *entry;
+  char *full_path;
+
+  assert (source != NULL);
+  assert (source[0] != '\0');
+  assert (destination != NULL);
+  assert (destination[0] != '\0');
+
+  dir = opendir (source);
+
+  if (dir == NULL)
+    return false;
+
+  while ((entry = readdir (dir)) != NULL) 
+    {
+      if (strcmp (entry->d_name, ".") == 0)
+        continue;
+
+      if (strcmp (entry->d_name, "..") == 0)
+        continue;
+
+      full_path = NULL;
+      asprintf (&full_path, "%s/%s", source, entry->d_name);
+
+      if (ply_directory_exists (full_path))
+        {
+          if (!ply_copy_subdirectory (entry->d_name, source, destination))
+            {
+              ply_save_errno ();
+              free (full_path);
+              ply_restore_errno ();
+              return false;
+            }
+        }
+      else if (ply_file_exists (full_path))
+        {
+          if (!ply_copy_file_in_direcetory (entry->d_name, source, destination))
+            {
+              ply_save_errno ();
+              free (full_path);
+              ply_restore_errno ();
+              return false;
+            }
+        }
+
+      free (full_path);
+    }
+
+  assert (entry == NULL);
+  closedir (dir);
 
   return true;
 }

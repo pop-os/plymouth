@@ -765,6 +765,7 @@ ply_copy_file (const char *source,
         goto out;
     }
 
+  file_copied = true;
 out:
   close (source_fd);
   close (destination_fd);

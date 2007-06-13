@@ -727,20 +727,24 @@ ply_copy_file (const char *source,
   char buffer[4096];
   int source_fd, destination_fd;
   struct stat file_info;
+  bool file_copied;
 
+  file_copied = false;
+  source_fd = -1;
+  destination_fd = -1;
   source_fd = open (source, O_RDONLY | O_NOFOLLOW);
 
   if (source_fd < 0)
-    return false;
+    goto out;
 
   if (fstat (source_fd, &file_info) < 0)
-    return false;
+    goto out;
 
   destination_fd = open (destination, O_WRONLY | O_NOFOLLOW | O_CREAT,
                          file_info.st_mode);
 
   if (destination_fd < 0)
-    return false;
+    goto out;
 
   while ("we want to copy the file")
     {
@@ -752,16 +756,20 @@ ply_copy_file (const char *source,
           if (errno == EINTR)
             continue;
 
-          return false;
+          goto out;
         }
       else if (bytes_read == 0)
         break;
 
       if (!ply_write (destination_fd, buffer, bytes_read))
-        return false;
+        goto out;
     }
 
-  return true;
+out:
+  close (source_fd);
+  close (destination_fd);
+
+  return file_copied;
 }
 
 static bool

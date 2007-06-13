@@ -20,6 +20,7 @@
 #ifndef PLY_LOGGER_H
 #define PLY_LOGGER_H
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -72,8 +73,6 @@ bool ply_logger_is_tracing_enabled (ply_logger_t *logger);
 #define ply_logger_trace(logger, format, args...)                              \
 do                                                                             \
   {                                                                            \
-    static const char *_function_suffix = "";                                  \
-    const char *_function_name = "";                                           \
     double _timestamp;                                                         \
     pid_t _pid;                                                                \
     int _old_errno;                                                            \

@@ -659,17 +659,25 @@ ply_create_directory (const char *directory)
 }
 
 bool 
-ply_create_scratch_directory (const char *directory)
+ply_create_detachable_directory (const char *directory)
 {
-  int dir_fd;
+
   assert (directory != NULL);
   assert (directory[0] != '\0');
   
   if (!ply_create_directory (directory))
     return false;
 
-  if (mount ("none", directory, "ramfs", 0, NULL) < 0)
+  if (mount ("none", directory, "tmpfs", 0, NULL) < 0)
     return false;
+
+  return true;
+}
+
+int
+ply_detach_directory (const char *directory)
+{
+  int dir_fd;
 
   dir_fd = open (directory, O_RDONLY);
 
@@ -678,19 +686,25 @@ ply_create_scratch_directory (const char *directory)
       ply_save_errno ();
       umount (directory);
       ply_restore_errno ();
+      return dir_fd;
+    }
+
+  if (umount2 (directory, PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG) < 0)
+    {
+      ply_save_errno ();
+      umount (directory);
+      ply_restore_errno ();
       return false;
     }
 
-  umount2 (directory, PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG);
+  rmdir (directory);
 
-  /* contents of directory will remain visible to process
-   * (and children) until the file descriptor is closed.
-   *
-   * We're leaking the file descriptor below, so it will
-   * remain around until the process exits
+  /* return a file descriptor to the directory because it's now been
+   * detached from the filesystem.  The user can fchdir to this
+   * directory and work from it that way
    */
 
-  return true;
+  return dir_fd;
 }
 
 static bool

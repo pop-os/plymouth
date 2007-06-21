@@ -36,6 +36,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "ply-logger.h"
 #include "ply-utils.h"
 
 struct _ply_terminal
@@ -72,6 +73,7 @@ ply_terminal_create_device (ply_terminal_t *terminal)
   assert (terminal != NULL);
   assert (!ply_terminal_has_device (terminal));
 
+  ply_trace ("opening device '/dev/ptmx'");
 #if 0
   terminal->fd = posix_openpt (O_RDWR | O_NOCTTY);
 #endif
@@ -79,15 +81,20 @@ ply_terminal_create_device (ply_terminal_t *terminal)
 
   if (terminal->fd < 0)
     return false;
+  ply_trace (" opened device '/dev/ptmx'");
 
+  ply_trace ("creating pseudoterminal");
   if (grantpt (terminal->fd) < 0)
     {
       saved_errno = errno;
+      ply_trace ("could not create psuedoterminal: %m");
       ply_terminal_destroy_device (terminal);
       errno = saved_errno;
       return false;
     }
+  ply_trace ("done creating pseudoterminal");
 
+  ply_trace ("unlocking pseudoterminal");
   if (unlockpt (terminal->fd) < 0)
     {
       saved_errno = errno;
@@ -95,8 +102,10 @@ ply_terminal_create_device (ply_terminal_t *terminal)
       errno = saved_errno;
       return false;
     }
+  ply_trace ("unlocked pseudoterminal");
 
   terminal->name = strdup (ptsname (terminal->fd));
+  ply_trace ("pseudoterminal '%s' ready for action", terminal->name);
 
   return true;
 }

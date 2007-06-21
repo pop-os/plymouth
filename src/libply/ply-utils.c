@@ -42,6 +42,8 @@
 
 #include <dlfcn.h>
 
+#include "ply-logger.h"
+
 #ifndef PLY_OPEN_FILE_DESCRIPTORS_DIR
 #define PLY_OPEN_FILE_DESCRIPTORS_DIR "/proc/self/fd"
 #endif
@@ -624,10 +626,14 @@ ply_create_directory (const char *directory)
   assert (directory[0] != '\0');
 
   if (ply_directory_exists (directory))
-    return true;
+    {
+      ply_trace ("directory '%s' already exists", directory);
+      return true;
+    }
 
   if (ply_file_exists (directory))
     {
+      ply_trace ("file '%s' is in the way", directory);
       errno = EEXIST;
       return false;
     }
@@ -636,22 +642,26 @@ ply_create_directory (const char *directory)
     {
       char *parent_directory;
       char *last_path_component;
-      bool parent_is_created;
+      bool is_created;
 
-      parent_is_created = false;
+      is_created = false;
       if (errno == ENOENT)
         {
           parent_directory = strdup (directory);
           last_path_component = strrchr (parent_directory, '/');
           *last_path_component = '\0';
-          parent_is_created = ply_create_directory (parent_directory);
+
+          ply_trace ("parent directory '%s' doesn't exist, creating it first", parent_directory);
+          if (ply_create_directory (parent_directory)
+              && (mkdir (directory, 0755) == 0))
+            is_created = true;
 
           ply_save_errno ();
           free (parent_directory);
           ply_restore_errno ();
         }
 
-      return parent_is_created;
+      return is_created;
     }
 
 
@@ -665,6 +675,7 @@ ply_create_detachable_directory (const char *directory)
   assert (directory != NULL);
   assert (directory[0] != '\0');
   
+  ply_trace ("trying to create directory '%s'", directory);
   if (!ply_create_directory (directory))
     return false;
 

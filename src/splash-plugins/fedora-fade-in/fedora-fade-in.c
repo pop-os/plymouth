@@ -41,9 +41,11 @@
 #include "ply-boot-splash-plugin.h"
 #include "ply-event-loop.h"
 #include "ply-list.h"
+#include "ply-logger.h"
 #include "ply-frame-buffer.h"
 #include "ply-image.h"
 #include "ply-utils.h"
+
 
 #include <linux/kd.h>
 
@@ -155,6 +157,7 @@ set_graphics_mode (ply_boot_splash_plugin_t *plugin)
 {
   assert (plugin != NULL);
 
+  return true;
   if (ioctl (plugin->console_fd, KDSETMODE, KD_GRAPHICS) < 0)
     return false;
 
@@ -366,18 +369,23 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin)
   assert (plugin->logo_image != NULL);
   assert (plugin->frame_buffer != NULL);
 
+  ply_trace ("loading logo image");
   if (!ply_image_load (plugin->logo_image))
     return false;
 
+  ply_trace ("loading star image");
   if (!ply_image_load (plugin->star_image))
     return false;
 
+  ply_trace ("opening frame buffer");
   if (!ply_frame_buffer_open (plugin->frame_buffer))
     return false;
 
+  ply_trace ("opening console");
   if (!open_console (plugin))
     return false;
 
+  ply_trace ("settings graphics mode");
   if (!set_graphics_mode (plugin))
     {
       ply_save_errno ();
@@ -391,6 +399,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin)
                                (ply_event_handler_t) 
                                on_interrupt, plugin);
   
+  ply_trace ("starting boot animation");
   start_animation (plugin);
 
   return true;

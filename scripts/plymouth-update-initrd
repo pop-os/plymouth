@@ -4,38 +4,49 @@
 
 set -e
 
-[ -z "$LIB" ] && LIB="lib"
-[ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
 [ -z "$LIBEXECDIR" ] && LIBEXECDIR="/usr/libexec"
 [ -z "$DATADIR" ] && DATADIR="/usr/share"
 [ -z "$INITRD" ] && INITRD="/boot/initrd-$(/bin/uname -r).img"
+[ -z "$SYSTEMMAP" ] && SYSTEM_MAP="/boot/System.map-$(/bin/uname -r)"
+[ -z "$LIB" ] && [ $(head -n1 $SYSTEM_MAP | awk '{print $1}' | wc -c) -lt 16 ] && LIB="lib" || LIB="lib64"
+[ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
 
 if [ -z "$NEW_INITRD" ]; then
   NEW_INITRD="$(dirname $INITRD)/$(basename $INITRD .img)-plymouth.img"
 fi
 
+function get_lib_deps()
+{
+    
+    while [ $# -gt 0 ]; do
+        /usr/bin/ldd $1 | sed -n 's/.*=> \?\([^ ]*\) (.*$/\1/p' 
+        shift
+    done | sort -u
+}
+
 TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
 
-(
-    cd $TMPDIR
+(cd $TMPDIR
     zcat $INITRD | cpio --quiet -Hnewc -i --make-directories
     sed -i -e 's@^#!\(.*\)@#!/bin/plymouth \1@' init 
-    (
-        cd $LIBDIR
-        install -m755 $(/usr/bin/readlink libply.so) $TMPDIR/$LIB
-        install -m755 $(/usr/bin/readlink libpng12.so) $TMPDIR/$LIB
+    (cd $LIBDIR
+        DEPS=$(get_lib_deps ${LIBEXECDIR}/plymouth/plymouth ${LIBDIR}/plymouth/fedora-fade-in.so)
+        for dep in $DEPS; do
+            install -D -m755 $dep ${TMPDIR}$(dirname $dep)
+        done
     )
-    /sbin/ldconfig -n lib
+    /sbin/ldconfig -n $LIB 
+    /sbin/ldconfig -n ./$LIBDIR
 
-    install -m755 $LIBEXECDIR/plymouth/plymouth bin
+    install -m755 ${LIBEXECDIR}/plymouth/plymouth bin
 
-    mkdir -p usr/share/plymouth
+    mkdir -p ${TMPDIR}$DATADIR/plymouth
 
-    install -m644 $DATADIR/pixmaps/fedora-logo.png usr/share/plymouth
-    install -m644 $DATADIR/plymouth/star.png usr/share/plymouth
+    install -m644 ${DATADIR}/pixmaps/fedora-logo.png ${TMPDIR}${DATADIR}/plymouth
+    install -m644 ${DATADIR}/plymouth/star.png ${TMPDIR}${DATADIR}/plymouth
 
-    mkdir -p usr/$LIB/plymouth
-    install -m755 $LIBDIR/plymouth/fedora-fade-in.so usr/$LIB/plymouth
+    mkdir -p ${TMPDIR}${LIBDIR}/plymouth
+    install -m755 ${LIBDIR}/plymouth/fedora-fade-in.so ${TMPDIR}${LIBDIR}/plymouth
 
     rm -f $NEW_INITRD
     find | cpio --quiet -Hnewc -o | gzip -9 > $NEW_INITRD

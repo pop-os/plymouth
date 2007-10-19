@@ -22,9 +22,8 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
     sed -i -e 's@^#!\(.*\)@#!/bin/plymouth \1@' init 
     (
         cd $LIBDIR
-        install -m755 $(/usr/bin/readlink libply.so) $TMPDIR/lib
-        install -m755 $(/usr/bin/readlink libpng12.so) $TMPDIR/lib
-	cd /$LIB
+        install -m755 $(/usr/bin/readlink libply.so) $TMPDIR/$LIB
+        install -m755 $(/usr/bin/readlink libpng12.so) $TMPDIR/$LIB
     )
     /sbin/ldconfig -n lib
 

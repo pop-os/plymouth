@@ -10,6 +10,7 @@ set -e
 [ -z "$SYSTEMMAP" ] && SYSTEM_MAP="/boot/System.map-$(/bin/uname -r)"
 [ -z "$LIB" ] && [ $(head -n1 $SYSTEM_MAP | awk '{print $1}' | wc -c) -lt 16 ] && LIB="lib" || LIB="lib64"
 [ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
+[ -z "$GRUB_MENU_TITLE" ] && GRUB_MENU_TITLE="Graphical Bootup"
 
 if [ -z "$NEW_INITRD" ]; then
   NEW_INITRD="$(dirname $INITRD)/$(basename $INITRD .img)-plymouth.img"
@@ -36,7 +37,7 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
         done
     )
     /sbin/ldconfig -n $LIB 
-    /sbin/ldconfig -n ./$LIBDIR
+    /sbin/ldconfig -n .${LIBDIR}
 
     install -m755 ${LIBEXECDIR}/plymouth/plymouth bin
 
@@ -57,7 +58,19 @@ rm -rf "$TMPDIR"
 
 CURRENT_KERNEL=$(/sbin/grubby --default-kernel)
 
-/sbin/grubby --title="Graphical Bootup"       \
+# XXX: Hack to clean out old entry since grubby doesn't deal with dupes too well
+if fgrep -q "title $GRUB_MENU_TITLE" /etc/grub.conf; then
+    TMPFILE="$(mktemp /etc/grub.conf.XXXXXXXXXX)"
+    if [ -L /etc/grub.conf ]; then
+        GRUB_CONF="$(readlink /etc/grub.conf)"
+    else
+        GRUB_CONF="/etc/grub.conf"
+    fi
+    awk '$1 != "'"$GRUB_MENU_TITLE"'" { printf $0 RT }' RS="title " FS="\n" $GRUB_CONF > $TMPFILE \
+    && mv $TMPFILE $GRUB_CONF || rm -f $TMPFILE
+fi
+
+/sbin/grubby --title="$GRUB_MENU_TITLE"       \
              --add-kernel="$CURRENT_KERNEL"   \
 	     --copy-default                   \
 	     --args="vga=0x318 rhgb quiet"    \

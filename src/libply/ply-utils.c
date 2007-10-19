@@ -653,12 +653,13 @@ ply_create_directory (const char *directory)
 
           ply_trace ("parent directory '%s' doesn't exist, creating it first", parent_directory);
           if (ply_create_directory (parent_directory)
-              && (mkdir (directory, 0755) == 0))
+              && ((mkdir (directory, 0755) == 0) || errno == EEXIST))
             is_created = true;
 
           ply_save_errno ();
           free (parent_directory);
           ply_restore_errno ();
+
         }
 
       return is_created;
@@ -757,14 +758,18 @@ ply_copy_file (const char *source,
   file_copied = false;
   source_fd = -1;
   destination_fd = -1;
+
+  ply_trace ("opening source '%s'", source);
   source_fd = open (source, O_RDONLY | O_NOFOLLOW);
 
   if (source_fd < 0)
     goto out;
 
+  ply_trace ("stating fd %d", source_fd);
   if (fstat (source_fd, &file_info) < 0)
     goto out;
 
+  ply_trace ("opening dest '%s'", destination);
   destination_fd = open (destination, O_WRONLY | O_NOFOLLOW | O_CREAT,
                          file_info.st_mode);
 
@@ -792,8 +797,10 @@ ply_copy_file (const char *source,
 
   file_copied = true;
 out:
+  ply_save_errno ();
   close (source_fd);
   close (destination_fd);
+  ply_restore_errno ();
 
   return file_copied;
 }
@@ -805,6 +812,7 @@ ply_copy_file_in_direcetory (const char *filename,
 {
   char *source, *target;
 
+  ply_trace ("copying '%s' in '%s' to '%s'", filename, parent, destination);
   source = NULL;
   asprintf (&source, "%s/%s", parent, filename);
 

@@ -806,9 +806,9 @@ out:
 }
 
 static bool
-ply_copy_file_in_direcetory (const char *filename,
-                             const char *parent,
-                             const char *destination)
+ply_copy_file_in_directory (const char *filename,
+                            const char *parent,
+                            const char *destination)
 {
   char *source, *target;
 
@@ -874,7 +874,7 @@ ply_copy_directory (const char *source,
         }
       else if (ply_file_exists (full_path))
         {
-          if (!ply_copy_file_in_direcetory (entry->d_name, source, destination))
+          if (!ply_copy_file_in_directory (entry->d_name, source, destination))
             {
               ply_save_errno ();
               free (full_path);

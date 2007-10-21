@@ -682,7 +682,7 @@ ply_create_directory (const char *directory)
       char *last_path_component;
       bool is_created;
 
-      is_created = false;
+      is_created = errno == EEXIST;
       if (errno == ENOENT)
         {
           parent_directory = strdup (directory);

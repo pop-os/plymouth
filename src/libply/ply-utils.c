@@ -571,6 +571,44 @@ ply_file_exists (const char *file)
   return S_ISREG (file_info.st_mode);
 }
 
+void 
+ply_list_directory (const char *path)
+{
+  DIR *dir;
+  struct dirent *entry;
+  static int level = 0;
+
+  dir = opendir (path);
+
+  if (dir == NULL)
+    return;
+
+  if (level > 5)
+    return;
+
+  int index = 0;
+  while ((entry = readdir (dir)) != NULL) 
+    {
+      char *subdir;
+
+      index++;
+
+      if (index > 10)
+        break;
+
+      subdir = NULL;
+      asprintf (&subdir, "%s/%s", path, entry->d_name);
+      ply_error ("%s ", subdir);
+      level++;
+      if (entry->d_name[0] != '.')
+        ply_list_directory (subdir);
+      level--;
+      free (subdir);
+    }
+
+  closedir (dir);
+}
+
 ply_module_handle_t *
 ply_open_module (const char *module_path)
 {

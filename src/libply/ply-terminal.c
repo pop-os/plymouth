@@ -74,10 +74,7 @@ ply_terminal_create_device (ply_terminal_t *terminal)
   assert (!ply_terminal_has_device (terminal));
 
   ply_trace ("opening device '/dev/ptmx'");
-#if 0
   terminal->fd = posix_openpt (O_RDWR | O_NOCTTY);
-#endif
-  terminal->fd = open ("/dev/ptmx", O_RDWR | O_NOCTTY);
 
   if (terminal->fd < 0)
     return false;
@@ -86,10 +83,10 @@ ply_terminal_create_device (ply_terminal_t *terminal)
   ply_trace ("creating pseudoterminal");
   if (grantpt (terminal->fd) < 0)
     {
-      saved_errno = errno;
+      ply_save_errno ();
       ply_trace ("could not create psuedoterminal: %m");
       ply_terminal_destroy_device (terminal);
-      errno = saved_errno;
+      ply_restore_errno ();
       return false;
     }
   ply_trace ("done creating pseudoterminal");
@@ -97,9 +94,9 @@ ply_terminal_create_device (ply_terminal_t *terminal)
   ply_trace ("unlocking pseudoterminal");
   if (unlockpt (terminal->fd) < 0)
     {
-      saved_errno = errno;
+      ply_save_errno ();
       ply_terminal_destroy_device (terminal);
-      errno = saved_errno;
+      ply_restore_errno ();
       return false;
     }
   ply_trace ("unlocked pseudoterminal");

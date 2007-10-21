@@ -62,14 +62,6 @@ on_session_start (state_t *state)
                  "to start session: %m");
       return;
     }
-
-  if (chroot (".") < 0)
-    {
-      ply_trace ("Could not change root back to original directory "
-                 "to start session: %m");
-      return;
-    }
-  ply_trace ("changed to original root fs");
 }
 
 static void
@@ -165,6 +157,7 @@ spawn_session (state_t  *state,
   flags |= PLY_TERMINAL_SESSION_FLAGS_RUN_IN_PARENT;
   flags |= PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH;
   flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
+  flags |= PLY_TERMINAL_SESSION_FLAGS_CHANGE_ROOT_TO_CURRENT_DIRECTORY;
 
   ply_trace ("opening terminal session for '%s'", argv[0]);
   session = ply_terminal_session_new ((const char * const *) argv);

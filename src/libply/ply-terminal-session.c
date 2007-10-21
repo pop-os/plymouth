@@ -54,6 +54,7 @@ struct _ply_terminal_session
 
   uint32_t is_running : 1;
   uint32_t console_is_redirected : 1;
+  uint32_t change_root_to_current_directory : 1;
 };
 
 static bool ply_terminal_session_open_console (ply_terminal_session_t *session);
@@ -109,6 +110,12 @@ ply_terminal_session_execute (ply_terminal_session_t *session,
   if (!ply_terminal_session_open_console (session))
     return false;
 
+  if (session->change_root_to_current_directory)
+    {
+      if (chroot (".") < 0)
+        return false;
+    }
+
   if (look_in_path)
     execvp (session->argv[0], session->argv);
   else
@@ -132,6 +139,7 @@ ply_terminal_session_new (const char * const *argv)
   session->logger = ply_logger_new ();
   session->is_running = false;
   session->console_is_redirected = false;
+  session->change_root_to_current_directory = false;
 
   return session;
 }
@@ -236,6 +244,9 @@ ply_terminal_session_run (ply_terminal_session_t              *session,
   look_in_path = (flags & PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH) != 0;
   should_redirect_console = 
     (flags & PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE) != 0;
+
+  session->change_root_to_current_directory = 
+    (flags & PLY_TERMINAL_SESSION_FLAGS_CHANGE_ROOT_TO_CURRENT_DIRECTORY) != 0;
 
   ply_trace ("creating terminal device");
   if (!ply_terminal_create_device (session->terminal))

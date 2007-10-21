@@ -59,7 +59,14 @@ on_session_start (state_t *state)
   if (fchdir (state->original_root_dir_fd) < 0)
     {
       ply_trace ("Could not change to original root directory "
-               "to start session: %m");
+                 "to start session: %m");
+      return;
+    }
+
+  if (chroot (".") < 0)
+    {
+      ply_trace ("Could not change root back to original directory "
+                 "to start session: %m");
       return;
     }
   ply_trace ("changed to original root fs");
@@ -208,12 +215,10 @@ create_working_directory (state_t *state)
   if (!ply_create_directory ("usr/share/plymouth"))
     return false;
 
-  ply_trace ("creating usr/lib/plymouth subdirectory");
-  if (!ply_create_directory ("usr/lib/plymouth"))
+  ply_trace ("creating " PLYMOUTH_PLUGIN_PATH " subdirectory");
+  if (!ply_create_directory (PLYMOUTH_PLUGIN_PATH + 1))
     return false;
 
-  ply_trace ("created detachable working directory '%s'",
-             PLY_WORKING_DIRECTORY);
   return true;
 }
 
@@ -304,50 +309,12 @@ copy_data_files (state_t *state)
   ply_trace ("copied data files");
 
   ply_trace ("copying plugins");
-  if (!ply_copy_directory ("/usr/lib/plymouth", 
-                           "usr/lib/plymouth"))
+  if (!ply_copy_directory (PLYMOUTH_PLUGIN_PATH,
+                           PLYMOUTH_PLUGIN_PATH + 1))
     return false;
   ply_trace ("copied plugins files");
 
   return true;
-}
-
-static void
-ls (const char *path)
-{
-  DIR *dir;
-  struct dirent *entry;
-  static int level = 0;
-
-  dir = opendir (path);
-
-  if (dir == NULL)
-    return;
-
-  if (level > 5)
-    return;
-
-  int index = 0;
-  while ((entry = readdir (dir)) != NULL) 
-    {
-      char *subdir;
-
-      index++;
-
-      if (index > 10)
-        break;
-
-      subdir = NULL;
-      asprintf (&subdir, "%s/%s", path, entry->d_name);
-      ply_error ("%s ", subdir);
-      level++;
-      if (entry->d_name[0] != '.')
-        ls (subdir);
-      level--;
-      free (subdir);
-    }
-
-  closedir (dir);
 }
 
 static bool
@@ -401,6 +368,7 @@ main (int    argc,
   if (!initialize_environment (&state))
     {
       ply_error ("could not setup basic operating environment: %m");
+      ply_list_directory (PLY_WORKING_DIRECTORY);
       return EX_OSERR;
     }
 

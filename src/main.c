@@ -93,9 +93,16 @@ static void
 on_quit (state_t *state)
 {
   ply_terminal_session_close_log (state->session);
-  umount ("/sysroot");
   ply_boot_splash_hide (state->boot_splash);
   ply_event_loop_exit (state->loop, 0);
+
+  fchdir (state->original_root_dir_fd);
+  chroot (".");
+  ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/sysroot");
+  ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/sysroot");
+  ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/proc");
+  ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/dev/pts");
+  ply_unmount_filesystem (PLY_WORKING_DIRECTORY);
 }
 
 static ply_boot_server_t *
@@ -185,7 +192,7 @@ create_working_directory (state_t *state)
 {
   ply_trace ("creating working directory '%s'",
              PLY_WORKING_DIRECTORY);
-  if (!ply_create_directory (PLY_WORKING_DIRECTORY))
+  if (!ply_create_detachable_directory (PLY_WORKING_DIRECTORY))
     return false;
 
   ply_trace ("changing to working directory");
@@ -210,6 +217,10 @@ create_working_directory (state_t *state)
 
   ply_trace ("creating " PLYMOUTH_PLUGIN_PATH " subdirectory");
   if (!ply_create_directory (PLYMOUTH_PLUGIN_PATH + 1))
+    return false;
+
+  ply_trace ("creating sysroot subdirectory");
+  if (!ply_create_directory ("sysroot"))
     return false;
 
   return true;

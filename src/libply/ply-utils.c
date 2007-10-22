@@ -739,14 +739,13 @@ ply_detach_directory (const char *directory)
       return dir_fd;
     }
 
-  if (umount2 (directory, PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG) < 0)
+  if (!ply_unmount_filesystem (directory))
     {
       ply_save_errno ();
       umount (directory);
       ply_restore_errno ();
       return false;
     }
-
   rmdir (directory);
 
   /* return a file descriptor to the directory because it's now been
@@ -926,6 +925,15 @@ ply_copy_directory (const char *source,
 
   assert (entry == NULL);
   closedir (dir);
+
+  return true;
+}
+
+bool 
+ply_unmount_filesystem (const char *directory)
+{
+  if (umount2 (directory, PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG) < 0)
+    return false;
 
   return true;
 }

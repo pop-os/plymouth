@@ -81,6 +81,7 @@ bool ply_create_detachable_directory (const char *directory);
 int ply_detach_directory (const char *directory);
 bool ply_copy_file (const char *source, const char *destination);
 bool ply_copy_directory (const char *source, const char *destination);
+bool ply_unmount_filesystem (const char *directory);
 #endif
 
 #endif /* PLY_UTILS_H */

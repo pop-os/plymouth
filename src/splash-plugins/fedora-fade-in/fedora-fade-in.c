@@ -226,15 +226,6 @@ animate_at_time (ply_boot_splash_plugin_t *plugin,
       star = (star_t *) ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (plugin->stars, node);
 
-      if (((star->x >= logo_area.x) 
-           && (star->x + star_area.width <= logo_area.x + logo_area.width))
-          && ((star->y >= logo_area.y) 
-           && (star->y + star_area.height <= logo_area.y + logo_area.height)))
-        {
-          node = next_node;
-          continue;
-        }
-
       star_area.x = star->x;
       star_area.y = star->y;
 
@@ -407,16 +398,56 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin)
 static void
 add_star (ply_boot_splash_plugin_t *plugin)
 {
-  ply_frame_buffer_area_t area;
+  ply_frame_buffer_area_t area, logo_area;
   star_t *star;
   int x, y;
+  int width, height;
+  ply_list_node_t *node;
 
   assert (plugin != NULL);
 
-  ply_frame_buffer_get_size (plugin->frame_buffer, &area);
+  ply_frame_buffer_get_size (plugin->frame_buffer, &logo_area);
+  width = ply_image_get_width (plugin->logo_image);
+  height = ply_image_get_height (plugin->logo_image);
+  logo_area.x = (logo_area.width / 2) - (width / 2);
+  logo_area.y = (logo_area.height / 2) - (height / 2);
+  logo_area.width = width;
+  logo_area.height = height;
 
-  x = rand () % area.width;
-  y = rand () % area.height;
+  ply_frame_buffer_get_size (plugin->frame_buffer, &area);
+  width = ply_image_get_width (plugin->star_image);
+  height = ply_image_get_height (plugin->star_image);
+
+  node = NULL;
+  do
+    {
+      x = rand () % area.width;
+      y = rand () % area.height;
+
+      if (((x + width >= logo_area.x) 
+           && (x <= logo_area.x + logo_area.width))
+          && ((y + height >= logo_area.y) 
+              && (y <= logo_area.y + logo_area.height)))
+        continue;
+
+      node = ply_list_get_first_node (plugin->stars);
+      while (node != NULL)
+        {
+          ply_list_node_t *next_node;
+
+          star = (star_t *) ply_list_node_get_data (node);
+          next_node = ply_list_get_next_node (plugin->stars, node);
+
+          if (((x + width >= star->x) 
+               && (x <= star->x + width))
+              && ((y + height >= star->y) 
+                  && (y <= star->y + height)))
+              break;
+
+          node = next_node;
+        }
+
+    } while (node != NULL);
 
   star = star_new (x, y, (double) ((rand () % 50) + 1));
   ply_list_append_data (plugin->stars, star);

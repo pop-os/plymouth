@@ -3,7 +3,7 @@ INCLUDES =                                                                    \
            -I$(srcdir)/..                                                     \
            -I$(srcdir)/../libply                                              \
            -I$(srcdir)
-TESTS = 
+TESTS =
 
 include $(srcdir)/ply-boot-server-test.am
 include $(srcdir)/ply-boot-splash-test.am

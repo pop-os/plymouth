@@ -69,6 +69,7 @@ void ply_restore_errno (void);
 
 bool ply_directory_exists (const char *dir);
 bool ply_file_exists (const char *file);
+void ply_list_directory (const char *dir);
 
 ply_module_handle_t *ply_open_module (const char *module_path);
 ply_module_function_t ply_module_look_up_function (ply_module_handle_t *handle,
@@ -80,6 +81,7 @@ bool ply_create_detachable_directory (const char *directory);
 int ply_detach_directory (const char *directory);
 bool ply_copy_file (const char *source, const char *destination);
 bool ply_copy_directory (const char *source, const char *destination);
+bool ply_unmount_filesystem (const char *directory);
 #endif
 
 #endif /* PLY_UTILS_H */

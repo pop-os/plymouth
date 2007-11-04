@@ -4,39 +4,50 @@
 
 set -e
 
-[ -z "$LIB" ] && LIB="lib"
-[ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
 [ -z "$LIBEXECDIR" ] && LIBEXECDIR="/usr/libexec"
 [ -z "$DATADIR" ] && DATADIR="/usr/share"
 [ -z "$INITRD" ] && INITRD="/boot/initrd-$(/bin/uname -r).img"
+[ -z "$SYSTEMMAP" ] && SYSTEM_MAP="/boot/System.map-$(/bin/uname -r)"
+[ -z "$LIB" ] && [ $(head -n1 $SYSTEM_MAP | awk '{print $1}' | wc -c) -lt 16 ] && LIB="lib" || LIB="lib64"
+[ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
+[ -z "$GRUB_MENU_TITLE" ] && GRUB_MENU_TITLE="Graphical Bootup"
 
 if [ -z "$NEW_INITRD" ]; then
   NEW_INITRD="$(dirname $INITRD)/$(basename $INITRD .img)-plymouth.img"
 fi
 
+function get_lib_deps()
+{
+    
+    while [ $# -gt 0 ]; do
+        /usr/bin/ldd $1 | sed -n 's/.*=> \?\([^ ]*\) (.*$/\1/p' 
+        shift
+    done | sort -u
+}
+
 TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
 
-(
-    cd $TMPDIR
+(cd $TMPDIR
     zcat $INITRD | cpio --quiet -Hnewc -i --make-directories
     sed -i -e 's@^#!\(.*\)@#!/bin/plymouth \1@' init 
-    (
-        cd $LIBDIR
-        install -m755 $(/usr/bin/readlink libply.so) $TMPDIR/lib
-        install -m755 $(/usr/bin/readlink libpng12.so) $TMPDIR/lib
-	cd /$LIB
+    (cd $LIBDIR
+        DEPS=$(get_lib_deps ${LIBEXECDIR}/plymouth/plymouth ${LIBDIR}/plymouth/fedora-fade-in.so)
+        for dep in $DEPS; do
+            install -D -m755 $dep ${TMPDIR}$(dirname $dep)
+        done
     )
-    /sbin/ldconfig -n lib
+    /sbin/ldconfig -n $LIB 
+    /sbin/ldconfig -n .${LIBDIR}
 
-    install -m755 $LIBEXECDIR/plymouth/plymouth bin
+    install -m755 ${LIBEXECDIR}/plymouth/plymouth bin
 
-    mkdir -p usr/share/plymouth
+    mkdir -p ${TMPDIR}$DATADIR/plymouth
 
-    install -m644 $DATADIR/pixmaps/fedora-logo.png usr/share/plymouth
-    install -m644 $DATADIR/plymouth/star.png usr/share/plymouth
+    install -m644 ${DATADIR}/pixmaps/fedora-logo.png ${TMPDIR}${DATADIR}/plymouth
+    install -m644 ${DATADIR}/plymouth/star.png ${TMPDIR}${DATADIR}/plymouth
 
-    mkdir -p usr/$LIB/plymouth
-    install -m755 $LIBDIR/plymouth/fedora-fade-in.so usr/$LIB/plymouth
+    mkdir -p ${TMPDIR}${LIBDIR}/plymouth
+    install -m755 ${LIBDIR}/plymouth/fedora-fade-in.so ${TMPDIR}${LIBDIR}/plymouth
 
     rm -f $NEW_INITRD
     find | cpio --quiet -Hnewc -o | gzip -9 > $NEW_INITRD
@@ -47,7 +58,19 @@ rm -rf "$TMPDIR"
 
 CURRENT_KERNEL=$(/sbin/grubby --default-kernel)
 
-/sbin/grubby --title="Graphical Bootup"       \
+# XXX: Hack to clean out old entry since grubby doesn't deal with dupes too well
+if fgrep -q "title $GRUB_MENU_TITLE" /etc/grub.conf; then
+    TMPFILE="$(mktemp /etc/grub.conf.XXXXXXXXXX)"
+    if [ -L /etc/grub.conf ]; then
+        GRUB_CONF="$(readlink /etc/grub.conf)"
+    else
+        GRUB_CONF="/etc/grub.conf"
+    fi
+    awk '$1 != "'"$GRUB_MENU_TITLE"'" { printf $0 RT }' RS="title " FS="\n" $GRUB_CONF > $TMPFILE \
+    && mv $TMPFILE $GRUB_CONF || rm -f $TMPFILE
+fi
+
+/sbin/grubby --title="$GRUB_MENU_TITLE"       \
              --add-kernel="$CURRENT_KERNEL"   \
 	     --copy-default                   \
 	     --args="vga=0x318 rhgb quiet"    \

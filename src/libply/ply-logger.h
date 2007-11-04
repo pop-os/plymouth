@@ -87,6 +87,7 @@ do                                                                             \
                            "|pid: %d| <%.4f> [%s] %45.45s:" format "\n",       \
                            _pid, _timestamp, __FILE__, __func__, ##args);      \
         ply_logger_flush (logger);                                             \
+        errno = _old_errno;                                                    \
       }                                                                        \
   }                                                                            \
 while (0)

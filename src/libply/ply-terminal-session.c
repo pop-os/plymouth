@@ -49,11 +49,12 @@ struct _ply_terminal_session
   ply_event_loop_t *loop;
   char **argv;
 
-  ply_terminal_session_done_handler_t  done_handler;
-  void                                *done_handler_user_data;
+  ply_terminal_session_done_handler_t   done_handler;
+  void                                 *done_handler_user_data;
 
   uint32_t is_running : 1;
   uint32_t console_is_redirected : 1;
+  uint32_t change_root_to_current_directory : 1;
 };
 
 static bool ply_terminal_session_open_console (ply_terminal_session_t *session);
@@ -109,6 +110,12 @@ ply_terminal_session_execute (ply_terminal_session_t *session,
   if (!ply_terminal_session_open_console (session))
     return false;
 
+  if (session->change_root_to_current_directory)
+    {
+      if (chroot (".") < 0)
+        return false;
+    }
+
   if (look_in_path)
     execvp (session->argv[0], session->argv);
   else
@@ -132,6 +139,7 @@ ply_terminal_session_new (const char * const *argv)
   session->logger = ply_logger_new ();
   session->is_running = false;
   session->console_is_redirected = false;
+  session->change_root_to_current_directory = false;
 
   return session;
 }
@@ -220,6 +228,7 @@ ply_terminal_session_unredirect_console (ply_terminal_session_t *session)
 bool 
 ply_terminal_session_run (ply_terminal_session_t              *session,
                           ply_terminal_session_flags_t         flags,
+                          ply_terminal_session_begin_handler_t begin_handler,
                           ply_terminal_session_done_handler_t  done_handler,
                           void                                *user_data)
 {
@@ -236,22 +245,36 @@ ply_terminal_session_run (ply_terminal_session_t              *session,
   should_redirect_console = 
     (flags & PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE) != 0;
 
+  session->change_root_to_current_directory = 
+    (flags & PLY_TERMINAL_SESSION_FLAGS_CHANGE_ROOT_TO_CURRENT_DIRECTORY) != 0;
+
+  ply_trace ("creating terminal device");
   if (!ply_terminal_create_device (session->terminal))
     return false;
+  ply_trace ("done creating terminal device");
 
+  if (should_redirect_console)
+    ply_trace ("redirecting system console to terminal device");
   if (should_redirect_console && 
       !ply_terminal_session_redirect_console (session))
     {
+      ply_save_errno ();
       ply_terminal_destroy_device (session->terminal);
+      ply_restore_errno ();
       return false;
     }
+  if (should_redirect_console)
+    ply_trace ("done redirecting system console to terminal device");
 
+  ply_trace ("creating subprocess");
   pid = fork ();
 
   if (pid < 0)
     {
+      ply_save_errno ();
       ply_terminal_session_unredirect_console (session);
       ply_terminal_destroy_device (session->terminal);
+      ply_restore_errno ();
       return false;
     }
 
@@ -266,6 +289,14 @@ ply_terminal_session_run (ply_terminal_session_t              *session,
       return true;
     }
 
+  if (begin_handler != NULL)
+    {
+      ply_trace ("running 'begin handler'");
+      begin_handler (user_data, session);
+      ply_trace ("ran 'begin handler'");
+    }
+
+  ply_trace ("beginning session");
   ply_terminal_session_execute (session, look_in_path);
 
   _exit (errno);
@@ -421,7 +452,8 @@ main (int    argc,
   ply_terminal_session_attach_to_event_loop (session, loop);
 
   if (!ply_terminal_session_run (session, flags, 
-                                 (ply_terminal_session_done_handler_t)
+                                 (ply_terminal_session_begin_handler_t) NULL,
+                                 (ply_terminal_session_done_handler_t) 
                                  on_finished, loop))
     {
       perror ("could not start terminal session");

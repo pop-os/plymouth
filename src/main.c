@@ -38,13 +38,31 @@
 #include "ply-terminal-session.h"
 #include "ply-utils.h"
 
+#ifndef PLY_WORKING_DIRECTORY
+#define PLY_WORKING_DIRECTORY "/var/run/plymouth"
+#endif
+
 typedef struct
 {
   ply_event_loop_t *loop;
   ply_boot_server_t *boot_server;
   ply_boot_splash_t *boot_splash;
   ply_terminal_session_t *session;
+  int original_root_dir_fd;
 } state_t;
+
+static void
+on_session_start (state_t *state)
+{
+  ply_trace ("changing to original root fs");
+
+  if (fchdir (state->original_root_dir_fd) < 0)
+    {
+      ply_trace ("Could not change to original root directory "
+                 "to start session: %m");
+      return;
+    }
+}
 
 static void
 on_session_finished (state_t *state)
@@ -75,9 +93,16 @@ static void
 on_quit (state_t *state)
 {
   ply_terminal_session_close_log (state->session);
-  umount ("/sysroot");
   ply_boot_splash_hide (state->boot_splash);
   ply_event_loop_exit (state->loop, 0);
+
+  fchdir (state->original_root_dir_fd);
+  chroot (".");
+  ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/sysroot");
+  ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/sysroot");
+  ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/proc");
+  ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/dev/pts");
+  ply_unmount_filesystem (PLY_WORKING_DIRECTORY);
 }
 
 static ply_boot_server_t *
@@ -109,10 +134,14 @@ start_boot_splash (state_t    *state,
 {
   ply_boot_splash_t *splash;
 
-  mknod ("/dev/fb", 0600 | S_IFCHR, makedev (29, 0));
+  ply_trace ("Loading boot splash plugin '%s'",
+             module_path);
   splash = ply_boot_splash_new (module_path);
+
+  ply_trace ("attaching plugin to event loop");
   ply_boot_splash_attach_to_event_loop (splash, state->loop);
 
+  ply_trace ("showing plugin");
   if (!ply_boot_splash_show (splash))
     {
       ply_save_errno ();
@@ -135,11 +164,17 @@ spawn_session (state_t  *state,
   flags |= PLY_TERMINAL_SESSION_FLAGS_RUN_IN_PARENT;
   flags |= PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH;
   flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
+  flags |= PLY_TERMINAL_SESSION_FLAGS_CHANGE_ROOT_TO_CURRENT_DIRECTORY;
 
+  ply_trace ("opening terminal session for '%s'", argv[0]);
   session = ply_terminal_session_new ((const char * const *) argv);
+  ply_trace ("attaching terminal session to event loop");
   ply_terminal_session_attach_to_event_loop (session, state->loop);
 
+  ply_trace ("running '%s'", argv[0]);
   if (!ply_terminal_session_run (session, flags,
+                                 (ply_terminal_session_begin_handler_t)
+                                 on_session_start,
                                  (ply_terminal_session_done_handler_t)
                                  on_session_finished, state))
     {
@@ -150,6 +185,166 @@ spawn_session (state_t  *state,
     }
 
   return session;
+}
+
+static bool
+create_working_directory (state_t *state)
+{
+  ply_trace ("creating working directory '%s'",
+             PLY_WORKING_DIRECTORY);
+  if (!ply_create_detachable_directory (PLY_WORKING_DIRECTORY))
+    return false;
+
+  ply_trace ("changing to working directory");
+  if (chdir (PLY_WORKING_DIRECTORY) < 0)
+    return false;
+
+  ply_trace ("creating proc subdirectory");
+  if (!ply_create_directory ("proc"))
+    return false;
+
+  ply_trace ("creating dev subdirectory");
+  if (!ply_create_directory ("dev"))
+    return false;
+
+  ply_trace ("creating dev/pts subdirectory");
+  if (!ply_create_directory ("dev/pts"))
+    return false;
+
+  ply_trace ("creating usr/share/plymouth subdirectory");
+  if (!ply_create_directory ("usr/share/plymouth"))
+    return false;
+
+  ply_trace ("creating " PLYMOUTH_PLUGIN_PATH " subdirectory");
+  if (!ply_create_directory (PLYMOUTH_PLUGIN_PATH + 1))
+    return false;
+
+  ply_trace ("creating sysroot subdirectory");
+  if (!ply_create_directory ("sysroot"))
+    return false;
+
+  return true;
+}
+
+static bool
+change_to_working_directory (state_t *state)
+{
+  ply_trace ("changing to working directory");
+
+  state->original_root_dir_fd = open ("/", O_RDONLY);
+
+  if (state->original_root_dir_fd < 0)
+    return false;
+
+  if (chdir (PLY_WORKING_DIRECTORY) < 0)
+    return false;
+
+  if (chroot (".") < 0)
+    return false;
+
+  ply_trace ("now successfully in working directory");
+  return true;
+}
+
+static bool
+mount_proc_filesystem (state_t *state)
+{
+  ply_trace ("mounting proc filesystem");
+  if (mount ("none", PLY_WORKING_DIRECTORY "/proc", "proc", 0, NULL) < 0)
+    return false;
+
+  open (PLY_WORKING_DIRECTORY "/proc/.", O_RDWR);
+
+  ply_trace ("mounted proc filesystem");
+  return true;
+}
+
+static bool
+create_device_nodes (state_t *state)
+{
+  ply_trace ("creating device nodes");
+
+  if (mknod ("./dev/root", 0600 | S_IFBLK, makedev (253, 0)) < 0)
+    return false;
+
+  if (mknod ("./dev/null", 0600 | S_IFCHR, makedev (1, 3)) < 0)
+    return false;
+
+  if (mknod ("./dev/console", 0600 | S_IFCHR, makedev (5, 1)) < 0)
+    return false;
+
+  if (mknod ("./dev/tty", 0600 | S_IFCHR, makedev (5, 0)) < 0)
+    return false;
+
+  if (mknod ("./dev/tty0", 0600 | S_IFCHR, makedev (4, 0)) < 0)
+    return false;
+
+  if (mknod ("./dev/ptmx", 0600 | S_IFCHR, makedev (5, 2)) < 0)
+    return false;
+
+  if (mknod ("./dev/fb", 0600 | S_IFCHR, makedev (29, 0)) < 0)
+    return false;
+
+  ply_trace ("created device nodes");
+  return true;
+}
+
+static bool
+mount_devpts_filesystem (state_t *state)
+{
+  ply_trace ("mounting devpts filesystem");
+  if (mount ("none", PLY_WORKING_DIRECTORY "/dev/pts", "devpts", 0,
+             "gid=5,mode=620") < 0)
+    return false;
+
+  open (PLY_WORKING_DIRECTORY "/dev/pts/.", O_RDWR);
+
+  ply_trace ("mounted devpts filesystem");
+  return true;
+}
+
+static bool
+copy_data_files (state_t *state)
+{
+  ply_trace ("copying data files");
+  if (!ply_copy_directory ("/usr/share/plymouth", 
+                           "usr/share/plymouth"))
+    return false;
+  ply_trace ("copied data files");
+
+  ply_trace ("copying plugins");
+  if (!ply_copy_directory (PLYMOUTH_PLUGIN_PATH,
+                           PLYMOUTH_PLUGIN_PATH + 1))
+    return false;
+  ply_trace ("copied plugins files");
+
+  return true;
+}
+
+static bool
+initialize_environment (state_t *state)
+{
+  ply_trace ("initializing minimal work environment");
+  if (!create_working_directory (state))
+    return false;
+
+  if (!create_device_nodes (state))
+    return false;
+
+  if (!copy_data_files (state))
+    return false;
+
+  if (!mount_proc_filesystem (state))
+    return false;
+
+  if (!mount_devpts_filesystem (state))
+    return false;
+
+  if (!change_to_working_directory (state))
+    return false;
+
+  ply_trace ("initialized minimal work environment");
+  return true;
 }
 
 int
@@ -165,7 +360,30 @@ main (int    argc,
       return EX_USAGE;
     }
 
+  ply_toggle_tracing ();
+
   state.loop = ply_event_loop_new ();
+
+  /* before do anything we need to make sure we have a working 
+   * environment.  /proc needs to be mounted and certain devices need
+   * to be accessible (like the framebuffer device, pseudoterminal
+   * devices, etc)
+   */
+  if (!initialize_environment (&state))
+    {
+      ply_error ("could not setup basic operating environment: %m");
+      ply_list_directory (PLY_WORKING_DIRECTORY);
+      return EX_OSERR;
+    }
+
+  state.session = spawn_session (&state, argv + 1);
+
+  if (state.session == NULL)
+    {
+      ply_error ("could not run '%s': %m", argv[1]);
+      return EX_UNAVAILABLE;
+    }
+
   state.boot_server = start_boot_server (&state); 
 
   if (state.boot_server == NULL)
@@ -180,14 +398,6 @@ main (int    argc,
   if (state.boot_splash == NULL)
     {
       ply_error ("could not start boot splash: %m");
-      return EX_UNAVAILABLE;
-    }
-
-  state.session = spawn_session (&state, argv + 1);
-
-  if (state.session == NULL)
-    {
-      ply_error ("could not run '%s': %m", argv[1]);
       return EX_UNAVAILABLE;
     }
 

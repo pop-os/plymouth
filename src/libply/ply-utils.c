@@ -42,6 +42,8 @@
 
 #include <dlfcn.h>
 
+#include "ply-logger.h"
+
 #ifndef PLY_OPEN_FILE_DESCRIPTORS_DIR
 #define PLY_OPEN_FILE_DESCRIPTORS_DIR "/proc/self/fd"
 #endif
@@ -569,6 +571,44 @@ ply_file_exists (const char *file)
   return S_ISREG (file_info.st_mode);
 }
 
+void 
+ply_list_directory (const char *path)
+{
+  DIR *dir;
+  struct dirent *entry;
+  static int level = 0;
+
+  dir = opendir (path);
+
+  if (dir == NULL)
+    return;
+
+  if (level > 5)
+    return;
+
+  int index = 0;
+  while ((entry = readdir (dir)) != NULL) 
+    {
+      char *subdir;
+
+      index++;
+
+      if (index > 10)
+        break;
+
+      subdir = NULL;
+      asprintf (&subdir, "%s/%s", path, entry->d_name);
+      ply_error ("%s ", subdir);
+      level++;
+      if (entry->d_name[0] != '.')
+        ply_list_directory (subdir);
+      level--;
+      free (subdir);
+    }
+
+  closedir (dir);
+}
+
 ply_module_handle_t *
 ply_open_module (const char *module_path)
 {
@@ -624,10 +664,14 @@ ply_create_directory (const char *directory)
   assert (directory[0] != '\0');
 
   if (ply_directory_exists (directory))
-    return true;
+    {
+      ply_trace ("directory '%s' already exists", directory);
+      return true;
+    }
 
   if (ply_file_exists (directory))
     {
+      ply_trace ("file '%s' is in the way", directory);
       errno = EEXIST;
       return false;
     }
@@ -636,22 +680,27 @@ ply_create_directory (const char *directory)
     {
       char *parent_directory;
       char *last_path_component;
-      bool parent_is_created;
+      bool is_created;
 
-      parent_is_created = false;
+      is_created = errno == EEXIST;
       if (errno == ENOENT)
         {
           parent_directory = strdup (directory);
           last_path_component = strrchr (parent_directory, '/');
           *last_path_component = '\0';
-          parent_is_created = ply_create_directory (parent_directory);
+
+          ply_trace ("parent directory '%s' doesn't exist, creating it first", parent_directory);
+          if (ply_create_directory (parent_directory)
+              && ((mkdir (directory, 0755) == 0) || errno == EEXIST))
+            is_created = true;
 
           ply_save_errno ();
           free (parent_directory);
           ply_restore_errno ();
+
         }
 
-      return parent_is_created;
+      return is_created;
     }
 
 
@@ -665,6 +714,7 @@ ply_create_detachable_directory (const char *directory)
   assert (directory != NULL);
   assert (directory[0] != '\0');
   
+  ply_trace ("trying to create directory '%s'", directory);
   if (!ply_create_directory (directory))
     return false;
 
@@ -689,14 +739,13 @@ ply_detach_directory (const char *directory)
       return dir_fd;
     }
 
-  if (umount2 (directory, PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG) < 0)
+  if (!ply_unmount_filesystem (directory))
     {
       ply_save_errno ();
       umount (directory);
       ply_restore_errno ();
       return false;
     }
-
   rmdir (directory);
 
   /* return a file descriptor to the directory because it's now been
@@ -746,14 +795,18 @@ ply_copy_file (const char *source,
   file_copied = false;
   source_fd = -1;
   destination_fd = -1;
+
+  ply_trace ("opening source '%s'", source);
   source_fd = open (source, O_RDONLY | O_NOFOLLOW);
 
   if (source_fd < 0)
     goto out;
 
+  ply_trace ("stating fd %d", source_fd);
   if (fstat (source_fd, &file_info) < 0)
     goto out;
 
+  ply_trace ("opening dest '%s'", destination);
   destination_fd = open (destination, O_WRONLY | O_NOFOLLOW | O_CREAT,
                          file_info.st_mode);
 
@@ -781,19 +834,22 @@ ply_copy_file (const char *source,
 
   file_copied = true;
 out:
+  ply_save_errno ();
   close (source_fd);
   close (destination_fd);
+  ply_restore_errno ();
 
   return file_copied;
 }
 
 static bool
-ply_copy_file_in_direcetory (const char *filename,
-                             const char *parent,
-                             const char *destination)
+ply_copy_file_in_directory (const char *filename,
+                            const char *parent,
+                            const char *destination)
 {
   char *source, *target;
 
+  ply_trace ("copying '%s' in '%s' to '%s'", filename, parent, destination);
   source = NULL;
   asprintf (&source, "%s/%s", parent, filename);
 
@@ -855,7 +911,7 @@ ply_copy_directory (const char *source,
         }
       else if (ply_file_exists (full_path))
         {
-          if (!ply_copy_file_in_direcetory (entry->d_name, source, destination))
+          if (!ply_copy_file_in_directory (entry->d_name, source, destination))
             {
               ply_save_errno ();
               free (full_path);
@@ -869,6 +925,15 @@ ply_copy_directory (const char *source,
 
   assert (entry == NULL);
   closedir (dir);
+
+  return true;
+}
+
+bool 
+ply_unmount_filesystem (const char *directory)
+{
+  if (umount2 (directory, PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG) < 0)
+    return false;
 
   return true;
 }

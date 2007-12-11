@@ -349,28 +349,8 @@ animate_at_time (ply_frame_buffer_t *buffer,
                                                      0, 0, data, opacity);
   ply_frame_buffer_unpause_updates (buffer);
 
-  if (time > 60.0)
+  if (time > 10.0)
     ioctl (console_fd, KDSETMODE, KD_TEXT);
-}
-
-static void
-on_death ()
-{
-  ioctl (1, KDSETMODE, KD_TEXT);
-  _exit (0);
-}
-
-
-static void
-on_alarm ()
-{
-  if (num_frames == 0)
-      return;
-
-  fprintf (stderr, "%f\n",
-           num_frames / (get_current_time () - start_time));
-
-  alarm (2);
 }
 
 int
@@ -398,16 +378,6 @@ main (int    argc,
     }
 
   console_fd = open ("/dev/tty0", O_RDWR);
-  ioctl (console_fd, KDSETMODE, KD_GRAPHICS);
-  daemon (false, false);
-
-  signal (SIGINT, exit);
-  signal (SIGTERM, on_death);
-  signal (SIGINT, on_death);
-  atexit (on_death);
-
-  signal (SIGALRM, on_alarm);
-  //alarm (2);
 
   buffer = ply_frame_buffer_new (NULL);
 

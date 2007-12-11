@@ -66,8 +66,11 @@ struct _ply_frame_buffer
   uint32_t bits_for_alpha;
 
   unsigned int bytes_per_pixel;
+  unsigned int row_stride;
+
   ply_frame_buffer_area_t area;
   ply_frame_buffer_area_t area_to_flush;
+
 
   uint32_t is_paused : 1;
 };
@@ -139,7 +142,6 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
 {
   struct fb_var_screeninfo variable_screen_info;
   struct fb_fix_screeninfo fixed_screen_info;
-  size_t bytes_per_row;
 
   assert (buffer != NULL);
   assert (buffer->device_fd >= 0);
@@ -171,9 +173,9 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
       return false;
     }
 
-  bytes_per_row = fixed_screen_info.line_length;
-  buffer->size = buffer->area.height * bytes_per_row;
-  buffer->bytes_per_pixel = bytes_per_row / buffer->area.width;
+  buffer->bytes_per_pixel = variable_screen_info.bits_per_pixel >> 3;
+  buffer->row_stride = fixed_screen_info.line_length / buffer->bytes_per_pixel;
+  buffer->size = buffer->area.height * buffer->row_stride * buffer->bytes_per_pixel;
 
   return true;
 }
@@ -285,12 +287,12 @@ ply_frame_buffer_blend_value_at_pixel (ply_frame_buffer_t *buffer,
 
   if ((pixel_value >> 24) != 0xff)
     {
-      old_pixel_value = buffer->shadow_buffer[y * buffer->area.width + x];
+      old_pixel_value = buffer->shadow_buffer[y * buffer->row_stride + x];
 
       pixel_value = blend_two_pixel_values (pixel_value, old_pixel_value);
     }
 
-  buffer->shadow_buffer[y * buffer->area.width + x] = pixel_value;
+  buffer->shadow_buffer[y * buffer->row_stride + x] = pixel_value;
 }
 
 static void
@@ -348,10 +350,7 @@ ply_frame_buffer_copy_to_device (ply_frame_buffer_t *buffer,
                                  unsigned long   height)
 {
   unsigned long row, column;
-  unsigned long bytes_per_row;
   
-  bytes_per_row = buffer->area.width * buffer->bytes_per_pixel;
-
   for (row = y; row < y + height; row++)
     {
       for (column = x; column < x + width; column++)
@@ -360,13 +359,13 @@ ply_frame_buffer_copy_to_device (ply_frame_buffer_t *buffer,
           uint_fast32_t device_pixel_value;
           unsigned long offset;
 
-          pixel_value = buffer->shadow_buffer[row * buffer->area.width + column];
+          pixel_value = buffer->shadow_buffer[row * buffer->row_stride + column];
 
           device_pixel_value = 
             ply_frame_buffer_pixel_value_to_device_pixel_value (buffer,
                                                                 pixel_value);
 
-          offset = row * bytes_per_row + column * buffer->bytes_per_pixel;
+          offset = row * buffer->row_stride * buffer->bytes_per_pixel + column * buffer->bytes_per_pixel;
 
           memcpy (buffer->map_address + offset, &device_pixel_value,
                   buffer->bytes_per_pixel);
@@ -459,11 +458,9 @@ ply_frame_buffer_open (ply_frame_buffer_t *buffer)
       goto out;
     }
 
-  buffer->shadow_buffer = 
-    realloc (buffer->shadow_buffer,
-             4 * buffer->area.width * buffer->area.height);
-  memset (buffer->shadow_buffer, 0, 
-          4 * buffer->area.width * buffer->area.height);
+  buffer->shadow_buffer =
+    realloc (buffer->shadow_buffer, 4 * buffer->row_stride * buffer->area.height);
+  memset (buffer->shadow_buffer, 0, 4 * buffer->row_stride * buffer->area.height);
   ply_frame_buffer_fill_with_color (buffer, NULL, 0.0, 0.0, 0.0, 1.0);
 
   is_open = true;
@@ -703,25 +700,28 @@ animate_at_time (ply_frame_buffer_t *buffer,
 {
   int x, y;
   uint32_t *data;
+  ply_frame_buffer_area_t area;
 
-  data = calloc (1024 * 768, sizeof (uint32_t));
+  ply_frame_buffer_get_size (buffer, &area);
 
-  for (y = 0; y < 768; y++)
+  data = calloc (area.width * area.height, sizeof (uint32_t));
+
+  for (y = 0; y < area.height; y++)
     {
       int blue_bit_position;
       uint8_t red, green, blue, alpha;
 
       blue_bit_position = (int) 64 * (.5 * sin (time) + .5) + (255 - 64);
       blue = rand () % blue_bit_position;
-      for (x = 0; x < 1024; x++)
+      for (x = 0; x < area.width; x++)
       {
         alpha = 0xff;
-        red = (uint8_t) ((y / 768.0) * 255.0);
-        green = (uint8_t) ((x / 1024.0) * 255.0);
-        
+        red = (uint8_t) ((y / (area.height * 1.0)) * 255.0);
+        green = (uint8_t) ((x / (area.width * 1.0)) * 255.0);
+
         red = green = (red + green + blue) / 3;
 
-        data[y * 1024 + x] = (alpha << 24) | (red << 16) | (green << 8) | blue;
+        data[y * area.width + x] = (alpha << 24) | (red << 16) | (green << 8) | blue;
       }
     }
 

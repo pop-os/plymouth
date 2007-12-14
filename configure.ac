@@ -1,6 +1,7 @@
 AC_INIT(plymouth, 0.0.1, "rstrode@redhat.com")
 AC_CONFIG_SRCDIR(src/main.c)
 AC_CONFIG_HEADER(config.h)
+AC_CONFIG_AUX_DIR(build-tools)
 
 AC_GNU_SOURCE
 AC_PROG_AWK
@@ -12,13 +13,6 @@ AC_C_CONST
 AM_INIT_AUTOMAKE([dist-bzip2])
 AM_MAINTAINER_MODE
 
-GETTEXT_PACKAGE=plymouth
-AC_DEFINE([GETTEXT_PACKAGE], [], "graphical boot splash")
-AC_SUBST(GETTEXT_PACKAGE)
-AM_GLIB_GNU_GETTEXT
-ALL_LINGUAS=""
-
-IT_PROG_INTLTOOL
 PKG_PROG_PKG_CONFIG
 AM_PROG_LIBTOOL
 
@@ -59,5 +53,4 @@ AC_OUTPUT([Makefile
            src/rhgb-client/tests/Makefile
            src/splash-plugins/tests/Makefile
 	   scripts/Makefile
-           po/Makefile.in
 ])

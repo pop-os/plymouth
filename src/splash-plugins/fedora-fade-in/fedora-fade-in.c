@@ -157,6 +157,7 @@ set_graphics_mode (ply_boot_splash_plugin_t *plugin)
 {
   assert (plugin != NULL);
 
+  return true;
   if (ioctl (plugin->console_fd, KDSETMODE, KD_GRAPHICS) < 0)
     return false;
 
@@ -409,8 +410,8 @@ add_star (ply_boot_splash_plugin_t *plugin)
   ply_frame_buffer_get_size (plugin->frame_buffer, &logo_area);
   width = ply_image_get_width (plugin->logo_image);
   height = ply_image_get_height (plugin->logo_image);
-  logo_area.x = (logo_area.width / 2) - (width / 2);
-  logo_area.y = (logo_area.height / 2) - (height / 2);
+  logo_area.x = (width / 2) - (logo_area.width / 2);
+  logo_area.y = (height / 2) - (logo_area.height / 2);
   logo_area.width = width;
   logo_area.height = height;
 
@@ -424,11 +425,17 @@ add_star (ply_boot_splash_plugin_t *plugin)
       x = rand () % area.width;
       y = rand () % area.height;
 
-      if (((x + width >= logo_area.x) 
-           && (x <= logo_area.x + logo_area.width))
-          && ((y + height >= logo_area.y) 
-              && (y <= logo_area.y + logo_area.height)))
-        continue;
+      if ((x <= logo_area.x + logo_area.width)
+           && (x >= logo_area.x)
+          && (y >= logo_area.y)
+           && (y <= logo_area.y + logo_area.height))
+          continue;
+
+      if ((x + width >= logo_area.x)
+           && (x + width <= logo_area.x + logo_area.width)
+          && (y + height >= logo_area.y)
+           && (y + height <= logo_area.y + logo_area.height))
+          continue;
 
       node = ply_list_get_first_node (plugin->stars);
       while (node != NULL)
@@ -438,11 +445,17 @@ add_star (ply_boot_splash_plugin_t *plugin)
           star = (star_t *) ply_list_node_get_data (node);
           next_node = ply_list_get_next_node (plugin->stars, node);
 
-          if (((x + width >= star->x) 
-               && (x <= star->x + width))
-              && ((y + height >= star->y) 
-                  && (y <= star->y + height)))
-              break;
+          if ((x <= star->x + width)
+               && (x >= star->x)
+              && (y >= star->y)
+               && (y <= star->y + height))
+              continue;
+
+          if ((x + width >= star->x)
+               && (x + width <= star->x + width)
+              && (y + height >= star->y)
+               && (y + height <= star->y + height))
+              continue;
 
           node = next_node;
         }

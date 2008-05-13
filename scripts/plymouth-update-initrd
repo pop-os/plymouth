@@ -66,8 +66,8 @@ if fgrep -q "title $GRUB_MENU_TITLE" /etc/grub.conf; then
     else
         GRUB_CONF="/etc/grub.conf"
     fi
-    awk '$1 != "'"$GRUB_MENU_TITLE"'" { printf $0 RT }' RS="title " FS="\n" $GRUB_CONF > $TMPFILE \
-    && mv $TMPFILE $GRUB_CONF || rm -f $TMPFILE
+    (cd /etc; awk '$1 != "'"$GRUB_MENU_TITLE"'" { printf $0 RT }' RS="title " FS="\n" $GRUB_CONF > $TMPFILE \
+    && mv $TMPFILE $GRUB_CONF || rm -f $TMPFILE)
 fi
 
 /sbin/grubby --title="$GRUB_MENU_TITLE"       \

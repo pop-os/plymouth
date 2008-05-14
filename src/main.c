@@ -76,6 +76,7 @@ static void
 on_update (state_t     *state,
            const char  *status)
 {
+  ply_trace ("updating status to '%s'", status);
   ply_boot_splash_update_status (state->boot_splash,
                                  status);
 }
@@ -83,6 +84,8 @@ on_update (state_t     *state,
 static void
 on_system_initialized (state_t *state)
 {
+
+  ply_trace ("system now initialized, ready to mount root filesystem");
   mknod ("/dev/root", 0600 | S_IFBLK, makedev (253, 0));
   mount("/dev/root", "/sysroot", "ext3", 0, NULL);
   ply_terminal_session_open_log (state->session, 
@@ -92,13 +95,17 @@ on_system_initialized (state_t *state)
 static void
 on_quit (state_t *state)
 {
+  ply_trace ("time to quit, closing log");
   ply_terminal_session_close_log (state->session);
+  ply_trace ("hiding splash");
   ply_boot_splash_hide (state->boot_splash);
+  ply_trace ("exiting event loop");
   ply_event_loop_exit (state->loop, 0);
 
+  ply_trace ("switching root dir");
   fchdir (state->original_root_dir_fd);
   chroot (".");
-  ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/sysroot");
+  ply_trace ("unmounting temporary filesystem mounts");
   ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/sysroot");
   ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/proc");
   ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/dev/pts");
@@ -401,10 +408,23 @@ main (int    argc,
       return EX_UNAVAILABLE;
     }
 
+  ply_trace ("entering event loop");
   exit_code = ply_event_loop_run (state.loop);
+  ply_trace ("exited event loop");
 
+  ply_boot_splash_free (state.boot_splash);
+  state.boot_splash = NULL;
+
+  ply_boot_server_free (state.boot_server);
+  state.boot_server = NULL;
+
+  ply_trace ("freeing terminal session");
   ply_terminal_session_free (state.session);
+
+  ply_trace ("freeing event loop");
   ply_event_loop_free (state.loop);
+
+  ply_trace ("exiting with code %d", exit_code);
 
   return exit_code;
 }

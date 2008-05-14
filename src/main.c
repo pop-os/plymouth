@@ -407,6 +407,12 @@ main (int    argc,
 
   if (state.boot_splash == NULL)
     {
+      state.boot_splash = start_boot_splash (&state,
+                                             PLYMOUTH_PLUGIN_PATH "text.so");
+    }
+
+  if (state.boot_splash == NULL)
+    {
       ply_error ("could not start boot splash: %m");
       return EX_UNAVAILABLE;
     }

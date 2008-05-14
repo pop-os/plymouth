@@ -449,13 +449,13 @@ add_star (ply_boot_splash_plugin_t *plugin)
                && (x >= star->x)
               && (y >= star->y)
                && (y <= star->y + height))
-              continue;
+              break;
 
           if ((x + width >= star->x)
                && (x + width <= star->x + width)
               && (y + height >= star->y)
                && (y + height <= star->y + height))
-              continue;
+              break;
 
           node = next_node;
         }

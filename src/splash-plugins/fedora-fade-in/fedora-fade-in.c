@@ -474,6 +474,14 @@ update_status (ply_boot_splash_plugin_t *plugin,
   add_star (plugin);
 }
 
+static void
+detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
+{
+  plugin->loop = NULL;
+
+  set_text_mode (plugin);
+}
+
 void
 hide_splash_screen (ply_boot_splash_plugin_t *plugin)
 {
@@ -483,14 +491,6 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin)
     stop_animation (plugin);
 
   ply_frame_buffer_close (plugin->frame_buffer);
-}
-
-static void
-detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
-{
-  plugin->loop = NULL;
-
-  set_text_mode (plugin);
 }
 
 void

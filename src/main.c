@@ -286,6 +286,9 @@ create_device_nodes (state_t *state)
   if (mknod ("./dev/tty0", 0600 | S_IFCHR, makedev (4, 0)) < 0)
     return false;
 
+  if (mknod ("./dev/tty1", 0600 | S_IFCHR, makedev (4, 1)) < 0)
+    return false;
+
   if (mknod ("./dev/ptmx", 0600 | S_IFCHR, makedev (5, 2)) < 0)
     return false;
 

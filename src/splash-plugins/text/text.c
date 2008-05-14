@@ -139,6 +139,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin)
   ply_trace ("hiding splash screen");
 
   ply_event_loop_stop_watching_for_exit (plugin->loop,
+                                         (ply_event_loop_exit_handler_t)
                                          detach_from_event_loop,
                                          plugin);
   detach_from_event_loop (plugin);

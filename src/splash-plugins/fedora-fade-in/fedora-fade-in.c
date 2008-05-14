@@ -490,6 +490,11 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin)
   if (plugin->loop != NULL)
     stop_animation (plugin);
 
+  ply_event_loop_stop_watching_for_exit (plugin->loop,
+                                         detach_from_event_loop,
+                                         plugin);
+  detach_from_event_loop (plugin);
+
   ply_frame_buffer_close (plugin->frame_buffer);
 }
 

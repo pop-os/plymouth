@@ -406,15 +406,14 @@ add_star (ply_boot_splash_plugin_t *plugin)
 
   assert (plugin != NULL);
 
-  ply_frame_buffer_get_size (plugin->frame_buffer, &logo_area);
+  ply_frame_buffer_get_size (plugin->frame_buffer, &area);
   width = ply_image_get_width (plugin->logo_image);
   height = ply_image_get_height (plugin->logo_image);
-  logo_area.x = (width / 2) - (logo_area.width / 2);
-  logo_area.y = (height / 2) - (logo_area.height / 2);
+  logo_area.x = (area.width / 2) - (width / 2);
+  logo_area.y = (area.height / 2) - (height / 2);
   logo_area.width = width;
   logo_area.height = height;
 
-  ply_frame_buffer_get_size (plugin->frame_buffer, &area);
   width = ply_image_get_width (plugin->star_image);
   height = ply_image_get_height (plugin->star_image);
 

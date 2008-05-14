@@ -1,2 +1,2 @@
-SUBDIRS = fedora-fade-in tests
+SUBDIRS = fedora-fade-in text tests
 MAINTAINERCLEANFILES = Makefile.in

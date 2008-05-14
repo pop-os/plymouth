@@ -31,7 +31,7 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
     zcat $INITRD | cpio --quiet -Hnewc -i --make-directories
     sed -i -e 's@^#!\(.*\)@#!/bin/plymouth \1@' init 
     (cd $LIBDIR
-        DEPS=$(get_lib_deps ${LIBEXECDIR}/plymouth/plymouth ${LIBDIR}/plymouth/fedora-fade-in.so)
+        DEPS=$(get_lib_deps ${LIBEXECDIR}/plymouth/plymouth ${LIBDIR}/plymouth/fedora-fade-in.so ${LIBDIR}/plymouth/text.so)
         for dep in $DEPS; do
             install -D -m755 $dep ${TMPDIR}$(dirname $dep)
         done
@@ -48,6 +48,7 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
 
     mkdir -p ${TMPDIR}${LIBDIR}/plymouth
     install -m755 ${LIBDIR}/plymouth/fedora-fade-in.so ${TMPDIR}${LIBDIR}/plymouth
+    install -m755 ${LIBDIR}/plymouth/text.so ${TMPDIR}${LIBDIR}/plymouth
 
     rm -f $NEW_INITRD
     find | cpio --quiet -Hnewc -o | gzip -9 > $NEW_INITRD

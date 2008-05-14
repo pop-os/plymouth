@@ -833,6 +833,33 @@ ply_event_loop_watch_for_exit (ply_event_loop_t              *loop,
 }
 
 void
+ply_event_loop_stop_watching_for_exit (ply_event_loop_t *loop,
+                                       ply_event_loop_exit_handler_t exit_handler,
+                                       void             *user_data)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (loop->exit_closures);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_event_loop_exit_closure_t *closure;
+
+      closure = (ply_event_loop_exit_closure_t *) ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (loop->exit_closures, node);
+
+      if (closure->handler == exit_handler &&
+          closure->user_data == user_data) {
+              ply_list_remove_node (loop->exit_closures, node);
+              free (closure);
+              break;
+      }
+
+      node = next_node;
+    }
+}
+
+void
 ply_event_loop_watch_for_timeout (ply_event_loop_t    *loop,
                                   double               seconds,             
                                   ply_event_loop_timeout_handler_t timeout_handler,

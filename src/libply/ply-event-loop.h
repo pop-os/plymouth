@@ -66,6 +66,9 @@ void ply_event_loop_stop_watching_signal (ply_event_loop_t *loop,
 void ply_event_loop_watch_for_exit (ply_event_loop_t              *loop,
                                     ply_event_loop_exit_handler_t  exit_handler,
                                     void                          *user_data);
+void ply_event_loop_stop_watching_for_exit (ply_event_loop_t              *loop,
+                                            ply_event_loop_exit_handler_t  exit_handler,
+                                            void                          *user_data);
 void ply_event_loop_watch_for_timeout (ply_event_loop_t    *loop,
                                        double               seconds,             
                                        ply_event_loop_timeout_handler_t timeout_handler,

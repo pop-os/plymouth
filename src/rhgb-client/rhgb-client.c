@@ -30,6 +30,14 @@
 #include "ply-utils.h"
 
 static void
+on_answer (ply_event_loop_t *loop,
+           const char       *answer)
+{
+  write (STDOUT_FILENO, answer, strlen (answer));
+  ply_event_loop_exit (loop, 0);
+}
+
+static void
 on_success (ply_event_loop_t *loop)
 {
   ply_event_loop_exit (loop, 0);
@@ -61,7 +69,7 @@ main (int    argc,
 {
   ply_event_loop_t *loop;
   ply_boot_client_t *client;
-  bool should_quit, should_ping, should_update, should_sysinit;
+  bool should_quit, should_ping, should_update, should_sysinit, should_ask_for_password;
   char *status;
   int exit_code;
   int i;
@@ -80,6 +88,7 @@ main (int    argc,
   should_ping = false;
   should_update = false;
   should_quit = false;
+  should_ask_for_password = false;
   status = NULL;
   for (i = 1; i < argc; i++)
     {
@@ -94,6 +103,8 @@ main (int    argc,
         should_ping = true;
       else if (strstr (argv[i], "--sysinit") != NULL)
         should_sysinit = true;
+      else if (strstr (argv[i], "--ask-for-password") != NULL)
+        should_ask_for_password = true;
       else if (strstr (argv[i], "--update") != NULL)
         {
           const char *update_argument;
@@ -147,6 +158,12 @@ main (int    argc,
     ply_boot_client_update_daemon (client, status,
                                    (ply_boot_client_response_handler_t)
                                    on_success, 
+                                   (ply_boot_client_response_handler_t)
+                                   on_failure, loop);
+  else if (should_ask_for_password)
+    ply_boot_client_ask_daemon_for_password (client,
+                                   (ply_boot_client_answer_handler_t)
+                                   on_answer,
                                    (ply_boot_client_response_handler_t)
                                    on_failure, loop);
   else if (should_sysinit)

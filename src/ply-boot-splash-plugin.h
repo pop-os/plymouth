@@ -30,7 +30,7 @@
 
 typedef struct _ply_boot_splash_plugin ply_boot_splash_plugin_t;
 
-typedef struct 
+typedef struct
 {
   ply_boot_splash_plugin_t * (* create_plugin) (void);
   void (* destroy_plugin) (ply_boot_splash_plugin_t *plugin);
@@ -41,6 +41,8 @@ typedef struct
   void (* hide_splash_screen) (ply_boot_splash_plugin_t *plugin);
   void (* attach_to_event_loop) (ply_boot_splash_plugin_t *plugin,
                                  ply_event_loop_t         *loop);
+
+  char * (* ask_for_password) (ply_boot_splash_plugin_t *plugin);
 
 } ply_boot_splash_plugin_interface_t;
 

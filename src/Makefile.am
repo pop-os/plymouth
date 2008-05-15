@@ -14,6 +14,8 @@ plymouth_SOURCES =                                                            \
                    ply-boot-splash-plugin.h                                   \
                    ply-boot-splash.h                                          \
                    ply-boot-splash.c                                          \
+                   ply-window.h                                               \
+                   ply-window.c                                               \
                    main.c
 
 MAINTAINERCLEANFILES = Makefile.in

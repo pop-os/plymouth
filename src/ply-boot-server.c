@@ -51,6 +51,7 @@ struct _ply_boot_server
 
   ply_boot_server_update_handler_t update_handler;
   ply_boot_server_system_initialized_handler_t system_initialized_handler;
+  ply_boot_server_ask_for_password_handler_t ask_for_password_handler;
   ply_boot_server_quit_handler_t quit_handler;
   void *user_data;
 
@@ -59,6 +60,7 @@ struct _ply_boot_server
 
 ply_boot_server_t *
 ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
+                     ply_boot_server_ask_for_password_handler_t ask_for_password_handler,
                      ply_boot_server_system_initialized_handler_t initialized_handler,
                      ply_boot_server_quit_handler_t    quit_handler,
                      void                             *user_data)
@@ -70,6 +72,7 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
   server->loop = NULL;
   server->is_listening = false;
   server->update_handler = update_handler;
+  server->ask_for_password_handler = ask_for_password_handler;
   server->system_initialized_handler = initialized_handler;
   server->quit_handler = quit_handler;
   server->user_data = user_data;
@@ -194,6 +197,35 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (server->quit_handler != NULL)
         server->quit_handler (server->user_data, server);
     }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PASSWORD) == 0)
+    {
+      char *password;
+      uint8_t size;
+
+      password = NULL;
+
+      if (server->ask_for_password_handler != NULL)
+        password = server->ask_for_password_handler (server->user_data, server);
+
+      /* FIXME: support up to 4 billion
+       */
+      if (strlen (password) > 255)
+        ply_error ("password to long to fit in buffer");
+
+      size = (uint8_t) strlen (password);
+
+      if (!ply_write (connection->fd,
+                      PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER,
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)) ||
+          !ply_write (connection->fd,
+                      &size, sizeof (uint8_t)) ||
+          !ply_write (connection->fd,
+                      password, size))
+        ply_error ("could not write bytes: %m");
+
+      free (password);
+      return;
+    }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PING) != 0)
     {
       ply_error ("received unknown command '%s' from client", command);
@@ -317,6 +349,14 @@ on_quit (ply_event_loop_t *loop)
   ply_event_loop_exit (loop, 0);
 }
 
+static char *
+on_ask_for_password (ply_event_loop_t *loop)
+{
+  printf ("got password request, returning 'password'...\n");
+
+  return strdup ("password");
+}
+
 int
 main (int    argc,
       char **argv)
@@ -330,6 +370,7 @@ main (int    argc,
   loop = ply_event_loop_new ();
 
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
+                                (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
                                 (ply_boot_server_system_initialized_handler_t) on_system_initialized,
                                 (ply_boot_server_quit_handler_t) on_quit,
                                 loop);

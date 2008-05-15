@@ -81,6 +81,12 @@ on_update (state_t     *state,
                                  status);
 }
 
+static char *
+on_ask_for_password (state_t *state)
+{
+  return ply_boot_splash_ask_for_password (state->boot_splash);
+}
+
 static void
 on_system_initialized (state_t *state)
 {
@@ -118,6 +124,7 @@ start_boot_server (state_t *state)
   ply_boot_server_t *server;
 
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
+                                (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
                                 (ply_boot_server_system_initialized_handler_t) on_system_initialized,
                                 (ply_boot_server_quit_handler_t) on_quit,
                                 state);
@@ -332,6 +339,23 @@ copy_data_files (state_t *state)
 }
 
 static bool
+set_console_io_to_vt1 (state_t *state)
+{
+  int fd;
+
+  fd = open ("/dev/tty1", O_RDWR | O_APPEND);
+
+  if (fd < 0)
+    return false;
+
+  dup2 (fd, STDIN_FILENO);
+  dup2 (fd, STDOUT_FILENO);
+  dup2 (fd, STDERR_FILENO);
+
+  return true;
+}
+
+static bool
 initialize_environment (state_t *state)
 {
   ply_trace ("initializing minimal work environment");
@@ -351,6 +375,9 @@ initialize_environment (state_t *state)
     return false;
 
   if (!change_to_working_directory (state))
+    return false;
+
+  if (!set_console_io_to_vt1 (state))
     return false;
 
   ply_trace ("initialized minimal work environment");

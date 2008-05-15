@@ -36,6 +36,8 @@ void ply_boot_splash_free (ply_boot_splash_t *splash);
 bool ply_boot_splash_show (ply_boot_splash_t *splash);
 void ply_boot_splash_update_status (ply_boot_splash_t *splash,
                                     const char        *status);
+
+char *ply_boot_splash_ask_for_password (ply_boot_splash_t *splash);
 void ply_boot_splash_hide (ply_boot_splash_t *splash);
 void ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
                                            ply_event_loop_t  *loop);

@@ -231,10 +231,13 @@ ply_boot_client_process_incoming_replies (ply_boot_client_t *client)
 {
   ply_list_node_t *request_node;
   ply_boot_client_request_t *request;
+  bool processed_reply;
   uint8_t byte[2] = "";
+  uint8_t size;
 
   assert (client != NULL);
 
+  processed_reply = false;
   if (ply_list_get_length (client->requests_waiting_for_replies) == 0)
     {
       ply_error ("received unexpected response from boot status daemon");
@@ -248,22 +251,36 @@ ply_boot_client_process_incoming_replies (ply_boot_client_t *client)
   assert (request != NULL);
 
   if (!ply_read (client->socket_fd, byte, sizeof (uint8_t)))
+    goto out;
+
+  if (memcmp (byte, PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK, sizeof (uint8_t)) == 0)
+      request->handler (request->user_data, client);
+  else if (memcmp (byte, PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER, sizeof (uint8_t)) == 0)
+    {
+      char answer[257] = "";
+
+      /* FIXME: should make this 4 bytes instead of 1
+       */
+      if (!ply_read (client->socket_fd, &size, sizeof (uint8_t)))
+        goto out;
+
+      if (!ply_read (client->socket_fd, answer, size))
+        goto out;
+
+      ((ply_boot_client_answer_handler_t) request->handler) (request->user_data, answer, client);
+    }
+  else
+    goto out;
+
+  processed_reply = true;
+
+out:
+  if (!processed_reply)
     {
       if (request->failed_handler != NULL)
         request->failed_handler (request->user_data, client);
-      ply_list_remove_node (client->requests_waiting_for_replies, request_node);
-      return;
     }
 
-  if (memcmp (byte, PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK, sizeof (uint8_t)) != 0)
-    {
-      if (request->failed_handler != NULL)
-        request->failed_handler (request->user_data, client);
-      ply_list_remove_node (client->requests_waiting_for_replies, request_node);
-      return;
-    }
-
-  request->handler (request->user_data, client);
   ply_list_remove_node (client->requests_waiting_for_replies, request_node);
 
   if (ply_list_get_length (client->requests_waiting_for_replies) == 0)
@@ -435,6 +452,19 @@ ply_boot_client_tell_daemon_system_is_initialized (ply_boot_client_t            
   ply_boot_client_queue_request (client,
                                  PLY_BOOT_PROTOCOL_REQUEST_TYPE_SYSTEM_INITIALIZED,
                                  NULL, handler, failed_handler, user_data);
+}
+
+void
+ply_boot_client_ask_daemon_for_password (ply_boot_client_t                  *client,
+                                         ply_boot_client_answer_handler_t    handler,
+                                         ply_boot_client_response_handler_t  failed_handler,
+                                         void                               *user_data)
+{
+  assert (client != NULL);
+
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PASSWORD,
+                                 NULL, (ply_boot_client_response_handler_t)
+                                 handler, failed_handler, user_data);
 }
 
 void

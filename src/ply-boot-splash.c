@@ -176,6 +176,19 @@ ply_boot_splash_update_status (ply_boot_splash_t *splash,
   splash->plugin_interface->update_status (splash->plugin, status);
 }
 
+char *
+ply_boot_splash_ask_for_password (ply_boot_splash_t *splash)
+{
+
+  assert (splash != NULL);
+  assert (splash->plugin_interface != NULL);
+  assert (splash->plugin != NULL);
+  assert (splash->plugin_interface->ask_for_password != NULL);
+  assert (splash->is_shown);
+
+  return splash->plugin_interface->ask_for_password (splash->plugin);
+}
+
 void
 ply_boot_splash_hide (ply_boot_splash_t *splash)
 {

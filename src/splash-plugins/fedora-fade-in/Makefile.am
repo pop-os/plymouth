@@ -11,6 +11,8 @@ fedora_fade_in_la_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLYMOUTH_IMAGE_DIR=\"$(datadir)/
 fedora_fade_in_la_LDFLAGS = -module -avoid-version -export-dynamic
 fedora_fade_in_la_LIBADD = $(PLYMOUTH_LIBS) ../../libply/libply.la
 fedora_fade_in_la_SOURCES = $(srcdir)/../../ply-boot-splash-plugin.h         \
+                            $(srcdir)/../../ply-window.h                     \
+                            $(srcdir)/../../ply-window.c                     \
                             $(srcdir)/fedora-fade-in.c
 
 plymouthdir = $(datadir)/plymouth

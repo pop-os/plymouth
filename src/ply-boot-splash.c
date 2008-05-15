@@ -43,6 +43,7 @@ struct _ply_boot_splash
   ply_module_handle_t *module_handle;
   const ply_boot_splash_plugin_interface_t *plugin_interface;
   ply_boot_splash_plugin_t *plugin;
+  ply_window_t *window;
 
   char *module_name;
   char *status;
@@ -101,8 +102,10 @@ ply_boot_splash_load_plugin (ply_boot_splash_t *splash)
 
   if (get_boot_splash_plugin_interface == NULL)
     {
+      ply_save_errno ();
       ply_close_module (splash->module_handle);
       splash->module_handle = NULL;
+      ply_restore_errno ();
       return false;
     }
 
@@ -110,8 +113,10 @@ ply_boot_splash_load_plugin (ply_boot_splash_t *splash)
 
   if (splash->plugin_interface == NULL)
     {
+      ply_save_errno ();
       ply_close_module (splash->module_handle);
       splash->module_handle = NULL;
+      ply_restore_errno ();
       return false;
     }
 
@@ -138,6 +143,23 @@ ply_boot_splash_unload_plugin (ply_boot_splash_t *splash)
   splash->module_handle = NULL;
 }
 
+static bool
+ply_boot_splash_create_window (ply_boot_splash_t *splash)
+{
+  splash->window = ply_window_new ("/dev/tty1");
+
+  if (!ply_window_open (splash->window))
+    {
+      ply_save_errno ();
+      ply_window_free (splash->window);
+      splash->window = NULL;
+      ply_restore_errno ();
+      return false;
+    }
+
+  return true;
+}
+
 bool
 ply_boot_splash_show (ply_boot_splash_t *splash)
 {
@@ -145,8 +167,14 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
   assert (splash->module_name != NULL);
   assert (splash->loop != NULL);
 
+  ply_trace ("trying to load %s", splash->module_name);
   if (!ply_boot_splash_load_plugin (splash))
-    return false;
+    {
+      ply_save_errno ();
+      ply_trace ("can't load plugin: %m");
+      ply_restore_errno ();
+      return false;
+    }
 
   assert (splash->plugin_interface != NULL);
   assert (splash->plugin != NULL);
@@ -155,8 +183,21 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
 
   splash->plugin_interface->attach_to_event_loop (splash->plugin,
                                                   splash->loop);
-  if (!splash->plugin_interface->show_splash_screen (splash->plugin))
+
+  if (!ply_boot_splash_create_window (splash))
     return false;
+
+  assert (splash->window != NULL);
+
+  if (!splash->plugin_interface->show_splash_screen (splash->plugin,
+                                                     splash->window))
+    {
+
+      ply_save_errno ();
+      ply_trace ("can't show splash: %m");
+      ply_restore_errno ();
+      return false;
+    }
 
   splash->is_shown = true;
   return true;
@@ -197,7 +238,8 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
   assert (splash->plugin != NULL);
   assert (splash->plugin_interface->hide_splash_screen != NULL);
 
-  splash->plugin_interface->hide_splash_screen (splash->plugin);
+  splash->plugin_interface->hide_splash_screen (splash->plugin,
+                                                splash->window);
 
   ply_boot_splash_unload_plugin (splash);
   splash->is_shown = false;

@@ -421,7 +421,7 @@ main (int    argc,
       return EX_UNAVAILABLE;
     }
 
-  state.boot_server = start_boot_server (&state); 
+  state.boot_server = start_boot_server (&state);
 
   if (state.boot_server == NULL)
     {

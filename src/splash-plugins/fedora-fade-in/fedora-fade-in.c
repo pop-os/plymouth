@@ -45,7 +45,7 @@
 #include "ply-frame-buffer.h"
 #include "ply-image.h"
 #include "ply-utils.h"
-
+#include "ply-window.h"
 
 #include <linux/kd.h>
 
@@ -68,8 +68,8 @@ struct _ply_boot_splash_plugin
   ply_image_t *logo_image;
   ply_image_t *star_image;
   ply_list_t *stars;
+  ply_window_t *window;
 
-  int console_fd;
   double start_time;
   double now;
 };
@@ -81,7 +81,6 @@ create_plugin (void)
 
   srand ((int) ply_get_timestamp ());
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
-  plugin->console_fd = -1;
   plugin->start_time = 0.0;
 
   plugin->frame_buffer = ply_frame_buffer_new (NULL);
@@ -150,45 +149,6 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_image_free (plugin->star_image);
   ply_frame_buffer_free (plugin->frame_buffer);
   free (plugin);
-}
-
-static bool
-set_graphics_mode (ply_boot_splash_plugin_t *plugin)
-{
-  assert (plugin != NULL);
-
-  if (ioctl (plugin->console_fd, KDSETMODE, KD_GRAPHICS) < 0)
-    return false;
-
-  return true;
-}
-
-static void
-set_text_mode (ply_boot_splash_plugin_t *plugin)
-{
-  assert (plugin != NULL);
-
-  ioctl (plugin->console_fd, KDSETMODE, KD_TEXT);
-}
-
-static bool
-open_console (ply_boot_splash_plugin_t *plugin)
-{
-  assert (plugin != NULL);
-
-  plugin->console_fd = open ("/dev/tty0", O_RDWR);
-
-  if (plugin->console_fd < 0)
-    return false;
-
-  return true;
-}
-
-static void
-close_console (ply_boot_splash_plugin_t *plugin)
-{
-  close (plugin->console_fd);
-  plugin->console_fd = -1;
 }
 
 static void
@@ -265,7 +225,7 @@ on_timeout (ply_boot_splash_plugin_t *plugin)
 {
   double sleep_time;
 
-  set_graphics_mode (plugin);
+  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_GRAPHICS);
   plugin->now = ply_get_timestamp ();
 
 
@@ -342,7 +302,7 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
   ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL,
                                     0.0, 0.0, 0.0, 1.0);
 
-  set_text_mode (plugin);
+  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
 }
 
 static void
@@ -353,7 +313,8 @@ on_interrupt (ply_boot_splash_plugin_t *plugin)
 }
 
 bool
-show_splash_screen (ply_boot_splash_plugin_t *plugin)
+show_splash_screen (ply_boot_splash_plugin_t *plugin,
+                    ply_window_t             *window)
 {
   assert (plugin != NULL);
   assert (plugin->logo_image != NULL);
@@ -371,18 +332,10 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin)
   if (!ply_frame_buffer_open (plugin->frame_buffer))
     return false;
 
-  ply_trace ("opening console");
-  if (!open_console (plugin))
-    return false;
+  plugin->window = window;
 
-  ply_trace ("settings graphics mode");
-  if (!set_graphics_mode (plugin))
-    {
-      ply_save_errno ();
-      close_console (plugin);
-      ply_restore_errno ();
-      return false;
-    }
+  if (!ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_GRAPHICS))
+    return false;
 
   ply_event_loop_watch_signal (plugin->loop,
                                SIGINT,
@@ -478,11 +431,12 @@ detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
 {
   plugin->loop = NULL;
 
-  set_text_mode (plugin);
+  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
 }
 
 void
-hide_splash_screen (ply_boot_splash_plugin_t *plugin)
+hide_splash_screen (ply_boot_splash_plugin_t *plugin,
+                    ply_window_t             *window)
 {
   assert (plugin != NULL);
 

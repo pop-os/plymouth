@@ -46,7 +46,7 @@
 #include "ply-frame-buffer.h"
 #include "ply-image.h"
 #include "ply-utils.h"
-
+#include "ply-window.h"
 
 #include <linux/kd.h>
 
@@ -94,16 +94,9 @@ open_console (ply_boot_splash_plugin_t *plugin)
   return true;
 }
 
-static void
-close_console (ply_boot_splash_plugin_t *plugin)
-{
-  ply_trace ("closing console");
-  close (plugin->console_fd);
-  plugin->console_fd = -1;
-}
-
 bool
-show_splash_screen (ply_boot_splash_plugin_t *plugin)
+show_splash_screen (ply_boot_splash_plugin_t *plugin,
+                    ply_window_t             *window)
 {
   assert (plugin != NULL);
 

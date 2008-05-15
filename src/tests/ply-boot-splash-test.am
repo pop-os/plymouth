@@ -5,5 +5,7 @@ ply_boot_splash_test_LDADD = $(PLYMOUTH_LIBS) ../libply/libply.la
 
 ply_boot_splash_test_SOURCES =                                                \
                           $(srcdir)/../ply-boot-splash-plugin.h               \
+                          $(srcdir)/../ply-window.h                           \
+                          $(srcdir)/../ply-window.c                           \
                           $(srcdir)/../ply-boot-splash.h                      \
                           $(srcdir)/../ply-boot-splash.c

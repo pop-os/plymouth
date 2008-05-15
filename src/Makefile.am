@@ -3,7 +3,7 @@ INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/libply                                                 \
            -I$(srcdir)
 plymouthbindir = $(libexecdir)/plymouth
-plymouthbin_PROGRAMS = plymouth 
+plymouthbin_PROGRAMS = plymouth
 
 plymouth_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLYMOUTH_PLUGIN_PATH=\"$(libdir)/plymouth/\"
 plymouth_LDADD = $(PLYMOUTH_LIBS) libply/libply.la

@@ -32,6 +32,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <termios.h>
 #include <unistd.h>
 
 #include <linux/kd.h>
@@ -47,6 +48,7 @@ struct _ply_window
   char *tty_name;
   int   tty_fd;
 
+  ply_fd_watch_t *tty_fd_watch;
   ply_window_mode_t mode;
 };
 
@@ -66,6 +68,28 @@ ply_window_new (const char *tty_name)
   return window;
 }
 
+static void
+on_key_event (ply_window_t *window)
+{
+  char buffer[64] = "";
+
+  ply_read (window->tty_fd, buffer, sizeof (buffer) - 1);
+}
+
+bool
+ply_window_set_unbuffered_input (ply_window_t *window)
+{
+  struct termios term_attributes;
+
+  tcgetattr (window->tty_fd, &term_attributes);
+  term_attributes.c_lflag &= ~ICANON;
+
+  if (tcsetattr (window->tty_fd, TCSAFLUSH, &term_attributes) != 0)
+    return false;
+
+  return true;
+}
+
 bool
 ply_window_open (ply_window_t *window)
 {
@@ -78,8 +102,17 @@ ply_window_open (ply_window_t *window)
   if (window->tty_fd < 0)
     return false;
 
+  if (!ply_window_set_unbuffered_input (window))
+    return false;
+
   if (!ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT))
     return false;
+
+  if (window->loop != NULL)
+    window->tty_fd_watch = ply_event_loop_watch_fd (window->loop, window->tty_fd,
+                                                    PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
+                                                    (ply_event_handler_t) on_key_event,
+                                                    NULL, window);
 
   return true;
 }
@@ -88,6 +121,12 @@ void
 ply_window_close (ply_window_t *window)
 {
   ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
+
+  if (window->tty_fd_watch != NULL)
+    {
+      ply_event_loop_stop_watching_fd (window->loop, window->tty_fd_watch);
+      window->tty_fd_watch = NULL;
+    }
 
   close (window->tty_fd);
   window->tty_fd = -1;
@@ -134,17 +173,24 @@ ply_window_detach_from_event_loop (ply_window_t *window)
 {
   assert (window != NULL);
   window->loop = NULL;
+  window->tty_fd_watch = NULL;
 }
 
 void
-ply_window_attach_to_event_loop (ply_window_t *window,
-                                      ply_event_loop_t  *loop)
+ply_window_attach_to_event_loop (ply_window_t     *window,
+                                 ply_event_loop_t *loop)
 {
   assert (window != NULL);
   assert (loop != NULL);
   assert (window->loop == NULL);
 
   window->loop = loop;
+
+  if (window->tty_fd >= 0)
+    window->tty_fd_watch = ply_event_loop_watch_fd (window->loop, window->tty_fd,
+                                                    PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
+                                                    (ply_event_handler_t) on_key_event,
+                                                    NULL, window);
 
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
                                  ply_window_detach_from_event_loop,
@@ -202,7 +248,7 @@ main (int    argc,
     }
 
   ply_event_loop_watch_for_timeout (loop,
-                                    1.0,
+                                    15.0,
                                    (ply_event_loop_timeout_handler_t)
                                    on_timeout,
                                    window);

@@ -126,7 +126,8 @@ detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
 }
 
 void
-hide_splash_screen (ply_boot_splash_plugin_t *plugin)
+hide_splash_screen (ply_boot_splash_plugin_t *plugin,
+                    ply_window_t             *window)
 {
   assert (plugin != NULL);
 

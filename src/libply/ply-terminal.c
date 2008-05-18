@@ -68,8 +68,6 @@ ply_terminal_free (ply_terminal_t *terminal)
 bool
 ply_terminal_create_device (ply_terminal_t *terminal)
 {
-  int saved_errno;
-
   assert (terminal != NULL);
   assert (!ply_terminal_has_device (terminal));
 
@@ -78,6 +76,7 @@ ply_terminal_create_device (ply_terminal_t *terminal)
 
   if (terminal->fd < 0)
     return false;
+
   ply_trace (" opened device '/dev/ptmx'");
 
   ply_trace ("creating pseudoterminal");

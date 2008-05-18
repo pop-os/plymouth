@@ -13,6 +13,8 @@ libply_la_SOURCES = ply-event-loop.c                                          \
 		    ply-event-loop.h                                          \
 		    ply-frame-buffer.h                                        \
 		    ply-frame-buffer.c                                        \
+		    ply-buffer.c                                              \
+		    ply-buffer.h                                              \
 		    ply-list.c                                                \
 		    ply-list.h                                                \
 		    ply-logger.c                                              \

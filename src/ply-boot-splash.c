@@ -146,7 +146,8 @@ ply_boot_splash_unload_plugin (ply_boot_splash_t *splash)
 static bool
 ply_boot_splash_create_window (ply_boot_splash_t *splash)
 {
-  splash->window = ply_window_new ("/dev/tty1");
+  splash->window = ply_window_new ("/dev/tty1",
+                                   NULL, NULL);
 
   if (!ply_window_open (splash->window))
     {

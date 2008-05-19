@@ -34,9 +34,11 @@
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
+#include <wchar.h>
 
 #include <linux/kd.h>
 
+#include "ply-buffer.h"
 #include "ply-event-loop.h"
 #include "ply-logger.h"
 #include "ply-utils.h"
@@ -44,36 +46,77 @@
 struct _ply_window
 {
   ply_event_loop_t *loop;
+  ply_buffer_t     *buffer;
 
   char *tty_name;
   int   tty_fd;
 
   ply_fd_watch_t *tty_fd_watch;
   ply_window_mode_t mode;
+
+  ply_window_keyboard_input_handler_t keyboard_input_handler;
+  void *keyboard_input_handler_user_data;
 };
 
 
 ply_window_t *
-ply_window_new (const char *tty_name)
+ply_window_new (const char *tty_name,
+                ply_window_keyboard_input_handler_t input_handler,
+                void       *user_data)
 {
   ply_window_t *window;
 
   assert (tty_name != NULL);
 
   window = calloc (1, sizeof (ply_window_t));
+  window->buffer = ply_buffer_new ();
   window->loop = NULL;
   window->tty_name = strdup (tty_name);
   window->tty_fd = -1;
+  window->keyboard_input_handler = input_handler;
+  window->keyboard_input_handler_user_data = user_data;
 
   return window;
 }
 
 static void
+check_buffer_for_key_events (ply_window_t *window)
+{
+  const char *bytes;
+  size_t size, i;
+
+  bytes = ply_buffer_get_bytes (window->buffer);
+  size = ply_buffer_get_size (window->buffer);
+
+  i = 0;
+  while (i < size)
+    {
+      ssize_t character_size;
+      char *key;
+
+      character_size = (ssize_t) mbrlen (bytes + i, size - i, NULL);
+
+      if (character_size < 0)
+        break;
+
+      key = strndup (bytes + i, character_size);
+      if (window->keyboard_input_handler != NULL)
+        window->keyboard_input_handler (window->keyboard_input_handler_user_data,
+                                        key);
+      free (key);
+
+      i += character_size;
+    }
+
+  ply_buffer_remove_bytes (window->buffer, i);
+}
+
+static void
 on_key_event (ply_window_t *window)
 {
-  char buffer[64] = "";
+  ply_buffer_append_from_fd (window->buffer, window->tty_fd);
 
-  ply_read (window->tty_fd, buffer, sizeof (buffer) - 1);
+  check_buffer_for_key_events (window);
 }
 
 bool
@@ -165,6 +208,8 @@ ply_window_free (ply_window_t *window)
   ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
   ply_window_close (window);
 
+  ply_buffer_free (window->buffer);
+
   free (window);
 }
 
@@ -211,6 +256,14 @@ on_timeout (ply_window_t     *window,
   ply_event_loop_exit (loop, 0);
 }
 
+static void
+on_keypress (ply_window_t *window,
+             const char   *keyboard_input)
+{
+  printf ("key '%c' (0x%x) was pressed\n",
+          keyboard_input[0], (unsigned int) keyboard_input[0]);
+}
+
 int
 main (int    argc,
       char **argv)
@@ -229,7 +282,9 @@ main (int    argc,
   else
     tty_name = "/dev/tty1";
 
-  window = ply_window_new (tty_name);
+  window = ply_window_new (tty_name,
+                           (ply_window_keyboard_input_handler_t)
+                           on_keypress, window);
   ply_window_attach_to_event_loop (window, loop);
 
   if (!ply_window_open (window))
@@ -240,7 +295,7 @@ main (int    argc,
       return errno;
     }
 
-  if (!ply_window_set_mode (window, PLY_WINDOW_MODE_GRAPHICS))
+  if (!ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT))
     {
       ply_save_errno ();
       perror ("could not set window for graphics mode");

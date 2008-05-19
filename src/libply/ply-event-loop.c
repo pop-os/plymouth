@@ -883,6 +883,32 @@ ply_event_loop_watch_for_timeout (ply_event_loop_t    *loop,
   ply_list_append_data (loop->timeout_watches, timeout_watch);
 }
 
+void
+ply_event_loop_stop_watching_for_timeout (ply_event_loop_t *loop,
+                                          ply_event_loop_timeout_handler_t timeout_handler,
+                                          void             *user_data)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (loop->timeout_watches);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_event_loop_timeout_watch_t *timeout_watch;
+
+      timeout_watch = (ply_event_loop_timeout_watch_t *) ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (loop->timeout_watches, node);
+
+      if (timeout_watch->handler == timeout_handler &&
+          timeout_watch->user_data == user_data) {
+              ply_list_remove_node (loop->timeout_watches, node);
+              free (timeout_watch);
+      }
+
+      node = next_node;
+    }
+}
+
 static ply_event_loop_fd_status_t 
 ply_event_loop_get_fd_status_from_poll_mask (uint32_t mask)
 {

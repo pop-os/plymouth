@@ -206,6 +206,12 @@ ply_window_free (ply_window_t *window)
   if (window == NULL)
     return;
 
+  if (window->loop != NULL)
+    ply_event_loop_stop_watching_for_exit (window->loop,
+                                           (ply_event_loop_exit_handler_t)
+                                           ply_window_detach_from_event_loop,
+                                           window);
+
   ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
   ply_window_close (window);
 

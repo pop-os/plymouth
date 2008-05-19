@@ -150,7 +150,7 @@ start_boot_splash (state_t    *state,
 
   ply_trace ("Loading boot splash plugin '%s'",
              module_path);
-  splash = ply_boot_splash_new (module_path);
+  splash = ply_boot_splash_new (module_path, NULL, NULL);
 
   ply_trace ("attaching plugin to event loop");
   ply_boot_splash_attach_to_event_loop (splash, state->loop);

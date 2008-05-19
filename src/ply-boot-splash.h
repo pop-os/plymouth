@@ -30,8 +30,13 @@
 
 typedef struct _ply_boot_splash ply_boot_splash_t;
 
+typedef void (* ply_boot_splash_escape_handler_t) (void *user_data);
+
+
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-ply_boot_splash_t *ply_boot_splash_new (const char *module_name);
+ply_boot_splash_t *ply_boot_splash_new (const char *module_name,
+                                        ply_boot_splash_escape_handler_t escape_handler,
+                                        void *user_data);
 void ply_boot_splash_free (ply_boot_splash_t *splash);
 bool ply_boot_splash_show (ply_boot_splash_t *splash);
 void ply_boot_splash_update_status (ply_boot_splash_t *splash,

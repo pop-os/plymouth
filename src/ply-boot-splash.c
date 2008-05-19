@@ -30,12 +30,15 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <wchar.h>
 
 #include "ply-boot-splash-plugin.h"
 #include "ply-event-loop.h"
 #include "ply-list.h"
 #include "ply-logger.h"
 #include "ply-utils.h"
+
+#define KEY_ESCAPE '\033'
 
 struct _ply_boot_splash
 {
@@ -44,6 +47,9 @@ struct _ply_boot_splash
   const ply_boot_splash_plugin_interface_t *plugin_interface;
   ply_boot_splash_plugin_t *plugin;
   ply_window_t *window;
+
+  ply_boot_splash_escape_handler_t escape_handler;
+  void *escape_handler_user_data;
 
   char *module_name;
   char *status;
@@ -55,7 +61,9 @@ typedef const ply_boot_splash_plugin_interface_t *
         (* get_plugin_interface_function_t) (void);
 
 ply_boot_splash_t *
-ply_boot_splash_new (const char *module_name)
+ply_boot_splash_new (const char *module_name,
+                     ply_boot_splash_escape_handler_t escape_handler,
+                     void *user_data)
 {
   ply_boot_splash_t *splash;
 
@@ -66,6 +74,9 @@ ply_boot_splash_new (const char *module_name)
   splash->module_name = strdup (module_name);
   splash->module_handle = NULL;
   splash->is_shown = false;
+
+  splash->escape_handler = escape_handler;
+  splash->escape_handler_user_data = user_data;
 
   return splash;
 }
@@ -143,12 +154,36 @@ ply_boot_splash_unload_plugin (ply_boot_splash_t *splash)
   splash->module_handle = NULL;
 }
 
+static bool
+ply_boot_splash_process_keyboard_input (ply_boot_splash_t *splash,
+                                        const char        *keyboard_input)
+{
+  wchar_t key;
+
+  if (mbrtowc (&key, keyboard_input, 1, NULL) > 0)
+    {
+      if (key == KEY_ESCAPE)
+        {
+          if (splash->escape_handler != NULL)
+            splash->escape_handler (splash->escape_handler_user_data);
+
+          return true;
+        }
+    }
+
+  return false;
+}
+
 static void
 on_keyboard_input (ply_boot_splash_t *splash,
-                   const char        *key)
+                   const char        *keyboard_input)
 {
+
+  if (ply_boot_splash_process_keyboard_input (splash, keyboard_input))
+    return;
+
   if (splash->plugin_interface->on_keyboard_input != NULL)
-    splash->plugin_interface->on_keyboard_input (splash->plugin, key);
+    splash->plugin_interface->on_keyboard_input (splash->plugin, keyboard_input);
 }
 
 static bool
@@ -157,6 +192,8 @@ ply_boot_splash_create_window (ply_boot_splash_t *splash)
   splash->window = ply_window_new ("/dev/tty1",
                                    (ply_window_keyboard_input_handler_t)
                                    on_keyboard_input, splash);
+
+  ply_window_attach_to_event_loop (splash->window, splash->loop);
 
   if (!ply_window_open (splash->window))
     {
@@ -313,7 +350,7 @@ main (int    argc,
   else
     module_name = "../splash-plugins/fedora-fade-in/.libs/fedora-fade-in.so";
 
-  splash = ply_boot_splash_new (module_name);
+  splash = ply_boot_splash_new (module_name, NULL, NULL);
   ply_boot_splash_attach_to_event_loop (splash, loop);
 
   if (!ply_boot_splash_show (splash))

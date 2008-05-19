@@ -852,7 +852,6 @@ ply_event_loop_stop_watching_for_exit (ply_event_loop_t *loop,
           closure->user_data == user_data) {
               ply_list_remove_node (loop->exit_closures, node);
               free (closure);
-              break;
       }
 
       node = next_node;

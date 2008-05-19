@@ -46,10 +46,14 @@ typedef struct
 {
   ply_event_loop_t *loop;
   ply_boot_server_t *boot_server;
+  ply_window_t *window;
   ply_boot_splash_t *boot_splash;
   ply_terminal_session_t *session;
   int original_root_dir_fd;
 } state_t;
+
+static ply_boot_splash_t *start_boot_splash (state_t    *state,
+                                             const char *module_path);
 
 static void
 on_session_start (state_t *state)
@@ -142,6 +146,44 @@ start_boot_server (state_t *state)
   return server;
 }
 
+static void
+on_escape_pressed (state_t *state)
+{
+  ply_boot_splash_hide (state->boot_splash);
+  ply_boot_splash_free (state->boot_splash);
+
+  state->boot_splash = start_boot_splash (state, PLYMOUTH_PLUGIN_PATH "text.so");
+}
+
+static ply_window_t *
+create_window (state_t    *state,
+               const char *tty)
+{
+  ply_window_t *window;
+
+  ply_trace ("creating window for %s", tty);
+  window = ply_window_new (tty);
+
+  ply_trace ("attaching window to event loop");
+  ply_window_attach_to_event_loop (window, state->loop);
+
+  ply_trace ("opening window");
+  if (!ply_window_open (window))
+    {
+      ply_save_errno ();
+      ply_trace ("could not open window: %m");
+      ply_window_free (window);
+      ply_restore_errno ();
+      return NULL;
+    }
+
+  ply_trace ("listening for escape key");
+  ply_window_set_escape_handler (window, (ply_window_escape_handler_t)
+                                 on_escape_pressed, state);
+
+  return window;
+}
+
 static ply_boot_splash_t *
 start_boot_splash (state_t    *state,
                    const char *module_path)
@@ -150,7 +192,7 @@ start_boot_splash (state_t    *state,
 
   ply_trace ("Loading boot splash plugin '%s'",
              module_path);
-  splash = ply_boot_splash_new (module_path, NULL, NULL);
+  splash = ply_boot_splash_new (module_path, state->window);
 
   ply_trace ("attaching plugin to event loop");
   ply_boot_splash_attach_to_event_loop (splash, state->loop);
@@ -429,6 +471,8 @@ main (int    argc,
       return EX_UNAVAILABLE;
     }
 
+  state.window = create_window (&state, "/dev/tty1");
+
   state.boot_splash = start_boot_splash (&state,
                                          PLYMOUTH_PLUGIN_PATH "fedora-fade-in.so");
 
@@ -450,6 +494,9 @@ main (int    argc,
 
   ply_boot_splash_free (state.boot_splash);
   state.boot_splash = NULL;
+
+  ply_window_free (state.window);
+  state.window = NULL;
 
   ply_boot_server_free (state.boot_server);
   state.boot_server = NULL;

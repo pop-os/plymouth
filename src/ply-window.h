@@ -33,6 +33,8 @@ typedef struct _ply_window ply_window_t;
 typedef void (* ply_window_keyboard_input_handler_t) (void *user_data,
                                                       const char *keyboard_input);
 
+typedef void (* ply_window_escape_handler_t) (void *user_data);
+
 typedef enum
 {
   PLY_WINDOW_MODE_TEXT,
@@ -40,10 +42,15 @@ typedef enum
 } ply_window_mode_t;
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-ply_window_t *ply_window_new (const char *tty_name,
-                              ply_window_keyboard_input_handler_t input_handler,
-                              void       *user_data);
+ply_window_t *ply_window_new (const char *tty_name);
 void ply_window_free (ply_window_t *window);
+
+void ply_window_set_keyboard_input_handler (ply_window_t *window,
+                                            ply_window_keyboard_input_handler_t input_handler,
+                                            void         *user_data);
+void ply_window_set_escape_handler (ply_window_t *window,
+                                    ply_window_escape_handler_t escape_handler,
+                                    void         *user_data);
 
 bool ply_window_open (ply_window_t *window);
 void ply_window_close (ply_window_t *window);

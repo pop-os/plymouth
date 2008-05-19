@@ -38,8 +38,6 @@
 #include "ply-logger.h"
 #include "ply-utils.h"
 
-#define KEY_ESCAPE '\033'
-
 struct _ply_boot_splash
 {
   ply_event_loop_t *loop;
@@ -47,9 +45,6 @@ struct _ply_boot_splash
   const ply_boot_splash_plugin_interface_t *plugin_interface;
   ply_boot_splash_plugin_t *plugin;
   ply_window_t *window;
-
-  ply_boot_splash_escape_handler_t escape_handler;
-  void *escape_handler_user_data;
 
   char *module_name;
   char *status;
@@ -61,9 +56,8 @@ typedef const ply_boot_splash_plugin_interface_t *
         (* get_plugin_interface_function_t) (void);
 
 ply_boot_splash_t *
-ply_boot_splash_new (const char *module_name,
-                     ply_boot_splash_escape_handler_t escape_handler,
-                     void *user_data)
+ply_boot_splash_new (const char   *module_name,
+                     ply_window_t *window)
 {
   ply_boot_splash_t *splash;
 
@@ -75,8 +69,7 @@ ply_boot_splash_new (const char *module_name,
   splash->module_handle = NULL;
   splash->is_shown = false;
 
-  splash->escape_handler = escape_handler;
-  splash->escape_handler_user_data = user_data;
+  splash->window = window;
 
   return splash;
 }
@@ -154,57 +147,12 @@ ply_boot_splash_unload_plugin (ply_boot_splash_t *splash)
   splash->module_handle = NULL;
 }
 
-static bool
-ply_boot_splash_process_keyboard_input (ply_boot_splash_t *splash,
-                                        const char        *keyboard_input)
-{
-  wchar_t key;
-
-  if (mbrtowc (&key, keyboard_input, 1, NULL) > 0)
-    {
-      if (key == KEY_ESCAPE)
-        {
-          if (splash->escape_handler != NULL)
-            splash->escape_handler (splash->escape_handler_user_data);
-
-          return true;
-        }
-    }
-
-  return false;
-}
-
 static void
 on_keyboard_input (ply_boot_splash_t *splash,
                    const char        *keyboard_input)
 {
-
-  if (ply_boot_splash_process_keyboard_input (splash, keyboard_input))
-    return;
-
   if (splash->plugin_interface->on_keyboard_input != NULL)
     splash->plugin_interface->on_keyboard_input (splash->plugin, keyboard_input);
-}
-
-static bool
-ply_boot_splash_create_window (ply_boot_splash_t *splash)
-{
-  splash->window = ply_window_new ("/dev/tty1",
-                                   (ply_window_keyboard_input_handler_t)
-                                   on_keyboard_input, splash);
-
-  ply_window_attach_to_event_loop (splash->window, splash->loop);
-
-  if (!ply_window_open (splash->window))
-    {
-      ply_save_errno ();
-      ply_window_free (splash->window);
-      splash->window = NULL;
-      ply_restore_errno ();
-      return false;
-    }
-
-  return true;
 }
 
 bool
@@ -231,11 +179,13 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
   splash->plugin_interface->attach_to_event_loop (splash->plugin,
                                                   splash->loop);
 
-  if (!ply_boot_splash_create_window (splash))
-    return false;
-
   assert (splash->window != NULL);
 
+  ply_window_set_keyboard_input_handler (splash->window,
+                                         (ply_window_keyboard_input_handler_t)
+                                         on_keyboard_input, splash);
+
+  ply_trace ("showing splash screen\n");
   if (!splash->plugin_interface->show_splash_screen (splash->plugin,
                                                      splash->window))
     {
@@ -277,6 +227,13 @@ ply_boot_splash_ask_for_password (ply_boot_splash_t *splash)
   return splash->plugin_interface->ask_for_password (splash->plugin);
 }
 
+static void
+ply_boot_splash_detach_from_event_loop (ply_boot_splash_t *splash)
+{
+  assert (splash != NULL);
+  splash->loop = NULL;
+}
+
 void
 ply_boot_splash_hide (ply_boot_splash_t *splash)
 {
@@ -288,15 +245,17 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
   splash->plugin_interface->hide_splash_screen (splash->plugin,
                                                 splash->window);
 
+  ply_window_set_keyboard_input_handler (splash->window, NULL, NULL);
+
   ply_boot_splash_unload_plugin (splash);
   splash->is_shown = false;
-}
 
-static void
-ply_boot_splash_detach_from_event_loop (ply_boot_splash_t *splash)
-{
-  assert (splash != NULL);
-  splash->loop = NULL;
+  if (splash->loop != NULL)
+    {
+      ply_event_loop_stop_watching_for_exit (splash->loop, (ply_event_loop_exit_handler_t)
+                                             ply_boot_splash_detach_from_event_loop,
+                                             splash);
+    }
 }
 
 void
@@ -332,12 +291,19 @@ on_timeout (ply_boot_splash_t *splash)
                                    splash);
 }
 
+static void
+on_quit (ply_event_loop_t *loop)
+{
+    ply_event_loop_exit (loop, 0);
+}
+
 int
 main (int    argc,
       char **argv)
 {
   ply_event_loop_t *loop;
   ply_boot_splash_t *splash;
+  ply_window_t *window;
   int exit_code;
   const char *module_name;
 
@@ -350,7 +316,18 @@ main (int    argc,
   else
     module_name = "../splash-plugins/fedora-fade-in/.libs/fedora-fade-in.so";
 
-  splash = ply_boot_splash_new (module_name, NULL, NULL);
+  window = ply_window_new (ttyname (0));
+
+  if (!ply_window_open (window))
+    {
+      perror ("could not open terminal");
+      return errno;
+    }
+
+  ply_window_attach_to_event_loop (window, loop);
+  ply_window_set_escape_handler (window, (ply_window_escape_handler_t)on_quit, loop);
+
+  splash = ply_boot_splash_new (module_name, window);
   ply_boot_splash_attach_to_event_loop (splash, loop);
 
   if (!ply_boot_splash_show (splash))

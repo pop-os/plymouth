@@ -43,6 +43,8 @@
 #include "ply-logger.h"
 #include "ply-utils.h"
 
+#define KEY_ESCAPE '\033'
+
 struct _ply_window
 {
   ply_event_loop_t *loop;
@@ -56,13 +58,15 @@ struct _ply_window
 
   ply_window_keyboard_input_handler_t keyboard_input_handler;
   void *keyboard_input_handler_user_data;
+
+  ply_window_escape_handler_t escape_handler;
+  void *escape_handler_user_data;
 };
 
+static void ply_window_detach_from_event_loop (ply_window_t *window);
 
 ply_window_t *
-ply_window_new (const char *tty_name,
-                ply_window_keyboard_input_handler_t input_handler,
-                void       *user_data)
+ply_window_new (const char *tty_name)
 {
   ply_window_t *window;
 
@@ -73,10 +77,32 @@ ply_window_new (const char *tty_name,
   window->loop = NULL;
   window->tty_name = strdup (tty_name);
   window->tty_fd = -1;
-  window->keyboard_input_handler = input_handler;
-  window->keyboard_input_handler_user_data = user_data;
 
   return window;
+}
+
+static void
+process_keyboard_input (ply_window_t *window,
+                        const char   *keyboard_input)
+{
+  wchar_t key;
+
+  if (mbrtowc (&key, keyboard_input, 1, NULL) > 0)
+    {
+      if (key == KEY_ESCAPE)
+        {
+          ply_trace ("escape key!");
+          if (window->escape_handler != NULL)
+            window->escape_handler (window->escape_handler_user_data);
+          ply_trace ("end escape key handler");
+
+          return;
+        }
+    }
+
+  if (window->keyboard_input_handler != NULL)
+    window->keyboard_input_handler (window->keyboard_input_handler_user_data,
+                                    keyboard_input);
 }
 
 static void
@@ -92,23 +118,24 @@ check_buffer_for_key_events (ply_window_t *window)
   while (i < size)
     {
       ssize_t character_size;
-      char *key;
+      char *keyboard_input;
 
       character_size = (ssize_t) mbrlen (bytes + i, size - i, NULL);
 
       if (character_size < 0)
         break;
 
-      key = strndup (bytes + i, character_size);
-      if (window->keyboard_input_handler != NULL)
-        window->keyboard_input_handler (window->keyboard_input_handler_user_data,
-                                        key);
-      free (key);
+      keyboard_input = strndup (bytes + i, character_size);
+
+      process_keyboard_input (window, keyboard_input);
+
+      free (keyboard_input);
 
       i += character_size;
     }
 
-  ply_buffer_remove_bytes (window->buffer, i);
+  if (i > 0)
+    ply_buffer_remove_bytes (window->buffer, i);
 }
 
 static void
@@ -220,6 +247,28 @@ ply_window_free (ply_window_t *window)
   free (window);
 }
 
+void
+ply_window_set_keyboard_input_handler (ply_window_t *window,
+                                       ply_window_keyboard_input_handler_t input_handler,
+                                       void       *user_data)
+{
+  assert (window != NULL);
+
+  window->keyboard_input_handler = input_handler;
+  window->keyboard_input_handler_user_data = user_data;
+}
+
+void
+ply_window_set_escape_handler (ply_window_t *window,
+                               ply_window_escape_handler_t escape_handler,
+                               void       *user_data)
+{
+  assert (window != NULL);
+
+  window->escape_handler = escape_handler;
+  window->escape_handler_user_data = user_data;
+}
+
 static void
 ply_window_detach_from_event_loop (ply_window_t *window)
 {
@@ -289,10 +338,11 @@ main (int    argc,
   else
     tty_name = "/dev/tty1";
 
-  window = ply_window_new (tty_name,
-                           (ply_window_keyboard_input_handler_t)
-                           on_keypress, window);
+  window = ply_window_new (tty_name);
   ply_window_attach_to_event_loop (window, loop);
+  ply_window_set_keyboard_input_handler (window,
+                                         (ply_window_keyboard_input_handler_t)
+                                         on_keypress, window);
 
   if (!ply_window_open (window))
     {

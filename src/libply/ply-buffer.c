@@ -192,6 +192,26 @@ ply_buffer_append_bytes (ply_buffer_t *buffer,
   buffer->size += length;
 }
 
+void
+ply_buffer_append_from_fd (ply_buffer_t *buffer,
+                           int           fd)
+{
+
+  char bytes[PLY_BUFFER_MAX_APPEND_SIZE] = "";
+  ssize_t bytes_read;
+
+  assert (buffer != NULL);
+  assert (fd >= 0);
+
+  if (!ply_fd_has_data (fd))
+    return;
+
+  bytes_read = read (fd, bytes, sizeof (bytes));
+
+  if (bytes_read > 0)
+    ply_buffer_append_bytes (buffer, bytes, bytes_read);
+}
+
 const char *
 ply_buffer_get_bytes (ply_buffer_t *buffer)
 {

@@ -34,6 +34,9 @@ void ply_buffer_free (ply_buffer_t *buffer);
 void ply_buffer_append_bytes (ply_buffer_t *buffer,
                               const void   *bytes,
                               size_t number_of_bytes);
+
+void ply_buffer_append_from_fd (ply_buffer_t *buffer,
+                                int           fd);
 #define ply_buffer_append(buffer, format, args...)                             \
         ply_buffer_append_with_non_literal_format_string (buffer,              \
                                                           format "", ##args)

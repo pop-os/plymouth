@@ -194,6 +194,7 @@ ply_window_set_mode (ply_window_t      *window,
           return false;
         break;
     }
+  ply_window_set_unbuffered_input (window);
 
   window->mode = mode;
   return true;

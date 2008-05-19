@@ -46,6 +46,8 @@ typedef struct
                                  ply_event_loop_t         *loop);
 
   char * (* ask_for_password) (ply_boot_splash_plugin_t *plugin);
+  void (* on_keyboard_input) (ply_boot_splash_plugin_t *plugin,
+                              const char               *keyboard_input);
 
 } ply_boot_splash_plugin_interface_t;
 

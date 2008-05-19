@@ -462,6 +462,12 @@ attach_to_event_loop (ply_boot_splash_plugin_t *plugin,
                                  plugin); 
 }
 
+void
+on_keyboard_input (ply_boot_splash_plugin_t *plugin,
+                   const char               *keyboard_input)
+{
+}
+
 ply_boot_splash_plugin_interface_t *
 ply_boot_splash_plugin_get_interface (void)
 {
@@ -472,7 +478,8 @@ ply_boot_splash_plugin_get_interface (void)
       .show_splash_screen = show_splash_screen,
       .update_status = update_status,
       .hide_splash_screen = hide_splash_screen,
-      .attach_to_event_loop = attach_to_event_loop
+      .attach_to_event_loop = attach_to_event_loop,
+      .on_keyboard_input = on_keyboard_input
     };
 
   return &plugin_interface;

@@ -143,11 +143,20 @@ ply_boot_splash_unload_plugin (ply_boot_splash_t *splash)
   splash->module_handle = NULL;
 }
 
+static void
+on_keyboard_input (ply_boot_splash_t *splash,
+                   const char        *key)
+{
+  if (splash->plugin_interface->on_keyboard_input != NULL)
+    splash->plugin_interface->on_keyboard_input (splash->plugin, key);
+}
+
 static bool
 ply_boot_splash_create_window (ply_boot_splash_t *splash)
 {
   splash->window = ply_window_new ("/dev/tty1",
-                                   NULL, NULL);
+                                   (ply_window_keyboard_input_handler_t)
+                                   on_keyboard_input, splash);
 
   if (!ply_window_open (splash->window))
     {

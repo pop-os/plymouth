@@ -180,6 +180,12 @@ ask_for_password (ply_boot_splash_plugin_t *plugin)
   return strdup (answer);
 }
 
+void
+on_keyboard_input (ply_boot_splash_plugin_t *plugin,
+                   const char               *keyboard_input)
+{
+}
+
 ply_boot_splash_plugin_interface_t *
 ply_boot_splash_plugin_get_interface (void)
 {
@@ -192,6 +198,7 @@ ply_boot_splash_plugin_get_interface (void)
       .hide_splash_screen = hide_splash_screen,
       .attach_to_event_loop = attach_to_event_loop,
       .ask_for_password = ask_for_password,
+      .on_keyboard_input = on_keyboard_input
     };
 
   return &plugin_interface;

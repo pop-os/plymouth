@@ -43,6 +43,8 @@ void ply_buffer_append_from_fd (ply_buffer_t *buffer,
 __attribute__((__format__ (__printf__, 2, 3)))
 void ply_buffer_append_with_non_literal_format_string (ply_buffer_t   *buffer,
                                                        const char *format, ...);
+void ply_buffer_remove_bytes (ply_buffer_t *buffer,
+                              size_t        number_of_bytes);
 const char *ply_buffer_get_bytes (ply_buffer_t *buffer);
 size_t ply_buffer_get_size (ply_buffer_t *buffer);
 void ply_buffer_clear (ply_buffer_t *buffer);

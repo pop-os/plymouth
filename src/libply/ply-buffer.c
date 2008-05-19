@@ -67,21 +67,21 @@ ply_buffer_increase_capacity (ply_buffer_t *buffer)
   return true;
 }
 
-static void
-ply_buffer_decapitate (ply_buffer_t *buffer,
-                       size_t        bytes_in_head)
+void
+ply_buffer_remove_bytes (ply_buffer_t *buffer,
+                         size_t        bytes_to_remove)
 {
   assert (buffer != NULL);
 
-  bytes_in_head = MIN (buffer->size, bytes_in_head);
+  bytes_to_remove = MIN (buffer->size, bytes_to_remove);
 
-  if (bytes_in_head == buffer->size)
+  if (bytes_to_remove == buffer->size)
     buffer->size = 0;
   else
     {
-      memmove (buffer->data, buffer->data + bytes_in_head,
-               buffer->size - bytes_in_head);
-      buffer->size -= bytes_in_head;
+      memmove (buffer->data, buffer->data + bytes_to_remove,
+               buffer->size - bytes_to_remove);
+      buffer->size -= bytes_to_remove;
     }
 }
 
@@ -176,7 +176,7 @@ ply_buffer_append_bytes (ply_buffer_t *buffer,
     {
       if (!ply_buffer_increase_capacity (buffer))
         {
-          ply_buffer_decapitate (buffer, length);
+          ply_buffer_remove_bytes (buffer, length);
 
           if ((buffer->size + length) >= buffer->capacity)
             if (!ply_buffer_increase_capacity (buffer))

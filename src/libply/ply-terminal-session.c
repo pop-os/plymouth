@@ -37,6 +37,7 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include "ply-buffer.h"
 #include "ply-event-loop.h"
 #include "ply-logger.h"
 #include "ply-terminal.h"
@@ -46,6 +47,7 @@ struct _ply_terminal_session
 {
   ply_terminal_t *terminal;
   ply_logger_t *logger;
+  ply_buffer_t *output_buffer;
   ply_event_loop_t *loop;
   char **argv;
 
@@ -322,6 +324,7 @@ ply_terminal_session_log_bytes (ply_terminal_session_t *session,
   assert (number_of_bytes != 0);
 
   ply_logger_inject_bytes (session->logger, bytes, number_of_bytes);
+  ply_buffer_append_bytes (session->output_buffer, bytes, number_of_bytes);
 }
 
 static void
@@ -416,6 +419,14 @@ ply_terminal_session_close_log (ply_terminal_session_t *session)
   assert (session->logger != NULL);
 
   return ply_logger_close_file (session->logger);
+}
+
+void
+ply_terminal_session_set_output_buffer (ply_terminal_session_t *session,
+                                        ply_buffer_t *buffer)
+{
+  assert (session != NULL);
+  session->output_buffer = buffer;
 }
 
 #ifdef PLY_TERMINAL_SESSION_ENABLE_TEST

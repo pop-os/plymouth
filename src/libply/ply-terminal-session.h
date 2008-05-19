@@ -27,6 +27,7 @@
 #include <unistd.h>
 
 #include "ply-event-loop.h"
+#include "ply-buffer.h"
 
 typedef struct _ply_terminal_session ply_terminal_session_t;
 
@@ -60,6 +61,8 @@ int ply_terminal_session_get_fd (ply_terminal_session_t *session);
 bool ply_terminal_session_open_log (ply_terminal_session_t *session,
                                     const char             *filename);
 void ply_terminal_session_close_log (ply_terminal_session_t *session);
+void ply_terminal_session_set_output_buffer (ply_terminal_session_t *session,
+                                             ply_buffer_t *buffer);
 #endif
 
 #endif /* PLY_TERMINAL_SESSION_H */

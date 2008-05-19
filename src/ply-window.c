@@ -63,8 +63,6 @@ struct _ply_window
   void *escape_handler_user_data;
 };
 
-static void ply_window_detach_from_event_loop (ply_window_t *window);
-
 ply_window_t *
 ply_window_new (const char *tty_name)
 {
@@ -227,6 +225,14 @@ ply_window_set_mode (ply_window_t      *window,
   return true;
 }
 
+static void
+ply_window_detach_from_event_loop (ply_window_t *window)
+{
+  assert (window != NULL);
+  window->loop = NULL;
+  window->tty_fd_watch = NULL;
+}
+
 void
 ply_window_free (ply_window_t *window)
 {
@@ -267,14 +273,6 @@ ply_window_set_escape_handler (ply_window_t *window,
 
   window->escape_handler = escape_handler;
   window->escape_handler_user_data = user_data;
-}
-
-static void
-ply_window_detach_from_event_loop (ply_window_t *window)
-{
-  assert (window != NULL);
-  window->loop = NULL;
-  window->tty_fd_watch = NULL;
 }
 
 void

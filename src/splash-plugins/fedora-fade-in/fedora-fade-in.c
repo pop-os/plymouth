@@ -303,6 +303,13 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
                                     0.0, 0.0, 0.0, 1.0);
 
   ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
+
+  if (plugin->loop != NULL)
+    {
+      ply_event_loop_stop_watching_for_timeout (plugin->loop,
+                                                (ply_event_loop_timeout_handler_t)
+                                                on_timeout, plugin);
+    }
 }
 
 static void

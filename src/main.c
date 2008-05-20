@@ -70,6 +70,18 @@ on_session_start (state_t *state)
 }
 
 static void
+on_session_output (state_t    *state,
+                   const char *output,
+                   size_t      size)
+{
+  ply_buffer_append_bytes (state->boot_buffer, output, size);
+
+  if (state->boot_splash != NULL)
+    ply_boot_splash_update_output (state->boot_splash,
+                                   output, size);
+}
+
+static void
 on_session_finished (state_t *state)
 {
   ply_log ("\nSession finished...exiting logger\n");
@@ -228,13 +240,12 @@ spawn_session (state_t  *state,
   ply_trace ("attaching terminal session to event loop");
   ply_terminal_session_attach_to_event_loop (session, state->loop);
 
-  ply_trace ("buffering terminal session for replay if user presses escape");
-  ply_terminal_session_set_output_buffer (session, state->boot_buffer);
-
   ply_trace ("running '%s'", argv[0]);
   if (!ply_terminal_session_run (session, flags,
                                  (ply_terminal_session_begin_handler_t)
                                  on_session_start,
+                                 (ply_terminal_session_output_handler_t)
+                                 on_session_output,
                                  (ply_terminal_session_done_handler_t)
                                  on_session_finished, state))
     {

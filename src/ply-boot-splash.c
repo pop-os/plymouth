@@ -218,6 +218,18 @@ ply_boot_splash_update_status (ply_boot_splash_t *splash,
   splash->plugin_interface->update_status (splash->plugin, status);
 }
 
+void
+ply_boot_splash_update_output (ply_boot_splash_t *splash,
+                               const char        *output,
+                               size_t             size)
+{
+  assert (splash != NULL);
+  assert (output != NULL);
+
+  if (splash->plugin_interface->on_boot_output != NULL)
+    splash->plugin_interface->on_boot_output (splash->plugin, output, size);
+}
+
 char *
 ply_boot_splash_ask_for_password (ply_boot_splash_t *splash)
 {

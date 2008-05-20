@@ -106,6 +106,15 @@ update_status (ply_boot_splash_plugin_t *plugin,
   ply_trace ("status update");
 }
 
+void
+on_boot_output (ply_boot_splash_plugin_t *plugin,
+                const char               *output,
+                size_t                    size)
+{
+  if (size > 0)
+    write (STDOUT_FILENO, output, size);
+}
+
 static void
 detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
 {
@@ -185,6 +194,7 @@ ply_boot_splash_plugin_get_interface (void)
       .destroy_plugin = destroy_plugin,
       .show_splash_screen = show_splash_screen,
       .update_status = update_status,
+      .on_boot_output = on_boot_output,
       .hide_splash_screen = hide_splash_screen,
       .attach_to_event_loop = attach_to_event_loop,
       .ask_for_password = ask_for_password,

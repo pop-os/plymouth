@@ -42,6 +42,9 @@ typedef struct
                                ply_buffer_t             *boot_buffer);
   void (* update_status) (ply_boot_splash_plugin_t *plugin,
                           const char               *status);
+  void (* on_boot_output) (ply_boot_splash_plugin_t *plugin,
+                           const char               *output,
+                           size_t                    size);
   void (* hide_splash_screen) (ply_boot_splash_plugin_t *plugin,
                                ply_window_t             *window);
   void (* attach_to_event_loop) (ply_boot_splash_plugin_t *plugin,

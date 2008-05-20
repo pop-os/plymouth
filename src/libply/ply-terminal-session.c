@@ -37,7 +37,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include "ply-buffer.h"
 #include "ply-event-loop.h"
 #include "ply-logger.h"
 #include "ply-terminal.h"
@@ -47,12 +46,12 @@ struct _ply_terminal_session
 {
   ply_terminal_t *terminal;
   ply_logger_t *logger;
-  ply_buffer_t *output_buffer;
   ply_event_loop_t *loop;
   char **argv;
 
+  ply_terminal_session_output_handler_t output_handler;
   ply_terminal_session_done_handler_t   done_handler;
-  void                                 *done_handler_user_data;
+  void                                 *user_data;
 
   uint32_t is_running : 1;
   uint32_t console_is_redirected : 1;
@@ -231,6 +230,7 @@ bool
 ply_terminal_session_run (ply_terminal_session_t              *session,
                           ply_terminal_session_flags_t         flags,
                           ply_terminal_session_begin_handler_t begin_handler,
+                          ply_terminal_session_output_handler_t output_handler,
                           ply_terminal_session_done_handler_t  done_handler,
                           void                                *user_data)
 {
@@ -284,8 +284,9 @@ ply_terminal_session_run (ply_terminal_session_t              *session,
       ((pid != 0) && !run_in_parent))
     {
       session->is_running = true;
+      session->output_handler = output_handler;
       session->done_handler = done_handler;
-      session->done_handler_user_data = user_data;
+      session->user_data = user_data;
       ply_terminal_session_start_logging (session);
 
       return true;
@@ -324,7 +325,10 @@ ply_terminal_session_log_bytes (ply_terminal_session_t *session,
   assert (number_of_bytes != 0);
 
   ply_logger_inject_bytes (session->logger, bytes, number_of_bytes);
-  ply_buffer_append_bytes (session->output_buffer, bytes, number_of_bytes);
+
+  if (session->output_handler != NULL)
+    session->output_handler (session->user_data,
+                             bytes, number_of_bytes, session);
 }
 
 static void
@@ -355,7 +359,7 @@ ply_terminal_session_on_hangup (ply_terminal_session_t *session)
   session->is_running = false;
 
   if (session->done_handler != NULL)
-    session->done_handler (session->done_handler_user_data, session);
+    session->done_handler (session->user_data, session);
 
   ply_terminal_session_stop_logging (session);
 }
@@ -421,14 +425,6 @@ ply_terminal_session_close_log (ply_terminal_session_t *session)
   return ply_logger_close_file (session->logger);
 }
 
-void
-ply_terminal_session_set_output_buffer (ply_terminal_session_t *session,
-                                        ply_buffer_t *buffer)
-{
-  assert (session != NULL);
-  session->output_buffer = buffer;
-}
-
 #ifdef PLY_TERMINAL_SESSION_ENABLE_TEST
 
 #include <stdio.h>
@@ -464,6 +460,7 @@ main (int    argc,
 
   if (!ply_terminal_session_run (session, flags, 
                                  (ply_terminal_session_begin_handler_t) NULL,
+                                 (ply_terminal_session_output_handler_t) NULL,
                                  (ply_terminal_session_done_handler_t) 
                                  on_finished, loop))
     {

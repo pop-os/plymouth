@@ -34,6 +34,8 @@ typedef struct _ply_terminal_session ply_terminal_session_t;
 typedef void (* ply_terminal_session_begin_handler_t) 
     (void *user_data, ply_terminal_session_t *session);
 
+typedef void (* ply_terminal_session_output_handler_t)
+    (void *user_data, const char *output, size_t size, ply_terminal_session_t *session);
 typedef void (* ply_terminal_session_done_handler_t) 
     (void *user_data, ply_terminal_session_t *session);
 
@@ -48,21 +50,19 @@ typedef enum
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_terminal_session_t *ply_terminal_session_new (const char * const *argv);
-                                                  
 void ply_terminal_session_free (ply_terminal_session_t *session);
 void ply_terminal_session_attach_to_event_loop (ply_terminal_session_t *session,
                                                 ply_event_loop_t       *loop);
 bool ply_terminal_session_run (ply_terminal_session_t       *session,
                                ply_terminal_session_flags_t  flags,
                                ply_terminal_session_begin_handler_t begin_handler,
+                               ply_terminal_session_output_handler_t output_handler,
                                ply_terminal_session_done_handler_t  done_handler,
                                void                                *user_data);
 int ply_terminal_session_get_fd (ply_terminal_session_t *session);
 bool ply_terminal_session_open_log (ply_terminal_session_t *session,
                                     const char             *filename);
 void ply_terminal_session_close_log (ply_terminal_session_t *session);
-void ply_terminal_session_set_output_buffer (ply_terminal_session_t *session,
-                                             ply_buffer_t *buffer);
 #endif
 
 #endif /* PLY_TERMINAL_SESSION_H */

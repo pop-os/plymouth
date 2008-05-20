@@ -5,12 +5,12 @@ INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)
 
 plugindir = $(libdir)/plymouth
-plugin_LTLIBRARIES = text.la
+plugin_LTLIBRARIES = details.la
 
-text_la_CFLAGS = $(PLYMOUTH_CFLAGS)
-text_la_LDFLAGS = -module -avoid-version -export-dynamic
-text_la_LIBADD = $(PLYMOUTH_LIBS) ../../libply/libply.la
-text_la_SOURCES = $(srcdir)/../../ply-boot-splash-plugin.h         \
+details_la_CFLAGS = $(PLYMOUTH_CFLAGS)
+details_la_LDFLAGS = -module -avoid-version -export-dynamic
+details_la_LIBADD = $(PLYMOUTH_LIBS) ../../libply/libply.la
+details_la_SOURCES = $(srcdir)/../../ply-boot-splash-plugin.h         \
                   $(srcdir)/details.c
 
 MAINTAINERCLEANFILES = Makefile.in

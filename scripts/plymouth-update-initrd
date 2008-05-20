@@ -33,7 +33,7 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
     sed -i -e 's@^#!\(.*\)@#!/bin/plymouth \1\n@' init 
     #sed -i -e 's@setquiet@&\n/bin/rhgb-client --ask-for-password@' init 
     (cd $LIBDIR
-        DEPS=$(get_lib_deps ${LIBEXECDIR}/plymouth/plymouth ${LIBDIR}/plymouth/fedora-fade-in.so ${LIBDIR}/plymouth/text.so)
+        DEPS=$(get_lib_deps ${LIBEXECDIR}/plymouth/plymouth ${LIBDIR}/plymouth/fedora-fade-in.so ${LIBDIR}/plymouth/text.so ${LIBDIR}/plymouth/details.so)
         for dep in $DEPS; do
             install -D -m755 $dep ${TMPDIR}$(dirname $dep)
         done
@@ -52,6 +52,7 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
     mkdir -p ${TMPDIR}${LIBDIR}/plymouth
     install -m755 ${LIBDIR}/plymouth/fedora-fade-in.so ${TMPDIR}${LIBDIR}/plymouth
     install -m755 ${LIBDIR}/plymouth/text.so ${TMPDIR}${LIBDIR}/plymouth
+    install -m755 ${LIBDIR}/plymouth/details.so ${TMPDIR}${LIBDIR}/plymouth
 
     rm -f $NEW_INITRD
     find | cpio --quiet -Hnewc -o | gzip -9 > $NEW_INITRD

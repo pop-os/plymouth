@@ -83,9 +83,16 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_window_t             *window,
                     ply_buffer_t             *boot_buffer)
 {
+  size_t size;
+
   assert (plugin != NULL);
 
-  ply_trace ("show splash screen");
+  size = ply_buffer_get_size (boot_buffer);
+
+  if (size > 0)
+    write (STDOUT_FILENO,
+           ply_buffer_get_bytes (boot_buffer),
+           size);
 
   return true;
 }

@@ -16,7 +16,7 @@ plymouth_SOURCES = \
                       $(srcdir)/plymouth.c
 
 install-data-hook:
-	(cd $(DESTDIR)$(plymouthdir); ln -s plymouth rhgb-client)
+	(cd $(DESTDIR)$(plymouthdir); ln -sf plymouth rhgb-client)
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(plymouthdir)/rhgb-client

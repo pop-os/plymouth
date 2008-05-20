@@ -80,7 +80,8 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 
 bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
-                    ply_window_t             *window)
+                    ply_window_t             *window,
+                    ply_buffer_t             *boot_buffer)
 {
   assert (plugin != NULL);
 

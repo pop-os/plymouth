@@ -28,12 +28,14 @@
 
 #include "ply-event-loop.h"
 #include "ply-window.h"
+#include "ply-buffer.h"
 
 typedef struct _ply_boot_splash ply_boot_splash_t;
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_boot_splash_t *ply_boot_splash_new (const char *module_name,
-                                        ply_window_t *window);
+                                        ply_window_t *window,
+                                        ply_buffer_t *boot_buffer);
 void ply_boot_splash_free (ply_boot_splash_t *splash);
 bool ply_boot_splash_show (ply_boot_splash_t *splash);
 void ply_boot_splash_update_status (ply_boot_splash_t *splash,

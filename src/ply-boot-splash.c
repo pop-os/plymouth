@@ -45,6 +45,7 @@ struct _ply_boot_splash
   const ply_boot_splash_plugin_interface_t *plugin_interface;
   ply_boot_splash_plugin_t *plugin;
   ply_window_t *window;
+  ply_buffer_t *boot_buffer;
 
   char *module_name;
   char *status;
@@ -57,7 +58,8 @@ typedef const ply_boot_splash_plugin_interface_t *
 
 ply_boot_splash_t *
 ply_boot_splash_new (const char   *module_name,
-                     ply_window_t *window)
+                     ply_window_t *window,
+                     ply_buffer_t *boot_buffer)
 {
   ply_boot_splash_t *splash;
 
@@ -70,6 +72,7 @@ ply_boot_splash_new (const char   *module_name,
   splash->is_shown = false;
 
   splash->window = window;
+  splash->boot_buffer = boot_buffer;
 
   return splash;
 }
@@ -187,7 +190,8 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
 
   ply_trace ("showing splash screen\n");
   if (!splash->plugin_interface->show_splash_screen (splash->plugin,
-                                                     splash->window))
+                                                     splash->window,
+                                                     splash->boot_buffer))
     {
 
       ply_save_errno ();
@@ -304,6 +308,7 @@ main (int    argc,
   ply_event_loop_t *loop;
   ply_boot_splash_t *splash;
   ply_window_t *window;
+  ply_buffer_t *buffer;
   int exit_code;
   const char *module_name;
 
@@ -327,7 +332,8 @@ main (int    argc,
   ply_window_attach_to_event_loop (window, loop);
   ply_window_set_escape_handler (window, (ply_window_escape_handler_t)on_quit, loop);
 
-  splash = ply_boot_splash_new (module_name, window);
+  buffer = ply_buffer_new ();
+  splash = ply_boot_splash_new (module_name, window, buffer);
   ply_boot_splash_attach_to_event_loop (splash, loop);
 
   if (!ply_boot_splash_show (splash))
@@ -343,6 +349,7 @@ main (int    argc,
                                    splash);
   exit_code = ply_event_loop_run (loop);
   ply_boot_splash_free (splash);
+  ply_buffer_free (buffer);
 
   return exit_code;
 }

@@ -49,6 +49,7 @@ typedef struct
   ply_window_t *window;
   ply_boot_splash_t *boot_splash;
   ply_terminal_session_t *session;
+  ply_buffer_t *boot_buffer;
   int original_root_dir_fd;
 } state_t;
 
@@ -192,7 +193,7 @@ start_boot_splash (state_t    *state,
 
   ply_trace ("Loading boot splash plugin '%s'",
              module_path);
-  splash = ply_boot_splash_new (module_path, state->window);
+  splash = ply_boot_splash_new (module_path, state->window, state->boot_buffer);
 
   ply_trace ("attaching plugin to event loop");
   ply_boot_splash_attach_to_event_loop (splash, state->loop);
@@ -227,6 +228,9 @@ spawn_session (state_t  *state,
   ply_trace ("attaching terminal session to event loop");
   ply_terminal_session_attach_to_event_loop (session, state->loop);
 
+  ply_trace ("buffering terminal session for replay if user presses escape");
+  ply_terminal_session_set_output_buffer (session, state->boot_buffer);
+
   ply_trace ("running '%s'", argv[0]);
   if (!ply_terminal_session_run (session, flags,
                                  (ply_terminal_session_begin_handler_t)
@@ -236,6 +240,8 @@ spawn_session (state_t  *state,
     {
       ply_save_errno ();
       ply_terminal_session_free (session);
+      ply_buffer_free (state->boot_buffer);
+      state->boot_buffer = NULL;
       ply_restore_errno ();
       return NULL;
     }
@@ -455,6 +461,8 @@ main (int    argc,
       return EX_OSERR;
     }
 
+  state.boot_buffer = ply_buffer_new ();
+
   state.session = spawn_session (&state, argv + 1);
 
   if (state.session == NULL)
@@ -503,6 +511,8 @@ main (int    argc,
 
   ply_trace ("freeing terminal session");
   ply_terminal_session_free (state.session);
+
+  ply_buffer_free (state.boot_buffer);
 
   ply_trace ("freeing event loop");
   ply_event_loop_free (state.loop);

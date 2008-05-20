@@ -28,6 +28,7 @@
 
 #include "ply-event-loop.h"
 #include "ply-window.h"
+#include "ply-buffer.h"
 
 typedef struct _ply_boot_splash_plugin ply_boot_splash_plugin_t;
 
@@ -37,7 +38,8 @@ typedef struct
   void (* destroy_plugin) (ply_boot_splash_plugin_t *plugin);
 
   bool (* show_splash_screen) (ply_boot_splash_plugin_t *plugin,
-                               ply_window_t             *window);
+                               ply_window_t             *window,
+                               ply_buffer_t             *boot_buffer);
   void (* update_status) (ply_boot_splash_plugin_t *plugin,
                           const char               *status);
   void (* hide_splash_screen) (ply_boot_splash_plugin_t *plugin,

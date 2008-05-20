@@ -1,2 +1,3 @@
 - fix the tests so that they work better with "make check"
-- add the ability to watch for timeouts in the event loop
+- Don't start boot-splash automatically, rather wait until given command from client
+- Allow plymouth to be started from nash instead of the other way around

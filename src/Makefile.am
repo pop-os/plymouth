@@ -1,4 +1,4 @@
-SUBDIRS = libply . splash-plugins rhgb-client tests
+SUBDIRS = libply . splash-plugins client tests
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/libply                                                 \
            -I$(srcdir)

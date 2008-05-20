@@ -49,10 +49,10 @@ AC_OUTPUT([Makefile
            src/splash-plugins/text/Makefile
            src/splash-plugins/details/Makefile
            src/Makefile
-           src/rhgb-client/Makefile
+           src/client/Makefile
            src/tests/Makefile
            src/libply/tests/Makefile
-           src/rhgb-client/tests/Makefile
+           src/client/tests/Makefile
            src/splash-plugins/tests/Makefile
 	   scripts/Makefile
 ])

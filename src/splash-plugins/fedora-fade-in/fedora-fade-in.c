@@ -138,6 +138,8 @@ free_stars (ply_boot_splash_plugin_t *plugin)
   plugin->stars = NULL;
 }
 
+static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
+
 void
 destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
@@ -338,7 +340,12 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   ply_trace ("opening frame buffer");
   if (!ply_frame_buffer_open (plugin->frame_buffer))
-    return false;
+    {
+      ply_event_loop_stop_watching_for_exit (plugin->loop, (ply_event_loop_exit_handler_t)
+                                             detach_from_event_loop,
+                                             plugin);
+      return false;
+    }
 
   plugin->window = window;
 

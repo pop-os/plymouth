@@ -150,7 +150,7 @@ ply_window_set_unbuffered_input (ply_window_t *window)
   struct termios term_attributes;
 
   tcgetattr (window->tty_fd, &term_attributes);
-  term_attributes.c_lflag &= ~ICANON;
+  cfmakeraw (&term_attributes);
 
   if (tcsetattr (window->tty_fd, TCSAFLUSH, &term_attributes) != 0)
     return false;

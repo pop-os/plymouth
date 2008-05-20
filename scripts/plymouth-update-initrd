@@ -30,7 +30,7 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
 
 (cd $TMPDIR
     zcat $INITRD | cpio --quiet -Hnewc -i --make-directories
-    sed -i -e 's@^#!\(.*\)@#!/bin/plymouth \1\n@' init 
+    sed -i -e 's@^#!\(.*\)@#!/bin/plymouthd \1\n@' init 
     #sed -i -e 's@setquiet@&\n/bin/rhgb-client --ask-for-password@' init 
     (cd $LIBDIR
         DEPS=$(get_lib_deps ${LIBEXECDIR}/plymouth/plymouth ${LIBDIR}/plymouth/fedora-fade-in.so ${LIBDIR}/plymouth/text.so ${LIBDIR}/plymouth/details.so)
@@ -41,7 +41,7 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
     /sbin/ldconfig -n $LIB 
     /sbin/ldconfig -n .${LIBDIR}
 
-    install -m755 ${LIBEXECDIR}/plymouth/plymouth bin
+    install -m755 ${LIBEXECDIR}/plymouth/plymouthd bin
     install -m755 ${BINDIR}/rhgb-client bin
 
     mkdir -p ${TMPDIR}$DATADIR/plymouth

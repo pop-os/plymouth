@@ -202,7 +202,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK,
-                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
         ply_error ("could not write bytes: %m");
 
       return;
@@ -248,7 +248,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER,
-                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)) ||
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER)) ||
           !ply_write (connection->fd,
                       &size, sizeof (uint8_t)) ||
           !ply_write (connection->fd,
@@ -264,7 +264,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK,
-                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
         ply_error ("could not write bytes: %m");
 
       return;

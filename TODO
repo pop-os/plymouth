@@ -1,5 +1,4 @@
 - fix the tests so that they work better with "make check"
-- Don't start boot-splash automatically, rather wait until given command from client
 - Allow plymouth to be started from nash instead of the other way around
 - Drop all the make ram disk and copy code.  That was just to make bolting things on easier.  We can integrate now.
 - check peer credentials on client to make sure it's not running unprivileged

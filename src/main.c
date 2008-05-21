@@ -478,8 +478,6 @@ main (int    argc,
       return EX_USAGE;
     }
 
-  ply_toggle_tracing ();
-
   state.loop = ply_event_loop_new ();
 
   /* before do anything we need to make sure we have a working 

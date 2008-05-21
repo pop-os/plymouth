@@ -43,6 +43,7 @@
 #include "ply-logger.h"
 #include "ply-utils.h"
 
+#define KEY_CTRL_V '\026'
 #define KEY_ESCAPE '\033'
 
 struct _ply_window
@@ -89,6 +90,12 @@ process_keyboard_input (ply_window_t *window,
     {
       switch (key)
         {
+          case KEY_CTRL_V:
+            ply_trace ("toggle verbose mode!");
+            ply_toggle_tracing ();
+            ply_trace ("verbose mode toggled!");
+          return;
+
           case KEY_ESCAPE:
             ply_trace ("escape key!");
             if (window->escape_handler != NULL)

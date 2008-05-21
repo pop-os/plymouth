@@ -42,6 +42,12 @@ PLYMOUTH_LIBS="-lm -ldl $IMAGE_LIBS"
 AC_SUBST(PLYMOUTH_CFLAGS)
 AC_SUBST(PLYMOUTH_LIBS)
 
+AC_ARG_ENABLE(tracing, AS_HELP_STRING([--enable-tracing],[enable verbose tracing code]),enable_tracing=$enableval,enable_tracing=yes)
+
+if test x$enable_tracing = xyes; then
+  AC_DEFINE(PLY_ENABLE_TRACING, 1, [Build in verbose debug tracing spew])
+fi
+
 AC_OUTPUT([Makefile
            src/libply/Makefile
            src/splash-plugins/Makefile

@@ -87,14 +87,17 @@ process_keyboard_input (ply_window_t *window,
 
   if (mbrtowc (&key, keyboard_input, 1, NULL) > 0)
     {
-      if (key == KEY_ESCAPE)
+      switch (key)
         {
-          ply_trace ("escape key!");
-          if (window->escape_handler != NULL)
-            window->escape_handler (window->escape_handler_user_data);
-          ply_trace ("end escape key handler");
-
+          case KEY_ESCAPE:
+            ply_trace ("escape key!");
+            if (window->escape_handler != NULL)
+              window->escape_handler (window->escape_handler_user_data);
+            ply_trace ("end escape key handler");
           return;
+
+          default:
+          break;
         }
     }
 

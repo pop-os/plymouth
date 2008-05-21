@@ -59,7 +59,7 @@ on_disconnect (ply_event_loop_t *loop)
 void
 print_usage (void)
 {
-  ply_log ("rhgb-client [--ping] [--update=STATUS] [--show-splash] [--details] [--sysinit] [--quit]");
+  ply_log ("plymouth [--ping] [--update=STATUS] [--show-splash] [--details] [--sysinit] [--quit]");
   ply_flush_log ();
 }
 

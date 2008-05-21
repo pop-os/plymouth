@@ -169,6 +169,17 @@ ply_boot_connection_read_request (ply_boot_connection_t  *connection,
   return true;
 }
 
+static bool
+ply_boot_connection_is_from_root (ply_boot_connection_t *connection)
+{
+  uid_t uid;
+
+  if (!ply_get_credentials_from_fd (connection->fd, NULL, &uid, NULL))
+    return false;
+
+  return uid == 0;
+}
+
 static void
 ply_boot_connection_on_request (ply_boot_connection_t *connection)
 {
@@ -184,6 +195,18 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
   if (!ply_boot_connection_read_request (connection,
                                          &command, &argument))
     return;
+
+  if (!ply_boot_connection_is_from_root (connection))
+    {
+      ply_error ("request came from non-root user");
+
+      if (!ply_write (connection->fd,
+                      PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK,
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+        ply_error ("could not write bytes: %m");
+
+      return;
+    }
 
   if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_UPDATE) == 0)
     {
@@ -238,6 +261,12 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PING) != 0)
     {
       ply_error ("received unknown command '%s' from client", command);
+
+      if (!ply_write (connection->fd,
+                      PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK,
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+        ply_error ("could not write bytes: %m");
+
       return;
     }
 

@@ -48,6 +48,10 @@ int ply_connect_to_unix_socket (const char *path,
                                 bool        is_abstract);
 int ply_listen_to_unix_socket (const char *path,
                                bool        is_abstract);
+bool ply_get_credentials_from_fd (int    fd,
+                                  pid_t *pid,
+                                  uid_t *uid,
+                                  gid_t *gid);
 
 bool ply_write (int         fd,
                 const void *buffer,

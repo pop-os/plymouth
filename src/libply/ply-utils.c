@@ -103,6 +103,7 @@ static int
 ply_open_unix_socket (const char *path)
 {
   int fd;
+  const int should_pass_credentials = true;
 
   assert (path != NULL);
 
@@ -117,6 +118,15 @@ ply_open_unix_socket (const char *path)
       close (fd);
       ply_restore_errno ();
 
+      return -1;
+    }
+
+  if (setsockopt (fd, SOL_SOCKET, SO_PASSCRED,
+                  &should_pass_credentials, sizeof (should_pass_credentials)) < 0)
+    {
+      ply_save_errno ();
+      close (fd);
+      ply_restore_errno ();
       return -1;
     }
 
@@ -230,6 +240,35 @@ ply_listen_to_unix_socket (const char *path,
     }
 
   return fd;
+}
+
+bool
+ply_get_credentials_from_fd (int    fd,
+                             pid_t *pid,
+                             uid_t *uid,
+                             gid_t *gid)
+{
+  struct ucred credentials;
+  socklen_t credential_size;
+
+  credential_size = sizeof (credentials);
+  if (getsockopt (fd, SOL_SOCKET, SO_PEERCRED, &credentials,
+                  &credential_size) < 0)
+    return false;
+
+  if (credential_size < sizeof (credentials))
+    return false;
+
+  if (pid != NULL)
+    *pid = credentials.pid;
+
+  if (uid != NULL)
+    *uid = credentials.uid;
+
+  if (gid != NULL)
+    *gid = credentials.gid;
+
+  return true;
 }
 
 int

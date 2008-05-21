@@ -94,12 +94,26 @@ open_console (ply_boot_splash_plugin_t *plugin)
   return true;
 }
 
+static void
+detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
+{
+  plugin->loop = NULL;
+
+  ply_trace ("detaching from event loop");
+}
+
 bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
+                    ply_event_loop_t         *loop,
                     ply_window_t             *window,
                     ply_buffer_t             *boot_buffer)
 {
   assert (plugin != NULL);
+
+  plugin->loop = loop;
+  ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
+                                 detach_from_event_loop,
+                                 plugin);
 
   ply_trace ("opening console");
   if (!open_console (plugin))
@@ -118,16 +132,9 @@ update_status (ply_boot_splash_plugin_t *plugin,
   write (plugin->console_fd, ".", 1);
 }
 
-static void
-detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
-{
-  plugin->loop = NULL;
-
-  ply_trace ("detaching from event loop");
-}
-
 void
 hide_splash_screen (ply_boot_splash_plugin_t *plugin,
+                    ply_event_loop_t         *loop,
                     ply_window_t             *window)
 {
   assert (plugin != NULL);
@@ -142,18 +149,6 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                                              plugin);
       detach_from_event_loop (plugin);
     }
-}
-
-void
-attach_to_event_loop (ply_boot_splash_plugin_t *plugin,
-                      ply_event_loop_t         *loop)
-{
-  plugin->loop = loop;
-
-  ply_trace ("attaching to event loop");
-  ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
-                                 detach_from_event_loop,
-                                 plugin);
 }
 
 char *
@@ -200,7 +195,6 @@ ply_boot_splash_plugin_get_interface (void)
       .show_splash_screen = show_splash_screen,
       .update_status = update_status,
       .hide_splash_screen = hide_splash_screen,
-      .attach_to_event_loop = attach_to_event_loop,
       .ask_for_password = ask_for_password,
       .on_keyboard_input = on_keyboard_input
     };

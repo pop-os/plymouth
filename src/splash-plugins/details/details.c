@@ -78,14 +78,29 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   free (plugin);
 }
 
+static void
+detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
+{
+  plugin->loop = NULL;
+
+  ply_trace ("detaching from event loop");
+}
+
 bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
+                    ply_event_loop_t         *loop,
                     ply_window_t             *window,
                     ply_buffer_t             *boot_buffer)
 {
   size_t size;
 
   assert (plugin != NULL);
+
+  plugin->loop = loop;
+
+  ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
+                                 detach_from_event_loop,
+                                 plugin);
 
   size = ply_buffer_get_size (boot_buffer);
 
@@ -115,16 +130,9 @@ on_boot_output (ply_boot_splash_plugin_t *plugin,
     write (STDOUT_FILENO, output, size);
 }
 
-static void
-detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
-{
-  plugin->loop = NULL;
-
-  ply_trace ("detaching from event loop");
-}
-
 void
 hide_splash_screen (ply_boot_splash_plugin_t *plugin,
+                    ply_event_loop_t         *loop,
                     ply_window_t             *window)
 {
   assert (plugin != NULL);
@@ -136,19 +144,6 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                                          detach_from_event_loop,
                                          plugin);
   detach_from_event_loop (plugin);
-}
-
-void
-attach_to_event_loop (ply_boot_splash_plugin_t *plugin,
-                      ply_event_loop_t         *loop)
-{
-  ply_trace ("attaching to event loop");
-
-  plugin->loop = loop;
-
-  ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
-                                 detach_from_event_loop,
-                                 plugin);
 }
 
 char *
@@ -196,7 +191,6 @@ ply_boot_splash_plugin_get_interface (void)
       .update_status = update_status,
       .on_boot_output = on_boot_output,
       .hide_splash_screen = hide_splash_screen,
-      .attach_to_event_loop = attach_to_event_loop,
       .ask_for_password = ask_for_password,
       .on_keyboard_input = on_keyboard_input
     };

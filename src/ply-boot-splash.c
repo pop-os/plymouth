@@ -176,12 +176,7 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
 
   assert (splash->plugin_interface != NULL);
   assert (splash->plugin != NULL);
-  assert (splash->plugin_interface->attach_to_event_loop != NULL);
   assert (splash->plugin_interface->show_splash_screen != NULL);
-
-  splash->plugin_interface->attach_to_event_loop (splash->plugin,
-                                                  splash->loop);
-
   assert (splash->window != NULL);
 
   ply_window_set_keyboard_input_handler (splash->window,
@@ -190,6 +185,7 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
 
   ply_trace ("showing splash screen\n");
   if (!splash->plugin_interface->show_splash_screen (splash->plugin,
+                                                     splash->loop,
                                                      splash->window,
                                                      splash->boot_buffer))
     {
@@ -259,6 +255,7 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
   assert (splash->plugin_interface->hide_splash_screen != NULL);
 
   splash->plugin_interface->hide_splash_screen (splash->plugin,
+                                                splash->loop,
                                                 splash->window);
 
   ply_window_set_keyboard_input_handler (splash->window, NULL, NULL);

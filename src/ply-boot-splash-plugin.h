@@ -38,6 +38,7 @@ typedef struct
   void (* destroy_plugin) (ply_boot_splash_plugin_t *plugin);
 
   bool (* show_splash_screen) (ply_boot_splash_plugin_t *plugin,
+                               ply_event_loop_t         *loop,
                                ply_window_t             *window,
                                ply_buffer_t             *boot_buffer);
   void (* update_status) (ply_boot_splash_plugin_t *plugin,
@@ -46,9 +47,8 @@ typedef struct
                            const char               *output,
                            size_t                    size);
   void (* hide_splash_screen) (ply_boot_splash_plugin_t *plugin,
+                               ply_event_loop_t         *loop,
                                ply_window_t             *window);
-  void (* attach_to_event_loop) (ply_boot_splash_plugin_t *plugin,
-                                 ply_event_loop_t         *loop);
 
   char * (* ask_for_password) (ply_boot_splash_plugin_t *plugin);
   void (* on_keyboard_input) (ply_boot_splash_plugin_t *plugin,

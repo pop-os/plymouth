@@ -94,8 +94,9 @@ on_update (state_t     *state,
            const char  *status)
 {
   ply_trace ("updating status to '%s'", status);
-  ply_boot_splash_update_status (state->boot_splash,
-                                 status);
+  if (state->boot_splash != NULL)
+    ply_boot_splash_update_status (state->boot_splash,
+                                   status);
 }
 
 static char *
@@ -116,12 +117,32 @@ on_system_initialized (state_t *state)
 }
 
 static void
+on_show_splash (state_t *state)
+{
+  ply_trace ("Showing splash screen");
+  state->boot_splash = start_boot_splash (state,
+                                          PLYMOUTH_PLUGIN_PATH "fedora-fade-in.so");
+
+  if (state->boot_splash == NULL)
+    {
+      ply_trace ("Could not start graphical splash screen,"
+                 "showing text splash screen");
+      state->boot_splash = start_boot_splash (state,
+                                              PLYMOUTH_PLUGIN_PATH "text.so");
+    }
+
+  if (state->boot_splash == NULL)
+    ply_error ("could not start boot splash: %m");
+}
+
+static void
 on_quit (state_t *state)
 {
   ply_trace ("time to quit, closing log");
   ply_terminal_session_close_log (state->session);
   ply_trace ("hiding splash");
-  ply_boot_splash_hide (state->boot_splash);
+  if (state->boot_splash != NULL)
+    ply_boot_splash_hide (state->boot_splash);
   ply_trace ("exiting event loop");
   ply_event_loop_exit (state->loop, 0);
 
@@ -142,6 +163,7 @@ start_boot_server (state_t *state)
 
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
+                                (ply_boot_server_show_splash_handler_t) on_show_splash,
                                 (ply_boot_server_system_initialized_handler_t) on_system_initialized,
                                 (ply_boot_server_quit_handler_t) on_quit,
                                 state);
@@ -447,7 +469,7 @@ int
 main (int    argc,
       char **argv)
 {
-  state_t state;
+  state_t state = { 0 };
   int exit_code;
 
   if (argc <= 1)
@@ -491,21 +513,6 @@ main (int    argc,
     }
 
   state.window = create_window (&state, "/dev/tty1");
-
-  state.boot_splash = start_boot_splash (&state,
-                                         PLYMOUTH_PLUGIN_PATH "fedora-fade-in.so");
-
-  if (state.boot_splash == NULL)
-    {
-      state.boot_splash = start_boot_splash (&state,
-                                             PLYMOUTH_PLUGIN_PATH "text.so");
-    }
-
-  if (state.boot_splash == NULL)
-    {
-      ply_error ("could not start boot splash: %m");
-      return EX_UNAVAILABLE;
-    }
 
   ply_trace ("entering event loop");
   exit_code = ply_event_loop_run (state.loop);

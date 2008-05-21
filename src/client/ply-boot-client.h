@@ -40,7 +40,7 @@ typedef void (* ply_boot_client_disconnect_handler_t) (void              *user_d
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_boot_client_t *ply_boot_client_new (void);
-                                                  
+
 void ply_boot_client_free (ply_boot_client_t *client);
 bool ply_boot_client_connect (ply_boot_client_t                    *client,
                               ply_boot_client_disconnect_handler_t  disconnect_handler,
@@ -62,6 +62,10 @@ void ply_boot_client_tell_daemon_system_is_initialized (ply_boot_client_t       
                                                         ply_boot_client_response_handler_t  handler,
                                                         ply_boot_client_response_handler_t  failed_handler,
                                                         void                               *user_data);
+void ply_boot_client_tell_daemon_to_show_splash (ply_boot_client_t                  *client,
+                                                 ply_boot_client_response_handler_t  handler,
+                                                 ply_boot_client_response_handler_t  failed_handler,
+                                                 void                               *user_data);
 void ply_boot_client_tell_daemon_to_quit (ply_boot_client_t                  *client,
                                           ply_boot_client_response_handler_t  handler,
                                           ply_boot_client_response_handler_t  failed_handler,

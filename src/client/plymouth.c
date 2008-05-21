@@ -59,7 +59,7 @@ on_disconnect (ply_event_loop_t *loop)
 void
 print_usage (void)
 {
-  ply_log ("rhgb-client [--ping] [--update=STATUS] [--details] [--sysinit] [--quit]");
+  ply_log ("rhgb-client [--ping] [--update=STATUS] [--show-splash] [--details] [--sysinit] [--quit]");
   ply_flush_log ();
 }
 
@@ -69,7 +69,7 @@ main (int    argc,
 {
   ply_event_loop_t *loop;
   ply_boot_client_t *client;
-  bool should_quit, should_ping, should_update, should_sysinit, should_ask_for_password;
+  bool should_quit, should_ping, should_update, should_sysinit, should_ask_for_password, should_show_splash;
   char *status;
   int exit_code;
   int i;
@@ -89,6 +89,7 @@ main (int    argc,
   should_update = false;
   should_quit = false;
   should_ask_for_password = false;
+  should_show_splash = false;
   status = NULL;
   for (i = 1; i < argc; i++)
     {
@@ -103,6 +104,8 @@ main (int    argc,
         should_ping = true;
       else if (strstr (argv[i], "--sysinit") != NULL)
         should_sysinit = true;
+      else if (strstr (argv[i], "--show-splash") != NULL)
+        should_show_splash = true;
       else if (strstr (argv[i], "--ask-for-password") != NULL)
         should_ask_for_password = true;
       else if (strstr (argv[i], "--update") != NULL)
@@ -142,7 +145,13 @@ main (int    argc,
 
   ply_boot_client_attach_to_event_loop (client, loop);
 
-  if (should_quit)
+  if (should_show_splash)
+    ply_boot_client_tell_daemon_to_show_splash (client,
+                                               (ply_boot_client_response_handler_t)
+                                               on_success,
+                                               (ply_boot_client_response_handler_t)
+                                               on_failure, loop);
+  else if (should_quit)
     ply_boot_client_tell_daemon_to_quit (client,
                                          (ply_boot_client_response_handler_t)
                                          on_success,

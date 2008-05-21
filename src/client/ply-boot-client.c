@@ -468,6 +468,18 @@ ply_boot_client_ask_daemon_for_password (ply_boot_client_t                  *cli
 }
 
 void
+ply_boot_client_tell_daemon_to_show_splash (ply_boot_client_t                  *client,
+                                            ply_boot_client_response_handler_t  handler,
+                                            ply_boot_client_response_handler_t  failed_handler,
+                                            void                               *user_data)
+{
+  assert (client != NULL);
+
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_SHOW_SPLASH,
+                                 NULL, handler, failed_handler, user_data);
+}
+
+void
 ply_boot_client_tell_daemon_to_quit (ply_boot_client_t                  *client,
                                      ply_boot_client_response_handler_t  handler,
                                      ply_boot_client_response_handler_t  failed_handler,

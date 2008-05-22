@@ -85,6 +85,17 @@ ply_buffer_remove_bytes (ply_buffer_t *buffer,
     }
 }
 
+void
+ply_buffer_remove_bytes_at_end (ply_buffer_t *buffer,
+                                size_t        bytes_to_remove)
+{
+  assert (buffer != NULL);
+
+  bytes_to_remove = MIN (buffer->size, bytes_to_remove);
+
+  buffer->size -= bytes_to_remove;
+}
+
 ply_buffer_t *
 ply_buffer_new (void)
 {

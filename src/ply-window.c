@@ -49,7 +49,7 @@
 struct _ply_window
 {
   ply_event_loop_t *loop;
-  ply_buffer_t     *buffer;
+  ply_buffer_t     *keyboard_input_buffer;
 
   char *tty_name;
   int   tty_fd;
@@ -72,7 +72,7 @@ ply_window_new (const char *tty_name)
   assert (tty_name != NULL);
 
   window = calloc (1, sizeof (ply_window_t));
-  window->buffer = ply_buffer_new ();
+  window->keyboard_input_buffer = ply_buffer_new ();
   window->loop = NULL;
   window->tty_name = strdup (tty_name);
   window->tty_fd = -1;
@@ -119,8 +119,8 @@ check_buffer_for_key_events (ply_window_t *window)
   const char *bytes;
   size_t size, i;
 
-  bytes = ply_buffer_get_bytes (window->buffer);
-  size = ply_buffer_get_size (window->buffer);
+  bytes = ply_buffer_get_bytes (window->keyboard_input_buffer);
+  size = ply_buffer_get_size (window->keyboard_input_buffer);
 
   i = 0;
   while (i < size)
@@ -143,13 +143,13 @@ check_buffer_for_key_events (ply_window_t *window)
     }
 
   if (i > 0)
-    ply_buffer_remove_bytes (window->buffer, i);
+    ply_buffer_remove_bytes (window->keyboard_input_buffer, i);
 }
 
 static void
 on_key_event (ply_window_t *window)
 {
-  ply_buffer_append_from_fd (window->buffer, window->tty_fd);
+  ply_buffer_append_from_fd (window->keyboard_input_buffer, window->tty_fd);
 
   check_buffer_for_key_events (window);
 }
@@ -258,7 +258,7 @@ ply_window_free (ply_window_t *window)
   ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
   ply_window_close (window);
 
-  ply_buffer_free (window->buffer);
+  ply_buffer_free (window->keyboard_input_buffer);
 
   free (window);
 }

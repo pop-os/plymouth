@@ -16,7 +16,7 @@ fedora_fade_in_la_SOURCES = $(srcdir)/../../ply-boot-splash-plugin.h         \
                             $(srcdir)/fedora-fade-in.c
 
 plymouthdir = $(datadir)/plymouth
-plymouth_DATA = star.png
+plymouth_DATA = star.png bullet.png entry.png lock.png
 
 EXTRA_DIST = $(plymouth_DATA)
 MAINTAINERCLEANFILES = Makefile.in

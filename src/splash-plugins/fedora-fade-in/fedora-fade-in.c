@@ -1,6 +1,6 @@
 /* fedora-fade-in.c - boot splash plugin
  *
- * Copyright (C) 2007 Red Hat, Inc.
+ * Copyright (C) 2007, 2008 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,8 +37,10 @@
 #include <sys/types.h>
 #include <values.h>
 #include <unistd.h>
+#include <wchar.h>
 
 #include "ply-boot-splash-plugin.h"
+#include "ply-buffer.h"
 #include "ply-event-loop.h"
 #include "ply-list.h"
 #include "ply-logger.h"
@@ -61,14 +63,31 @@ typedef struct
   double speed;
 } star_t;
 
+typedef struct
+{
+  int x;
+  int y;
+  int number_of_bullets;
+} entry_t;
+
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
   ply_frame_buffer_t *frame_buffer;
   ply_image_t *logo_image;
   ply_image_t *star_image;
+  ply_image_t *bullet_image;
+  ply_image_t *lock_image;
+  ply_image_t *entry_image;
   ply_list_t *stars;
   ply_window_t *window;
+
+  entry_t *entry;
+
+  ply_boot_splash_password_answer_handler_t password_answer_handler;
+  void *password_answer_data;
+
+  ply_buffer_t *keyboard_input_buffer;
 
   double start_time;
   double now;
@@ -83,12 +102,37 @@ create_plugin (void)
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
   plugin->start_time = 0.0;
 
+  plugin->keyboard_input_buffer = ply_buffer_new ();
+
   plugin->frame_buffer = ply_frame_buffer_new (NULL);
   plugin->logo_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-logo.png");
   plugin->star_image = ply_image_new (PLYMOUTH_IMAGE_DIR "star.png");
+  plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "lock.png");
+  plugin->bullet_image = ply_image_new (PLYMOUTH_IMAGE_DIR "bullet.png");
+  plugin->entry_image = ply_image_new (PLYMOUTH_IMAGE_DIR "entry.png");
   plugin->stars = ply_list_new ();
 
   return plugin;
+}
+
+static entry_t *
+entry_new (int x,
+           int y)
+{
+
+  entry_t *entry;
+
+  entry = calloc (1, sizeof (entry_t));
+  entry->x = x;
+  entry->y = y;
+
+  return entry;
+}
+
+static void
+entry_free (entry_t *entry)
+{
+  free (entry);
 }
 
 star_t *
@@ -146,9 +190,14 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   if (plugin == NULL)
     return;
 
+  ply_buffer_free (plugin->keyboard_input_buffer);
+
   free_stars (plugin);
   ply_image_free (plugin->logo_image);
   ply_image_free (plugin->star_image);
+  ply_image_free (plugin->bullet_image);
+  ply_image_free (plugin->entry_image);
+  ply_image_free (plugin->lock_image);
   ply_frame_buffer_free (plugin->frame_buffer);
   free (plugin);
 }
@@ -222,6 +271,7 @@ animate_at_time (ply_boot_splash_plugin_t *plugin,
   ply_frame_buffer_unpause_updates (plugin->frame_buffer);
 }
 
+static void draw_password_entry (ply_boot_splash_plugin_t *plugin);
 static void
 on_timeout (ply_boot_splash_plugin_t *plugin)
 {
@@ -229,7 +279,6 @@ on_timeout (ply_boot_splash_plugin_t *plugin)
 
   ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_GRAPHICS);
   plugin->now = ply_get_timestamp ();
-
 
   /* The choice below is between
    *
@@ -304,8 +353,6 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
   ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL,
                                     0.0, 0.0, 0.0, 1.0);
 
-  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
-
   if (plugin->loop != NULL)
     {
       ply_event_loop_stop_watching_for_timeout (plugin->loop,
@@ -319,6 +366,7 @@ on_interrupt (ply_boot_splash_plugin_t *plugin)
 {
   ply_event_loop_exit (plugin->loop, 1);
   stop_animation (plugin);
+  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
 }
 
 static void
@@ -350,6 +398,18 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   ply_trace ("loading star image");
   if (!ply_image_load (plugin->star_image))
+    return false;
+
+  ply_trace ("loading lock image");
+  if (!ply_image_load (plugin->lock_image))
+    return false;
+
+  ply_trace ("loading bullet image");
+  if (!ply_image_load (plugin->bullet_image))
+    return false;
+
+  ply_trace ("loading entry image");
+  if (!ply_image_load (plugin->entry_image))
     return false;
 
   ply_trace ("opening frame buffer");
@@ -473,12 +533,125 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
     }
 
   ply_frame_buffer_close (plugin->frame_buffer);
+  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
+}
+static void
+draw_password_entry (ply_boot_splash_plugin_t *plugin)
+{
+  ply_frame_buffer_area_t lock_area, entry_area, bullet_area;
+  uint32_t *lock_data, *entry_data, *bullet_data;
+  int x, y, i;
+
+  ply_frame_buffer_pause_updates (plugin->frame_buffer);
+  entry_data = ply_image_get_data (plugin->entry_image);
+  entry_area.width = ply_image_get_width (plugin->entry_image);
+  entry_area.height = ply_image_get_height (plugin->entry_image);
+  entry_area.x = plugin->entry->x;
+  entry_area.y = plugin->entry->y;
+
+  ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
+                                          &entry_area, 0, 0,
+                                          entry_data);
+
+  lock_data = ply_image_get_data (plugin->lock_image);
+  lock_area.width = ply_image_get_width (plugin->lock_image);
+  lock_area.height = ply_image_get_height (plugin->lock_image);
+
+  x = plugin->entry->x - lock_area.width;
+  y = plugin->entry->y + entry_area.height / 2.0 - lock_area.height / 2.0;
+
+  lock_area.x = x;
+  lock_area.y = y;
+  ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
+                                          &lock_area, 0, 0,
+                                          lock_data);
+
+
+  bullet_data = ply_image_get_data (plugin->bullet_image);
+  bullet_area.width = ply_image_get_width (plugin->bullet_image);
+  bullet_area.height = ply_image_get_height (plugin->bullet_image);
+
+  for (i = 0; i < plugin->entry->number_of_bullets; i++)
+    {
+      bullet_area.x = plugin->entry->x + (i + 1) * bullet_area.width;
+      bullet_area.y = plugin->entry->y + entry_area.height / 2.0 - bullet_area.height / 2.0;
+
+      ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
+                                              &bullet_area, 0, 0,
+                                              bullet_data);
+    }
+  ply_frame_buffer_unpause_updates (plugin->frame_buffer);
+}
+
+static void
+show_password_entry (ply_boot_splash_plugin_t *plugin)
+{
+  ply_frame_buffer_area_t area;
+  int x, y;
+  int lock_width, lock_height;
+  int entry_width, entry_height;
+
+  assert (plugin != NULL);
+
+  ply_frame_buffer_get_size (plugin->frame_buffer, &area);
+  lock_width = ply_image_get_width (plugin->lock_image);
+  lock_height = ply_image_get_height (plugin->lock_image);
+
+  entry_width = ply_image_get_width (plugin->entry_image);
+  entry_height = ply_image_get_height (plugin->entry_image);
+
+  x = area.width / 2.0 - (lock_width + entry_width) / 2.0 + lock_width;
+  y = area.height / 2.0 - entry_height / 2.0;
+
+  plugin->entry = entry_new (x, y);
+  ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL,
+                                    0.1, 0.1, .7, 1.0);
+  draw_password_entry (plugin);
+}
+
+void
+ask_for_password (ply_boot_splash_plugin_t *plugin,
+                  ply_boot_splash_password_answer_handler_t answer_handler,
+                  void *answer_data)
+{
+  plugin->password_answer_handler = answer_handler;
+  plugin->password_answer_data = answer_data;
+
+  stop_animation (plugin);
+  show_password_entry (plugin);
 }
 
 void
 on_keyboard_input (ply_boot_splash_plugin_t *plugin,
                    const char               *keyboard_input)
 {
+
+  ssize_t character_size;
+
+  character_size = (ssize_t) mbrlen (keyboard_input, MB_CUR_MAX, NULL);
+
+  if (character_size < 0)
+    return;
+
+  if (plugin->password_answer_handler == NULL)
+    return;
+
+  if (character_size == 1 && keyboard_input[0] == '\r')
+    {
+      plugin->password_answer_handler (plugin->password_answer_data,
+                                       ply_buffer_get_bytes (plugin->keyboard_input_buffer));
+      ply_buffer_clear (plugin->keyboard_input_buffer);
+      plugin->password_answer_handler = NULL;
+
+      start_animation (plugin);
+      return;
+    }
+
+  ply_buffer_append_bytes (plugin->keyboard_input_buffer,
+                           keyboard_input, character_size);
+
+  plugin->entry->number_of_bullets++;
+  draw_password_entry (plugin);
 }
 
 ply_boot_splash_plugin_interface_t *
@@ -491,6 +664,7 @@ ply_boot_splash_plugin_get_interface (void)
       .show_splash_screen = show_splash_screen,
       .update_status = update_status,
       .hide_splash_screen = hide_splash_screen,
+      .ask_for_password = ask_for_password,
       .on_keyboard_input = on_keyboard_input
     };
 

@@ -31,7 +31,7 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
 (cd $TMPDIR
     zcat $INITRD | cpio --quiet -Hnewc -i --make-directories
     sed -i -e 's@^#!\(.*\)@#!/bin/plymouthd \1\n@' init 
-    sed -i -e 's@setquiet@&\n/bin/plymouth --show-splash\n/bin/plymouth --ask-for-password@' init
+    sed -i -e 's@setquiet@&\n/bin/plymouth --show-splash\n/bin/plymouth --ask-for-password\n@' init
     (cd $LIBDIR
         DEPS=$(get_lib_deps ${LIBEXECDIR}/plymouth/plymouth ${LIBDIR}/plymouth/fedora-fade-in.so ${LIBDIR}/plymouth/text.so ${LIBDIR}/plymouth/details.so)
         for dep in $DEPS; do
@@ -48,6 +48,9 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
 
     install -m644 ${DATADIR}/pixmaps/fedora-logo.png ${TMPDIR}${DATADIR}/plymouth
     install -m644 ${DATADIR}/plymouth/star.png ${TMPDIR}${DATADIR}/plymouth
+    install -m644 ${DATADIR}/plymouth/lock.png ${TMPDIR}${DATADIR}/plymouth
+    install -m644 ${DATADIR}/plymouth/entry.png ${TMPDIR}${DATADIR}/plymouth
+    install -m644 ${DATADIR}/plymouth/bullet.png ${TMPDIR}${DATADIR}/plymouth
 
     mkdir -p ${TMPDIR}${LIBDIR}/plymouth
     install -m755 ${LIBDIR}/plymouth/fedora-fade-in.so ${TMPDIR}${LIBDIR}/plymouth

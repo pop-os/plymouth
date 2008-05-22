@@ -73,19 +73,15 @@ bool ply_logger_is_tracing_enabled (ply_logger_t *logger);
 #define ply_logger_trace(logger, format, args...)                              \
 do                                                                             \
   {                                                                            \
-    double _timestamp;                                                         \
-    pid_t _pid;                                                                \
     int _old_errno;                                                            \
     _old_errno = errno;                                                        \
     if (ply_logger_is_tracing_enabled (logger))                                \
       {                                                                        \
         ply_logger_flush (logger);                                             \
-        _pid = getpid ();                                                      \
-        _timestamp = ply_get_timestamp ();                                     \
         errno = _old_errno;                                                    \
         ply_logger_inject (logger,                                             \
-                           "|pid: %d| <%.4f> [%s] %45.45s:" format "\n",       \
-                           _pid, _timestamp, __FILE__, __func__, ##args);      \
+                           "[%s] %45.45s:" format "\n",                        \
+                           __FILE__, __func__, ##args);                        \
         ply_logger_flush (logger);                                             \
         errno = _old_errno;                                                    \
       }                                                                        \

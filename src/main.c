@@ -99,10 +99,35 @@ on_update (state_t     *state,
                                    status);
 }
 
-static char *
-on_ask_for_password (state_t *state)
+typedef struct
 {
-  return ply_boot_splash_ask_for_password (state->boot_splash);
+  ply_boot_server_password_answer_handler_t handler;
+  void *data;
+  state_t *state;
+} password_answer_closure_t;
+
+static void
+on_password_answer (password_answer_closure_t *closure,
+                    const char *password)
+{
+  closure->handler (closure->data, password, closure->state->boot_server);
+}
+
+static void
+on_ask_for_password (state_t *state,
+                     ply_boot_server_password_answer_handler_t answer_handler,
+                     void *answer_data)
+{
+  password_answer_closure_t *closure;
+
+  closure = malloc (sizeof (password_answer_closure_t));
+  closure->handler = answer_handler;
+  closure->data = answer_data;
+  closure->state = state;
+
+  ply_boot_splash_ask_for_password (state->boot_splash,
+                                    (ply_boot_splash_password_answer_handler_t)
+                                    on_password_answer, closure);
 }
 
 static void

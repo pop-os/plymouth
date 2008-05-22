@@ -226,8 +226,10 @@ ply_boot_splash_update_output (ply_boot_splash_t *splash,
     splash->plugin_interface->on_boot_output (splash->plugin, output, size);
 }
 
-char *
-ply_boot_splash_ask_for_password (ply_boot_splash_t *splash)
+void
+ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
+                                  ply_boot_splash_password_answer_handler_t *answer_handler,
+                                  void              *answer_data)
 {
 
   assert (splash != NULL);
@@ -236,7 +238,8 @@ ply_boot_splash_ask_for_password (ply_boot_splash_t *splash)
   assert (splash->plugin_interface->ask_for_password != NULL);
   assert (splash->is_shown);
 
-  return splash->plugin_interface->ask_for_password (splash->plugin);
+  splash->plugin_interface->ask_for_password (splash->plugin,
+                                              answer_handler, answer_data);
 }
 
 static void

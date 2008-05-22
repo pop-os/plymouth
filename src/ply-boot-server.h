@@ -38,7 +38,12 @@ typedef void (* ply_boot_server_update_handler_t) (void              *user_data,
 typedef void (* ply_boot_server_show_splash_handler_t) (void              *user_data,
                                                         ply_boot_server_t *server);
 
-typedef char * (* ply_boot_server_ask_for_password_handler_t) (void              *user_data,
+typedef void (* ply_boot_server_password_answer_handler_t) (void              *answer_data,
+                                                            const char        *password,
+                                                            ply_boot_server_t *server);
+typedef void (* ply_boot_server_ask_for_password_handler_t) (void              *user_data,
+                                                             ply_boot_server_password_answer_handler_t on_answer_handler,
+                                                             void              *answer_data,
                                                              ply_boot_server_t *server);
 
 typedef void (* ply_boot_server_system_initialized_handler_t) (void              *user_data,

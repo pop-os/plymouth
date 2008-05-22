@@ -29,6 +29,7 @@
 #include "ply-event-loop.h"
 #include "ply-window.h"
 #include "ply-buffer.h"
+#include "ply-boot-splash-plugin.h"
 
 typedef struct _ply_boot_splash ply_boot_splash_t;
 
@@ -44,7 +45,9 @@ void ply_boot_splash_update_output (ply_boot_splash_t *splash,
                                     const char        *output,
                                     size_t             size);
 
-char *ply_boot_splash_ask_for_password (ply_boot_splash_t *splash);
+void ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
+                                       ply_boot_splash_password_answer_handler_t *answer_handler,
+                                       void              *answer_data);
 void ply_boot_splash_hide (ply_boot_splash_t *splash);
 void ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
                                            ply_event_loop_t  *loop);

@@ -181,6 +181,31 @@ ply_boot_connection_is_from_root (ply_boot_connection_t *connection)
 }
 
 static void
+ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
+                                        const char            *password,
+                                        ply_boot_server_t     *server)
+{
+
+  size_t size;
+
+  /* FIXME: support up to 4 billion
+   */
+  if (strlen (password) > 255)
+    ply_error ("password to long to fit in buffer");
+
+  size = (uint8_t) strlen (password);
+
+  if (!ply_write (connection->fd,
+                  PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER,
+                  strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER)) ||
+      !ply_write (connection->fd,
+                  &size, sizeof (uint8_t)) ||
+      !ply_write (connection->fd,
+                  password, size))
+    ply_error ("could not write bytes: %m");
+}
+
+static void
 ply_boot_connection_on_request (ply_boot_connection_t *connection)
 {
   ply_boot_server_t *server;
@@ -231,31 +256,13 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PASSWORD) == 0)
     {
-      char *password;
-      uint8_t size;
-
-      password = NULL;
-
       if (server->ask_for_password_handler != NULL)
-        password = server->ask_for_password_handler (server->user_data, server);
-
-      /* FIXME: support up to 4 billion
+        server->ask_for_password_handler (server->user_data,
+                                          ply_boot_connection_on_password_answer,
+                                          connection,
+                                          server);
+      /* will reply later
        */
-      if (strlen (password) > 255)
-        ply_error ("password to long to fit in buffer");
-
-      size = (uint8_t) strlen (password);
-
-      if (!ply_write (connection->fd,
-                      PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER,
-                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER)) ||
-          !ply_write (connection->fd,
-                      &size, sizeof (uint8_t)) ||
-          !ply_write (connection->fd,
-                      password, size))
-        ply_error ("could not write bytes: %m");
-
-      free (password);
       return;
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PING) != 0)

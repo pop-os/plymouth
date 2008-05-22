@@ -31,7 +31,7 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
 (cd $TMPDIR
     zcat $INITRD | cpio --quiet -Hnewc -i --make-directories
     sed -i -e 's@^#!\(.*\)@#!/bin/plymouthd \1\n@' init 
-    sed -i -e 's@setquiet@&\n/bin/plymouth --show-splash@' init
+    sed -i -e 's@setquiet@&\n/bin/plymouth --show-splash\n/bin/plymouth --ask-for-password@' init
     (cd $LIBDIR
         DEPS=$(get_lib_deps ${LIBEXECDIR}/plymouth/plymouth ${LIBDIR}/plymouth/fedora-fade-in.so ${LIBDIR}/plymouth/text.so ${LIBDIR}/plymouth/details.so)
         for dep in $DEPS; do

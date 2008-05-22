@@ -37,9 +37,11 @@
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
+#include <wchar.h>
 #include <values.h>
 
 #include "ply-boot-splash-plugin.h"
+#include "ply-buffer.h"
 #include "ply-event-loop.h"
 #include "ply-list.h"
 #include "ply-logger.h"
@@ -50,9 +52,17 @@
 
 #include <linux/kd.h>
 
+#define CLEAR_LINE_SEQUENCE "\033[2K"
+
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
+
+  ply_boot_splash_password_answer_handler_t password_answer_handler;
+  void *password_answer_data;
+
+  ply_buffer_t *keyboard_input_buffer;
+  uint32_t keyboard_input_is_hidden : 1;
 };
 
 ply_boot_splash_plugin_t *
@@ -63,6 +73,7 @@ create_plugin (void)
   ply_trace ("creating plugin");
 
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
+  plugin->keyboard_input_buffer = ply_buffer_new ();
 
   return plugin;
 }
@@ -74,6 +85,8 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 
   if (plugin == NULL)
     return;
+
+  ply_buffer_free (plugin->keyboard_input_buffer);
 
   free (plugin);
 }
@@ -146,38 +159,50 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
   detach_from_event_loop (plugin);
 }
 
-char *
-ask_for_password (ply_boot_splash_plugin_t *plugin)
+void
+ask_for_password (ply_boot_splash_plugin_t *plugin,
+                  ply_boot_splash_password_answer_handler_t answer_handler,
+                  void *answer_data)
 {
-  char           answer[1024];
-  struct termios initial_term_attributes;
-  struct termios noecho_term_attributes;
+  plugin->password_answer_handler = answer_handler;
+  plugin->password_answer_data = answer_data;
 
-  tcgetattr (STDIN_FILENO, &initial_term_attributes);
-  noecho_term_attributes = initial_term_attributes;
-  noecho_term_attributes.c_lflag &= ~ECHO;
-
-  printf ("Password: ");
-
-  if (tcsetattr (STDIN_FILENO, TCSAFLUSH, &noecho_term_attributes) != 0) {
-    fprintf (stderr, "Could not set terminal attributes\n");
-    return NULL;
-  }
-
-  fgets (answer, sizeof (answer), stdin);
-  answer[strlen (answer) - 1] = '\0';
-
-  tcsetattr (STDIN_FILENO, TCSANOW, &initial_term_attributes);
-
-  printf ("\n");
-
-  return strdup (answer);
+  write (STDOUT_FILENO, "\nPassword: ", strlen ("\nPassword: "));
+  plugin->keyboard_input_is_hidden = true;
 }
 
 void
 on_keyboard_input (ply_boot_splash_plugin_t *plugin,
                    const char               *keyboard_input)
 {
+  ssize_t character_size;
+
+  character_size = (ssize_t) mbrlen (keyboard_input, MB_CUR_MAX, NULL);
+
+  if (character_size < 0)
+    return;
+
+  if (plugin->password_answer_handler != NULL)
+    {
+      if (character_size == 1 && keyboard_input[0] == '\r')
+        {
+          plugin->password_answer_handler (plugin->password_answer_data,
+                                           ply_buffer_get_bytes (plugin->keyboard_input_buffer));
+          plugin->keyboard_input_is_hidden = false;
+          ply_buffer_clear (plugin->keyboard_input_buffer);
+          plugin->password_answer_handler = NULL;
+          write (STDOUT_FILENO, CLEAR_LINE_SEQUENCE, strlen (CLEAR_LINE_SEQUENCE));
+          return;
+        }
+    }
+
+  ply_buffer_append_bytes (plugin->keyboard_input_buffer,
+                           keyboard_input, character_size);
+
+  if (plugin->keyboard_input_is_hidden)
+    write (STDOUT_FILENO, "•", strlen ("•"));
+  else
+    write (STDOUT_FILENO, keyboard_input, character_size);
 }
 
 ply_boot_splash_plugin_interface_t *

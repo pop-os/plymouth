@@ -152,10 +152,11 @@ ply_boot_splash_unload_plugin (ply_boot_splash_t *splash)
 
 static void
 on_keyboard_input (ply_boot_splash_t *splash,
-                   const char        *keyboard_input)
+                   const char        *keyboard_input,
+                   size_t             character_size)
 {
   if (splash->plugin_interface->on_keyboard_input != NULL)
-    splash->plugin_interface->on_keyboard_input (splash->plugin, keyboard_input);
+    splash->plugin_interface->on_keyboard_input (splash->plugin, keyboard_input, character_size);
 }
 
 bool

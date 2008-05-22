@@ -82,7 +82,8 @@ ply_window_new (const char *tty_name)
 
 static void
 process_keyboard_input (ply_window_t *window,
-                        const char   *keyboard_input)
+                        const char   *keyboard_input,
+                        size_t        character_size)
 {
   wchar_t key;
 
@@ -110,7 +111,7 @@ process_keyboard_input (ply_window_t *window,
 
   if (window->keyboard_input_handler != NULL)
     window->keyboard_input_handler (window->keyboard_input_handler_user_data,
-                                    keyboard_input);
+                                    keyboard_input, character_size);
 }
 
 static void
@@ -135,7 +136,7 @@ check_buffer_for_key_events (ply_window_t *window)
 
       keyboard_input = strndup (bytes + i, character_size);
 
-      process_keyboard_input (window, keyboard_input);
+      process_keyboard_input (window, keyboard_input, character_size);
 
       free (keyboard_input);
 

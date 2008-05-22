@@ -177,15 +177,9 @@ ask_for_password (ply_boot_splash_plugin_t *plugin,
 
 void
 on_keyboard_input (ply_boot_splash_plugin_t *plugin,
-                   const char               *keyboard_input)
+                   const char               *keyboard_input,
+                   size_t                    character_size)
 {
-  ssize_t character_size;
-
-  character_size = (ssize_t) mbrlen (keyboard_input, MB_CUR_MAX, NULL);
-
-  if (character_size < 0)
-    return;
-
   if (plugin->password_answer_handler != NULL)
     {
       if (character_size == 1 && keyboard_input[0] == '\r')

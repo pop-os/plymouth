@@ -56,7 +56,8 @@ typedef struct
                              ply_boot_splash_password_answer_handler_t answer_handler,
                              void                     *answer_data);
   void (* on_keyboard_input) (ply_boot_splash_plugin_t *plugin,
-                              const char               *keyboard_input);
+                              const char               *keyboard_input,
+                              size_t                    character_size);
 
 } ply_boot_splash_plugin_interface_t;
 

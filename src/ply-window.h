@@ -31,7 +31,8 @@
 typedef struct _ply_window ply_window_t;
 
 typedef void (* ply_window_keyboard_input_handler_t) (void *user_data,
-                                                      const char *keyboard_input);
+                                                      const char *keyboard_input,
+                                                      size_t      character_size);
 
 typedef void (* ply_window_escape_handler_t) (void *user_data);
 

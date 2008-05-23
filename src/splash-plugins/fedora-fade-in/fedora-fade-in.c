@@ -641,6 +641,8 @@ on_enter (ply_boot_splash_plugin_t *plugin,
   plugin->password_answer_handler (plugin->password_answer_data,
                                    text);
   plugin->entry->number_of_bullets = 0;
+  entry_free (plugin->entry);
+  plugin->entry = NULL;
   start_animation (plugin);
 }
 

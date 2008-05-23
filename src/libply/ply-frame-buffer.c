@@ -314,11 +314,37 @@ ply_frame_buffer_fill_area_with_pixel_value (ply_frame_buffer_t     *buffer,
 }
 
 static void
-ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t      *buffer,
-                                         ply_frame_buffer_area_t *area)
+ply_frame_buffer_area_add(ply_frame_buffer_area_t *area,
+			  ply_frame_buffer_area_t *new_area)
 {
   unsigned long x1, y1, x2, y2;
 
+  x1 = area->x + area->width;
+  y1 = area->y + area->height;
+  x2 = new_area->x + new_area->width;
+  y2 = new_area->y + new_area->height;
+
+  if (new_area->x < area->x)
+    area->x = new_area->x;
+
+  if (new_area->y < area->y)
+    area->y = new_area->y;
+
+  if (x1 > x2)
+    area->width = x1 - area->x;
+  else
+    area->width = x2 - area->x;
+
+  if (y1 > y2)
+    area->height = y1 - area->y;
+  else
+    area->height = y2 - area->y;
+}				
+
+static void
+ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t      *buffer,
+                                         ply_frame_buffer_area_t *area)
+{
   assert (buffer != NULL);
   assert (area != NULL);
   assert (area->x >= buffer->area.x);
@@ -328,26 +354,7 @@ ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t      *buffer,
   assert (area->width >= 0);
   assert (area->height >= 0);
 
-  x1 = area->x + area->width;
-  y1 = area->y + area->height;
-  x2 = buffer->area_to_flush.x + buffer->area_to_flush.width;
-  y2 = buffer->area_to_flush.y + buffer->area_to_flush.height;
-
-  if (area->x < buffer->area_to_flush.x)
-    buffer->area_to_flush.x = area->x;
-
-  if (area->y < buffer->area_to_flush.y)
-    buffer->area_to_flush.y = area->y;
-
-  if (x1 > x2)
-    buffer->area_to_flush.width = x1 - buffer->area_to_flush.x;
-  else
-    buffer->area_to_flush.width = x2 - buffer->area_to_flush.x;
-
-  if (y1 > y2)
-    buffer->area_to_flush.height = y1 - buffer->area_to_flush.y;
-  else
-    buffer->area_to_flush.height = y2 - buffer->area_to_flush.y;
+  ply_frame_buffer_area_add(&buffer->area_to_flush, area);
 }
 
 static bool

@@ -59,6 +59,10 @@ typedef struct
                               const char               *keyboard_input,
                               size_t                    character_size);
 
+  void (* on_backspace) (ply_boot_splash_plugin_t *plugin);
+  void (* on_enter) (ply_boot_splash_plugin_t *plugin,
+                     const char               *line);
+
 } ply_boot_splash_plugin_interface_t;
 
 #endif /* PLY_BOOT_SPLASH_PLUGIN_H */

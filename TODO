@@ -3,4 +3,4 @@
 - Drop all the make ram disk and copy code.  That was just to make bolting things on easier.  We can integrate now.
 - allow longer than 255 byte replies from server to client
 - make server send immediate ACK for password request and then ANSWER later with a link back to original request in ANSWER
-- buffer keyboard input from window instead of individual splash plugins
+- have plugins hook into line editing through window directly, instead of via vtable functions

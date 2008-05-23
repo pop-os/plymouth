@@ -27,6 +27,7 @@
 #include <unistd.h>
 
 #include "ply-event-loop.h"
+#include "ply-buffer.h"
 
 typedef struct _ply_window ply_window_t;
 
@@ -34,7 +35,11 @@ typedef void (* ply_window_keyboard_input_handler_t) (void *user_data,
                                                       const char *keyboard_input,
                                                       size_t      character_size);
 
+typedef void (* ply_window_backspace_handler_t) (void *user_data);
+
 typedef void (* ply_window_escape_handler_t) (void *user_data);
+typedef void (* ply_window_enter_handler_t) (void *user_data,
+                                             const char *line);
 
 typedef enum
 {
@@ -49,9 +54,15 @@ void ply_window_free (ply_window_t *window);
 void ply_window_set_keyboard_input_handler (ply_window_t *window,
                                             ply_window_keyboard_input_handler_t input_handler,
                                             void         *user_data);
+void ply_window_set_backspace_handler (ply_window_t *window,
+                                       ply_window_backspace_handler_t backspace_handler,
+                                       void         *user_data);
 void ply_window_set_escape_handler (ply_window_t *window,
                                     ply_window_escape_handler_t escape_handler,
                                     void         *user_data);
+void ply_window_set_enter_handler (ply_window_t *window,
+                                   ply_window_enter_handler_t enter_handler,
+                                   void         *user_data);
 
 bool ply_window_open (ply_window_t *window);
 void ply_window_close (ply_window_t *window);

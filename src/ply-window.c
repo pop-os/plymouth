@@ -45,11 +45,14 @@
 
 #define KEY_CTRL_V '\026'
 #define KEY_ESCAPE '\033'
+#define KEY_RETURN '\r'
+#define KEY_BACKSPACE '\177'
 
 struct _ply_window
 {
   ply_event_loop_t *loop;
   ply_buffer_t     *keyboard_input_buffer;
+  ply_buffer_t     *line_buffer;
 
   char *tty_name;
   int   tty_fd;
@@ -60,8 +63,14 @@ struct _ply_window
   ply_window_keyboard_input_handler_t keyboard_input_handler;
   void *keyboard_input_handler_user_data;
 
+  ply_window_backspace_handler_t backspace_handler;
+  void *backspace_handler_user_data;
+
   ply_window_escape_handler_t escape_handler;
   void *escape_handler_user_data;
+
+  ply_window_enter_handler_t enter_handler;
+  void *enter_handler_user_data;
 };
 
 ply_window_t *
@@ -73,6 +82,7 @@ ply_window_new (const char *tty_name)
 
   window = calloc (1, sizeof (ply_window_t));
   window->keyboard_input_buffer = ply_buffer_new ();
+  window->line_buffer = ply_buffer_new ();
   window->loop = NULL;
   window->tty_name = strdup (tty_name);
   window->tty_fd = -1;
@@ -104,7 +114,45 @@ process_keyboard_input (ply_window_t *window,
             ply_trace ("end escape key handler");
           return;
 
+          case KEY_BACKSPACE:
+            {
+            ssize_t bytes_to_remove;
+            ssize_t previous_character_size;
+            const char *bytes;
+            size_t size;
+            ply_trace ("backspace key!");
+
+            bytes = ply_buffer_get_bytes (window->line_buffer);
+            size = ply_buffer_get_size (window->line_buffer);
+
+            bytes_to_remove = MB_CUR_MAX;
+            while ((previous_character_size = mbrlen (bytes + size - bytes_to_remove, bytes_to_remove, NULL)) < bytes_to_remove &&
+                   previous_character_size > 0)
+              bytes_to_remove -= previous_character_size;
+
+            if (bytes_to_remove <= size)
+              {
+                ply_buffer_remove_bytes_at_end (window->line_buffer, bytes_to_remove);
+
+                if (window->backspace_handler != NULL)
+                  window->backspace_handler (window->backspace_handler_user_data);
+              }
+            }
+          return;
+
+          case KEY_RETURN:
+            ply_trace ("return key!");
+
+            if (window->enter_handler != NULL)
+              window->enter_handler (window->enter_handler_user_data,
+                                     ply_buffer_get_bytes (window->line_buffer));
+
+            ply_buffer_clear (window->line_buffer);
+          return;
+
           default:
+            ply_buffer_append_bytes (window->line_buffer,
+                                     keyboard_input, character_size);
           break;
         }
     }
@@ -260,6 +308,7 @@ ply_window_free (ply_window_t *window)
   ply_window_close (window);
 
   ply_buffer_free (window->keyboard_input_buffer);
+  ply_buffer_free (window->line_buffer);
 
   free (window);
 }
@@ -276,6 +325,17 @@ ply_window_set_keyboard_input_handler (ply_window_t *window,
 }
 
 void
+ply_window_set_backspace_handler (ply_window_t *window,
+                                  ply_window_backspace_handler_t backspace_handler,
+                                  void         *user_data)
+{
+  assert (window != NULL);
+
+  window->backspace_handler = backspace_handler;
+  window->backspace_handler_user_data = user_data;
+}
+
+void
 ply_window_set_escape_handler (ply_window_t *window,
                                ply_window_escape_handler_t escape_handler,
                                void       *user_data)
@@ -284,6 +344,17 @@ ply_window_set_escape_handler (ply_window_t *window,
 
   window->escape_handler = escape_handler;
   window->escape_handler_user_data = user_data;
+}
+
+void
+ply_window_set_enter_handler (ply_window_t *window,
+                              ply_window_enter_handler_t enter_handler,
+                              void         *user_data)
+{
+  assert (window != NULL);
+
+  window->enter_handler = enter_handler;
+  window->enter_handler_user_data = user_data;
 }
 
 void

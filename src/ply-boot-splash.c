@@ -159,6 +159,21 @@ on_keyboard_input (ply_boot_splash_t *splash,
     splash->plugin_interface->on_keyboard_input (splash->plugin, keyboard_input, character_size);
 }
 
+static void
+on_backspace (ply_boot_splash_t *splash)
+{
+  if (splash->plugin_interface->on_backspace != NULL)
+    splash->plugin_interface->on_backspace (splash->plugin);
+}
+
+static void
+on_enter (ply_boot_splash_t *splash,
+          const char        *line)
+{
+  if (splash->plugin_interface->on_enter != NULL)
+    splash->plugin_interface->on_enter (splash->plugin, line);
+}
+
 bool
 ply_boot_splash_show (ply_boot_splash_t *splash)
 {
@@ -183,6 +198,12 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
   ply_window_set_keyboard_input_handler (splash->window,
                                          (ply_window_keyboard_input_handler_t)
                                          on_keyboard_input, splash);
+  ply_window_set_backspace_handler (splash->window,
+                                    (ply_window_backspace_handler_t)
+                                    on_backspace, splash);
+  ply_window_set_enter_handler (splash->window,
+                                (ply_window_enter_handler_t)
+                                on_enter, splash);
 
   ply_trace ("showing splash screen\n");
   if (!splash->plugin_interface->show_splash_screen (splash->plugin,
@@ -263,6 +284,7 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
                                                 splash->window);
 
   ply_window_set_keyboard_input_handler (splash->window, NULL, NULL);
+  ply_window_set_backspace_handler (splash->window, NULL, NULL);
 
   ply_boot_splash_unload_plugin (splash);
   splash->is_shown = false;

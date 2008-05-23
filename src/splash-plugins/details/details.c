@@ -52,7 +52,8 @@
 
 #include <linux/kd.h>
 
-#define CLEAR_LINE_SEQUENCE "\033[2K"
+#define CLEAR_LINE_SEQUENCE "\033[2K\r\n"
+#define BACKSPACE "\b\033[0K"
 
 struct _ply_boot_splash_plugin
 {
@@ -61,7 +62,6 @@ struct _ply_boot_splash_plugin
   ply_boot_splash_password_answer_handler_t password_answer_handler;
   void *password_answer_data;
 
-  ply_buffer_t *keyboard_input_buffer;
   uint32_t keyboard_input_is_hidden : 1;
 };
 
@@ -73,7 +73,6 @@ create_plugin (void)
   ply_trace ("creating plugin");
 
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
-  plugin->keyboard_input_buffer = ply_buffer_new ();
 
   return plugin;
 }
@@ -85,8 +84,6 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 
   if (plugin == NULL)
     return;
-
-  ply_buffer_free (plugin->keyboard_input_buffer);
 
   free (plugin);
 }
@@ -176,28 +173,32 @@ on_keyboard_input (ply_boot_splash_plugin_t *plugin,
                    const char               *keyboard_input,
                    size_t                    character_size)
 {
-  if (plugin->password_answer_handler != NULL)
-    {
-      if (character_size == 1 && keyboard_input[0] == '\r')
-        {
-          plugin->password_answer_handler (plugin->password_answer_data,
-                                           ply_buffer_get_bytes (plugin->keyboard_input_buffer));
-          plugin->keyboard_input_is_hidden = false;
-          ply_buffer_clear (plugin->keyboard_input_buffer);
-          plugin->password_answer_handler = NULL;
-          write (STDOUT_FILENO, CLEAR_LINE_SEQUENCE, strlen (CLEAR_LINE_SEQUENCE));
-          return;
-        }
-    }
-
-  ply_buffer_append_bytes (plugin->keyboard_input_buffer,
-                           keyboard_input, character_size);
-
   if (plugin->keyboard_input_is_hidden)
     write (STDOUT_FILENO, "•", strlen ("•"));
   else
     write (STDOUT_FILENO, keyboard_input, character_size);
 }
+
+void
+on_backspace (ply_boot_splash_plugin_t *plugin)
+{
+  write (STDOUT_FILENO, BACKSPACE, strlen (BACKSPACE));
+}
+
+void
+on_enter (ply_boot_splash_plugin_t *plugin,
+          const char               *line)
+{
+  if (plugin->password_answer_handler != NULL)
+    {
+      plugin->password_answer_handler (plugin->password_answer_data,
+                                       line);
+      plugin->keyboard_input_is_hidden = false;
+      plugin->password_answer_handler = NULL;
+      write (STDOUT_FILENO, CLEAR_LINE_SEQUENCE, strlen (CLEAR_LINE_SEQUENCE));
+    }
+}
+
 
 ply_boot_splash_plugin_interface_t *
 ply_boot_splash_plugin_get_interface (void)
@@ -211,7 +212,9 @@ ply_boot_splash_plugin_get_interface (void)
       .on_boot_output = on_boot_output,
       .hide_splash_screen = hide_splash_screen,
       .ask_for_password = ask_for_password,
-      .on_keyboard_input = on_keyboard_input
+      .on_keyboard_input = on_keyboard_input,
+      .on_backspace = on_backspace,
+      .on_enter = on_enter
     };
 
   return &plugin_interface;

@@ -87,8 +87,6 @@ struct _ply_boot_splash_plugin
   ply_boot_splash_password_answer_handler_t password_answer_handler;
   void *password_answer_data;
 
-  ply_buffer_t *keyboard_input_buffer;
-
   double start_time;
   double now;
 };
@@ -101,8 +99,6 @@ create_plugin (void)
   srand ((int) ply_get_timestamp ());
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
   plugin->start_time = 0.0;
-
-  plugin->keyboard_input_buffer = ply_buffer_new ();
 
   plugin->frame_buffer = ply_frame_buffer_new (NULL);
   plugin->logo_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-logo.png");
@@ -189,8 +185,6 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
   if (plugin == NULL)
     return;
-
-  ply_buffer_free (plugin->keyboard_input_buffer);
 
   free_stars (plugin);
   ply_image_free (plugin->logo_image);
@@ -629,22 +623,25 @@ on_keyboard_input (ply_boot_splash_plugin_t *plugin,
   if (plugin->password_answer_handler == NULL)
     return;
 
-  if (character_size == 1 && keyboard_input[0] == '\r')
-    {
-      plugin->password_answer_handler (plugin->password_answer_data,
-                                       ply_buffer_get_bytes (plugin->keyboard_input_buffer));
-      ply_buffer_clear (plugin->keyboard_input_buffer);
-      plugin->password_answer_handler = NULL;
-
-      start_animation (plugin);
-      return;
-    }
-
-  ply_buffer_append_bytes (plugin->keyboard_input_buffer,
-                           keyboard_input, character_size);
-
   plugin->entry->number_of_bullets++;
   draw_password_entry (plugin);
+}
+
+void
+on_backspace (ply_boot_splash_plugin_t *plugin)
+{
+  plugin->entry->number_of_bullets--;
+  draw_password_entry (plugin);
+}
+
+void
+on_enter (ply_boot_splash_plugin_t *plugin,
+          const char               *text)
+{
+  plugin->password_answer_handler (plugin->password_answer_data,
+                                   text);
+  plugin->entry->number_of_bullets = 0;
+  start_animation (plugin);
 }
 
 ply_boot_splash_plugin_interface_t *
@@ -658,7 +655,9 @@ ply_boot_splash_plugin_get_interface (void)
       .update_status = update_status,
       .hide_splash_screen = hide_splash_screen,
       .ask_for_password = ask_for_password,
-      .on_keyboard_input = on_keyboard_input
+      .on_keyboard_input = on_keyboard_input,
+      .on_backspace = on_backspace,
+      .on_enter = on_enter
     };
 
   return &plugin_interface;

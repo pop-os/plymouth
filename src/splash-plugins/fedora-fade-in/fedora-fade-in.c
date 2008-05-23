@@ -543,6 +543,9 @@ draw_password_entry (ply_boot_splash_plugin_t *plugin)
   entry_area.x = plugin->entry->x;
   entry_area.y = plugin->entry->y;
 
+  ply_frame_buffer_fill_with_color (plugin->frame_buffer, &entry_area,
+                                    0.1, 0.1, .7, 1.0);
+
   ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
                                           &entry_area, 0, 0,
                                           entry_data);
@@ -556,6 +559,8 @@ draw_password_entry (ply_boot_splash_plugin_t *plugin)
 
   lock_area.x = x;
   lock_area.y = y;
+  ply_frame_buffer_fill_with_color (plugin->frame_buffer, &lock_area,
+                                    0.1, 0.1, .7, 1.0);
   ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
                                           &lock_area, 0, 0,
                                           lock_data);

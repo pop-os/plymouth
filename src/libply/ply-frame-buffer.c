@@ -314,31 +314,21 @@ ply_frame_buffer_fill_area_with_pixel_value (ply_frame_buffer_t     *buffer,
 }
 
 static void
-ply_frame_buffer_area_add(ply_frame_buffer_area_t *area,
-			  ply_frame_buffer_area_t *new_area)
+ply_frame_buffer_area_union (ply_frame_buffer_area_t *area1,
+			     ply_frame_buffer_area_t *area2,
+			     ply_frame_buffer_area_t *result)
 {
   unsigned long x1, y1, x2, y2;
 
-  x1 = area->x + area->width;
-  y1 = area->y + area->height;
-  x2 = new_area->x + new_area->width;
-  y2 = new_area->y + new_area->height;
+  x1 = area1->x + area1->width;
+  y1 = area1->y + area1->height;
+  x2 = area2->x + area2->width;
+  y2 = area2->y + area2->height;
 
-  if (new_area->x < area->x)
-    area->x = new_area->x;
-
-  if (new_area->y < area->y)
-    area->y = new_area->y;
-
-  if (x1 > x2)
-    area->width = x1 - area->x;
-  else
-    area->width = x2 - area->x;
-
-  if (y1 > y2)
-    area->height = y1 - area->y;
-  else
-    area->height = y2 - area->y;
+  result->x = MIN(area1->x, area2->x);
+  result->y = MIN(area1->y, area2->y);
+  result->width = MAX(x1, x2) - result->x;
+  result->height = MAX(y1, y2) - result->y;
 }				
 
 static void
@@ -354,7 +344,9 @@ ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t      *buffer,
   assert (area->width >= 0);
   assert (area->height >= 0);
 
-  ply_frame_buffer_area_add(&buffer->area_to_flush, area);
+  ply_frame_buffer_area_union (&buffer->area_to_flush,
+			       area,
+			       &buffer->area_to_flush);
 }
 
 static bool
@@ -579,36 +571,21 @@ ply_frame_buffer_get_size (ply_frame_buffer_t     *buffer,
 }
 
 static void
-ply_frame_buffer_area_crop (ply_frame_buffer_area_t *area,
-                            ply_frame_buffer_area_t *mask_area,
-                            ply_frame_buffer_area_t *cropped_area)
+ply_frame_buffer_area_intersect (ply_frame_buffer_area_t *area1,
+				 ply_frame_buffer_area_t *area2,
+				 ply_frame_buffer_area_t *result)
 {
-  *cropped_area = *area;
-  if (cropped_area->x <= mask_area->x)
-    {
-      cropped_area->x = mask_area->x;
-      cropped_area->width -= mask_area->x - cropped_area->x;
-    }
+  unsigned long x1, y1, x2, y2;
 
-  if (cropped_area->y <= mask_area->y)
-    {
-      cropped_area->y = mask_area->y;
-      cropped_area->height -= mask_area->y - cropped_area->y;
-    }
+  x1 = area1->x + area1->width;
+  y1 = area1->y + area1->height;
+  x2 = area2->x + area2->width;
+  y2 = area2->y + area2->height;
 
-  cropped_area->width = MIN (area->width, mask_area->width);
-  cropped_area->height = MIN (area->height, mask_area->height);
-
-  if (cropped_area->x + cropped_area->width > mask_area->x + mask_area->width)
-    cropped_area->width = (mask_area->x + mask_area->width) - cropped_area->x;
-
-  if (cropped_area->y + cropped_area->height > mask_area->y + mask_area->height)
-    cropped_area->height = (mask_area->y + mask_area->height) - cropped_area->y;
-
-  assert (cropped_area->x >= mask_area->x);
-  assert (cropped_area->y >= mask_area->y);
-  assert (cropped_area->x + cropped_area->width <= mask_area->x + mask_area->width);
-  assert (cropped_area->y + cropped_area->height <= mask_area->x + mask_area->height);
+  result->x = MAX(area1->x, area2->x);
+  result->y = MAX(area1->y, area2->y);
+  result->width = MIN(x1, x2) - result->x;
+  result->height = MIN(y1, y2) - result->y;
 }
 
 bool 
@@ -628,7 +605,7 @@ ply_frame_buffer_fill_with_color (ply_frame_buffer_t      *buffer,
   if (area == NULL)
     area = &buffer->area;
 
-  ply_frame_buffer_area_crop (area, &buffer->area, &cropped_area);
+  ply_frame_buffer_area_intersect (area, &buffer->area, &cropped_area);
 
   red *= alpha;
   green *= alpha;
@@ -661,7 +638,7 @@ ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t      *buff
   if (area == NULL)
     area = &buffer->area;
 
-  ply_frame_buffer_area_crop (area, &buffer->area, &cropped_area);
+  ply_frame_buffer_area_intersect (area, &buffer->area, &cropped_area);
 
   opacity_as_byte = (uint8_t) (opacity * 255.0);
 

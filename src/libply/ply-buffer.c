@@ -230,6 +230,20 @@ ply_buffer_get_bytes (ply_buffer_t *buffer)
   return buffer->data;
 }
 
+char *
+ply_buffer_steal_bytes (ply_buffer_t *buffer)
+{
+  char *bytes;
+  assert (buffer != NULL);
+
+  bytes = buffer->data;
+
+  buffer->data = calloc (1, buffer->capacity);
+  buffer->size = 0;
+
+  return bytes;
+}
+
 size_t
 ply_buffer_get_size (ply_buffer_t *buffer)
 {

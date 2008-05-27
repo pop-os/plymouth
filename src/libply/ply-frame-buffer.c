@@ -381,8 +381,8 @@ ply_frame_buffer_copy_to_device (ply_frame_buffer_t *buffer,
                   &device_pixel_value, buffer->bytes_per_pixel);
         }
 
-      offset = row * buffer->row_stride * buffer->bytes_per_pixel;
-      memcpy (buffer->map_address + offset, row_buffer,
+      offset = row * buffer->row_stride * buffer->bytes_per_pixel + x * buffer->bytes_per_pixel;
+      memcpy (buffer->map_address + offset, row_buffer + x * buffer->bytes_per_pixel,
               width * buffer->bytes_per_pixel);
     }
   free (row_buffer);

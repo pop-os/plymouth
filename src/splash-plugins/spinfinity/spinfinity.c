@@ -147,9 +147,8 @@ static void
 animate_at_time (ply_boot_splash_plugin_t *plugin,
                  double                    time)
 {
-  ply_list_node_t *node;
-  ply_frame_buffer_area_t logo_area, star_area;
-  uint32_t *logo_data, *star_data;
+  ply_frame_buffer_area_t logo_area;
+  uint32_t *logo_data;
   long width, height;
   static double last_opacity = 0.0;
   double opacity = 0.0;

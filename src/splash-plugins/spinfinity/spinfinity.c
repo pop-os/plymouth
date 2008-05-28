@@ -441,11 +441,19 @@ void
 on_enter (ply_boot_splash_plugin_t *plugin,
           const char               *text)
 {
+  if (plugin->password_answer_handler == NULL)
+    return;
+
   plugin->password_answer_handler (plugin->password_answer_data,
                                    text);
-  plugin->entry->number_of_bullets = 0;
-  entry_free (plugin->entry);
-  plugin->entry = NULL;
+
+  if (plugin->entry != NULL)
+    {
+      plugin->entry->number_of_bullets = 0;
+      entry_free (plugin->entry);
+      plugin->entry = NULL;
+    }
+
   start_animation (plugin);
 }
 

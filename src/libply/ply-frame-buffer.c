@@ -315,8 +315,8 @@ ply_frame_buffer_fill_area_with_pixel_value (ply_frame_buffer_t     *buffer,
 
 static void
 ply_frame_buffer_area_union (ply_frame_buffer_area_t *area1,
-			     ply_frame_buffer_area_t *area2,
-			     ply_frame_buffer_area_t *result)
+                             ply_frame_buffer_area_t *area2,
+                             ply_frame_buffer_area_t *result)
 {
   unsigned long x1, y1, x2, y2;
 
@@ -329,7 +329,7 @@ ply_frame_buffer_area_union (ply_frame_buffer_area_t *area1,
   result->y = MIN(area1->y, area2->y);
   result->width = MAX(x1, x2) - result->x;
   result->height = MAX(y1, y2) - result->y;
-}				
+}
 
 static void
 ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t      *buffer,
@@ -345,8 +345,8 @@ ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t      *buffer,
   assert (area->height >= 0);
 
   ply_frame_buffer_area_union (&buffer->area_to_flush,
-			       area,
-			       &buffer->area_to_flush);
+                               area,
+                               &buffer->area_to_flush);
 }
 
 static bool
@@ -361,7 +361,9 @@ ply_frame_buffer_copy_to_device (ply_frame_buffer_t *buffer,
   size_t bytes_per_row;
 
   bytes_per_row = width * buffer->bytes_per_pixel;
+
   row_buffer = malloc (buffer->row_stride * buffer->bytes_per_pixel);
+
   for (row = y; row < y + height; row++)
     {
       unsigned long offset;
@@ -572,8 +574,8 @@ ply_frame_buffer_get_size (ply_frame_buffer_t     *buffer,
 
 static void
 ply_frame_buffer_area_intersect (ply_frame_buffer_area_t *area1,
-				 ply_frame_buffer_area_t *area2,
-				 ply_frame_buffer_area_t *result)
+                                 ply_frame_buffer_area_t *area2,
+                                 ply_frame_buffer_area_t *result)
 {
   unsigned long x1, y1, x2, y2;
 
@@ -584,6 +586,7 @@ ply_frame_buffer_area_intersect (ply_frame_buffer_area_t *area1,
 
   result->x = MAX(area1->x, area2->x);
   result->y = MAX(area1->y, area2->y);
+
   result->width = MIN(x1, x2) - result->x;
   result->height = MIN(y1, y2) - result->y;
 }

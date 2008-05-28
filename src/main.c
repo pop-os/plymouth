@@ -87,9 +87,9 @@ on_session_finished (state_t *state)
   ply_log ("\nSession finished...exiting logger\n");
   ply_flush_log ();
   ply_event_loop_exit (state->loop, 1);
-} 
+}
 
-static void 
+static void
 on_update (state_t     *state,
            const char  *status)
 {
@@ -137,7 +137,7 @@ on_system_initialized (state_t *state)
   ply_trace ("system now initialized, ready to mount root filesystem");
   mknod ("/dev/root", 0600 | S_IFBLK, makedev (253, 0));
   mount("/dev/root", "/sysroot", "ext3", 0, NULL);
-  ply_terminal_session_open_log (state->session, 
+  ply_terminal_session_open_log (state->session,
                                  "/sysroot/var/log/bootmessages.log");
 }
 
@@ -270,7 +270,7 @@ start_boot_splash (state_t    *state,
 }
 
 static ply_terminal_session_t *
-spawn_session (state_t  *state, 
+spawn_session (state_t  *state,
                char    **argv)
 {
   ply_terminal_session_t *session;
@@ -430,7 +430,7 @@ static bool
 copy_data_files (state_t *state)
 {
   ply_trace ("copying data files");
-  if (!ply_copy_directory ("/usr/share/plymouth", 
+  if (!ply_copy_directory ("/usr/share/plymouth",
                            "usr/share/plymouth"))
     return false;
   ply_trace ("copied data files");
@@ -505,7 +505,7 @@ main (int    argc,
 
   state.loop = ply_event_loop_new ();
 
-  /* before do anything we need to make sure we have a working 
+  /* before do anything we need to make sure we have a working
    * environment.  /proc needs to be mounted and certain devices need
    * to be accessible (like the framebuffer device, pseudoterminal
    * devices, etc)

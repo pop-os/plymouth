@@ -41,7 +41,7 @@
 #include "ply-list.h"
 #include "ply-utils.h"
 
-#ifndef PLY_EVENT_LOOP_NUM_EVENT_HANDLERS 
+#ifndef PLY_EVENT_LOOP_NUM_EVENT_HANDLERS
 #define PLY_EVENT_LOOP_NUM_EVENT_HANDLERS 64
 #endif
 
@@ -51,7 +51,7 @@
 
 typedef struct
 {
-  int fd;                                 
+  int fd;
   ply_list_t *destinations;
   ply_list_t *fd_watches;
   uint32_t is_getting_polled : 1;
@@ -63,7 +63,7 @@ typedef struct
   ply_event_source_t *source;
 
   ply_event_loop_fd_status_t status;
-  ply_event_handler_t status_met_handler; 
+  ply_event_handler_t status_met_handler;
   ply_event_handler_t disconnected_handler;
   void *user_data;
 } ply_event_destination_t;
@@ -105,17 +105,17 @@ typedef struct
 
 struct _ply_event_loop
 {
-  int epoll_fd;                      
-  int exit_code;                    
+  int epoll_fd;
+  int exit_code;
   double wakeup_time;
 
   ply_list_t *sources;
   ply_list_t *exit_closures;
   ply_list_t *timeout_watches;
 
-  ply_signal_dispatcher_t *signal_dispatcher; 
+  ply_signal_dispatcher_t *signal_dispatcher;
 
-  uint32_t should_exit : 1; 
+  uint32_t should_exit : 1;
 };
 
 static void ply_event_loop_process_pending_events (ply_event_loop_t *loop);
@@ -153,12 +153,12 @@ ply_signal_source_free (ply_signal_source_t *handler)
 
   free (handler);
 }
- 
+
 static ply_signal_dispatcher_t *
 ply_signal_dispatcher_new (void)
 {
   ply_signal_dispatcher_t *dispatcher;
- 
+
   if (!ply_open_unidirectional_pipe (&ply_signal_dispatcher_sender_fd,
                                      &ply_signal_dispatcher_receiver_fd))
     return NULL;
@@ -209,7 +209,7 @@ ply_signal_dispatcher_posix_signal_handler (int signal_number)
   if (ply_signal_dispatcher_sender_fd < 0)
     return;
 
-  ply_write (ply_signal_dispatcher_sender_fd, &signal_number, 
+  ply_write (ply_signal_dispatcher_sender_fd, &signal_number,
              sizeof (signal_number));
 }
 
@@ -218,7 +218,7 @@ ply_signal_dispatcher_get_next_signal_from_pipe (ply_signal_dispatcher_t *dispat
 {
   int signal_number;
 
-  if (!ply_read (ply_signal_dispatcher_receiver_fd, &signal_number, 
+  if (!ply_read (ply_signal_dispatcher_receiver_fd, &signal_number,
                  sizeof (signal_number)))
     signal_number = 0;
 
@@ -243,7 +243,7 @@ ply_signal_dispatcher_dispatch_signal (ply_signal_dispatcher_t *dispatcher,
 
       source = (ply_signal_source_t *) ply_list_node_get_data (node);
 
-      if (source->signal_number == signal_number) 
+      if (source->signal_number == signal_number)
         {
           if (source->handler != NULL)
             source->handler (source->user_data, signal_number);
@@ -266,7 +266,7 @@ ply_signal_dispatcher_reset_signal_sources (ply_signal_dispatcher_t *dispatcher,
 
       handler = (ply_signal_source_t *) ply_list_node_get_data (node);
 
-      signal (handler->signal_number, 
+      signal (handler->signal_number,
               handler->old_posix_signal_handler != NULL?
               handler->old_posix_signal_handler : SIG_DFL);
 
@@ -372,13 +372,13 @@ ply_event_loop_update_source_event_mask (ply_event_loop_t   *loop,
       destination = (ply_event_destination_t *) ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (source->destinations, node);
 
-      if (destination->status & PLY_EVENT_LOOP_FD_STATUS_HAS_DATA) 
+      if (destination->status & PLY_EVENT_LOOP_FD_STATUS_HAS_DATA)
           event.events |= EPOLLIN;
 
-      if (destination->status & PLY_EVENT_LOOP_FD_STATUS_HAS_CONTROL_DATA) 
+      if (destination->status & PLY_EVENT_LOOP_FD_STATUS_HAS_CONTROL_DATA)
           event.events |= EPOLLPRI;
 
-      if (destination->status & PLY_EVENT_LOOP_FD_STATUS_CAN_TAKE_DATA) 
+      if (destination->status & PLY_EVENT_LOOP_FD_STATUS_CAN_TAKE_DATA)
           event.events |= EPOLLOUT;
 
       node = next_node;
@@ -439,7 +439,7 @@ ply_event_loop_remove_destination_by_fd_watch (ply_event_loop_t *loop,
 {
   ply_event_destination_t *destination;
   ply_event_source_t *source;
-  
+
   assert (loop != NULL);
   assert (watch != NULL);
 
@@ -478,7 +478,7 @@ ply_event_loop_new (void)
   if (loop->signal_dispatcher == NULL)
     return NULL;
 
-  ply_event_loop_watch_fd (loop, 
+  ply_event_loop_watch_fd (loop,
                            ply_signal_dispatcher_receiver_fd,
                            PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
                            (ply_event_handler_t)
@@ -563,7 +563,7 @@ ply_event_loop_find_source_node (ply_event_loop_t *loop,
       ply_event_source_t *source;
 
       source = (ply_event_source_t *) ply_list_node_get_data (node);
-      
+
       if (source->fd == fd)
         break;
 
@@ -759,7 +759,7 @@ ply_signal_dispatcher_find_source_node (ply_signal_dispatcher_t *dispatcher,
       handler = (ply_signal_source_t *) ply_list_node_get_data (node);
 
       assert (handler != NULL);
-      
+
       if (handler->signal_number == signal_number)
         break;
 
@@ -781,7 +781,7 @@ ply_event_loop_watch_signal (ply_event_loop_t   *loop,
                                   signal_handler,
                                   user_data);
 
-  source->old_posix_signal_handler = 
+  source->old_posix_signal_handler =
       signal (signal_number, ply_signal_dispatcher_posix_signal_handler);
   ply_list_append_data (loop->signal_dispatcher->sources, source);
 }
@@ -794,7 +794,7 @@ ply_signal_dispatcher_remove_source_node (ply_signal_dispatcher_t  *dispatcher,
 
   source = (ply_signal_source_t *) ply_list_node_get_data (node);
 
-  signal (source->signal_number, 
+  signal (source->signal_number,
           source->old_posix_signal_handler != NULL?
           source->old_posix_signal_handler : SIG_DFL);
 
@@ -815,7 +815,7 @@ ply_event_loop_stop_watching_signal (ply_event_loop_t *loop,
   ply_signal_dispatcher_remove_source_node (loop->signal_dispatcher, node);
 }
 
-void 
+void
 ply_event_loop_watch_for_exit (ply_event_loop_t              *loop,
                                ply_event_loop_exit_handler_t  exit_handler,
                                void                          *user_data)
@@ -860,7 +860,7 @@ ply_event_loop_stop_watching_for_exit (ply_event_loop_t *loop,
 
 void
 ply_event_loop_watch_for_timeout (ply_event_loop_t    *loop,
-                                  double               seconds,             
+                                  double               seconds,
                                   ply_event_loop_timeout_handler_t timeout_handler,
                                   void                *user_data)
 {
@@ -909,14 +909,14 @@ ply_event_loop_stop_watching_for_timeout (ply_event_loop_t *loop,
     }
 }
 
-static ply_event_loop_fd_status_t 
+static ply_event_loop_fd_status_t
 ply_event_loop_get_fd_status_from_poll_mask (uint32_t mask)
 {
   ply_event_loop_fd_status_t status;
 
   status = PLY_EVENT_LOOP_FD_STATUS_NONE;
 
-  if (mask & EPOLLIN) 
+  if (mask & EPOLLIN)
     status |= PLY_EVENT_LOOP_FD_STATUS_HAS_DATA;
 
   if (mask & EPOLLPRI)
@@ -946,7 +946,7 @@ ply_event_loop_source_has_met_status (ply_event_source_t         *source,
       destination = (ply_event_destination_t *) ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (source->destinations, node);
 
-      if (((destination->status & status) != 0) 
+      if (((destination->status & status) != 0)
           && (destination->status_met_handler != NULL))
         return true;
 
@@ -975,7 +975,7 @@ ply_event_loop_handle_met_status_for_source (ply_event_loop_t           *loop,
       destination = (ply_event_destination_t *) ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (source->destinations, node);
 
-      if (((destination->status & status) != 0) 
+      if (((destination->status & status) != 0)
           && (destination->status_met_handler != NULL))
         destination->status_met_handler (destination->user_data, source->fd);
 
@@ -1080,7 +1080,7 @@ ply_event_loop_free_destinations_for_source (ply_event_loop_t   *loop,
 
       next_node = ply_list_get_next_node (source->destinations, node);
 
-      destination = 
+      destination =
           (ply_event_destination_t *) ply_list_node_get_data (node);
 
       assert (destination != NULL);
@@ -1096,7 +1096,7 @@ ply_event_loop_disconnect_source (ply_event_loop_t           *loop,
 {
   ply_event_loop_handle_disconnect_for_source (loop, source);
 
-  /* at this point, we've told the event loop users about the 
+  /* at this point, we've told the event loop users about the
    * fd disconnection, so we can invalidate any outstanding
    * watches and free the destinations.
    */
@@ -1150,10 +1150,10 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
   assert (loop != NULL);
 
   if (events == NULL)
-    events = 
+    events =
         malloc (PLY_EVENT_LOOP_NUM_EVENT_HANDLERS * sizeof (struct epoll_event));
 
-  memset (events, -1, 
+  memset (events, -1,
           PLY_EVENT_LOOP_NUM_EVENT_HANDLERS * sizeof (struct epoll_event));
 
   do
@@ -1181,7 +1181,7 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
              return;
            }
        }
-    } 
+    }
   while ((number_of_received_events < 0) && (errno == EINTR));
 
   for (i = 0; i < number_of_received_events; i++)
@@ -1220,7 +1220,7 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
 }
 
 void
-ply_event_loop_exit (ply_event_loop_t *loop, 
+ply_event_loop_exit (ply_event_loop_t *loop,
                      int               exit_code)
 {
   assert (loop != NULL);
@@ -1292,7 +1292,7 @@ on_timeout (ply_event_loop_t *loop)
 }
 
 int
-main (int    argc, 
+main (int    argc,
       char **argv)
 {
   int exit_code;
@@ -1300,19 +1300,19 @@ main (int    argc,
   loop = ply_event_loop_new ();
 
   ply_event_loop_watch_signal (loop, SIGHUP,
-			     (ply_event_handler_t) hangup_signal_handler,
-			     NULL);
+                             (ply_event_handler_t) hangup_signal_handler,
+                             NULL);
   ply_event_loop_watch_signal (loop, SIGTERM,
-			     (ply_event_handler_t)
-			     terminate_signal_handler, NULL);
+                             (ply_event_handler_t)
+                             terminate_signal_handler, NULL);
   ply_event_loop_watch_signal (loop, SIGUSR1,
-			     (ply_event_handler_t)
-			     usr1_signal_handler, NULL);
+                             (ply_event_handler_t)
+                             usr1_signal_handler, NULL);
   ply_event_loop_watch_signal (loop, SIGALRM,
-			     (ply_event_handler_t)
-			     alrm_signal_handler, NULL);
+                             (ply_event_handler_t)
+                             alrm_signal_handler, NULL);
 
-  ply_event_loop_watch_for_timeout (loop, 2.0, 
+  ply_event_loop_watch_for_timeout (loop, 2.0,
                                     (ply_event_loop_timeout_handler_t)
                                     on_timeout, loop);
   ply_event_loop_watch_fd (loop, 0, PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,

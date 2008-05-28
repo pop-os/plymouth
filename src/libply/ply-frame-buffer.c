@@ -71,6 +71,7 @@ struct _ply_frame_buffer
   ply_frame_buffer_area_t area;
   ply_frame_buffer_area_t area_to_flush;
 
+  void (*flush)(ply_frame_buffer_t *buffer);
 
   uint32_t is_paused : 1;
 };
@@ -137,6 +138,48 @@ ply_frame_buffer_close_device (ply_frame_buffer_t *buffer)
     }
 }
 
+static void
+flush_generic (ply_frame_buffer_t *buffer)
+{
+  unsigned long row, column;
+  char *row_buffer;
+  size_t bytes_per_row;
+  unsigned long x1, y1, x2, y2;
+
+  x1 = buffer->area_to_flush.x;
+  y1 = buffer->area_to_flush.y;
+  x2 = x1 + buffer->area_to_flush.width;
+  y2 = y1 + buffer->area_to_flush.height;
+
+  bytes_per_row = buffer->area_to_flush.width * buffer->bytes_per_pixel;
+  row_buffer = malloc (buffer->row_stride * buffer->bytes_per_pixel);
+  for (row = y1; row < y2; row++)
+    {
+      unsigned long offset;
+
+      for (column = x1; column < x2; column++)
+        {
+          uint32_t pixel_value;
+          uint_fast32_t device_pixel_value;
+
+          pixel_value = buffer->shadow_buffer[row * buffer->row_stride + column];
+
+          device_pixel_value =
+            ply_frame_buffer_pixel_value_to_device_pixel_value (buffer,
+                                                                pixel_value);
+
+          memcpy (row_buffer + column * buffer->bytes_per_pixel,
+                  &device_pixel_value, buffer->bytes_per_pixel);
+        }
+
+      offset = row * buffer->row_stride * buffer->bytes_per_pixel;
+      memcpy (buffer->map_address + offset, row_buffer,
+              buffer->area_to_flush.width * buffer->bytes_per_pixel);
+    }
+  free (row_buffer);
+}
+
+
 static bool 
 ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
 {
@@ -176,6 +219,8 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
   buffer->bytes_per_pixel = variable_screen_info.bits_per_pixel >> 3;
   buffer->row_stride = fixed_screen_info.line_length / buffer->bytes_per_pixel;
   buffer->size = buffer->area.height * buffer->row_stride * buffer->bytes_per_pixel;
+
+  buffer->flush = flush_generic;
 
   return true;
 }
@@ -350,49 +395,6 @@ ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t      *buffer,
 }
 
 static bool
-ply_frame_buffer_copy_to_device (ply_frame_buffer_t *buffer,
-                                 unsigned long   x,
-                                 unsigned long   y,
-                                 unsigned long   width,
-                                 unsigned long   height)
-{
-  unsigned long row, column;
-  char *row_buffer;
-  size_t bytes_per_row;
-
-  bytes_per_row = width * buffer->bytes_per_pixel;
-
-  row_buffer = malloc (buffer->row_stride * buffer->bytes_per_pixel);
-
-  for (row = y; row < y + height; row++)
-    {
-      unsigned long offset;
-
-      for (column = x; column < x + width; column++)
-        {
-          uint32_t pixel_value;
-          uint_fast32_t device_pixel_value;
-
-          pixel_value = buffer->shadow_buffer[row * buffer->row_stride + column];
-
-          device_pixel_value =
-            ply_frame_buffer_pixel_value_to_device_pixel_value (buffer,
-                                                                pixel_value);
-
-          memcpy (row_buffer + column * buffer->bytes_per_pixel,
-                  &device_pixel_value, buffer->bytes_per_pixel);
-        }
-
-      offset = row * buffer->row_stride * buffer->bytes_per_pixel + x * buffer->bytes_per_pixel;
-      memcpy (buffer->map_address + offset, row_buffer + x * buffer->bytes_per_pixel,
-              width * buffer->bytes_per_pixel);
-    }
-  free (row_buffer);
-
-  return true;
-}
-
-static bool
 ply_frame_buffer_flush (ply_frame_buffer_t *buffer)
 {
   assert (buffer != NULL);
@@ -400,12 +402,7 @@ ply_frame_buffer_flush (ply_frame_buffer_t *buffer)
   if (buffer->is_paused)
     return true;
 
-  if (!ply_frame_buffer_copy_to_device (buffer,
-                                        buffer->area_to_flush.x,
-                                        buffer->area_to_flush.y,
-                                        buffer->area_to_flush.width,
-                                        buffer->area_to_flush.height))
-    return false;
+  (*buffer->flush) (buffer);
 
   buffer->area_to_flush.x = buffer->area.width - 1;
   buffer->area_to_flush.y = buffer->area.height - 1;

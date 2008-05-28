@@ -152,7 +152,7 @@ on_show_splash (state_t *state)
 {
   ply_trace ("Showing splash screen");
   state->boot_splash = start_boot_splash (state,
-                                          PLYMOUTH_PLUGIN_PATH "fedora-fade-in.so");
+                                          PLYMOUTH_PLUGIN_PATH "spinfinity.so");
 
   if (state->boot_splash == NULL)
     {

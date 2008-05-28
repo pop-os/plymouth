@@ -33,7 +33,7 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
     sed -i -e 's@^#!\(.*\)@#!/bin/plymouthd \1\n@' init 
     sed -i -e 's@setquiet@&\n/bin/plymouth --show-splash\n/bin/plymouth --ask-for-password\n@' init
     (cd $LIBDIR
-        DEPS=$(get_lib_deps ${LIBEXECDIR}/plymouth/plymouthd ${BINDIR}/plymouth ${LIBDIR}/plymouth/fedora-fade-in.so ${LIBDIR}/plymouth/text.so ${LIBDIR}/plymouth/details.so)
+        DEPS=$(get_lib_deps ${LIBEXECDIR}/plymouth/plymouthd ${BINDIR}/plymouth ${LIBDIR}/plymouth/spinfinity.so ${LIBDIR}/plymouth/text.so ${LIBDIR}/plymouth/details.so)
         for dep in $DEPS; do
             install -D -m755 $dep ${TMPDIR}$(dirname $dep)
         done
@@ -44,16 +44,17 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
     install -m755 ${LIBEXECDIR}/plymouth/plymouthd bin
     install -m755 ${BINDIR}/plymouth bin
 
-    mkdir -p ${TMPDIR}$DATADIR/plymouth
+    mkdir -p ${TMPDIR}$DATADIR/plymouth/spinfinity
 
-    install -m644 ${DATADIR}/pixmaps/fedora-logo.png ${TMPDIR}${DATADIR}/plymouth
-    install -m644 ${DATADIR}/plymouth/star.png ${TMPDIR}${DATADIR}/plymouth
-    install -m644 ${DATADIR}/plymouth/lock.png ${TMPDIR}${DATADIR}/plymouth
-    install -m644 ${DATADIR}/plymouth/entry.png ${TMPDIR}${DATADIR}/plymouth
-    install -m644 ${DATADIR}/plymouth/bullet.png ${TMPDIR}${DATADIR}/plymouth
+    install -m644 ${DATADIR}/pixmaps/fedora-logo.png ${TMPDIR}${DATADIR}/plymouth/spinfinity
+    install -m644 ${DATADIR}/plymouth/spinfinity/lock.png ${TMPDIR}${DATADIR}/plymouth/spinfinity
+    install -m644 ${DATADIR}/plymouth/spinfinity/entry.png ${TMPDIR}${DATADIR}/plymouth/spinfinity
+    install -m644 ${DATADIR}/plymouth/spinfinity/bullet.png ${TMPDIR}${DATADIR}/plymouth/spinfinity
+    install -m644 ${DATADIR}/plymouth/spinfinity/box.png ${TMPDIR}${DATADIR}/plymouth/spinfinity
+    install -m644 ${DATADIR}/plymouth/spinfinity/throbber-[0-3][0-9].png ${TMPDIR}${DATADIR}/plymouth/spinfinity
 
     mkdir -p ${TMPDIR}${LIBDIR}/plymouth
-    install -m755 ${LIBDIR}/plymouth/fedora-fade-in.so ${TMPDIR}${LIBDIR}/plymouth
+    install -m755 ${LIBDIR}/plymouth/spinfinity.so ${TMPDIR}${LIBDIR}/plymouth
     install -m755 ${LIBDIR}/plymouth/text.so ${TMPDIR}${LIBDIR}/plymouth
     install -m755 ${LIBDIR}/plymouth/details.so ${TMPDIR}${LIBDIR}/plymouth
 

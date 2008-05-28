@@ -104,17 +104,17 @@ process_keyboard_input (ply_window_t *window,
     {
       switch (key)
         {
-          case KEY_CTRL_V:
-            ply_trace ("toggle verbose mode!");
-            ply_toggle_tracing ();
-            ply_trace ("verbose mode toggled!");
-          return;
-
           case KEY_CTRL_T:
             ply_trace ("toggle text mode!");
             window->should_force_text_mode = !window->should_force_text_mode;
             ply_window_set_mode (window, window->mode);
             ply_trace ("text mode toggled!");
+          return;
+
+          case KEY_CTRL_V:
+            ply_trace ("toggle verbose mode!");
+            ply_toggle_tracing ();
+            ply_trace ("verbose mode toggled!");
           return;
 
           case KEY_ESCAPE:

@@ -49,6 +49,8 @@
 #include "ply-utils.h"
 #include "ply-window.h"
 
+#include "throbber.h"
+
 #include <linux/kd.h>
 
 #ifndef FRAMES_PER_SECOND
@@ -74,12 +76,10 @@ struct _ply_boot_splash_plugin
   ply_window_t *window;
 
   entry_t *entry;
+  throbber_t *throbber;
 
   ply_boot_splash_password_answer_handler_t password_answer_handler;
   void *password_answer_data;
-
-  double start_time;
-  double now;
 };
 
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
@@ -92,7 +92,6 @@ create_plugin (void)
 
   srand ((int) ply_get_timestamp ());
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
-  plugin->start_time = 0.0;
 
   plugin->frame_buffer = ply_frame_buffer_new (NULL);
   plugin->logo_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-logo.png");
@@ -100,6 +99,8 @@ create_plugin (void)
   plugin->bullet_image = ply_image_new (PLYMOUTH_IMAGE_DIR "bullet.png");
   plugin->entry_image = ply_image_new (PLYMOUTH_IMAGE_DIR "entry.png");
   plugin->box_image = ply_image_new (PLYMOUTH_IMAGE_DIR "box.png");
+
+  plugin->throbber = throbber_new ("throbber-");
 
   return plugin;
 }
@@ -140,20 +141,16 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_image_free (plugin->box_image);
   ply_image_free (plugin->lock_image);
   ply_frame_buffer_free (plugin->frame_buffer);
+  throbber_free (plugin->throbber);
   free (plugin);
 }
 
 static void
-animate_at_time (ply_boot_splash_plugin_t *plugin,
-                 double                    time)
+draw_logo (ply_boot_splash_plugin_t *plugin)
 {
   ply_frame_buffer_area_t logo_area;
   uint32_t *logo_data;
   long width, height;
-  static double last_opacity = 0.0;
-  double opacity = 0.0;
-
-  ply_frame_buffer_pause_updates (plugin->frame_buffer);
 
   width = ply_image_get_width (plugin->logo_image);
   height = ply_image_get_height (plugin->logo_image);
@@ -164,61 +161,38 @@ animate_at_time (ply_boot_splash_plugin_t *plugin,
   logo_area.width = width;
   logo_area.height = height;
 
-
-  opacity = .5 * sin ((time / 5) * (2 * M_PI)) + .8;
-  opacity = CLAMP (opacity, 0, 1.0);
-
-  if (fabs (opacity - last_opacity) <= DBL_MIN)
-    {
-      ply_frame_buffer_unpause_updates (plugin->frame_buffer);
-      return;
-    }
-
-  last_opacity = opacity;
-
+  ply_frame_buffer_pause_updates (plugin->frame_buffer);
   ply_frame_buffer_fill_with_color (plugin->frame_buffer, &logo_area,
                                     0.0, 0.43, .71, 1.0);
-  ply_frame_buffer_fill_with_argb32_data_at_opacity (plugin->frame_buffer, 
-                                                     &logo_area, 0, 0,
-                                                     logo_data, opacity);
+  ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer, 
+                                          &logo_area, 0, 0,
+                                          logo_data);
   ply_frame_buffer_unpause_updates (plugin->frame_buffer);
-}
-
-static void
-on_timeout (ply_boot_splash_plugin_t *plugin)
-{
-  double sleep_time;
-
-  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_GRAPHICS);
-  plugin->now = ply_get_timestamp ();
-
-  animate_at_time (plugin,
-                   plugin->now - plugin->start_time);
-
-  sleep_time = 1.0 / FRAMES_PER_SECOND;
-  sleep_time = MAX (sleep_time - (ply_get_timestamp () - plugin->now),
-                    0.005);
-
-  ply_event_loop_watch_for_timeout (plugin->loop, 
-                                    sleep_time,
-                                    (ply_event_loop_timeout_handler_t)
-                                    on_timeout, plugin);
 }
 
 static void
 start_animation (ply_boot_splash_plugin_t *plugin)
 {
+
+  long width, height;
+  ply_frame_buffer_area_t area;
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
-    
-  ply_event_loop_watch_for_timeout (plugin->loop, 
-                                    1.0 / FRAMES_PER_SECOND,
-                                    (ply_event_loop_timeout_handler_t)
-                                    on_timeout, plugin);
 
-  plugin->start_time = ply_get_timestamp ();
-  ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL, 
+  ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL,
                                     0.0, 0.43, .71, 1.0);
+
+  draw_logo (plugin);
+
+  ply_frame_buffer_get_size (plugin->frame_buffer, &area);
+
+  width = throbber_get_width (plugin->throbber);
+  height = throbber_get_height (plugin->throbber);
+  throbber_start (plugin->throbber,
+                  plugin->loop,
+                  plugin->frame_buffer,
+                  area.width / 2.0 - width / 2.0,
+                  area.width / 2.0 - height / 2.0);
 }
 
 static void
@@ -228,7 +202,9 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
 
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
-    
+
+  throbber_stop (plugin->throbber);
+
   for (i = 0; i < 10; i++)
     {
       ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL,
@@ -246,13 +222,6 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
 
   ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL,
                                     0.0, 0.0, 0.0, 1.0);
-
-  if (plugin->loop != NULL)
-    {
-      ply_event_loop_stop_watching_for_timeout (plugin->loop,
-                                                (ply_event_loop_timeout_handler_t)
-                                                on_timeout, plugin);
-    }
 }
 
 static void

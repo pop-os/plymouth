@@ -44,6 +44,8 @@
 #include "ply-utils.h"
 
 #define KEY_CTRL_T ('\100' ^'T')
+#define KEY_CTRL_U ('\100' ^'U')
+#define KEY_CTRL_W ('\100' ^'W')
 #define KEY_CTRL_V ('\100' ^'V')
 #define KEY_ESCAPE ('\100' ^'[')
 #define KEY_RETURN '\r'
@@ -119,6 +121,15 @@ process_backspace (ply_window_t *window)
 }
 
 static void
+process_line_erase (ply_window_t *window)
+{
+  size_t size;
+
+  while ((size = ply_buffer_get_size (window->line_buffer)) > 0)
+    process_backspace (window);
+}
+
+static void
 process_keyboard_input (ply_window_t *window,
                         const char   *keyboard_input,
                         size_t        character_size)
@@ -134,6 +145,12 @@ process_keyboard_input (ply_window_t *window,
             window->should_force_text_mode = !window->should_force_text_mode;
             ply_window_set_mode (window, window->mode);
             ply_trace ("text mode toggled!");
+          return;
+
+          case KEY_CTRL_U:
+          case KEY_CTRL_W:
+            ply_trace ("erase line!");
+            process_line_erase (window);
           return;
 
           case KEY_CTRL_V:

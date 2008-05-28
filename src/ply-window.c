@@ -43,6 +43,7 @@
 #include "ply-logger.h"
 #include "ply-utils.h"
 
+#define KEY_CTRL_T '\024'
 #define KEY_CTRL_V '\026'
 #define KEY_ESCAPE '\033'
 #define KEY_RETURN '\r'
@@ -59,6 +60,8 @@ struct _ply_window
 
   ply_fd_watch_t *tty_fd_watch;
   ply_window_mode_t mode;
+
+  uint32_t should_force_text_mode : 1;
 
   ply_window_keyboard_input_handler_t keyboard_input_handler;
   void *keyboard_input_handler_user_data;
@@ -105,6 +108,13 @@ process_keyboard_input (ply_window_t *window,
             ply_trace ("toggle verbose mode!");
             ply_toggle_tracing ();
             ply_trace ("verbose mode toggled!");
+          return;
+
+          case KEY_CTRL_T:
+            ply_trace ("toggle text mode!");
+            window->should_force_text_mode = !window->should_force_text_mode;
+            ply_window_set_mode (window, window->mode);
+            ply_trace ("text mode toggled!");
           return;
 
           case KEY_ESCAPE:
@@ -274,7 +284,8 @@ ply_window_set_mode (ply_window_t      *window,
         break;
 
       case PLY_WINDOW_MODE_GRAPHICS:
-        if (ioctl (window->tty_fd, KDSETMODE, KD_GRAPHICS) < 0)
+        if (ioctl (window->tty_fd, KDSETMODE,
+                   window->should_force_text_mode? KD_TEXT : KD_GRAPHICS) < 0)
           return false;
         break;
     }

@@ -43,9 +43,9 @@
 #include "ply-logger.h"
 #include "ply-utils.h"
 
-#define KEY_CTRL_T '\024'
-#define KEY_CTRL_V '\026'
-#define KEY_ESCAPE '\033'
+#define KEY_CTRL_T ('\100' ^'T')
+#define KEY_CTRL_V ('\100' ^'V')
+#define KEY_ESCAPE ('\100' ^'[')
 #define KEY_RETURN '\r'
 #define KEY_BACKSPACE '\177'
 

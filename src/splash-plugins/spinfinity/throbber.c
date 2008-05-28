@@ -130,6 +130,10 @@ animate_at_time (throbber_t *throbber,
   uint32_t *frame_data;
 
   number_of_frames = ply_array_get_size (throbber->frames);
+
+  if (number_of_frames == 0)
+    return;
+
   frame_number = (.5 * sin (time) + .5) * number_of_frames;
 
   ply_frame_buffer_pause_updates (throbber->frame_buffer);

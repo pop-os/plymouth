@@ -161,8 +161,14 @@ on_timeout (throbber_t *throbber)
   double sleep_time;
   throbber->now = ply_get_timestamp ();
 
+#ifdef REAL_TIME_ANIMATION
   animate_at_time (throbber,
                    throbber->now - throbber->start_time);
+#else
+  static double time = 0.0;
+  time += 1.0 / FRAMES_PER_SECOND;
+  animate_at_time (throbber, time);
+#endif
 
   sleep_time = 1.0 / FRAMES_PER_SECOND;
   sleep_time = MAX (sleep_time - (ply_get_timestamp () - throbber->now),

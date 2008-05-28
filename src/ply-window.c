@@ -94,6 +94,31 @@ ply_window_new (const char *tty_name)
 }
 
 static void
+process_backspace (ply_window_t *window)
+{
+  ssize_t bytes_to_remove;
+  ssize_t previous_character_size;
+  const char *bytes;
+  size_t size;
+
+  bytes = ply_buffer_get_bytes (window->line_buffer);
+  size = ply_buffer_get_size (window->line_buffer);
+
+  bytes_to_remove = MB_CUR_MAX;
+  while ((previous_character_size = mbrlen (bytes + size - bytes_to_remove, bytes_to_remove, NULL)) < bytes_to_remove &&
+         previous_character_size > 0)
+    bytes_to_remove -= previous_character_size;
+
+  if (bytes_to_remove <= size)
+    {
+      ply_buffer_remove_bytes_at_end (window->line_buffer, bytes_to_remove);
+
+      if (window->backspace_handler != NULL)
+        window->backspace_handler (window->backspace_handler_user_data);
+    }
+}
+
+static void
 process_keyboard_input (ply_window_t *window,
                         const char   *keyboard_input,
                         size_t        character_size)
@@ -125,29 +150,8 @@ process_keyboard_input (ply_window_t *window,
           return;
 
           case KEY_BACKSPACE:
-            {
-            ssize_t bytes_to_remove;
-            ssize_t previous_character_size;
-            const char *bytes;
-            size_t size;
             ply_trace ("backspace key!");
-
-            bytes = ply_buffer_get_bytes (window->line_buffer);
-            size = ply_buffer_get_size (window->line_buffer);
-
-            bytes_to_remove = MB_CUR_MAX;
-            while ((previous_character_size = mbrlen (bytes + size - bytes_to_remove, bytes_to_remove, NULL)) < bytes_to_remove &&
-                   previous_character_size > 0)
-              bytes_to_remove -= previous_character_size;
-
-            if (bytes_to_remove <= size)
-              {
-                ply_buffer_remove_bytes_at_end (window->line_buffer, bytes_to_remove);
-
-                if (window->backspace_handler != NULL)
-                  window->backspace_handler (window->backspace_handler_user_data);
-              }
-            }
+            process_backspace (window);
           return;
 
           case KEY_RETURN:

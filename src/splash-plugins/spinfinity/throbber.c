@@ -261,10 +261,12 @@ throbber_start (throbber_t         *throbber,
 {
   assert (throbber != NULL);
   assert (throbber->loop == NULL);
-  assert (ply_array_get_size (throbber->frames) == 0);
 
-  if (!throbber_add_frames (throbber))
-    return false;
+  if (ply_array_get_size (throbber->frames) == 0)
+    {
+      if (!throbber_add_frames (throbber))
+        return false;
+    }
 
   throbber->loop = loop;
   throbber->frame_buffer = frame_buffer;
@@ -288,12 +290,14 @@ throbber_stop (throbber_t *throbber)
   if (throbber->frame_area.width > 0)
     ply_frame_buffer_fill_with_color (throbber->frame_buffer, &throbber->frame_area,
                                       0.0, 0.43, .71, 1.0);
+  throbber->frame_buffer = NULL;
 
   if (throbber->loop != NULL)
     {
       ply_event_loop_stop_watching_for_timeout (throbber->loop,
                                                 (ply_event_loop_timeout_handler_t)
                                                 on_timeout, throbber);
+      throbber->loop = NULL;
     }
 }
 

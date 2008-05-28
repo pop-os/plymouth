@@ -319,6 +319,14 @@ ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
 #include "ply-event-loop.h"
 #include "ply-boot-splash.h"
 
+typedef struct test_state test_state_t;
+struct test_state {
+  ply_event_loop_t *loop;
+  ply_boot_splash_t *splash;
+  ply_window_t *window;
+  ply_buffer_t *buffer;
+};
+
 static void
 on_timeout (ply_boot_splash_t *splash)
 {
@@ -331,60 +339,59 @@ on_timeout (ply_boot_splash_t *splash)
 }
 
 static void
-on_quit (ply_event_loop_t *loop)
+on_quit (test_state_t *state)
 {
-    ply_event_loop_exit (loop, 0);
+    ply_boot_splash_hide (state->splash);
+    ply_event_loop_exit (state->loop, 0);
 }
 
 int
 main (int    argc,
       char **argv)
 {
-  ply_event_loop_t *loop;
-  ply_boot_splash_t *splash;
-  ply_window_t *window;
-  ply_buffer_t *buffer;
   int exit_code;
+  test_state_t state;
   const char *module_name;
 
   exit_code = 0;
 
-  loop = ply_event_loop_new ();
+  state.loop = ply_event_loop_new ();
 
   if (argc > 1)
     module_name = argv[1];
   else
     module_name = "../splash-plugins/fedora-fade-in/.libs/fedora-fade-in.so";
 
-  window = ply_window_new (ttyname (0));
+  state.window = ply_window_new (ttyname (0));
 
-  if (!ply_window_open (window))
+  if (!ply_window_open (state.window))
     {
       perror ("could not open terminal");
       return errno;
     }
 
-  ply_window_attach_to_event_loop (window, loop);
-  ply_window_set_escape_handler (window, (ply_window_escape_handler_t)on_quit, loop);
+  ply_window_attach_to_event_loop (state.window, state.loop);
+  ply_window_set_escape_handler (state.window,
+				 (ply_window_escape_handler_t)on_quit, &state);
 
-  buffer = ply_buffer_new ();
-  splash = ply_boot_splash_new (module_name, window, buffer);
-  ply_boot_splash_attach_to_event_loop (splash, loop);
+  state.buffer = ply_buffer_new ();
+  state.splash = ply_boot_splash_new (module_name, state.window, state.buffer);
+  ply_boot_splash_attach_to_event_loop (state.splash, state.loop);
 
-  if (!ply_boot_splash_show (splash))
+  if (!ply_boot_splash_show (state.splash))
     {
       perror ("could not show splash screen");
       return errno;
     }
 
-  ply_event_loop_watch_for_timeout (loop, 
+  ply_event_loop_watch_for_timeout (state.loop, 
                                     1.0,
                                    (ply_event_loop_timeout_handler_t)
                                    on_timeout,
-                                   splash);
-  exit_code = ply_event_loop_run (loop);
-  ply_boot_splash_free (splash);
-  ply_buffer_free (buffer);
+                                   state.splash);
+  exit_code = ply_event_loop_run (state.loop);
+  ply_boot_splash_free (state.splash);
+  ply_buffer_free (state.buffer);
 
   return exit_code;
 }

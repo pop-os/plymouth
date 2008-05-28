@@ -59,6 +59,7 @@ struct _throbber
 {
   ply_array_t *frames;
   ply_event_loop_t *loop;
+  char *image_dir;
   char *frames_prefix;
 
   ply_frame_buffer_t      *frame_buffer;
@@ -70,16 +71,19 @@ struct _throbber
 };
 
 throbber_t *
-throbber_new (const char *frames_prefix)
+throbber_new (const char *image_dir,
+              const char *frames_prefix)
 {
   throbber_t *throbber;
 
+  assert (image_dir != NULL);
   assert (frames_prefix != NULL);
 
   throbber = calloc (1, sizeof (throbber_t));
 
   throbber->frames = ply_array_new ();
   throbber->frames_prefix = strdup (frames_prefix);
+  throbber->image_dir = strdup (image_dir);
   throbber->width = 82;
   throbber->height = 47;
   throbber->frame_area.width = 0;
@@ -112,6 +116,7 @@ throbber_free (throbber_t *throbber)
   ply_array_free (throbber->frames);
 
   free (throbber->frames_prefix);
+  free (throbber->image_dir);
   free (throbber);
 }
 
@@ -197,7 +202,7 @@ throbber_add_frames (throbber_t *throbber)
 
   entries = NULL;
 
-  number_of_entries = scandir (PLYMOUTH_IMAGE_DIR, &entries, NULL, versionsort);
+  number_of_entries = scandir (throbber->image_dir, &entries, NULL, versionsort);
 
   if (number_of_entries < 0)
     return false;
@@ -214,8 +219,7 @@ throbber_add_frames (throbber_t *throbber)
           char *filename;
 
           filename = NULL;
-          asprintf (&filename, PLYMOUTH_IMAGE_DIR "%s",
-                    entries[i]->d_name);
+          asprintf (&filename, "%s/%s", throbber->image_dir, entries[i]->d_name);
 
           if (!throbber_add_frame (throbber, filename))
             goto out;

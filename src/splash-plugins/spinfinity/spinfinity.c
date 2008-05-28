@@ -94,13 +94,14 @@ create_plugin (void)
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
 
   plugin->frame_buffer = ply_frame_buffer_new (NULL);
-  plugin->logo_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-logo.png");
-  plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "lock.png");
-  plugin->bullet_image = ply_image_new (PLYMOUTH_IMAGE_DIR "bullet.png");
-  plugin->entry_image = ply_image_new (PLYMOUTH_IMAGE_DIR "entry.png");
-  plugin->box_image = ply_image_new (PLYMOUTH_IMAGE_DIR "box.png");
+  plugin->logo_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/fedora-logo.png");
+  plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/lock.png");
+  plugin->bullet_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/bullet.png");
+  plugin->entry_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/entry.png");
+  plugin->box_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/box.png");
 
-  plugin->throbber = throbber_new ("throbber-");
+  plugin->throbber = throbber_new (PLYMOUTH_IMAGE_DIR "spinfinity",
+                                   "throbber-");
 
   return plugin;
 }

@@ -32,7 +32,8 @@
 typedef struct _throbber throbber_t;
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-throbber_t *throbber_new (const char *frames_prefix);
+throbber_t *throbber_new (const char *image_dir,
+                          const char *frames_prefix);
 void throbber_free (throbber_t *throbber);
 
 bool throbber_start (throbber_t         *throbber,

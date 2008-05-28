@@ -101,11 +101,11 @@ create_plugin (void)
   plugin->start_time = 0.0;
 
   plugin->frame_buffer = ply_frame_buffer_new (NULL);
-  plugin->logo_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-logo.png");
-  plugin->star_image = ply_image_new (PLYMOUTH_IMAGE_DIR "star.png");
-  plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "lock.png");
-  plugin->bullet_image = ply_image_new (PLYMOUTH_IMAGE_DIR "bullet.png");
-  plugin->entry_image = ply_image_new (PLYMOUTH_IMAGE_DIR "entry.png");
+  plugin->logo_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-fade-in/fedora-logo.png");
+  plugin->star_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-fade-in/star.png");
+  plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-fade-in/lock.png");
+  plugin->bullet_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-fade-in/bullet.png");
+  plugin->entry_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-fade-in/entry.png");
   plugin->stars = ply_list_new ();
 
   return plugin;

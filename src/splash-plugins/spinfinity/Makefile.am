@@ -53,7 +53,7 @@ throbber_frames =                                                            \
                     throbber-32.png                                          \
                     throbber-33.png
 
-plymouthdir = $(datadir)/plymouth
+plymouthdir = $(datadir)/plymouth/spinfinity
 plymouth_DATA = bullet.png entry.png lock.png box.png $(throbber_frames)
 
 EXTRA_DIST = $(plymouth_DATA)

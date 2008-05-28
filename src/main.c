@@ -42,6 +42,10 @@
 #define PLY_WORKING_DIRECTORY "/var/run/plymouth"
 #endif
 
+#ifndef PLY_MAX_COMMAND_LINE_SIZE
+#define PLY_MAX_COMMAND_LINE_SIZE 512
+#endif
+
 typedef struct
 {
   ply_event_loop_t *loop;
@@ -51,6 +55,8 @@ typedef struct
   ply_terminal_session_t *session;
   ply_buffer_t *boot_buffer;
   int original_root_dir_fd;
+
+  char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
 } state_t;
 
 static ply_boot_splash_t *start_boot_splash (state_t    *state,
@@ -380,6 +386,32 @@ mount_proc_filesystem (state_t *state)
 }
 
 static bool
+get_kernel_command_line (state_t *state)
+{
+  int fd;
+
+  ply_trace ("opening /proc/cmdline");
+  fd = open ("proc/cmdline", O_RDONLY);
+
+  if (fd < 0)
+    {
+      ply_trace ("couldn't open it: %m");
+      return false;
+    }
+
+  ply_trace ("reading kernel command line");
+  if (read (fd, state->kernel_command_line, sizeof (state->kernel_command_line)) < 0)
+    {
+      ply_trace ("couldn't read it: %m");
+      return false;
+    }
+
+  ply_trace ("Kernel command line is: '%s'", state->kernel_command_line);
+  return true;
+}
+
+
+static bool
 create_device_nodes (state_t *state)
 {
   ply_trace ("creating device nodes");
@@ -444,6 +476,23 @@ copy_data_files (state_t *state)
   return true;
 }
 
+static void
+check_verbosity (state_t *state)
+{
+  ply_trace ("checking if tracing should be enabled");
+
+  if ((strstr (state->kernel_command_line, " plymouth:debug ") != NULL)
+     || (strstr (state->kernel_command_line, "plymouth:debug ") != NULL)
+     || (strstr (state->kernel_command_line, " plymouth:debug") != NULL))
+    {
+      ply_trace ("tracing should be enabled!");
+      if (!ply_is_tracing ())
+        ply_toggle_tracing ();
+    }
+  else
+    ply_trace ("tracing shouldn't be enabled!");
+}
+
 static bool
 set_console_io_to_vt1 (state_t *state)
 {
@@ -476,6 +525,11 @@ initialize_environment (state_t *state)
 
   if (!mount_proc_filesystem (state))
     return false;
+
+  if (!get_kernel_command_line (state))
+    return false;
+
+  check_verbosity (state);
 
   if (!mount_devpts_filesystem (state))
     return false;

@@ -927,6 +927,9 @@ ply_copy_directory (const char *source,
   if (dir == NULL)
     return false;
 
+  if (!ply_create_directory (destination))
+    return false;
+
   while ((entry = readdir (dir)) != NULL) 
     {
       if (strcmp (entry->d_name, ".") == 0)

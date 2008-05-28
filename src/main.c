@@ -511,6 +511,30 @@ set_console_io_to_vt1 (state_t *state)
 }
 
 static bool
+plymouth_should_be_running (state_t *state)
+{
+  ply_trace ("checking if plymouth should be running");
+
+  if ((strstr (state->kernel_command_line, " single ") != NULL)
+    || (strstr (state->kernel_command_line, "single ") != NULL)
+    || (strstr (state->kernel_command_line, " single") != NULL))
+    {
+      ply_trace ("kernel command line has option 'single'");
+      return false;
+    }
+
+  if ((strstr (state->kernel_command_line, " 1 ") != NULL)
+    || (strstr (state->kernel_command_line, "1 ") != NULL)
+    || (strstr (state->kernel_command_line, " 1") != NULL))
+    {
+      ply_trace ("kernel command line has option '1'");
+      return false;
+    }
+
+  return true;
+}
+
+static bool
 initialize_environment (state_t *state)
 {
   ply_trace ("initializing minimal work environment");
@@ -530,6 +554,9 @@ initialize_environment (state_t *state)
     return false;
 
   check_verbosity (state);
+
+  if (!plymouth_should_be_running (state))
+    return false;
 
   if (!mount_devpts_filesystem (state))
     return false;

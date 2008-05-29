@@ -130,6 +130,8 @@ animate_at_time (throbber_t *throbber,
   ply_image_t * const * frames;
   uint32_t *frame_data;
 
+  ply_window_set_mode (throbber->window, PLY_WINDOW_MODE_GRAPHICS);
+
   number_of_frames = ply_array_get_size (throbber->frames);
 
   if (number_of_frames == 0)

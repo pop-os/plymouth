@@ -11,6 +11,6 @@ details_la_CFLAGS = $(PLYMOUTH_CFLAGS)
 details_la_LDFLAGS = -module -avoid-version -export-dynamic
 details_la_LIBADD = $(PLYMOUTH_LIBS) ../../libply/libply.la
 details_la_SOURCES = $(srcdir)/../../ply-boot-splash-plugin.h         \
-                  $(srcdir)/details.c
+                     $(srcdir)/plugin.c
 
 MAINTAINERCLEANFILES = Makefile.in

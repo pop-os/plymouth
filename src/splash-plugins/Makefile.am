@@ -1,2 +1,2 @@
-SUBDIRS = spinfinity fade-in text details tests
+SUBDIRS = spinfinity fade-in text details
 MAINTAINERCLEANFILES = Makefile.in

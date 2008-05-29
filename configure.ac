@@ -52,7 +52,7 @@ AC_OUTPUT([Makefile
            src/libply/Makefile
            src/splash-plugins/Makefile
            src/splash-plugins/spinfinity/Makefile
-           src/splash-plugins/fedora-fade-in/Makefile
+           src/splash-plugins/fade-in/Makefile
            src/splash-plugins/text/Makefile
            src/splash-plugins/details/Makefile
            src/Makefile

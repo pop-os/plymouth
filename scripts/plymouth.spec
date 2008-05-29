@@ -71,12 +71,12 @@ rm -rf $RPM_BUILD_ROOT
 
 %files plugin-fade-in
 %defattr(-, root, root)
-%dir %{_datadir}/plymouth/fedora-fade-in
-%{_datadir}/plymouth/fedora-fade-in/bullet.png
-%{_datadir}/plymouth/fedora-fade-in/entry.png
-%{_datadir}/plymouth/fedora-fade-in/lock.png
-%{_datadir}/plymouth/fedora-fade-in/star.png
-%{_libdir}/plymouth/fedora-fade-in.so
+%dir %{_datadir}/plymouth/fade-in
+%{_datadir}/plymouth/fade-in/bullet.png
+%{_datadir}/plymouth/fade-in/entry.png
+%{_datadir}/plymouth/fade-in/lock.png
+%{_datadir}/plymouth/fade-in/star.png
+%{_libdir}/plymouth/fade-in.so
 
 %files plugin-spinfinity
 %defattr(-, root, root)

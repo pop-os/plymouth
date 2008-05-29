@@ -26,8 +26,9 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#include "ply-event-loop.h"
 #include "ply-buffer.h"
+#include "ply-event-loop.h"
+#include "ply-frame-buffer.h"
 
 typedef struct _ply_window ply_window_t;
 
@@ -71,6 +72,7 @@ bool ply_window_set_mode (ply_window_t      *window,
 
 void ply_window_attach_to_event_loop (ply_window_t     *window,
                                       ply_event_loop_t *loop);
+ply_frame_buffer_t *ply_window_get_frame_buffer (ply_window_t *window);
 
 #endif
 

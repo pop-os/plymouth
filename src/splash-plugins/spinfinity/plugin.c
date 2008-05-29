@@ -93,7 +93,6 @@ create_plugin (void)
   srand ((int) ply_get_timestamp ());
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
 
-  plugin->frame_buffer = ply_frame_buffer_new (NULL);
   plugin->logo_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/fedora-logo.png");
   plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/lock.png");
   plugin->bullet_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/bullet.png");
@@ -141,7 +140,6 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_image_free (plugin->entry_image);
   ply_image_free (plugin->box_image);
   ply_image_free (plugin->lock_image);
-  ply_frame_buffer_free (plugin->frame_buffer);
   throbber_free (plugin->throbber);
   free (plugin);
 }
@@ -288,7 +286,6 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 {
   assert (plugin != NULL);
   assert (plugin->logo_image != NULL);
-  assert (plugin->frame_buffer != NULL);
 
   ply_window_set_keyboard_input_handler (window,
                                          (ply_window_keyboard_input_handler_t)
@@ -322,14 +319,13 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   if (!ply_image_load (plugin->box_image))
     return false;
 
-  ply_trace ("opening frame buffer");
-  if (!ply_frame_buffer_open (plugin->frame_buffer))
-    return false;
-
   plugin->window = window;
 
+  ply_trace ("setting graphics mode");
   if (!ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_GRAPHICS))
     return false;
+
+  plugin->frame_buffer = ply_window_get_frame_buffer (plugin->window);
 
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
                                  detach_from_event_loop,
@@ -374,8 +370,10 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
       detach_from_event_loop (plugin);
     }
 
-  ply_frame_buffer_close (plugin->frame_buffer);
+  plugin->frame_buffer = NULL;
+
   ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
+  plugin->window = NULL;
 }
 static void
 draw_password_entry (ply_boot_splash_plugin_t *plugin)

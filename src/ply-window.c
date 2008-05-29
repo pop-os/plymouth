@@ -40,6 +40,7 @@
 
 #include "ply-buffer.h"
 #include "ply-event-loop.h"
+#include "ply-frame-buffer.h"
 #include "ply-logger.h"
 #include "ply-utils.h"
 
@@ -56,6 +57,8 @@ struct _ply_window
   ply_event_loop_t *loop;
   ply_buffer_t     *keyboard_input_buffer;
   ply_buffer_t     *line_buffer;
+
+  ply_frame_buffer_t *frame_buffer;
 
   char *tty_name;
   int   tty_fd;
@@ -88,6 +91,7 @@ ply_window_new (const char *tty_name)
   window = calloc (1, sizeof (ply_window_t));
   window->keyboard_input_buffer = ply_buffer_new ();
   window->line_buffer = ply_buffer_new ();
+  window->frame_buffer = ply_frame_buffer_new (NULL);
   window->loop = NULL;
   window->tty_name = strdup (tty_name);
   window->tty_fd = -1;
@@ -272,6 +276,11 @@ ply_window_open (ply_window_t *window)
                                                     (ply_event_handler_t) on_key_event,
                                                     NULL, window);
 
+  /* We try to open the frame buffer, but it may fail. splash plugins can check
+   * to see if it's open and react accordingly
+   */
+  ply_frame_buffer_open (window->frame_buffer);
+
   return true;
 }
 
@@ -279,6 +288,8 @@ void
 ply_window_close (ply_window_t *window)
 {
   ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
+
+  ply_frame_buffer_close (window->frame_buffer);
 
   if (window->tty_fd_watch != NULL)
     {
@@ -305,6 +316,9 @@ ply_window_set_mode (ply_window_t      *window,
         break;
 
       case PLY_WINDOW_MODE_GRAPHICS:
+        if (!ply_frame_buffer_device_is_open (window->frame_buffer))
+          return false;
+
         if (ioctl (window->tty_fd, KDSETMODE,
                    window->should_force_text_mode? KD_TEXT : KD_GRAPHICS) < 0)
           return false;
@@ -341,6 +355,8 @@ ply_window_free (ply_window_t *window)
 
   ply_buffer_free (window->keyboard_input_buffer);
   ply_buffer_free (window->line_buffer);
+
+  ply_frame_buffer_free (window->frame_buffer);
 
   free (window);
 }
@@ -408,6 +424,12 @@ ply_window_attach_to_event_loop (ply_window_t     *window,
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
                                  ply_window_detach_from_event_loop,
                                  window);
+}
+
+ply_frame_buffer_t *
+ply_window_get_frame_buffer (ply_window_t *window)
+{
+  return window->frame_buffer;
 }
 
 #ifdef PLY_WINDOW_ENABLE_TEST

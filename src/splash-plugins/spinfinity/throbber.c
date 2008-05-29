@@ -62,6 +62,7 @@ struct _throbber
   char *image_dir;
   char *frames_prefix;
 
+  ply_window_t            *window;
   ply_frame_buffer_t      *frame_buffer;
   ply_frame_buffer_area_t  frame_area;
 
@@ -261,7 +262,7 @@ out:
 bool
 throbber_start (throbber_t         *throbber,
                 ply_event_loop_t   *loop,
-                ply_frame_buffer_t *frame_buffer,
+                ply_window_t       *window,
                 long                x,
                 long                y)
 {
@@ -275,7 +276,8 @@ throbber_start (throbber_t         *throbber,
     }
 
   throbber->loop = loop;
-  throbber->frame_buffer = frame_buffer;
+  throbber->window = window;
+  throbber->frame_buffer = ply_window_get_frame_buffer (window);;
 
   throbber->x = x;
   throbber->y = y;
@@ -297,6 +299,7 @@ throbber_stop (throbber_t *throbber)
     ply_frame_buffer_fill_with_color (throbber->frame_buffer, &throbber->frame_area,
                                       0.0, 0.43, .71, 1.0);
   throbber->frame_buffer = NULL;
+  throbber->window = NULL;
 
   if (throbber->loop != NULL)
     {

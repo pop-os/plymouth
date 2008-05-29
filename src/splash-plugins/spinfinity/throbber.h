@@ -28,6 +28,7 @@
 
 #include "ply-event-loop.h"
 #include "ply-frame-buffer.h"
+#include "ply-window.h"
 
 typedef struct _throbber throbber_t;
 
@@ -38,7 +39,7 @@ void throbber_free (throbber_t *throbber);
 
 bool throbber_start (throbber_t         *throbber,
                      ply_event_loop_t   *loop,
-                     ply_frame_buffer_t *frame_buffer,
+                     ply_window_t       *window,
                      long                x,
                      long                y);
 void throbber_stop (throbber_t *throbber);

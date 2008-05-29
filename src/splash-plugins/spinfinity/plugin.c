@@ -189,7 +189,7 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   height = throbber_get_height (plugin->throbber);
   throbber_start (plugin->throbber,
                   plugin->loop,
-                  plugin->frame_buffer,
+                  plugin->window,
                   area.width / 2.0 - width / 2.0,
                   area.width / 2.0 - height / 2.0);
 }

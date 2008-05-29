@@ -55,14 +55,6 @@ typedef struct
   void (* ask_for_password) (ply_boot_splash_plugin_t *plugin,
                              ply_boot_splash_password_answer_handler_t answer_handler,
                              void                     *answer_data);
-  void (* on_keyboard_input) (ply_boot_splash_plugin_t *plugin,
-                              const char               *keyboard_input,
-                              size_t                    character_size);
-
-  void (* on_backspace) (ply_boot_splash_plugin_t *plugin);
-  void (* on_enter) (ply_boot_splash_plugin_t *plugin,
-                     const char               *line);
-
 } ply_boot_splash_plugin_interface_t;
 
 #endif /* PLY_BOOT_SPLASH_PLUGIN_H */

@@ -371,6 +371,37 @@ detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
   ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
 }
 
+void
+on_keyboard_input (ply_boot_splash_plugin_t *plugin,
+                   const char               *keyboard_input,
+                   size_t                    character_size)
+{
+  if (plugin->password_answer_handler == NULL)
+    return;
+
+  plugin->entry->number_of_bullets++;
+  draw_password_entry (plugin);
+}
+
+void
+on_backspace (ply_boot_splash_plugin_t *plugin)
+{
+  plugin->entry->number_of_bullets--;
+  draw_password_entry (plugin);
+}
+
+void
+on_enter (ply_boot_splash_plugin_t *plugin,
+          const char               *text)
+{
+  plugin->password_answer_handler (plugin->password_answer_data,
+                                   text);
+  plugin->entry->number_of_bullets = 0;
+  entry_free (plugin->entry);
+  plugin->entry = NULL;
+  start_animation (plugin);
+}
+
 bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
@@ -380,6 +411,16 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   assert (plugin != NULL);
   assert (plugin->logo_image != NULL);
   assert (plugin->frame_buffer != NULL);
+
+  ply_window_set_keyboard_input_handler (window,
+                                         (ply_window_keyboard_input_handler_t)
+                                         on_keyboard_input, plugin);
+  ply_window_set_backspace_handler (window,
+                                    (ply_window_backspace_handler_t)
+                                    on_backspace, plugin);
+  ply_window_set_enter_handler (window,
+                                (ply_window_enter_handler_t)
+                                on_enter, plugin);
 
   plugin->loop = loop;
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
@@ -516,6 +557,10 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 {
   assert (plugin != NULL);
 
+  ply_window_set_keyboard_input_handler (window, NULL, NULL);
+  ply_window_set_backspace_handler (window, NULL, NULL);
+  ply_window_set_enter_handler (window, NULL, NULL);
+
   if (plugin->loop != NULL)
     {
       stop_animation (plugin);
@@ -620,37 +665,6 @@ ask_for_password (ply_boot_splash_plugin_t *plugin,
   show_password_entry (plugin);
 }
 
-void
-on_keyboard_input (ply_boot_splash_plugin_t *plugin,
-                   const char               *keyboard_input,
-                   size_t                    character_size)
-{
-  if (plugin->password_answer_handler == NULL)
-    return;
-
-  plugin->entry->number_of_bullets++;
-  draw_password_entry (plugin);
-}
-
-void
-on_backspace (ply_boot_splash_plugin_t *plugin)
-{
-  plugin->entry->number_of_bullets--;
-  draw_password_entry (plugin);
-}
-
-void
-on_enter (ply_boot_splash_plugin_t *plugin,
-          const char               *text)
-{
-  plugin->password_answer_handler (plugin->password_answer_data,
-                                   text);
-  plugin->entry->number_of_bullets = 0;
-  entry_free (plugin->entry);
-  plugin->entry = NULL;
-  start_animation (plugin);
-}
-
 ply_boot_splash_plugin_interface_t *
 ply_boot_splash_plugin_get_interface (void)
 {
@@ -662,9 +676,6 @@ ply_boot_splash_plugin_get_interface (void)
       .update_status = update_status,
       .hide_splash_screen = hide_splash_screen,
       .ask_for_password = ask_for_password,
-      .on_keyboard_input = on_keyboard_input,
-      .on_backspace = on_backspace,
-      .on_enter = on_enter
     };
 
   return &plugin_interface;

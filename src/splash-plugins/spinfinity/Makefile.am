@@ -15,7 +15,7 @@ spinfinity_la_SOURCES = $(srcdir)/../../ply-boot-splash-plugin.h             \
                             $(srcdir)/../../ply-window.c                     \
                             $(srcdir)/throbber.h                             \
                             $(srcdir)/throbber.c                             \
-                            $(srcdir)/spinfinity.c
+                            $(srcdir)/plugin.c
 
 throbber_frames =                                                            \
                     throbber-00.png                                          \

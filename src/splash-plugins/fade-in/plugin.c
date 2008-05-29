@@ -100,7 +100,7 @@ create_plugin (void)
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
   plugin->start_time = 0.0;
 
-  plugin->logo_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/fedora-logo.png");
+  plugin->logo_image = ply_image_new (PLYMOUTH_LOGO_FILE);
   plugin->star_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/star.png");
   plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/lock.png");
   plugin->bullet_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/bullet.png");

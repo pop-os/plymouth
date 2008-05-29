@@ -7,7 +7,11 @@ INCLUDES = -I$(top_srcdir)                                                    \
 plugindir = $(libdir)/plymouth
 plugin_LTLIBRARIES = spinfinity.la
 
-spinfinity_la_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLYMOUTH_IMAGE_DIR=\"$(datadir)/plymouth/\"
+spinfinity_la_CFLAGS = $(PLYMOUTH_CFLAGS)                                    \
+                       -DPLYMOUTH_IMAGE_DIR=\"$(datadir)/plymouth/\"         \
+                       -DPLYMOUTH_LOGO_FILE=\"$(logofile)\"                  \
+                       -DPLYMOUTH_BACKGROUND_COLOR=$(background_color)
+
 spinfinity_la_LDFLAGS = -module -avoid-version -export-dynamic
 spinfinity_la_LIBADD = $(PLYMOUTH_LIBS) ../../libply/libply.la
 spinfinity_la_SOURCES = $(srcdir)/../../ply-boot-splash-plugin.h             \

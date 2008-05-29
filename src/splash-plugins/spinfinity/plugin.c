@@ -93,7 +93,7 @@ create_plugin (void)
   srand ((int) ply_get_timestamp ());
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
 
-  plugin->logo_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/fedora-logo.png");
+  plugin->logo_image = ply_image_new (PLYMOUTH_LOGO_FILE);
   plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/lock.png");
   plugin->bullet_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/bullet.png");
   plugin->entry_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/entry.png");

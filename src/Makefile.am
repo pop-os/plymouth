@@ -1,7 +1,9 @@
 SUBDIRS = libply . splash-plugins client tests
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/libply                                                 \
-           -I$(srcdir)
+           -I$(srcdir)                                                        \
+           -DPLYMOUTH_LOGO_FILE=\"$(logofile)\"
+
 plymouthdbindir = $(libexecdir)/plymouth
 plymouthdbin_PROGRAMS = plymouthd
 

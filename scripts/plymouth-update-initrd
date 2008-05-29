@@ -12,6 +12,7 @@ set -e
 [ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
 [ -z "$BINDIR" ] && BINDIR="/usr/bin"
 [ -z "$GRUB_MENU_TITLE" ] && GRUB_MENU_TITLE="Graphical Bootup"
+[ -z "$PLYMOUTH_LOGO_FILE" ] && PLYMOUTH_LOGO_FILE="/usr/share/pixmaps/system-logo-white.png"
 
 if [ -z "$NEW_INITRD" ]; then
   NEW_INITRD="$(dirname $INITRD)/$(basename $INITRD .img)-plymouth.img"
@@ -44,9 +45,7 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
     install -m755 ${LIBEXECDIR}/plymouth/plymouthd bin
     install -m755 ${BINDIR}/plymouth bin
 
-    mkdir -p ${TMPDIR}$DATADIR/plymouth/spinfinity
-
-    install -m644 ${DATADIR}/pixmaps/fedora-logo.png ${TMPDIR}${DATADIR}/plymouth/spinfinity
+    mkdir -p ${TMPDIR}${DATADIR}/plymouth/spinfinity
     install -m644 ${DATADIR}/plymouth/spinfinity/lock.png ${TMPDIR}${DATADIR}/plymouth/spinfinity
     install -m644 ${DATADIR}/plymouth/spinfinity/entry.png ${TMPDIR}${DATADIR}/plymouth/spinfinity
     install -m644 ${DATADIR}/plymouth/spinfinity/bullet.png ${TMPDIR}${DATADIR}/plymouth/spinfinity
@@ -57,6 +56,8 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
     install -m755 ${LIBDIR}/plymouth/spinfinity.so ${TMPDIR}${LIBDIR}/plymouth
     install -m755 ${LIBDIR}/plymouth/text.so ${TMPDIR}${LIBDIR}/plymouth
     install -m755 ${LIBDIR}/plymouth/details.so ${TMPDIR}${LIBDIR}/plymouth
+
+    install -D -m644 ${PLYMOUTH_LOGO_FILE} ${TMPDIR}${PLYMOUTH_LOGO_FILE}
 
     rm -f $NEW_INITRD
     find | cpio --quiet -Hnewc -o | gzip -9 > $NEW_INITRD

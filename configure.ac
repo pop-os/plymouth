@@ -48,6 +48,12 @@ if test x$enable_tracing = xyes; then
   AC_DEFINE(PLY_ENABLE_TRACING, 1, [Build in verbose debug tracing spew])
 fi
 
+AC_ARG_WITH(logo, AC_HELP_STRING([--with-logo], [logo used by boot splash plugins]),logofile=${withval},logofile=$datadir/pixmaps/system-logo-white.png)
+AC_SUBST(logofile)
+
+AC_ARG_WITH(background-color, AC_HELP_STRING([--with-background-color], [background color used by boot splash plugins]),background_color=${withval},background_color=0x005391)
+AC_SUBST(background_color)
+
 AC_OUTPUT([Makefile
            src/libply/Makefile
            src/splash-plugins/Makefile

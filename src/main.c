@@ -152,7 +152,7 @@ on_show_splash (state_t *state)
 {
   ply_trace ("Showing splash screen");
   state->boot_splash = start_boot_splash (state,
-                                          PLYMOUTH_PLUGIN_PATH "fade-in.so");
+                                          PLYMOUTH_PLUGIN_PATH "spinfinity.so");
 
   if (state->boot_splash == NULL)
     {
@@ -461,6 +461,8 @@ mount_devpts_filesystem (state_t *state)
 static bool
 copy_data_files (state_t *state)
 {
+  char *logo_dir, *p;
+
   ply_trace ("copying data files");
   if (!ply_copy_directory ("/usr/share/plymouth",
                            "usr/share/plymouth"))
@@ -470,6 +472,24 @@ copy_data_files (state_t *state)
   ply_trace ("copying plugins");
   if (!ply_copy_directory (PLYMOUTH_PLUGIN_PATH,
                            PLYMOUTH_PLUGIN_PATH + 1))
+    return false;
+
+  ply_trace ("copying logo");
+  logo_dir = strdup (PLYMOUTH_LOGO_FILE);
+  p = strrchr (logo_dir, '/');
+
+  if (p != NULL)
+    *p = '\0';
+
+  if (!ply_create_directory (logo_dir + 1))
+    {
+      free (logo_dir);
+      return false;
+    }
+  free (logo_dir);
+
+  if (!ply_copy_file (PLYMOUTH_LOGO_FILE,
+                      PLYMOUTH_LOGO_FILE + 1))
     return false;
   ply_trace ("copied plugins files");
 

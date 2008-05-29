@@ -289,7 +289,8 @@ ply_window_close (ply_window_t *window)
 {
   ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
 
-  ply_frame_buffer_close (window->frame_buffer);
+  if (ply_frame_buffer_device_is_open (window->frame_buffer))
+    ply_frame_buffer_close (window->frame_buffer);
 
   if (window->tty_fd_watch != NULL)
     {

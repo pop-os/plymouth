@@ -179,6 +179,27 @@ flush_generic (ply_frame_buffer_t *buffer)
   free (row_buffer);
 }
 
+static void
+flush_xrgb32 (ply_frame_buffer_t *buffer)
+{
+  unsigned long x1, y1, x2, y2, y;
+  char *dst, *src;
+
+  x1 = buffer->area_to_flush.x;
+  y1 = buffer->area_to_flush.y;
+  x2 = x1 + buffer->area_to_flush.width;
+  y2 = y1 + buffer->area_to_flush.height;
+
+  dst = &buffer->map_address[(y1 * buffer->row_stride + x1) * 4];
+  src = (char *) &buffer->shadow_buffer[y1 * buffer->row_stride + x1];
+
+  for (y = y1; y < y2; y++)
+    {
+      memcpy (dst, src, buffer->area_to_flush.width * 4);
+      dst += buffer->row_stride * 4;
+      src += buffer->row_stride * 4;
+    }
+}
 
 static bool 
 ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
@@ -220,7 +241,13 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
   buffer->row_stride = fixed_screen_info.line_length / buffer->bytes_per_pixel;
   buffer->size = buffer->area.height * buffer->row_stride * buffer->bytes_per_pixel;
 
-  buffer->flush = flush_generic;
+  if (buffer->bytes_per_pixel == 4 &&
+      buffer->red_bit_position == 16 &&
+      buffer->green_bit_position == 8 &&
+      buffer->blue_bit_position == 0)
+    buffer->flush = flush_xrgb32;
+  else
+    buffer->flush = flush_generic;
 
   return true;
 }

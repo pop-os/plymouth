@@ -188,6 +188,12 @@ flush_xrgb32 (ply_frame_buffer_t *buffer)
   dst = &buffer->map_address[(y1 * buffer->row_stride + x1) * 4];
   src = (char *) &buffer->shadow_buffer[y1 * buffer->row_stride + x1];
 
+  if (buffer->area_to_flush.width == buffer->row_stride)
+    {
+      memcpy (dst, src, buffer->area_to_flush.width * buffer->area_to_flush.height * 4);
+      return;
+    }
+
   for (y = y1; y < y2; y++)
     {
       memcpy (dst, src, buffer->area_to_flush.width * 4);

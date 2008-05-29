@@ -152,7 +152,7 @@ on_show_splash (state_t *state)
 {
   ply_trace ("Showing splash screen");
   state->boot_splash = start_boot_splash (state,
-                                          PLYMOUTH_PLUGIN_PATH "spinfinity.so");
+                                          PLYMOUTH_PLUGIN_PATH "fade-in.so");
 
   if (state->boot_splash == NULL)
     {

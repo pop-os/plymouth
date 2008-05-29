@@ -1,4 +1,4 @@
-/* fedora-fade-in.c - boot splash plugin
+/* fade-in.c - boot splash plugin
  *
  * Copyright (C) 2007, 2008 Red Hat, Inc.
  *
@@ -100,11 +100,11 @@ create_plugin (void)
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
   plugin->start_time = 0.0;
 
-  plugin->logo_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-fade-in/fedora-logo.png");
-  plugin->star_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-fade-in/star.png");
-  plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-fade-in/lock.png");
-  plugin->bullet_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-fade-in/bullet.png");
-  plugin->entry_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fedora-fade-in/entry.png");
+  plugin->logo_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/fedora-logo.png");
+  plugin->star_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/star.png");
+  plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/lock.png");
+  plugin->bullet_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/bullet.png");
+  plugin->entry_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/entry.png");
   plugin->stars = ply_list_new ();
 
   return plugin;

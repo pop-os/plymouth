@@ -423,9 +423,6 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                                 on_enter, plugin);
 
   plugin->loop = loop;
-  ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
-                                 detach_from_event_loop,
-                                 plugin);
 
   ply_trace ("loading logo image");
   if (!ply_image_load (plugin->logo_image))
@@ -449,18 +446,16 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   ply_trace ("opening frame buffer");
   if (!ply_frame_buffer_open (plugin->frame_buffer))
-    {
-      ply_event_loop_stop_watching_for_exit (plugin->loop, (ply_event_loop_exit_handler_t)
-                                             detach_from_event_loop,
-                                             plugin);
-      return false;
-    }
+    return false;
 
   plugin->window = window;
 
   if (!ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_GRAPHICS))
     return false;
 
+  ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
+                                 detach_from_event_loop,
+                                 plugin);
   ply_event_loop_watch_signal (plugin->loop,
                                SIGINT,
                                (ply_event_handler_t) 

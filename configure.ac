@@ -66,6 +66,5 @@ AC_OUTPUT([Makefile
            src/tests/Makefile
            src/libply/tests/Makefile
            src/client/tests/Makefile
-           src/splash-plugins/tests/Makefile
 	   scripts/Makefile
 ])

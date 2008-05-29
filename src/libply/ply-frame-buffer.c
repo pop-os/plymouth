@@ -96,11 +96,6 @@ static void ply_frame_buffer_fill_area_with_pixel_value (
 
 static void ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t     *buffer,
                                                      ply_frame_buffer_area_t *area);
-static bool ply_frame_buffer_copy_to_device (ply_frame_buffer_t *buffer,
-                                             unsigned long   x,
-                                             unsigned long   y,
-                                             unsigned long   width,
-                                             unsigned long   height);
 
 static bool ply_frame_buffer_flush (ply_frame_buffer_t *buffer);
 

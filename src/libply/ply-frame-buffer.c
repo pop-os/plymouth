@@ -393,6 +393,18 @@ ply_frame_buffer_area_union (ply_frame_buffer_area_t *area1,
 {
   unsigned long x1, y1, x2, y2;
 
+  if (area1->width == 0)
+    {
+      *result = *area2;
+      return;
+    }
+
+  if (area2->width == 0)
+    {
+      *result = *area1;
+      return;
+    }
+
   x1 = area1->x + area1->width;
   y1 = area1->y + area1->height;
   x2 = area2->x + area2->width;
@@ -603,6 +615,18 @@ ply_frame_buffer_area_intersect (ply_frame_buffer_area_t *area1,
                                  ply_frame_buffer_area_t *result)
 {
   unsigned long x1, y1, x2, y2;
+
+  if (area1->width == 0)
+    {
+      *result = *area1;
+      return;
+    }
+
+  if (area2->width == 0)
+    {
+      *result = *area2;
+      return;
+    }
 
   x1 = area1->x + area1->width;
   y1 = area1->y + area1->height;

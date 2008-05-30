@@ -141,8 +141,8 @@ animate_at_time (throbber_t *throbber,
 
   ply_frame_buffer_pause_updates (throbber->frame_buffer);
   if (throbber->frame_area.width > 0)
-    ply_frame_buffer_fill_with_color (throbber->frame_buffer, &throbber->frame_area,
-                                      0.0, 0.43, .71, 1.0);
+    ply_frame_buffer_fill_with_hex_color (throbber->frame_buffer, &throbber->frame_area,
+                                          PLYMOUTH_BACKGROUND_COLOR);
 
   frames = (ply_image_t * const *) ply_array_get_elements (throbber->frames);
 
@@ -298,8 +298,8 @@ void
 throbber_stop (throbber_t *throbber)
 {
   if (throbber->frame_area.width > 0)
-    ply_frame_buffer_fill_with_color (throbber->frame_buffer, &throbber->frame_area,
-                                      0.0, 0.43, .71, 1.0);
+    ply_frame_buffer_fill_with_hex_color (throbber->frame_buffer, &throbber->frame_area,
+                                          PLYMOUTH_BACKGROUND_COLOR);
   throbber->frame_buffer = NULL;
   throbber->window = NULL;
 

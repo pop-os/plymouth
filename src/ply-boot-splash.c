@@ -335,7 +335,7 @@ main (int    argc,
 
   ply_window_attach_to_event_loop (state.window, state.loop);
   ply_window_set_escape_handler (state.window,
-				 (ply_window_escape_handler_t)on_quit, &state);
+                                 (ply_window_escape_handler_t) on_quit, &state);
 
   state.buffer = ply_buffer_new ();
   state.splash = ply_boot_splash_new (module_name, state.window, state.buffer);

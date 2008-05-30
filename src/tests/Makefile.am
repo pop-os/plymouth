@@ -5,9 +5,9 @@ INCLUDES =                                                                    \
            -I$(srcdir)
 TESTS =
 
-include $(srcdir)/ply-boot-server-test.am
-include $(srcdir)/ply-boot-splash-test.am
-include $(srcdir)/ply-window-test.am
+#include $(srcdir)/ply-boot-server-test.am
+#include $(srcdir)/ply-boot-splash-test.am
+#include $(srcdir)/ply-window-test.am
 
 noinst_PROGRAMS = $(TESTS)
 MAINTAINERCLEANFILES = Makefile.in

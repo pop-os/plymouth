@@ -323,7 +323,7 @@ main (int    argc,
   if (argc > 1)
     module_name = argv[1];
   else
-    module_name = "../splash-plugins/fedora-fade-in/.libs/fedora-fade-in.so";
+    module_name = "../splash-plugins/fade-in/.libs/fade-in.so";
 
   state.window = ply_window_new (ttyname (0));
 

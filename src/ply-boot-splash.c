@@ -353,6 +353,7 @@ main (int    argc,
                                    on_timeout,
                                    state.splash);
   exit_code = ply_event_loop_run (state.loop);
+  ply_window_free (state.window);
   ply_boot_splash_free (state.splash);
   ply_buffer_free (state.buffer);
 

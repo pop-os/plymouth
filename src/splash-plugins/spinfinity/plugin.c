@@ -449,8 +449,8 @@ show_password_entry (ply_boot_splash_plugin_t *plugin)
   plugin->lock_area.x = area.width / 2.0 - (plugin->lock_area.width + entry_width) / 2.0;
   plugin->lock_area.y = area.height / 2.0 - plugin->lock_area.height / 2.0;
 
-  ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL,
-                                    0.0, 0.43, .71, 1.0);
+  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, &plugin->lock_area,
+                                        PLYMOUTH_BACKGROUND_COLOR);
   draw_password_entry (plugin);
 }
 

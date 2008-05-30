@@ -58,6 +58,8 @@ struct _ply_window
   ply_buffer_t     *keyboard_input_buffer;
   ply_buffer_t     *line_buffer;
 
+  struct termios    original_term_attributes;
+
   ply_frame_buffer_t *frame_buffer;
 
   char *tty_name;
@@ -67,6 +69,7 @@ struct _ply_window
   ply_window_mode_t mode;
 
   uint32_t should_force_text_mode : 1;
+  uint32_t original_term_attributes_saved : 1;
 
   ply_window_keyboard_input_handler_t keyboard_input_handler;
   void *keyboard_input_handler_user_data;
@@ -244,9 +247,28 @@ ply_window_set_unbuffered_input (ply_window_t *window)
   struct termios term_attributes;
 
   tcgetattr (window->tty_fd, &term_attributes);
+
+  if (!window->original_term_attributes_saved)
+    {
+      window->original_term_attributes = term_attributes;
+      window->original_term_attributes_saved = true;
+    }
+
   cfmakeraw (&term_attributes);
 
   if (tcsetattr (window->tty_fd, TCSAFLUSH, &term_attributes) != 0)
+    return false;
+
+  return true;
+}
+
+static bool
+ply_window_set_buffered_input (ply_window_t *window)
+{
+  if (!window->original_term_attributes_saved)
+    return false;
+
+  if (tcsetattr (window->tty_fd, TCSAFLUSH, &window->original_term_attributes) != 0)
     return false;
 
   return true;
@@ -297,6 +319,8 @@ ply_window_close (ply_window_t *window)
       ply_event_loop_stop_watching_fd (window->loop, window->tty_fd_watch);
       window->tty_fd_watch = NULL;
     }
+
+  ply_window_set_buffered_input (window);
 
   close (window->tty_fd);
   window->tty_fd = -1;

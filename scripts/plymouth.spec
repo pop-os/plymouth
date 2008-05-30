@@ -2,7 +2,7 @@ Summary: Plymouth Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.0.1
 Release: 1%{?dist}
-License: GPL
+License: GPLv2
 Group: System Environment/Base
 Source0: %{name}-%{version}.tar.bz2
 URL: http://git.freedesktop.org/plymouth

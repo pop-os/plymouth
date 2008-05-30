@@ -161,8 +161,8 @@ draw_logo (ply_boot_splash_plugin_t *plugin)
   logo_area.height = height;
 
   ply_frame_buffer_pause_updates (plugin->frame_buffer);
-  ply_frame_buffer_fill_with_color (plugin->frame_buffer, &logo_area,
-                                    0.0, 0.43, .71, 1.0);
+  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, &logo_area,
+                                        PLYMOUTH_BACKGROUND_COLOR);
   ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer, 
                                           &logo_area, 0, 0,
                                           logo_data);
@@ -178,8 +178,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
-  ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL,
-                                    0.0, 0.43, .71, 1.0);
+  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, NULL,
+                                        PLYMOUTH_BACKGROUND_COLOR);
 
   draw_logo (plugin);
 
@@ -206,12 +206,13 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
 
   for (i = 0; i < 10; i++)
     {
-      ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL,
-                                        0.0, 0.43, .71, .1 + .1 * i);
+      ply_frame_buffer_fill_with_hex_color_at_opacity (plugin->frame_buffer, NULL,
+                                                       PLYMOUTH_BACKGROUND_COLOR,
+                                                       .1 + .1 * i);
     }
 
-  ply_frame_buffer_fill_with_color (plugin->frame_buffer, NULL,
-                                    0.0, 0.43, .71, 1.0);
+  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, NULL,
+                                        PLYMOUTH_BACKGROUND_COLOR);
 
   for (i = 0; i < 20; i++)
     {

@@ -56,10 +56,10 @@ AC_ARG_WITH(boot-entry, AS_HELP_STRING([--with-boot-entry],[create initrd and gr
 
 AM_CONDITIONAL(ADD_BOOT_ENTRY,  [test "$with_boot_entry" = yes])
 
-AC_ARG_WITH(logo, AC_HELP_STRING([--with-logo], [logo used by boot splash plugins]),logofile=${withval},logofile=$datadir/pixmaps/system-logo-white.png)
+AC_ARG_WITH(logo, AC_HELP_STRING([--with-logo], [logo used by boot splash plugins]),logofile=${withval},logofile=$datadir/plymouth/bizcom.png)
 AC_SUBST(logofile)
 
-AC_ARG_WITH(background-color, AC_HELP_STRING([--with-background-color], [background color used by boot splash plugins]),background_color=${withval},background_color=0x005391)
+AC_ARG_WITH(background-color, AC_HELP_STRING([--with-background-color], [background color used by boot splash plugins]),background_color=${withval},background_color=0x3a362f)
 AC_SUBST(background_color)
 
 AC_OUTPUT([Makefile
@@ -74,5 +74,6 @@ AC_OUTPUT([Makefile
            src/tests/Makefile
            src/libply/tests/Makefile
            src/client/tests/Makefile
-	   scripts/Makefile
+           scripts/Makefile
+           images/Makefile
 ])

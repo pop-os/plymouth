@@ -238,7 +238,7 @@ on_key_event (ply_window_t *window)
   check_buffer_for_key_events (window);
 }
 
-bool
+static bool
 ply_window_set_unbuffered_input (ply_window_t *window)
 {
   struct termios term_attributes;

@@ -20,4 +20,9 @@ plymouthd_SOURCES =                                                            \
                    ply-window.c                                               \
                    main.c
 
+plymouthdrundir = $(localstatedir)/run/plymouth
+
+install-data-hook:
+	-mkdir -p $(DESTDIR)$(plymouthdrundir)
+
 MAINTAINERCLEANFILES = Makefile.in

@@ -673,9 +673,10 @@ ply_frame_buffer_fill_with_color (ply_frame_buffer_t      *buffer,
 }
 
 bool
-ply_frame_buffer_fill_with_hex_color (ply_frame_buffer_t      *buffer,
-                                      ply_frame_buffer_area_t *area,
-                                      uint32_t                 hex_color)
+ply_frame_buffer_fill_with_hex_color_at_opacity (ply_frame_buffer_t      *buffer,
+                                                 ply_frame_buffer_area_t *area,
+                                                 uint32_t                 hex_color,
+                                                 double                   opacity)
 {
   ply_frame_buffer_area_t cropped_area;
   uint32_t pixel_value;
@@ -702,6 +703,8 @@ ply_frame_buffer_fill_with_hex_color (ply_frame_buffer_t      *buffer,
   blue = ((double) (hex_color & 0x0000ff00) / 0x0000ff00);
   alpha = ((double) (hex_color & 0x000000ff) / 0x000000ff);
 
+  alpha *= opacity;
+
   red *= alpha;
   green *= alpha;
   blue *= alpha;
@@ -713,6 +716,14 @@ ply_frame_buffer_fill_with_hex_color (ply_frame_buffer_t      *buffer,
   ply_frame_buffer_add_area_to_flush_area (buffer, &cropped_area);
 
   return ply_frame_buffer_flush (buffer);
+}
+
+bool
+ply_frame_buffer_fill_with_hex_color (ply_frame_buffer_t      *buffer,
+                                      ply_frame_buffer_area_t *area,
+                                      uint32_t                 hex_color)
+{
+  return ply_frame_buffer_fill_with_hex_color_at_opacity (buffer, area, hex_color, 1.0);
 }
 
 bool 

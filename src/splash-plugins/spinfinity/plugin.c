@@ -389,8 +389,8 @@ draw_password_entry (ply_boot_splash_plugin_t *plugin)
   lock_data = ply_image_get_data (plugin->lock_image);
   box_data = ply_image_get_data (plugin->box_image);
 
-  ply_frame_buffer_fill_with_color (plugin->frame_buffer, &plugin->box_area,
-                                    0.0, 0.43, .71, 1.0);
+  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, NULL,
+                                        PLYMOUTH_BACKGROUND_COLOR);
 
   ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
                                           &plugin->box_area, 0, 0,

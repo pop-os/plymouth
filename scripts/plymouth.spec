@@ -60,6 +60,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-, root, root)
 %doc AUTHORS NEWS README
 %dir %{_datadir}/plymouth
+%{_datadir}/plymouth/bizcom.png
 %{_libexecdir}/plymouth/plymouthd
 %{_libexecdir}/plymouth/plymouth-update-initrd
 %{_libdir}/libply.so*

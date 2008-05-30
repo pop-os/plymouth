@@ -63,6 +63,9 @@ bool ply_frame_buffer_fill_with_color (ply_frame_buffer_t      *buffer,
                                        double               green,
                                        double               blue, 
                                        double               alpha);
+bool ply_frame_buffer_fill_with_hex_color (ply_frame_buffer_t      *buffer,
+                                           ply_frame_buffer_area_t *area,
+                                           uint32_t                 hex_color);
 
 bool ply_frame_buffer_fill_with_argb32_data (ply_frame_buffer_t      *buffer,
                                              ply_frame_buffer_area_t  *area,

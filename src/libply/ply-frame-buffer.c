@@ -672,6 +672,49 @@ ply_frame_buffer_fill_with_color (ply_frame_buffer_t      *buffer,
   return ply_frame_buffer_flush (buffer);
 }
 
+bool
+ply_frame_buffer_fill_with_hex_color (ply_frame_buffer_t      *buffer,
+                                      ply_frame_buffer_area_t *area,
+                                      uint32_t                 hex_color)
+{
+  ply_frame_buffer_area_t cropped_area;
+  uint32_t pixel_value;
+  double red;
+  double green;
+  double blue;
+  double alpha;
+
+  assert (buffer != NULL);
+  assert (ply_frame_buffer_device_is_open (buffer));
+
+  if (area == NULL)
+    area = &buffer->area;
+
+  ply_frame_buffer_area_intersect (area, &buffer->area, &cropped_area);
+
+  /* if they only gave an rgb hex number, assume an alpha of 0xff
+   */
+  if ((hex_color & 0xff000000) == 0)
+    hex_color = (hex_color << 8) | 0xff;
+
+  red = ((double) (hex_color & 0xff000000) / 0xff000000);
+  green = ((double) (hex_color & 0x00ff0000) / 0x00ff0000);
+  blue = ((double) (hex_color & 0x0000ff00) / 0x0000ff00);
+  alpha = ((double) (hex_color & 0x000000ff) / 0x000000ff);
+
+  red *= alpha;
+  green *= alpha;
+  blue *= alpha;
+
+  pixel_value = PLY_FRAME_BUFFER_COLOR_TO_PIXEL_VALUE (red, green, blue, alpha);
+
+  ply_frame_buffer_fill_area_with_pixel_value (buffer, &cropped_area, pixel_value);
+
+  ply_frame_buffer_add_area_to_flush_area (buffer, &cropped_area);
+
+  return ply_frame_buffer_flush (buffer);
+}
+
 bool 
 ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t      *buffer,
                                                    ply_frame_buffer_area_t *area,

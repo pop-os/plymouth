@@ -1,85 +1,48 @@
-Current plans are getting discussed here:
+plymouth - graphical boot animation and logger
 
-http://fedoraproject.org/wiki/Releases/FeatureBetterStartup
+Plymouth is an application that runs very early in the boot process (even before the
+root filesystem is mounted!) that provides a graphical boot animation while the boot
+process happens in the background.
 
-Until this file is fleshed out, I've included Kristian's old
-text below.
+It is designed to work on systems with DRM modesetting drivers.  The idea is
+that early on in the boot process the native mode for the computer is set, plymouth
+uses that mode, and that mode stays throughout the entire boot process up to and
+after X starts.  Ideally, the goal is to get rid of all flicker during startup.
 
-plymouth - fbdev based graphical boot
+For systems that don't have DRM mode settings drivers, plymouth falls back to
+text mode.
 
-INSTALL
+In either text or graphics mode, the boot messages are completely occluded.  After
+the root file system is mounted read-write, the messages are dumped to
+/var/log/bootmessages.log.  Also, the user can see the messages at any time during
+boot up by hitting the escape key.
 
-Get the SRPMS and rpmbuild --rebuild them.  libpng-static is a build
-requirement of mkinitrd so build and install that before building
-mkinitrd.  To build the kernel SRPM, pass --target i686 to rpmbuild.
+Plymouth isn't really designed to be built from source by end users.  For it to work
+correctly, it needs integration with the distribution.  Because it starts so early,
+it needs to be packed into the distribution's initial ram disk, and the distribution
+needs to poke plymouth to tell it how boot is progressing.
 
-  libpng-1.2.10-1.plymouth.src.rpm
-  initscripts-8.33-1.src.rpm
-  mkinitrd-5.0.34-1.plymouth.src.rpm
-  SysVinit-2.86-3.plymouth.src.rpm
-  rhgb-0.16.3-1.plymouth.src.rpm
-  kernel-2.6.16-1.2139_FC6.plymouth.src.rpm
+In the scripts/ directory there is a shell script that attempts to unpack an existing
+initrd, add plymouth, and pack it back up.  It's not a complete solution, though, it's
+more for debugging/testing and will probably only work on Fedora based systems.
 
-Then install them and run (as root) mkinitrd to create an initrd for
-your current kernel that has the graphical boot bits in it:
+plymouth ships with two binaries: /usr/libexec/plymouth/plymouthd and /usr/bin/plymouth
 
-  $ mkinitrd /boot/plymouth-initrd-$(uname -r) $(uname -r)
+The first one, plymouthd, does all the heavy lifting. It logs the session and shows the
+splash screen. The second one, /usr/bin/plymouth, is the control interface to plymouthd.
 
-Run grubby to add an entry to /etc/grub.conf:
+It supports things like plymouth --show-splash, or plymouth --ask-for-password, which
+trigger the associated action in plymouthd.
 
-  $ grubby --grub --copy-default \
-	--title="Plymouth $(uname -r)" \
-	--add-kernel=/boot/vmlinuz-$(uname -r) \
-	--initrd=/boot/plymouth-initrd-$(uname -r).img \
-	--args="vga=0x318 rhgb quiet"
+plymouth supports various "splash" plugins which are analagous to screensavers, but
+happen at boot time.  Currently there are two graphical splash plugins: fade-in,
+and spinfinity.  There are also two non-graphical plugins which are for text
+mode and the details view.
 
-or hand-edit /etc/grub.conf if you prefer and make an entry that boots
-with the new initrd and passes vga=0x318, rhgb, and quiet on the
-kernel command line.
+The graphical plugins need a logo image and background color to function.
+Distributions are expected to set these up in their packages at ./configure
+time, but there are some placeholder values set up if ./configure doesn't get
+those options.
 
-Edit /etc/inittab to not start a tty on vt0:
-
-  $ sed -ie 's/1:2345/# 1:2345/' /etc/inittab
-
-Reboot!
-
-
-HOW IT WORKS
-
-We're using the kernel fbdev driver to initialize the display to
-1024x768 24bpp as soon as the kernel boots up.  At this point the
-kernel boots up with a black background and shows a picture of a fat
-penguin.  The kernel patch disables the Linux logo and re-enables the
-quiet boot mode.  I'd like to teach the kernel to clear the background
-color to the background color set by nash later on, but for now the
-patch just makes it boot into a black 1024x768.  This solid color
-background patch and using fbdev are the only changes to the kernel.
-
-A few seconds after the kernel boots, the initrd starts up.  The
-changes to initrd includes making nash less chatty in quiet mode, and
-adding a 'logo' command to the nash shell that it can load and display
-a fedora PNG logo from the initrd.
-
-Next step is rhgb.  The changes to rhgb replaces all the X server
-startup/hand-holding code and the gtk+ progress screen and just paints
-on the fbdev using cairo.  Other than that, most of the rhgb progress
-feedback is reused, the initscripts report back to rhgb throughout the
-boot process as they have always done.
-
-
-NEXT STEPS
-
-- Silence grub completely - don't show the menu, don't show the info
-  about what we're booting, don't show anything.  Enter the menu only
-  if the user holds down some key.
-
-- Fall back to text mode in rhgb if something fails, or at least make
-  a note of it and let the user review the log at a later time.  Also,
-  probably bind Esc or some key to drop back into full textual boot.
-
-- Actually write the kernel patch to initialize the fbdev to a given
-  solid color.
-
-- Make the transition from the rhgb fbdev into X smoother.  Don't do
-  mode-setting in X and reuse framebuffer contents when possible or
-  crazy-talk like that.
+Plymouth isn't done yet.  It's still under active development and isn't ready for
+distros to use as-is.  That should change in the near future though.

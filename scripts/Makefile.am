@@ -5,7 +5,7 @@ initrdscript_SCRIPTS = plymouth-update-initrd
 
 if ADD_BOOT_ENTRY
 install-data-hook:
-	$(initrdscriptdir)/plymouth-update-initrd
+	PLYMOUTH_LOGO_FILE=$(logofile) $(initrdscriptdir)/plymouth-update-initrd
 endif
 
 EXTRA_DIST=$(initrdscript_SCRIPTS) $(noinst_SCRIPTS) default.cfg

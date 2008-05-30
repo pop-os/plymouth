@@ -48,6 +48,10 @@ if test x$enable_tracing = xyes; then
   AC_DEFINE(PLY_ENABLE_TRACING, 1, [Build in verbose debug tracing spew])
 fi
 
+AC_ARG_ENABLE(tests, AS_HELP_STRING([--enable-tests],[build tests]),enable_tests=$enableval,enable_tests=yes)
+
+AM_CONDITIONAL(ENABLE_TESTS,  [test "$enable_tests" = yes])
+
 AC_ARG_WITH(boot-entry, AS_HELP_STRING([--with-boot-entry],[create initrd and grub entry]),with_boot_entry=$withval,with_boot_entry=yes)
 
 AM_CONDITIONAL(ADD_BOOT_ENTRY,  [test "$with_boot_entry" = yes])

@@ -1,5 +1,5 @@
 SUBDIRS = src scripts
-DISTCHECK_CONFIGURE_FLAGS = --without-boot-entry
+DISTCHECK_CONFIGURE_FLAGS = --without-boot-entry --disable-tests
 
 EXTRA_DIST = ChangeLog                                                         \
              README

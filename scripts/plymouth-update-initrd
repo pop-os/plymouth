@@ -66,19 +66,19 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
 
 rm -rf "$TMPDIR"
 
-CURRENT_KERNEL=$(/sbin/grubby --default-kernel)
-
 # XXX: Hack to clean out old entry since grubby doesn't deal with dupes too well
 if fgrep -q "title $GRUB_MENU_TITLE" /etc/grub.conf; then
     TMPFILE="$(mktemp /etc/grub.conf.XXXXXXXXXX)"
     if [ -L /etc/grub.conf ]; then
         GRUB_CONF="$(readlink /etc/grub.conf)"
-    else
+   else
         GRUB_CONF="/etc/grub.conf"
     fi
     (cd /etc; awk '$1 != "'"$GRUB_MENU_TITLE"'" { printf $0 RT }' RS="title " FS="\n" $GRUB_CONF > $TMPFILE \
     && mv $TMPFILE $GRUB_CONF || rm -f $TMPFILE)
 fi
+
+CURRENT_KERNEL=$(/sbin/grubby --default-kernel)
 
 /sbin/grubby --title="$GRUB_MENU_TITLE"       \
              --add-kernel="$CURRENT_KERNEL"   \

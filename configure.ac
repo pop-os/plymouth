@@ -59,7 +59,7 @@ AM_CONDITIONAL(ADD_BOOT_ENTRY,  [test "$with_boot_entry" = yes])
 AC_ARG_WITH(logo, AC_HELP_STRING([--with-logo], [logo used by boot splash plugins]),logofile=${withval},logofile=$datadir/plymouth/bizcom.png)
 AC_SUBST(logofile)
 
-AM_CONDITIONAL(INSTALL_FALLBACK_LOGO,  [test "$logofile" = $datadir/plymouth/bizcomp.png])
+AM_CONDITIONAL(INSTALL_FALLBACK_LOGO,  [test "$logofile" = $datadir/plymouth/bizcom.png])
 
 AC_ARG_WITH(background-color, AC_HELP_STRING([--with-background-color], [background color used by boot splash plugins]),background_color=${withval},background_color=0x3a362f)
 AC_SUBST(background_color)

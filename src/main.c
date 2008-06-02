@@ -126,6 +126,12 @@ on_ask_for_password (state_t *state,
 {
   password_answer_closure_t *closure;
 
+  if (state->boot_splash != NULL)
+    {
+      answer_handler (answer_data, "", state->boot_server);
+      return;
+    }
+
   closure = malloc (sizeof (password_answer_closure_t));
   closure->handler = answer_handler;
   closure->data = answer_data;

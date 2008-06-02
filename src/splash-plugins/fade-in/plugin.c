@@ -198,8 +198,13 @@ static void
 draw_background (ply_boot_splash_plugin_t *plugin,
 		 ply_frame_buffer_area_t  *area)
 {
+#if 0
   ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, area,
 					PLYMOUTH_BACKGROUND_COLOR);
+#else
+  ply_frame_buffer_fill_with_gradient (plugin->frame_buffer, area,
+				       0x00000000, 0x00000090);
+#endif
 }
 
 static void

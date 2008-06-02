@@ -640,6 +640,63 @@ ply_frame_buffer_area_intersect (ply_frame_buffer_area_t *area1,
   result->height = MIN(y1, y2) - result->y;
 }
 
+bool
+ply_frame_buffer_fill_with_gradient (ply_frame_buffer_t      *buffer,
+				     ply_frame_buffer_area_t *area,
+				     uint32_t                 start,
+				     uint32_t                 end)
+{
+  uint32_t red, green, blue, red_step, green_step, blue_step, t, pixel;
+  uint32_t x, y;
+  ply_frame_buffer_area_t cropped_area;
+
+  if (area == NULL)
+    area = &buffer->area;
+
+  ply_frame_buffer_area_intersect (area, &buffer->area, &cropped_area);
+
+  red  = (start << 7)  & 0xff000000;
+  green = (start << 15) & 0xff000000;
+  blue = (start << 23) & 0xff000000;
+
+  t = (end << 7)  & 0xff000000;
+  red_step = (int32_t) (t - red) / (int32_t) buffer->area.height;
+  t = (end << 15) & 0xff000000;
+  green_step = (int32_t) (t - green) / (int32_t) buffer->area.height;
+  t = (end << 23) & 0xff000000;
+  blue_step = (int32_t) (t - blue) / (int32_t) buffer->area.height;
+
+  srand(100200);
+
+  /* FIXME: Assumption: RAND_MAX == 1 << 31 */
+#define NOISE (rand() >> 6)
+
+  for (y = buffer->area.y; y < buffer->area.y + buffer->area.height; y++)
+    {
+      if (cropped_area.y <= y && y < cropped_area.y + cropped_area.height)
+	{
+	  for (x = cropped_area.x; x < cropped_area.x + cropped_area.width; x++)
+	    {
+	      pixel =
+		0xff000000 |
+		(((red + NOISE) & 0xff000000) >> 7) |
+		(((green + NOISE) & 0xff000000) >> 15) |
+		(((blue + NOISE) & 0xff000000) >> 23);
+
+	      buffer->shadow_buffer[y * buffer->row_stride + x] = pixel;
+	    }
+	}
+
+      red += red_step;
+      green += green_step;
+      blue += blue_step;
+    }
+
+  ply_frame_buffer_add_area_to_flush_area (buffer, &cropped_area);
+
+  return ply_frame_buffer_flush (buffer);
+}
+
 bool 
 ply_frame_buffer_fill_with_color (ply_frame_buffer_t      *buffer,
                                   ply_frame_buffer_area_t  *area,

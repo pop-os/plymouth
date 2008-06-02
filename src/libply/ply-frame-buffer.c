@@ -646,6 +646,49 @@ ply_frame_buffer_fill_with_gradient (ply_frame_buffer_t      *buffer,
                                      uint32_t                 start,
                                      uint32_t                 end)
 {
+/* The gradient produced is a linear interpolation of the two passed
+ * in color stops: start and end.
+ *
+ * In order to prevent banding when the color stops are too close
+ * together, or are stretched over too large an area, we slightly
+ * perturb the intermediate colors as we generate them.
+ *
+ * Before we do this, we store the interpolated color values in a
+ * fixed point number with lots of fractional bits.  This is so
+ * we don't add noise after the values have been clamped to 8-bits
+ *
+ * We add random noise to all of the fractional bits of each color
+ * channel and also NOISE_BITS worth of noise to the non-fractional
+ * part of the color. By default NOISE_BITS is 1.
+ *
+ * We incorporate the noise by filling the bottom 24 bits of an
+ * integer with random bits and then shifting the color channels
+ * to the left such that the top 8 bits of the channel overlap
+ * the noise by NOISE_BITS. E.g., if NOISE_BITS is 1, then the top
+ * 7 bits of each channel won't overlap with the noise, and the 8th
+ * bit + fractional bits will.  When the noise and color channel
+ * are properly aligned, we add them together, drop the precision
+ * of the resulting channels back to 8 bits and stuff the results
+ * into a pixel in the frame buffer.
+ */
+#define NOISE_BITS 1
+/* In the color stops, red is 8 bits starting at position 24
+ * (since they're argb32 pixels).
+ * We want to move those 8 bits such that the bottom NOISE_BITS
+ * of them overlap the top of the 24 bits of generated noise.
+ * Of course, green and blue are 8 bits away from red and each
+ * other, respectively.
+ */
+#define RED_SHIFT (32 - (24 + NOISE_BITS))
+#define GREEN_SHIFT (RED_SHIFT + 8)
+#define BLUE_SHIFT (GREEN_SHIFT + 8)
+#define NOISE_MASK (0x00ffffff)
+
+/* Once, we've lined up the color channel we're interested in with
+ * the noise, we need to mask out the other channels.
+ */
+#define COLOR_MASK (0xff << (24 - NOISE_BITS))
+
   uint32_t red, green, blue, red_step, green_step, blue_step, t, pixel;
   uint32_t x, y;
   ply_frame_buffer_area_t cropped_area;
@@ -655,22 +698,23 @@ ply_frame_buffer_fill_with_gradient (ply_frame_buffer_t      *buffer,
 
   ply_frame_buffer_area_intersect (area, &buffer->area, &cropped_area);
 
-#define MASK (0xff << 23)
-  red   = (start << 7)  & MASK;
-  green = (start << 15) & MASK;
-  blue  = (start << 23) & MASK;
+  red   = (start << RED_SHIFT) & COLOR_MASK;
+  green = (start << GREEN_SHIFT) & COLOR_MASK;
+  blue  = (start << BLUE_SHIFT) & COLOR_MASK;
 
-  t = (end << 7)  & MASK;
+  t = (end << RED_SHIFT) & COLOR_MASK;
   red_step = (int32_t) (t - red) / (int32_t) buffer->area.height;
-  t = (end << 15) & MASK;
+  t = (end << GREEN_SHIFT) & COLOR_MASK;
   green_step = (int32_t) (t - green) / (int32_t) buffer->area.height;
-  t = (end << 23) & MASK;
+  t = (end << BLUE_SHIFT) & COLOR_MASK;
   blue_step = (int32_t) (t - blue) / (int32_t) buffer->area.height;
 
+  /* we use a fixed seed so that the dithering doesn't change on repaints
+   * of the same area.
+   */
   srand(100200);
 
-  /* FIXME: Assumption: RAND_MAX == 1 << 31 - 1 */
-#define NOISE (rand() >> 7)
+#define NOISE() (rand () & NOISE_MASK)
 
   for (y = buffer->area.y; y < buffer->area.y + buffer->area.height; y++)
     {
@@ -680,9 +724,9 @@ ply_frame_buffer_fill_with_gradient (ply_frame_buffer_t      *buffer,
             {
               pixel =
                   0xff000000 |
-                  (((red   + NOISE) & MASK) >> 7) |
-                  (((green + NOISE) & MASK) >> 15) |
-                  (((blue  + NOISE) & MASK) >> 23);
+                  (((red   + NOISE ()) & COLOR_MASK) >> RED_SHIFT) |
+                  (((green + NOISE ()) & COLOR_MASK) >> GREEN_SHIFT) |
+                  (((blue  + NOISE ()) & COLOR_MASK) >> BLUE_SHIFT);
 
               buffer->shadow_buffer[y * buffer->row_stride + x] = pixel;
             }

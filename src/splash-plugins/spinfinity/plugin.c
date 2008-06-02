@@ -145,6 +145,14 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 }
 
 static void
+draw_background (ply_boot_splash_plugin_t *plugin,
+		 ply_frame_buffer_area_t  *area)
+{
+  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, area,
+					PLYMOUTH_BACKGROUND_COLOR);
+}
+
+static void
 draw_logo (ply_boot_splash_plugin_t *plugin)
 {
   ply_frame_buffer_area_t logo_area;
@@ -161,8 +169,7 @@ draw_logo (ply_boot_splash_plugin_t *plugin)
   logo_area.height = height;
 
   ply_frame_buffer_pause_updates (plugin->frame_buffer);
-  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, &logo_area,
-                                        PLYMOUTH_BACKGROUND_COLOR);
+  draw_background (plugin, &logo_area);
   ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer, 
                                           &logo_area, 0, 0,
                                           logo_data);
@@ -178,9 +185,7 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
-  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, NULL,
-                                        PLYMOUTH_BACKGROUND_COLOR);
-
+  draw_background (plugin, NULL);
   draw_logo (plugin);
 
   ply_frame_buffer_get_size (plugin->frame_buffer, &area);
@@ -389,8 +394,7 @@ draw_password_entry (ply_boot_splash_plugin_t *plugin)
   lock_data = ply_image_get_data (plugin->lock_image);
   box_data = ply_image_get_data (plugin->box_image);
 
-  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, NULL,
-                                        PLYMOUTH_BACKGROUND_COLOR);
+  draw_background (plugin, NULL);
 
   ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
                                           &plugin->box_area, 0, 0,
@@ -449,8 +453,7 @@ show_password_entry (ply_boot_splash_plugin_t *plugin)
   plugin->lock_area.x = area.width / 2.0 - (plugin->lock_area.width + entry_width) / 2.0;
   plugin->lock_area.y = area.height / 2.0 - plugin->lock_area.height / 2.0;
 
-  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, &plugin->lock_area,
-                                        PLYMOUTH_BACKGROUND_COLOR);
+  draw_background (plugin, &plugin->lock_area);
   draw_password_entry (plugin);
 }
 

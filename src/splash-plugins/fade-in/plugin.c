@@ -195,6 +195,14 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 }
 
 static void
+draw_background (ply_boot_splash_plugin_t *plugin,
+		 ply_frame_buffer_area_t  *area)
+{
+  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, area,
+					PLYMOUTH_BACKGROUND_COLOR);
+}
+
+static void
 animate_at_time (ply_boot_splash_plugin_t *plugin,
                  double                    time)
 {
@@ -235,8 +243,7 @@ animate_at_time (ply_boot_splash_plugin_t *plugin,
       opacity = .5 * sin (((plugin->now - star->start_time) / star->speed) * (2 * M_PI)) + .5;
       opacity = CLAMP (opacity, 0, 1.0);
 
-      ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, &star_area,
-                                            PLYMOUTH_BACKGROUND_COLOR);
+      draw_background (plugin, &star_area);
       ply_frame_buffer_fill_with_argb32_data_at_opacity (plugin->frame_buffer, 
                                                          &star_area, 0, 0, 
                                                          star_data, opacity);
@@ -255,8 +262,7 @@ animate_at_time (ply_boot_splash_plugin_t *plugin,
 
   last_opacity = opacity;
 
-  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, &logo_area,
-                                        PLYMOUTH_BACKGROUND_COLOR);
+  draw_background (plugin, &logo_area);
   ply_frame_buffer_fill_with_argb32_data_at_opacity (plugin->frame_buffer,
                                                      &logo_area, 0, 0,
                                                      logo_data, opacity);
@@ -315,8 +321,7 @@ start_animation (ply_boot_splash_plugin_t *plugin)
                                     on_timeout, plugin);
 
   plugin->start_time = ply_get_timestamp ();
-  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, NULL,
-                                        PLYMOUTH_BACKGROUND_COLOR);
+  draw_background (plugin, NULL);
 }
 
 static void
@@ -588,8 +593,7 @@ draw_password_entry (ply_boot_splash_plugin_t *plugin)
   entry_area.x = plugin->entry->x;
   entry_area.y = plugin->entry->y;
 
-  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, &entry_area,
-                                        PLYMOUTH_BACKGROUND_COLOR);
+  draw_background (plugin, &entry_area);
 
   ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
                                           &entry_area, 0, 0,
@@ -604,8 +608,7 @@ draw_password_entry (ply_boot_splash_plugin_t *plugin)
 
   lock_area.x = x;
   lock_area.y = y;
-  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, &lock_area,
-                                        PLYMOUTH_BACKGROUND_COLOR);
+  draw_background (plugin, &lock_area);
   ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
                                           &lock_area, 0, 0,
                                           lock_data);
@@ -648,8 +651,7 @@ show_password_entry (ply_boot_splash_plugin_t *plugin)
   y = area.height / 2.0 - entry_height / 2.0;
 
   plugin->entry = entry_new (x, y);
-  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, NULL,
-                                        PLYMOUTH_BACKGROUND_COLOR);
+  draw_background (plugin, NULL);
   draw_password_entry (plugin);
 }
 

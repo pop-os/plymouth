@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#include "ply-answer.h"
 #include "ply-boot-protocol.h"
 #include "ply-event-loop.h"
 
@@ -42,8 +43,7 @@ typedef void (* ply_boot_server_password_answer_handler_t) (void              *a
                                                             const char        *password,
                                                             ply_boot_server_t *server);
 typedef void (* ply_boot_server_ask_for_password_handler_t) (void              *user_data,
-                                                             ply_boot_server_password_answer_handler_t on_answer_handler,
-                                                             void              *answer_data,
+                                                             ply_answer_t      *answer,
                                                              ply_boot_server_t *server);
 
 typedef void (* ply_boot_server_system_initialized_handler_t) (void              *user_data,

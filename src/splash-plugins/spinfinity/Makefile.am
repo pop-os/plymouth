@@ -15,6 +15,8 @@ spinfinity_la_CFLAGS = $(PLYMOUTH_CFLAGS)                                    \
 spinfinity_la_LDFLAGS = -module -avoid-version -export-dynamic
 spinfinity_la_LIBADD = $(PLYMOUTH_LIBS) ../../libply/libply.la
 spinfinity_la_SOURCES = $(srcdir)/../../ply-boot-splash-plugin.h             \
+                            $(srcdir)/../../ply-answer.h                     \
+                            $(srcdir)/../../ply-answer.c                     \
                             $(srcdir)/../../ply-window.h                     \
                             $(srcdir)/../../ply-window.c                     \
                             $(srcdir)/throbber.h                             \

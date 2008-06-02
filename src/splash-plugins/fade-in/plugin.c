@@ -39,6 +39,7 @@
 #include <unistd.h>
 #include <wchar.h>
 
+#include "ply-answer.h"
 #include "ply-boot-splash-plugin.h"
 #include "ply-buffer.h"
 #include "ply-event-loop.h"
@@ -84,8 +85,7 @@ struct _ply_boot_splash_plugin
 
   entry_t *entry;
 
-  ply_boot_splash_password_answer_handler_t password_answer_handler;
-  void *password_answer_data;
+  ply_answer_t *pending_password_answer;
 
   double start_time;
   double now;
@@ -376,7 +376,7 @@ on_keyboard_input (ply_boot_splash_plugin_t *plugin,
                    const char               *keyboard_input,
                    size_t                    character_size)
 {
-  if (plugin->password_answer_handler == NULL)
+  if (plugin->pending_password_answer == NULL)
     return;
 
   plugin->entry->number_of_bullets++;
@@ -394,8 +394,13 @@ void
 on_enter (ply_boot_splash_plugin_t *plugin,
           const char               *text)
 {
-  plugin->password_answer_handler (plugin->password_answer_data,
-                                   text);
+
+  if (plugin->pending_password_answer == NULL)
+    return;
+
+  ply_answer_with_string (plugin->pending_password_answer, text);
+  plugin->pending_password_answer = NULL;
+
   plugin->entry->number_of_bullets = 0;
   entry_free (plugin->entry);
   plugin->entry = NULL;
@@ -650,11 +655,9 @@ show_password_entry (ply_boot_splash_plugin_t *plugin)
 
 void
 ask_for_password (ply_boot_splash_plugin_t *plugin,
-                  ply_boot_splash_password_answer_handler_t answer_handler,
-                  void *answer_data)
+                  ply_answer_t             *answer)
 {
-  plugin->password_answer_handler = answer_handler;
-  plugin->password_answer_data = answer_data;
+  plugin->pending_password_answer = answer;
 
   stop_animation (plugin);
   show_password_entry (plugin);

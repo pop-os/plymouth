@@ -40,6 +40,7 @@
 #include <wchar.h>
 #include <values.h>
 
+#include "ply-answer.h"
 #include "ply-boot-splash-plugin.h"
 #include "ply-buffer.h"
 #include "ply-event-loop.h"
@@ -59,8 +60,7 @@ struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
 
-  ply_boot_splash_password_answer_handler_t password_answer_handler;
-  void *password_answer_data;
+  ply_answer_t *pending_password_answer;
 
   uint32_t keyboard_input_is_hidden : 1;
 };
@@ -117,12 +117,11 @@ void
 on_enter (ply_boot_splash_plugin_t *plugin,
           const char               *line)
 {
-  if (plugin->password_answer_handler != NULL)
+  if (plugin->pending_password_answer != NULL)
     {
-      plugin->password_answer_handler (plugin->password_answer_data,
-                                       line);
+      ply_answer_with_string (plugin->pending_password_answer, line);
       plugin->keyboard_input_is_hidden = false;
-      plugin->password_answer_handler = NULL;
+      plugin->pending_password_answer = NULL;
       write (STDOUT_FILENO, CLEAR_LINE_SEQUENCE, strlen (CLEAR_LINE_SEQUENCE));
     }
 }
@@ -203,11 +202,9 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
 void
 ask_for_password (ply_boot_splash_plugin_t *plugin,
-                  ply_boot_splash_password_answer_handler_t answer_handler,
-                  void *answer_data)
+                  ply_answer_t             *answer)
 {
-  plugin->password_answer_handler = answer_handler;
-  plugin->password_answer_data = answer_data;
+  plugin->pending_password_answer = answer;
 
   write (STDOUT_FILENO, "\nPassword: ", strlen ("\nPassword: "));
   plugin->keyboard_input_is_hidden = true;

@@ -31,6 +31,7 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+#include "ply-answer.h"
 #include "ply-boot-server.h"
 #include "ply-boot-splash.h"
 #include "ply-event-loop.h"
@@ -105,41 +106,17 @@ on_update (state_t     *state,
                                    status);
 }
 
-typedef struct
-{
-  ply_boot_server_password_answer_handler_t handler;
-  void *data;
-  state_t *state;
-} password_answer_closure_t;
-
 static void
-on_password_answer (password_answer_closure_t *closure,
-                    const char *password)
+on_ask_for_password (state_t      *state,
+                     ply_answer_t *answer)
 {
-  closure->handler (closure->data, password, closure->state->boot_server);
-}
-
-static void
-on_ask_for_password (state_t *state,
-                     ply_boot_server_password_answer_handler_t answer_handler,
-                     void *answer_data)
-{
-  password_answer_closure_t *closure;
-
   if (state->boot_splash != NULL)
     {
-      answer_handler (answer_data, "", state->boot_server);
+      ply_answer_with_string (answer, "");
       return;
     }
 
-  closure = malloc (sizeof (password_answer_closure_t));
-  closure->handler = answer_handler;
-  closure->data = answer_data;
-  closure->state = state;
-
-  ply_boot_splash_ask_for_password (state->boot_splash,
-                                    (ply_boot_splash_password_answer_handler_t)
-                                    on_password_answer, closure);
+  ply_boot_splash_ask_for_password (state->boot_splash, answer);
 }
 
 static void

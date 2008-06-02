@@ -183,7 +183,7 @@ ply_boot_connection_is_from_root (ply_boot_connection_t *connection)
 static void
 ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
                                         const char            *password,
-                                        ply_boot_server_t     *server)
+                                        ply_answer_t          *answer)
 {
 
   size_t size;
@@ -203,6 +203,8 @@ ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
       !ply_write (connection->fd,
                   password, size))
     ply_error ("could not write bytes: %m");
+
+  ply_answer_free (answer);
 }
 
 static void
@@ -256,10 +258,15 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PASSWORD) == 0)
     {
+      ply_answer_t *answer;
+
+      answer = ply_answer_new ((ply_answer_handler_t)
+                               ply_boot_connection_on_password_answer,
+                               connection);
+
       if (server->ask_for_password_handler != NULL)
         server->ask_for_password_handler (server->user_data,
-                                          ply_boot_connection_on_password_answer,
-                                          connection,
+                                          answer,
                                           server);
       /* will reply later
        */

@@ -10,6 +10,8 @@ plymouthdbin_PROGRAMS = plymouthd
 plymouthd_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLYMOUTH_PLUGIN_PATH=\"$(libdir)/plymouth/\"
 plymouthd_LDADD = $(PLYMOUTH_LIBS) libply/libply.la
 plymouthd_SOURCES =                                                            \
+                   ply-answer.h                                               \
+                   ply-answer.c                                               \
                    ply-boot-protocol.h                                        \
                    ply-boot-server.h                                          \
                    ply-boot-server.c                                          \

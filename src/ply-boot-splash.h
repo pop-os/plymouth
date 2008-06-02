@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#include "ply-answer.h"
 #include "ply-event-loop.h"
 #include "ply-window.h"
 #include "ply-buffer.h"
@@ -46,8 +47,7 @@ void ply_boot_splash_update_output (ply_boot_splash_t *splash,
                                     size_t             size);
 
 void ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
-                                       ply_boot_splash_password_answer_handler_t answer_handler,
-                                       void              *answer_data);
+                                       ply_answer_t      *answer);
 void ply_boot_splash_hide (ply_boot_splash_t *splash);
 void ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
                                            ply_event_loop_t  *loop);

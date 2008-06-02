@@ -203,7 +203,7 @@ draw_background (ply_boot_splash_plugin_t *plugin,
 					PLYMOUTH_BACKGROUND_COLOR);
 #else
   ply_frame_buffer_fill_with_gradient (plugin->frame_buffer, area,
-				       0x00000000, 0x00000090);
+                                       0x807c71, 0x3a362f);
 #endif
 }
 

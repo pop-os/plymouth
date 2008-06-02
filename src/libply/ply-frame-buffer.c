@@ -642,9 +642,9 @@ ply_frame_buffer_area_intersect (ply_frame_buffer_area_t *area1,
 
 bool
 ply_frame_buffer_fill_with_gradient (ply_frame_buffer_t      *buffer,
-				     ply_frame_buffer_area_t *area,
-				     uint32_t                 start,
-				     uint32_t                 end)
+                                     ply_frame_buffer_area_t *area,
+                                     uint32_t                 start,
+                                     uint32_t                 end)
 {
   uint32_t red, green, blue, red_step, green_step, blue_step, t, pixel;
   uint32_t x, y;
@@ -655,37 +655,38 @@ ply_frame_buffer_fill_with_gradient (ply_frame_buffer_t      *buffer,
 
   ply_frame_buffer_area_intersect (area, &buffer->area, &cropped_area);
 
-  red  = (start << 7)  & 0xff000000;
-  green = (start << 15) & 0xff000000;
-  blue = (start << 23) & 0xff000000;
+#define MASK (0xff << 23)
+  red   = (start << 7)  & MASK;
+  green = (start << 15) & MASK;
+  blue  = (start << 23) & MASK;
 
-  t = (end << 7)  & 0xff000000;
+  t = (end << 7)  & MASK;
   red_step = (int32_t) (t - red) / (int32_t) buffer->area.height;
-  t = (end << 15) & 0xff000000;
+  t = (end << 15) & MASK;
   green_step = (int32_t) (t - green) / (int32_t) buffer->area.height;
-  t = (end << 23) & 0xff000000;
+  t = (end << 23) & MASK;
   blue_step = (int32_t) (t - blue) / (int32_t) buffer->area.height;
 
   srand(100200);
 
-  /* FIXME: Assumption: RAND_MAX == 1 << 31 */
-#define NOISE (rand() >> 6)
+  /* FIXME: Assumption: RAND_MAX == 1 << 31 - 1 */
+#define NOISE (rand() >> 7)
 
   for (y = buffer->area.y; y < buffer->area.y + buffer->area.height; y++)
     {
       if (cropped_area.y <= y && y < cropped_area.y + cropped_area.height)
-	{
-	  for (x = cropped_area.x; x < cropped_area.x + cropped_area.width; x++)
-	    {
-	      pixel =
-		0xff000000 |
-		(((red + NOISE) & 0xff000000) >> 7) |
-		(((green + NOISE) & 0xff000000) >> 15) |
-		(((blue + NOISE) & 0xff000000) >> 23);
+        {
+          for (x = cropped_area.x; x < cropped_area.x + cropped_area.width; x++)
+            {
+              pixel =
+                  0xff000000 |
+                  (((red   + NOISE) & MASK) >> 7) |
+                  (((green + NOISE) & MASK) >> 15) |
+                  (((blue  + NOISE) & MASK) >> 23);
 
-	      buffer->shadow_buffer[y * buffer->row_stride + x] = pixel;
-	    }
-	}
+              buffer->shadow_buffer[y * buffer->row_stride + x] = pixel;
+            }
+        }
 
       red += red_step;
       green += green_step;

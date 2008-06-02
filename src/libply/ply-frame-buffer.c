@@ -167,8 +167,8 @@ flush_generic (ply_frame_buffer_t *buffer)
                   &device_pixel_value, buffer->bytes_per_pixel);
         }
 
-      offset = row * buffer->row_stride * buffer->bytes_per_pixel;
-      memcpy (buffer->map_address + offset, row_buffer,
+      offset = row * buffer->row_stride * buffer->bytes_per_pixel + x1 * buffer->bytes_per_pixel;
+      memcpy (buffer->map_address + offset, row_buffer + x1 * buffer->bytes_per_pixel,
               buffer->area_to_flush.width * buffer->bytes_per_pixel);
     }
   free (row_buffer);

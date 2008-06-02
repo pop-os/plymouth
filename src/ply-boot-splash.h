@@ -46,7 +46,7 @@ void ply_boot_splash_update_output (ply_boot_splash_t *splash,
                                     size_t             size);
 
 void ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
-                                       ply_boot_splash_password_answer_handler_t *answer_handler,
+                                       ply_boot_splash_password_answer_handler_t answer_handler,
                                        void              *answer_data);
 void ply_boot_splash_hide (ply_boot_splash_t *splash);
 void ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,

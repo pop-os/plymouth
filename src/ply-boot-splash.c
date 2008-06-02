@@ -223,8 +223,13 @@ ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
   assert (splash != NULL);
   assert (splash->plugin_interface != NULL);
   assert (splash->plugin != NULL);
-  assert (splash->plugin_interface->ask_for_password != NULL);
   assert (splash->is_shown);
+
+  if (splash->plugin_interface->ask_for_password == NULL)
+    {
+      answer_handler (answer_data, "");
+      return;
+    }
 
   splash->plugin_interface->ask_for_password (splash->plugin,
                                               answer_handler, answer_data);

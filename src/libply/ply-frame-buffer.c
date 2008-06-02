@@ -714,6 +714,14 @@ ply_frame_buffer_fill_with_gradient (ply_frame_buffer_t      *buffer,
    */
   srand(100200);
 
+/* FIXME: we assume RAND_MAX is at least 24 bits here, and it is on linux.
+ * On some platforms it's only 16its though.  If that were true on linux,
+ * then NOISE_BITS would get effectively ignored, since those bits would
+ * always overlap with zeros.  We could fix it by running rand() twice
+ * per channel generating 32-bits of noise, or by shifting the result of
+ * rand() over 8 bits, such that the zeros would be overlapping with the
+ * least significant fractional bits of the color channel instead.
+ */
 #define NOISE() (rand () & NOISE_MASK)
 
   for (y = buffer->area.y; y < buffer->area.y + buffer->area.height; y++)

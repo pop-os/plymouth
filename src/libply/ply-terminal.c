@@ -134,6 +134,14 @@ ply_terminal_get_fd (ply_terminal_t *terminal)
   return terminal->fd;
 }
 
+void
+ply_terminal_set_fd (ply_terminal_t *terminal, int fd)
+{
+  assert (terminal != NULL);
+
+  terminal->fd = fd;
+}
+
 const char *
 ply_terminal_get_device_name (ply_terminal_t *terminal)
 {

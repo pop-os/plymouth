@@ -35,6 +35,7 @@ bool ply_terminal_create_device (ply_terminal_t *terminal);
 bool ply_terminal_has_device (ply_terminal_t *terminal);
 void ply_terminal_destroy_device (ply_terminal_t *terminal);
 int ply_terminal_get_fd (ply_terminal_t *terminal);
+void ply_terminal_set_fd (ply_terminal_t *terminal, int fd);
 const char *ply_terminal_get_device_name (ply_terminal_t *terminal);
 #endif
 

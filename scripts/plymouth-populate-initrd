@@ -1,0 +1,115 @@
+#!/bin/bash
+
+[ -z "$DESTDIR" ] || exit 0
+
+set -e
+
+[ -z "$LIBEXECDIR" ] && LIBEXECDIR="/usr/libexec"
+[ -z "$DATADIR" ] && DATADIR="/usr/share"
+[ -z "$SYSTEMMAP" ] && SYSTEM_MAP="/boot/System.map-$(/bin/uname -r)"
+[ -z "$LIB" ] && [ $(head -n1 $SYSTEM_MAP | awk '{print $1}' | wc -c) -lt 16 ] && LIB="lib" || LIB="lib64"
+[ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
+[ -z "$BINDIR" ] && BINDIR="/usr/bin"
+[ -z "$GRUB_MENU_TITLE" ] && GRUB_MENU_TITLE="Graphical Bootup"
+[ -z "$PLYMOUTH_LOGO_FILE" ] && PLYMOUTH_LOGO_FILE="/usr/share/pixmaps/system-logo-white.png"
+
+INITRDDIR=$1 && shift
+if [ -z "$INITRDDIR" ]; then
+  echo "usage: plymouth <initrd_directory>" 1>&2
+  exit 1
+fi
+
+RTLD=""
+function get_dso_deps() {
+    bin="$1" ; shift
+
+    declare -a FILES
+    declare -a NAMES
+
+    LDSO=$(echo nash-showelfinterp $bin | /sbin/nash --forcequiet)
+    [ -z "$LDSO" -o "$LDSO" == "$bin" ] && LDSO="$RTLD"
+    [ -z "$LDSO" -o "$LDSO" == "$bin" ] && return 1
+    [ -z "$RTLD" ] && RTLD="$LDSO"
+
+    # I hate shell.
+    declare -i n=0
+    while read NAME I0 FILE ADDR I1 ; do
+        [ "$FILE" == "not" ] && FILE="$FILE $ADDR"
+        NAMES[$n]="$NAME"
+        FILES[$n]="$FILE"
+        let n++
+    done << EOF
+        $(LD_TRACE_PRELINKING=1 LD_WARN= LD_TRACE_LOADED_OBJECTS=1 \
+            $LDSO $bin 2>/dev/null)
+EOF
+
+    [ ${#FILES[*]} -eq 0 ] && return 1
+
+    # we don't want the name of the binary in the list
+    if [ "${FILES[0]}" == "$bin" ]; then
+        FILES[0]=""
+        NAMES[0]=""
+        [ ${#FILES[*]} -eq 1 ] && return 1
+    fi
+
+    declare -i n=0
+    while [ $n -lt ${#FILES[*]} ]; do
+        FILE="${FILES[$n]}"
+        if [ "$FILE" == "not found" ]; then
+            cat 1>&2 <<EOF
+There are missing files on your system.  The dynamic object $bin
+requires ${NAMES[$n]} n order to properly function.  mkinitrd cannot continue.
+EOF
+            exit 1
+        fi
+        case "$FILE" in
+            /lib*)
+                TLIBDIR=`echo "$FILE" | sed 's,\(/lib[^/]*\)/.*$,\1,'`
+                BASE=`basename "$FILE"`
+                # Prefer nosegneg libs over direct segment accesses on i686.
+                if [ -f "$TLIBDIR/i686/nosegneg/$BASE" ]; then
+                    FILE="$TLIBDIR/i686/nosegneg/$BASE"
+                # Otherwise, prefer base libraries rather than their optimized
+                # variants.
+                elif [ -f "$TLIBDIR/$BASE" ]; then
+                    FILE="$TLIBDIR/$BASE"
+                fi
+                FILES[$n]="$FILE"
+                ;;
+        esac
+        dynamic="yes"
+        let n++
+    done
+
+    echo "${FILES[@]}"
+}
+
+(cd $LIBDIR
+    BINS="${LIBEXECDIR}/plymouth/plymouthd ${BINDIR}/plymouth ${LIBDIR}/plymouth/spinfinity.so ${LIBDIR}/plymouth/text.so ${LIBDIR}/plymouth/details.so"
+    for bin in $BINS ; do
+    DEPS=$(get_dso_deps $bin)
+        for dep in $DEPS; do
+            install -D -m755 $dep ${INITRDDIR}$(dirname $dep)
+        done
+    done
+)
+
+install -m755 ${LIBEXECDIR}/plymouth/plymouthd bin
+install -m755 ${BINDIR}/plymouth bin
+mkdir -p ${INITRDDIR}${LIBDIR}/plymouth
+install -m755 ${LIBDIR}/plymouth/text.so ${INITRDDIR}${LIBDIR}/plymouth
+install -m755 ${LIBDIR}/plymouth/details.so ${INITRDDIR}${LIBDIR}/plymouth
+install -D -m644 ${PLYMOUTH_LOGO_FILE} ${INITRDDIR}${PLYMOUTH_LOGO_FILE}
+mkdir -p ${INITRDDIR}${DATADIR}/plymouth
+
+# XXX should create a per-plugin script to do this
+if [ -f /${LIBDIR}/plymouth/spinfinity.so ]; then
+    install -m755 ${LIBDIR}/plymouth/spinfinity.so ${INITRDDIR}${LIBDIR}/plymouth
+
+    mkdir -p ${INITRDDIR}${DATADIR}/plymouth/spinfinity
+    install -m644 ${DATADIR}/plymouth/spinfinity/lock.png ${INITRDDIR}${DATADIR}/plymouth/spinfinity
+    install -m644 ${DATADIR}/plymouth/spinfinity/entry.png ${INITRDDIR}${DATADIR}/plymouth/spinfinity
+    install -m644 ${DATADIR}/plymouth/spinfinity/bullet.png ${INITRDDIR}${DATADIR}/plymouth/spinfinity
+    install -m644 ${DATADIR}/plymouth/spinfinity/box.png ${INITRDDIR}${DATADIR}/plymouth/spinfinity
+    install -m644 ${DATADIR}/plymouth/spinfinity/throbber-[0-3][0-9].png ${INITRDDIR}${DATADIR}/plymouth/spinfinity
+fi

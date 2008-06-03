@@ -100,12 +100,10 @@ ply_open_unidirectional_pipe (int *sender_fd,
 }
 
 static int
-ply_open_unix_socket (const char *path)
+ply_open_unix_socket (void)
 {
   int fd;
   const int should_pass_credentials = true;
-
-  assert (path != NULL);
 
   fd = socket (PF_UNIX, SOCK_STREAM, 0);
 
@@ -171,8 +169,11 @@ ply_connect_to_unix_socket (const char *path,
   struct sockaddr *address; 
   size_t address_size;
   int fd;
+
+  assert (path != NULL);
+  assert (path[0] != '\0');
   
-  fd = ply_open_unix_socket (path);
+  fd = ply_open_unix_socket ();
 
   if (fd < 0)
     return -1;
@@ -201,7 +202,10 @@ ply_listen_to_unix_socket (const char *path,
   size_t address_size;
   int fd;
   
-  fd = ply_open_unix_socket (path);
+  assert (path != NULL);
+  assert (path[0] != '\0');
+
+  fd = ply_open_unix_socket ();
 
   if (fd < 0)
     return -1;

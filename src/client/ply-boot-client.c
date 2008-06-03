@@ -264,8 +264,11 @@ ply_boot_client_process_incoming_replies (ply_boot_client_t *client)
       if (!ply_read (client->socket_fd, &size, sizeof (uint8_t)))
         goto out;
 
-      if (!ply_read (client->socket_fd, answer, size))
-        goto out;
+      if (size > 0)
+        {
+          if (!ply_read (client->socket_fd, answer, size))
+            goto out;
+        }
 
       ((ply_boot_client_answer_handler_t) request->handler) (request->user_data, answer, client);
     }

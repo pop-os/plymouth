@@ -140,6 +140,15 @@ ply_terminal_set_fd (ply_terminal_t *terminal, int fd)
   assert (terminal != NULL);
 
   terminal->fd = fd;
+
+  if (terminal->name)
+    {
+      free(terminal->name);
+      terminal->name = NULL;
+    }
+    
+  if (terminal->fd >= 0)
+    terminal->name = strdup (ptsname (terminal->fd));
 }
 
 const char *

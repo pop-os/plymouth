@@ -59,6 +59,14 @@ bool ply_terminal_session_run (ply_terminal_session_t       *session,
                                ply_terminal_session_output_handler_t output_handler,
                                ply_terminal_session_done_handler_t  done_handler,
                                void                                *user_data);
+
+bool ply_terminal_session_attach (ply_terminal_session_t       *session,
+                                  ply_terminal_session_flags_t  flags,
+                                  ply_terminal_session_output_handler_t output_handler,
+                                  ply_terminal_session_done_handler_t  done_handler,
+                                  int                                  ptmx,
+                                  void                                *user_data);
+
 int ply_terminal_session_get_fd (ply_terminal_session_t *session);
 bool ply_terminal_session_open_log (ply_terminal_session_t *session,
                                     const char             *filename);

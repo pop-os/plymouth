@@ -126,16 +126,14 @@ ply_terminal_session_execute (ply_terminal_session_t *session,
 }
 
 ply_terminal_session_t *
-ply_terminal_session_new (const char * const *argv)
-                          
+ply_terminal_session_new (const char * const *argv) 
 {
   ply_terminal_session_t *session;
 
-  assert (argv != NULL);
-  assert (argv[0] != NULL);
+  assert (argv == NULL || argv[0] != NULL);
 
   session = calloc (1, sizeof (ply_terminal_session_t));
-  session->argv = ply_copy_string_array (argv);
+  session->argv = argv == NULL ? NULL : ply_copy_string_array (argv);
   session->terminal = ply_terminal_new ();
   session->logger = ply_logger_new ();
   session->is_running = false;
@@ -234,7 +232,7 @@ ply_terminal_session_run (ply_terminal_session_t              *session,
                           ply_terminal_session_done_handler_t  done_handler,
                           void                                *user_data)
 {
-  int pid;
+  pid_t pid;
   bool run_in_parent, look_in_path, should_redirect_console;
 
   assert (session != NULL);
@@ -304,6 +302,52 @@ ply_terminal_session_run (ply_terminal_session_t              *session,
 
   _exit (errno);
   return false;
+}
+
+bool
+ply_terminal_session_attach (ply_terminal_session_t               *session,
+                             ply_terminal_session_flags_t          flags,
+                             ply_terminal_session_output_handler_t output_handler,
+                             ply_terminal_session_done_handler_t   done_handler,
+                             int                                   ptmx,
+                             void                                 *user_data)
+{
+  bool should_redirect_console;
+
+  assert (session != NULL);
+  assert (session->loop != NULL);
+  assert (!session->is_running);
+  assert (session->done_handler == NULL);
+  assert (ptmx >= 0);
+
+  should_redirect_console = 
+    (flags & PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE) != 0;
+
+  session->change_root_to_current_directory = 
+    (flags & PLY_TERMINAL_SESSION_FLAGS_CHANGE_ROOT_TO_CURRENT_DIRECTORY) != 0;
+
+  ply_terminal_set_fd(session->terminal, ptmx);
+
+  if (should_redirect_console)
+    ply_trace ("redirecting system console to terminal device");
+  if (should_redirect_console && 
+      !ply_terminal_session_redirect_console (session))
+    {
+      ply_save_errno ();
+      ply_terminal_destroy_device (session->terminal);
+      ply_restore_errno ();
+      return false;
+    }
+  if (should_redirect_console)
+    ply_trace ("done redirecting system console to terminal device");
+
+  session->is_running = true;
+  session->output_handler = output_handler;
+  session->done_handler = done_handler;
+  session->user_data = user_data;
+  ply_terminal_session_start_logging (session);
+
+  return true;
 }
 
 int

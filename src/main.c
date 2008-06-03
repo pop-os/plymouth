@@ -21,13 +21,14 @@
  */
 #include "config.h"
 
+#include <sys/stat.h>
+#include <sys/mount.h>
+#include <sys/types.h>
+#include <limits.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/stat.h>
-#include <sys/mount.h>
-#include <sys/types.h>
 #include <sysexits.h>
 #include <unistd.h>
 
@@ -47,6 +48,10 @@
 #define PLY_MAX_COMMAND_LINE_SIZE 512
 #endif
 
+#ifndef PLY_DAEMON_ONLY
+#define PLY_DAEMON_ONLY(state) ((state)->ptmx != -1)
+#endif
+
 typedef struct
 {
   ply_event_loop_t *loop;
@@ -56,6 +61,7 @@ typedef struct
   ply_terminal_session_t *session;
   ply_buffer_t *boot_buffer;
   int original_root_dir_fd;
+  long ptmx;
 
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
 } state_t;
@@ -266,31 +272,59 @@ spawn_session (state_t  *state,
   ply_terminal_session_flags_t flags;
 
   flags = 0;
-  flags |= PLY_TERMINAL_SESSION_FLAGS_RUN_IN_PARENT;
-  flags |= PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH;
   flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
   flags |= PLY_TERMINAL_SESSION_FLAGS_CHANGE_ROOT_TO_CURRENT_DIRECTORY;
 
-  ply_trace ("opening terminal session for '%s'", argv[0]);
-  session = ply_terminal_session_new ((const char * const *) argv);
-  ply_trace ("attaching terminal session to event loop");
-  ply_terminal_session_attach_to_event_loop (session, state->loop);
-
-  ply_trace ("running '%s'", argv[0]);
-  if (!ply_terminal_session_run (session, flags,
-                                 (ply_terminal_session_begin_handler_t)
-                                 on_session_start,
-                                 (ply_terminal_session_output_handler_t)
-                                 on_session_output,
-                                 (ply_terminal_session_done_handler_t)
-                                 on_session_finished, state))
+  if (PLY_DAEMON_ONLY(state))
     {
-      ply_save_errno ();
-      ply_terminal_session_free (session);
-      ply_buffer_free (state->boot_buffer);
-      state->boot_buffer = NULL;
-      ply_restore_errno ();
-      return NULL;
+      ply_trace ("creating terminal session for current terminal");
+      session = ply_terminal_session_new (NULL);
+      ply_trace ("attaching terminal session to event loop");
+      ply_terminal_session_attach_to_event_loop (session, state->loop);
+
+      if (!ply_terminal_session_attach (session, flags,
+                                     (ply_terminal_session_output_handler_t)
+                                     on_session_output,
+                                     (ply_terminal_session_done_handler_t)
+                                     on_session_finished,
+                                     state->ptmx,
+                                     state))
+        {
+          ply_save_errno ();
+          ply_terminal_session_free (session);
+          ply_buffer_free (state->boot_buffer);
+          state->boot_buffer = NULL;
+          ply_restore_errno ();
+          return NULL;
+        }
+    }
+  else
+    {
+      flags |= PLY_TERMINAL_SESSION_FLAGS_RUN_IN_PARENT;
+      flags |= PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH;
+      flags |= PLY_TERMINAL_SESSION_FLAGS_CHANGE_ROOT_TO_CURRENT_DIRECTORY;
+
+      ply_trace ("opening terminal session for '%s'", argv[0]);
+      session = ply_terminal_session_new ((const char * const *) argv);
+      ply_trace ("attaching terminal session to event loop");
+      ply_terminal_session_attach_to_event_loop (session, state->loop);
+
+      ply_trace ("running '%s'", argv[0]);
+      if (!ply_terminal_session_run (session, flags,
+                                     (ply_terminal_session_begin_handler_t)
+                                     on_session_start,
+                                     (ply_terminal_session_output_handler_t)
+                                     on_session_output,
+                                     (ply_terminal_session_done_handler_t)
+                                     on_session_finished, state))
+        {
+          ply_save_errno ();
+          ply_terminal_session_free (session);
+          ply_buffer_free (state->boot_buffer);
+          state->boot_buffer = NULL;
+          ply_restore_errno ();
+          return NULL;
+        }
     }
 
   return session;
@@ -578,12 +612,30 @@ int
 main (int    argc,
       char **argv)
 {
-  state_t state = { 0 };
+  state_t state = {
+      .ptmx = -1,
+  };
   int exit_code;
+  int asdaemon = 0;
 
-  if (argc <= 1)
+  if (argc >= 2 && !strcmp(argv[1], "--asdaemon"))
+      asdaemon = 1;
+
+  if (asdaemon && argc == 3)
     {
-      ply_error ("%s other-command [other-command-args]", argv[0]);
+      asdaemon = 1;
+
+      state.ptmx = strtol(argv[2], NULL, 0);
+      if ((state.ptmx == LONG_MIN || state.ptmx == LONG_MAX) && errno != 0)
+        {
+          ply_error ("%s: could not parse ptmx string \"%s\": %m", argv[0], argv[2]);
+          return EX_OSERR;
+        }
+    }
+
+  if (argc <= 1 || (asdaemon && argc != 3) || (asdaemon && state.ptmx == -1))
+    {
+      ply_error ("%s { other-command [other-command-args] | --as-daemon <pty_master_fd> }", argv[0]);
       return EX_USAGE;
     }
 
@@ -607,7 +659,10 @@ main (int    argc,
 
   if (state.session == NULL)
     {
-      ply_error ("could not run '%s': %m", argv[1]);
+      if (asdaemon)
+        ply_error ("could not create session: %m");
+      else
+        ply_error ("could not run '%s': %m", argv[1]);
       return EX_UNAVAILABLE;
     }
 
@@ -646,4 +701,4 @@ main (int    argc,
 
   return exit_code;
 }
-/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */
+/* vim: set sts=4 ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

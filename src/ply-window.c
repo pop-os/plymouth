@@ -277,6 +277,27 @@ ply_window_set_buffered_input (ply_window_t *window)
   return true;
 }
 
+static int
+get_active_vt (void)
+{
+  int console_fd;
+  struct vt_stat console_state;
+
+  console_fd = open ("/dev/tty0", O_RDONLY | O_NOCTTY);
+
+  if (console_fd < 0)
+    goto out;
+
+  if (ioctl (console_fd, VT_GETSTATE, &console_state) < 0)
+    goto out;
+
+out:
+  if (console_fd >= 0)
+    close (console_fd);
+
+  return console_state.v_active;
+}
+
 bool
 ply_window_open (ply_window_t *window)
 {
@@ -464,33 +485,12 @@ static bool
 switch_to_vt (int tty_fd,
               int vt_number)
 {
-  int console_fd;
-  struct vt_stat console_state;
-  bool vt_switched;
-
-  vt_switched = false;
-
-  console_fd = open ("/dev/tty0", O_RDONLY | O_NOCTTY);
-
-  if (console_fd < 0)
-    goto out;
-
   if (ioctl (tty_fd, VT_ACTIVATE, vt_number) < 0)
-    goto out;
+    return false;
 
   ioctl (tty_fd, VT_WAITACTIVE, vt_number);
 
-  if (ioctl (console_fd, VT_GETSTATE, &console_state) < 0)
-    goto out;
-
-  if (console_state.v_active == vt_number)
-    vt_switched = true;
-
-out:
-  if (console_fd >= 0)
-    close (console_fd);
-
-  return vt_switched;
+  return get_active_vt () == vt_number;
 }
 
 bool

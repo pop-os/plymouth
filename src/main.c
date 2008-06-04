@@ -56,7 +56,6 @@ typedef struct
   ply_boot_splash_t *boot_splash;
   ply_terminal_session_t *session;
   ply_buffer_t *boot_buffer;
-  int original_root_dir_fd;
   long ptmx;
 
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
@@ -149,13 +148,7 @@ on_quit (state_t *state)
   ply_trace ("exiting event loop");
   ply_event_loop_exit (state->loop, 0);
 
-  ply_trace ("switching root dir");
-  fchdir (state->original_root_dir_fd);
-  chroot (".");
   ply_trace ("unmounting temporary filesystem mounts");
-  ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/sysroot");
-  ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/proc");
-  ply_unmount_filesystem (PLY_WORKING_DIRECTORY "/dev/pts");
   ply_unmount_filesystem (PLY_WORKING_DIRECTORY);
 }
 
@@ -321,39 +314,6 @@ create_working_directory (state_t *state)
 }
 
 static bool
-change_to_working_directory (state_t *state)
-{
-  ply_trace ("changing to working directory");
-
-  state->original_root_dir_fd = open ("/", O_RDONLY);
-
-  if (state->original_root_dir_fd < 0)
-    return false;
-
-  if (chdir (PLY_WORKING_DIRECTORY) < 0)
-    return false;
-
-  if (chroot (".") < 0)
-    return false;
-
-  ply_trace ("now successfully in working directory");
-  return true;
-}
-
-static bool
-mount_proc_filesystem (state_t *state)
-{
-  ply_trace ("mounting proc filesystem");
-  if (mount ("none", PLY_WORKING_DIRECTORY "/proc", "proc", 0, NULL) < 0)
-    return false;
-
-  open (PLY_WORKING_DIRECTORY "/proc/.", O_RDWR);
-
-  ply_trace ("mounted proc filesystem");
-  return true;
-}
-
-static bool
 get_kernel_command_line (state_t *state)
 {
   int fd;
@@ -375,54 +335,6 @@ get_kernel_command_line (state_t *state)
     }
 
   ply_trace ("Kernel command line is: '%s'", state->kernel_command_line);
-  return true;
-}
-
-
-static bool
-create_device_nodes (state_t *state)
-{
-  ply_trace ("creating device nodes");
-
-  if (mknod ("./dev/root", 0600 | S_IFBLK, makedev (253, 0)) < 0)
-    return false;
-
-  if (mknod ("./dev/null", 0600 | S_IFCHR, makedev (1, 3)) < 0)
-    return false;
-
-  if (mknod ("./dev/console", 0600 | S_IFCHR, makedev (5, 1)) < 0)
-    return false;
-
-  if (mknod ("./dev/tty", 0600 | S_IFCHR, makedev (5, 0)) < 0)
-    return false;
-
-  if (mknod ("./dev/tty0", 0600 | S_IFCHR, makedev (4, 0)) < 0)
-    return false;
-
-  if (mknod ("./dev/tty1", 0600 | S_IFCHR, makedev (4, 1)) < 0)
-    return false;
-
-  if (mknod ("./dev/ptmx", 0600 | S_IFCHR, makedev (5, 2)) < 0)
-    return false;
-
-  if (mknod ("./dev/fb", 0600 | S_IFCHR, makedev (29, 0)) < 0)
-    return false;
-
-  ply_trace ("created device nodes");
-  return true;
-}
-
-static bool
-mount_devpts_filesystem (state_t *state)
-{
-  ply_trace ("mounting devpts filesystem");
-  if (mount ("none", PLY_WORKING_DIRECTORY "/dev/pts", "devpts", 0,
-             "gid=5,mode=620") < 0)
-    return false;
-
-  open (PLY_WORKING_DIRECTORY "/dev/pts/.", O_RDWR);
-
-  ply_trace ("mounted devpts filesystem");
   return true;
 }
 
@@ -529,13 +441,7 @@ initialize_environment (state_t *state)
   if (!create_working_directory (state))
     return false;
 
-  if (!create_device_nodes (state))
-    return false;
-
   if (!copy_data_files (state))
-    return false;
-
-  if (!mount_proc_filesystem (state))
     return false;
 
   if (!get_kernel_command_line (state))
@@ -544,12 +450,6 @@ initialize_environment (state_t *state)
   check_verbosity (state);
 
   if (!plymouth_should_be_running (state))
-    return false;
-
-  if (!mount_devpts_filesystem (state))
-    return false;
-
-  if (!change_to_working_directory (state))
     return false;
 
   if (!set_console_io_to_vt1 (state))

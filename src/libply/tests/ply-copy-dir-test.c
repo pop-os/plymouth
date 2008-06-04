@@ -44,7 +44,10 @@ test_dir_copy (void)
   if (!ply_copy_directory ("test-dir-copy-source", "test-dir-copy-dest"))
     return false;
 
-  if (!ply_create_detachable_directory ("/foo/test-dir-copy-scratch"))
+  if (!ply_create_directory ("/foo/test-dir-copy-scratch"))
+    return false;
+
+  if (!ply_mount_tmpfs ("/foo/test-dir-copy-scratch"))
     return false;
 
   if (!ply_copy_directory ("test-dir-copy-dest", "/foo/test-dir-copy-scratch"))
@@ -52,9 +55,16 @@ test_dir_copy (void)
 
   system ("ls /foo/test-dir-copy-scratch");
 
-  dir_fd = ply_detach_directory ("/foo/test-dir-copy-scratch");
+  dir_fd = open ("/foo/test-dir-copy-scratch", O_RDONLY);
+  if (dir_fd < 0)
+    {
+      umount("/foo/test-dir-copy-scratch");
+      return false;
+    }
 
-  if (fchdir (dir_fd) != 0)
+  umount("/foo/test-dir-copy-scratch");
+
+  if (fchdir (dir_fd) != 0) {
     return false;
 
   system ("ls");

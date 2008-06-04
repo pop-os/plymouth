@@ -13,7 +13,6 @@ include $(srcdir)/ply-logger-test.am
 include $(srcdir)/ply-array-test.am
 include $(srcdir)/ply-list-test.am
 include $(srcdir)/ply-event-loop-test.am
-include $(srcdir)/ply-copy-dir-test.am
 endif
 
 noinst_PROGRAMS = $(TESTS)

@@ -99,7 +99,7 @@ static void
 on_ask_for_password (state_t      *state,
                      ply_answer_t *answer)
 {
-  if (state->boot_splash != NULL)
+  if (state->boot_splash == NULL)
     {
       ply_answer_with_string (answer, "");
       return;

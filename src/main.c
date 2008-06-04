@@ -583,7 +583,7 @@ main (int    argc,
         }
     }
 
-  if (argc <= 1 || (attach_to_session && argc != 3) || (attach_to_session && state.ptmx == -1))
+  if ((attach_to_session && argc != 3) || (attach_to_session && state.ptmx == -1))
     {
       ply_error ("%s [--attach-to-session <pty_master_fd>]", argv[0]);
       return EX_USAGE;

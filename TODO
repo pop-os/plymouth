@@ -1,5 +1,4 @@
 - fix the tests so that they work better with "make check"
-- Drop all the make ram disk and copy code.  That was just to make bolting things on easier.  We can integrate now.
 - allow longer than 255 byte replies from server to client
 - make server send immediate ACK for password request and then ANSWER later with a link back to original request in ANSWER
 - Add limited text support
@@ -7,4 +6,3 @@
 - consider making details plugin have stdin hooked up to the pty instead of tty so input works
 - consider making details plugin go back to pretty plugin if user presses escape
 - add expose handler for plugins to draw from.  We need to reset some state every frame of the animation, so better to hide that.
-- clean up /var/run/plymouth before nash switchroots

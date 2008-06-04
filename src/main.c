@@ -48,10 +48,6 @@
 #define PLY_MAX_COMMAND_LINE_SIZE 512
 #endif
 
-#ifndef PLY_DAEMON_ONLY
-#define PLY_DAEMON_ONLY(state) ((state)->ptmx != -1)
-#endif
-
 typedef struct
 {
   ply_event_loop_t *loop;
@@ -261,28 +257,25 @@ attach_to_running_session (state_t *state)
   flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
   flags |= PLY_TERMINAL_SESSION_FLAGS_CHANGE_ROOT_TO_CURRENT_DIRECTORY;
 
-  if (PLY_DAEMON_ONLY(state))
-    {
-      ply_trace ("creating terminal session for current terminal");
-      session = ply_terminal_session_new (NULL);
-      ply_trace ("attaching terminal session to event loop");
-      ply_terminal_session_attach_to_event_loop (session, state->loop);
+  ply_trace ("creating terminal session for current terminal");
+  session = ply_terminal_session_new (NULL);
+  ply_trace ("attaching terminal session to event loop");
+  ply_terminal_session_attach_to_event_loop (session, state->loop);
 
-      if (!ply_terminal_session_attach (session, flags,
-                                     (ply_terminal_session_output_handler_t)
-                                     on_session_output,
-                                     (ply_terminal_session_done_handler_t)
-                                     on_session_finished,
-                                     state->ptmx,
-                                     state))
-        {
-          ply_save_errno ();
-          ply_terminal_session_free (session);
-          ply_buffer_free (state->boot_buffer);
-          state->boot_buffer = NULL;
-          ply_restore_errno ();
-          return NULL;
-        }
+  if (!ply_terminal_session_attach (session, flags,
+                                 (ply_terminal_session_output_handler_t)
+                                 on_session_output,
+                                 (ply_terminal_session_done_handler_t)
+                                 on_session_finished,
+                                 state->ptmx,
+                                 state))
+    {
+      ply_save_errno ();
+      ply_terminal_session_free (session);
+      ply_buffer_free (state->boot_buffer);
+      state->boot_buffer = NULL;
+      ply_restore_errno ();
+      return NULL;
     }
 
   return session;
@@ -613,15 +606,15 @@ main (int    argc,
 
   state.boot_buffer = ply_buffer_new ();
 
-  state.session = attach_to_running_session (&state);
-
-  if (state.session == NULL)
+  if (asdaemon)
     {
-      if (asdaemon)
-        ply_error ("could not create session: %m");
-      else
-        ply_error ("could not run '%s': %m", argv[1]);
-      return EX_UNAVAILABLE;
+      state.session = attach_to_running_session (&state);
+
+      if (state.session == NULL)
+        {
+          ply_error ("could not create session: %m");
+          return EX_UNAVAILABLE;
+        }
     }
 
   state.boot_server = start_boot_server (&state);

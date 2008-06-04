@@ -88,6 +88,7 @@ int ply_detach_directory (const char *directory);
 bool ply_copy_file (const char *source, const char *destination);
 bool ply_copy_directory (const char *source, const char *destination);
 bool ply_unmount_filesystem (const char *directory);
+bool ply_move_mount (const char *source, const char *destination);
 
 ply_daemon_handle_t *ply_create_daemon (void);
 bool ply_detach_daemon (ply_daemon_handle_t *handle,

@@ -39,6 +39,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <linux/fs.h>
 
 #include <dlfcn.h>
 
@@ -981,6 +982,20 @@ ply_unmount_filesystem (const char *directory)
   if (umount2 (directory, PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG) < 0)
     return false;
 
+  return true;
+}
+
+bool
+ply_move_mount (const char *source, const char *destination)
+{
+  int rc;
+  ply_trace ("moving mount at \"%s\" to \"%s\"", source, destination);
+
+  if (mount(source, destination, NULL, MS_MOVE, NULL) < 0)
+    {
+      ply_trace("mount(\"%s\", \"%s\", NULL, MS_MOVE, NULL): error: %m", source, destination);
+      return false;
+    }
   return true;
 }
 

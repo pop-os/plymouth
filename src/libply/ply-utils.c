@@ -138,7 +138,7 @@ create_unix_address_from_path (const char *path,
 {
   struct sockaddr_un *address; 
 
-  assert (path != NULL);
+  assert (path != NULL && path[0] != '\0');
   assert (strlen (path) < sizeof (address->sun_path));
 
   address = calloc (1, sizeof (struct sockaddr_un));

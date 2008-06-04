@@ -329,11 +329,17 @@ main (int    argc,
   else
     module_name = "../splash-plugins/fade-in/.libs/fade-in.so";
 
-  state.window = ply_window_new (0);
+  state.window = ply_window_new (argc > 2? atoi (argv[2]) : 0);
 
   if (!ply_window_open (state.window))
     {
       perror ("could not open terminal");
+      return errno;
+    }
+
+  if (!ply_window_take_console (state.window))
+    {
+      perror ("could not switch console to window vt");
       return errno;
     }
 

@@ -329,7 +329,7 @@ main (int    argc,
   else
     module_name = "../splash-plugins/fade-in/.libs/fade-in.so";
 
-  state.window = ply_window_new (ttyname (0));
+  state.window = ply_window_new (0);
 
   if (!ply_window_open (state.window))
     {

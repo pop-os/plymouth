@@ -66,6 +66,9 @@ void ply_window_set_enter_handler (ply_window_t *window,
                                    void         *user_data);
 
 bool ply_window_open (ply_window_t *window);
+bool ply_window_take_console (ply_window_t *window);
+bool ply_window_give_console (ply_window_t *window,
+                              int           vt_number);
 void ply_window_close (ply_window_t *window);
 bool ply_window_set_mode (ply_window_t      *window,
                           ply_window_mode_t  mode);

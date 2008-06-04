@@ -91,8 +91,6 @@ ply_window_new (int vt_number)
 {
   ply_window_t *window;
 
-  assert (vt_number > 0);
-
   window = calloc (1, sizeof (ply_window_t));
   window->keyboard_input_buffer = ply_buffer_new ();
   window->line_buffer = ply_buffer_new ();
@@ -304,6 +302,13 @@ ply_window_open (ply_window_t *window)
   assert (window != NULL);
   assert (window->tty_name != NULL);
   assert (window->tty_fd < 0);
+
+  if (window->vt_number == 0)
+    {
+      window->vt_number = get_active_vt ();
+      free (window->tty_name);
+      asprintf (&window->tty_name, "/dev/tty%d", window->vt_number);
+    }
 
   window->tty_fd = open (window->tty_name, O_RDWR | O_NOCTTY);
 

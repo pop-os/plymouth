@@ -567,15 +567,13 @@ main (int    argc,
       .ptmx = -1,
   };
   int exit_code;
-  int asdaemon = 0;
+  bool asdaemon = false;
 
   if (argc >= 2 && !strcmp(argv[1], "--asdaemon"))
-      asdaemon = 1;
+      asdaemon = true;
 
   if (asdaemon && argc == 3)
     {
-      asdaemon = 1;
-
       state.ptmx = strtol(argv[2], NULL, 0);
       if ((state.ptmx == LONG_MIN || state.ptmx == LONG_MAX) && errno != 0)
         {

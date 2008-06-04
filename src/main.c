@@ -415,22 +415,23 @@ plymouth_should_be_running (state_t *state)
 {
   ply_trace ("checking if plymouth should be running");
 
-  if ((strstr (state->kernel_command_line, " single ") != NULL)
-    || (strstr (state->kernel_command_line, "single ") != NULL)
-    || (strstr (state->kernel_command_line, " single") != NULL))
-    {
-      ply_trace ("kernel command line has option 'single'");
-      return false;
-    }
+  const char const *strings[] = {
+      " single ", " single", "single ",
+      " 1 ", " 1", "1 ",
+      " init=",
+      NULL
+  };
+  int i;
 
-  if ((strstr (state->kernel_command_line, " 1 ") != NULL)
-    || (strstr (state->kernel_command_line, "1 ") != NULL)
-    || (strstr (state->kernel_command_line, " 1") != NULL))
+  for (i = 0; strings[i] != NULL; i++)
     {
-      ply_trace ("kernel command line has option '1'");
-      return false;
+      if (strstr (state->kernel_command_line, strings[i]) != NULL)
+        {
+          ply_trace ("kernel command line has option \"%s\"", strings[i]);
+          return false;
+        }
     }
-
+  
   return true;
 }
 

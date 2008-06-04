@@ -64,6 +64,7 @@ struct _ply_window
 
   char *tty_name;
   int   tty_fd;
+  int   vt_number;
 
   ply_fd_watch_t *tty_fd_watch;
   ply_window_mode_t mode;
@@ -85,19 +86,20 @@ struct _ply_window
 };
 
 ply_window_t *
-ply_window_new (const char *tty_name)
+ply_window_new (int vt_number)
 {
   ply_window_t *window;
 
-  assert (tty_name != NULL);
+  assert (vt_number > 0);
 
   window = calloc (1, sizeof (ply_window_t));
   window->keyboard_input_buffer = ply_buffer_new ();
   window->line_buffer = ply_buffer_new ();
   window->frame_buffer = ply_frame_buffer_new (NULL);
   window->loop = NULL;
-  window->tty_name = strdup (tty_name);
+  asprintf (&window->tty_name, "/dev/tty%d", vt_number);
   window->tty_fd = -1;
+  window->vt_number = vt_number;
 
   return window;
 }
@@ -486,18 +488,20 @@ main (int    argc,
   ply_event_loop_t *loop;
   ply_window_t *window;
   int exit_code;
-  const char *tty_name;
+  int vt_number;
 
   exit_code = 0;
 
   loop = ply_event_loop_new ();
 
+  vt_number = 0;
   if (argc > 1)
-    tty_name = argv[1];
-  else
-    tty_name = "/dev/tty1";
+    vt_number = atoi (argv[1]);
 
-  window = ply_window_new (tty_name);
+  if (vt_number <= 0)
+    vt_number = 1;
+
+  window = ply_window_new (vt_number);
   ply_window_attach_to_event_loop (window, loop);
   ply_window_set_keyboard_input_handler (window,
                                          (ply_window_keyboard_input_handler_t)

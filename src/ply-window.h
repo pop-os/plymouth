@@ -49,7 +49,7 @@ typedef enum
 } ply_window_mode_t;
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-ply_window_t *ply_window_new (const char *tty_name);
+ply_window_t *ply_window_new (int vt_number);
 void ply_window_free (ply_window_t *window);
 
 void ply_window_set_keyboard_input_handler (ply_window_t *window,

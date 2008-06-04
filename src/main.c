@@ -180,12 +180,12 @@ on_escape_pressed (state_t *state)
 
 static ply_window_t *
 create_window (state_t    *state,
-               const char *tty)
+               int         vt_number)
 {
   ply_window_t *window;
 
-  ply_trace ("creating window for %s", tty);
-  window = ply_window_new (tty);
+  ply_trace ("creating window on vt %d", vt_number);
+  window = ply_window_new (vt_number);
 
   ply_trace ("attaching window to event loop");
   ply_window_attach_to_event_loop (window, state->loop);
@@ -448,7 +448,7 @@ main (int    argc,
       return EX_UNAVAILABLE;
     }
 
-  state.window = create_window (&state, "/dev/tty1");
+  state.window = create_window (&state, 1);
 
   ply_trace ("entering event loop");
   exit_code = ply_event_loop_run (state.loop);

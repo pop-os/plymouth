@@ -567,12 +567,12 @@ main (int    argc,
       .ptmx = -1,
   };
   int exit_code;
-  bool asdaemon = false;
+  bool attach_to_session = false;
 
-  if (argc >= 2 && !strcmp(argv[1], "--asdaemon"))
-      asdaemon = true;
+  if (argc >= 2 && !strcmp(argv[1], "--attach-to-session"))
+      attach_to_session = true;
 
-  if (asdaemon && argc == 3)
+  if (attach_to_session && argc == 3)
     {
       state.ptmx = strtol(argv[2], NULL, 0);
       if ((state.ptmx == LONG_MIN || state.ptmx == LONG_MAX) && errno != 0)
@@ -582,9 +582,9 @@ main (int    argc,
         }
     }
 
-  if (argc <= 1 || (asdaemon && argc != 3) || (asdaemon && state.ptmx == -1))
+  if (argc <= 1 || (attach_to_session && argc != 3) || (attach_to_session && state.ptmx == -1))
     {
-      ply_error ("%s { other-command [other-command-args] | --as-daemon <pty_master_fd> }", argv[0]);
+      ply_error ("%s [--attach-to-session <pty_master_fd>]", argv[0]);
       return EX_USAGE;
     }
 
@@ -604,7 +604,7 @@ main (int    argc,
 
   state.boot_buffer = ply_buffer_new ();
 
-  if (asdaemon)
+  if (attach_to_session)
     {
       state.session = attach_to_running_session (&state);
 

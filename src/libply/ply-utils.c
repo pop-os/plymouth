@@ -751,55 +751,6 @@ ply_create_directory (const char *directory)
   return true;
 }
 
-bool 
-ply_create_detachable_directory (const char *directory)
-{
-
-  assert (directory != NULL);
-  assert (directory[0] != '\0');
-  
-  ply_trace ("trying to create directory '%s'", directory);
-  if (!ply_create_directory (directory))
-    return false;
-
-  if (mount ("none", directory, "tmpfs", 0, NULL) < 0)
-    return false;
-
-  return true;
-}
-
-int
-ply_detach_directory (const char *directory)
-{
-  int dir_fd;
-
-  dir_fd = open (directory, O_RDONLY);
-
-  if (dir_fd < 0)
-    {
-      ply_save_errno ();
-      umount (directory);
-      ply_restore_errno ();
-      return dir_fd;
-    }
-
-  if (!ply_unmount_filesystem (directory))
-    {
-      ply_save_errno ();
-      umount (directory);
-      ply_restore_errno ();
-      return false;
-    }
-  rmdir (directory);
-
-  /* return a file descriptor to the directory because it's now been
-   * detached from the filesystem.  The user can fchdir to this
-   * directory and work from it that way
-   */
-
-  return dir_fd;
-}
-
 static bool
 ply_copy_subdirectory (const char *subdirectory,
                        const char *parent,
@@ -980,6 +931,17 @@ bool
 ply_unmount_filesystem (const char *directory)
 {
   if (umount2 (directory, PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG) < 0)
+    return false;
+
+  return true;
+}
+
+bool ply_mount_tmpfs (const char *directory)
+{
+  assert (directory != NULL);
+  assert (directory[0] != '\0');
+
+  if (mount ("none", directory, "tmpfs", 0, NULL) < 0)
     return false;
 
   return true;

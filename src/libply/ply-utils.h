@@ -41,6 +41,8 @@
 typedef intptr_t ply_module_handle_t;
 typedef void (* ply_module_function_t) (void);
 
+typedef intptr_t ply_daemon_handle_t;
+
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 bool ply_open_unidirectional_pipe (int *sender_fd,
                                    int *receiver_fd);
@@ -86,6 +88,11 @@ int ply_detach_directory (const char *directory);
 bool ply_copy_file (const char *source, const char *destination);
 bool ply_copy_directory (const char *source, const char *destination);
 bool ply_unmount_filesystem (const char *directory);
+
+ply_daemon_handle_t *ply_create_daemon (void);
+bool ply_detach_daemon (ply_daemon_handle_t *handle,
+                        int                  exit_code);
+
 #endif
 
 #endif /* PLY_UTILS_H */

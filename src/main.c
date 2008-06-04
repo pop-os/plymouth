@@ -568,6 +568,7 @@ main (int    argc,
   };
   int exit_code;
   bool attach_to_session = false;
+  ply_daemon_handle_t *daemon_handle;
 
   if (argc >= 2 && !strcmp(argv[1], "--attach-to-session"))
       attach_to_session = true;
@@ -588,6 +589,14 @@ main (int    argc,
       return EX_USAGE;
     }
 
+  daemon_handle = ply_create_daemon ();
+
+  if (daemon_handle == NULL)
+    {
+      ply_error ("cannot daemonize: %m");
+      return EX_UNAVAILABLE;
+    }
+
   state.loop = ply_event_loop_new ();
 
   /* before do anything we need to make sure we have a working
@@ -599,6 +608,7 @@ main (int    argc,
     {
       ply_error ("could not setup basic operating environment: %m");
       ply_list_directory (PLY_WORKING_DIRECTORY);
+      ply_detach_daemon (daemon_handle, EX_OSERR);
       return EX_OSERR;
     }
 
@@ -611,6 +621,7 @@ main (int    argc,
       if (state.session == NULL)
         {
           ply_error ("could not create session: %m");
+          ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
           return EX_UNAVAILABLE;
         }
     }
@@ -620,6 +631,13 @@ main (int    argc,
   if (state.boot_server == NULL)
     {
       ply_error ("could not log bootup: %m");
+      ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
+      return EX_UNAVAILABLE;
+    }
+
+  if (!ply_detach_daemon (daemon_handle, 0))
+    {
+      ply_error ("could not tell parent to exit: %m");
       return EX_UNAVAILABLE;
     }
 

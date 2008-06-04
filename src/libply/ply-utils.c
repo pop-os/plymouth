@@ -984,4 +984,64 @@ ply_unmount_filesystem (const char *directory)
   return true;
 }
 
+ply_daemon_handle_t *
+ply_create_daemon (void)
+{
+  pid_t pid;
+  int sender_fd, receiver_fd;
+  int *handle;
+
+  if (!ply_open_unidirectional_pipe (&sender_fd, &receiver_fd))
+    return NULL;
+
+  handle = calloc (1, sizeof (int));
+
+  pid = fork ();
+
+  if (pid < 0)
+    return NULL;
+
+  if (pid != 0)
+    {
+      uint8_t byte;
+      close (sender_fd);
+
+      if (!ply_read (receiver_fd, &byte, sizeof (uint8_t)))
+        {
+          ply_error ("could not read byte from child: %m");
+          _exit (1);
+        }
+
+      _exit ((int) byte);
+    }
+  close (receiver_fd);
+
+  *handle = sender_fd;
+
+  return (ply_daemon_handle_t *) handle;
+}
+
+bool
+ply_detach_daemon (ply_daemon_handle_t *handle,
+                   int                  exit_code)
+{
+  int sender_fd;
+  uint8_t byte;
+
+  assert (handle != NULL);
+  assert (exit_code >= 0 && exit_code < 256);
+
+  sender_fd = *(int *) handle;
+
+  byte = (uint8_t) exit_code;
+
+  if (!ply_write (sender_fd, &byte, sizeof (uint8_t)))
+    return false;
+
+  close (sender_fd);
+  free (handle);
+
+  return true;
+}
+
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

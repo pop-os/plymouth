@@ -83,11 +83,6 @@ ply_module_function_t ply_module_look_up_function (ply_module_handle_t *handle,
 void ply_close_module (ply_module_handle_t *handle);
 
 bool ply_create_directory (const char *directory);
-bool ply_copy_file (const char *source, const char *destination);
-bool ply_copy_directory (const char *source, const char *destination);
-bool ply_unmount_filesystem (const char *directory);
-bool ply_move_mount (const char *source, const char *destination);
-bool ply_mount_tmpfs (const char *directory);
 
 ply_daemon_handle_t *ply_create_daemon (void);
 bool ply_detach_daemon (ply_daemon_handle_t *handle,

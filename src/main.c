@@ -22,7 +22,6 @@
 #include "config.h"
 
 #include <sys/stat.h>
-#include <sys/mount.h>
 #include <sys/types.h>
 #include <limits.h>
 #include <dirent.h>
@@ -39,10 +38,6 @@
 #include "ply-logger.h"
 #include "ply-terminal-session.h"
 #include "ply-utils.h"
-
-#ifndef PLY_WORKING_DIRECTORY
-#define PLY_WORKING_DIRECTORY "/var/run/plymouth"
-#endif
 
 #ifndef PLY_MAX_COMMAND_LINE_SIZE
 #define PLY_MAX_COMMAND_LINE_SIZE 512
@@ -111,11 +106,9 @@ static void
 on_system_initialized (state_t *state)
 {
 
-  ply_trace ("system now initialized, ready to mount root filesystem");
-  mknod ("/dev/root", 0600 | S_IFBLK, makedev (253, 0));
-  mount("/dev/root", "/sysroot", "ext3", 0, NULL);
-  ply_terminal_session_open_log (state->session,
-                                 "/sysroot/var/log/bootmessages.log");
+  ply_trace ("system now initialized, preparing for root filesystem switch");
+  chdir("/sysroot");
+  chroot(".");
 }
 
 static void
@@ -140,16 +133,15 @@ on_show_splash (state_t *state)
 static void
 on_quit (state_t *state)
 {
-  ply_trace ("time to quit, closing log");
+  ply_trace ("time to quit, writing boot.log");
+  ply_terminal_session_open_log (state->session,
+                                 "/var/log/boot.log");
   ply_terminal_session_close_log (state->session);
   ply_trace ("hiding splash");
   if (state->boot_splash != NULL)
     ply_boot_splash_hide (state->boot_splash);
   ply_trace ("exiting event loop");
   ply_event_loop_exit (state->loop, 0);
-
-  ply_trace ("unmounting temporary filesystem mounts");
-  ply_unmount_filesystem (PLY_WORKING_DIRECTORY);
 }
 
 static ply_boot_server_t *
@@ -248,7 +240,6 @@ attach_to_running_session (state_t *state)
 
   flags = 0;
   flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
-  flags |= PLY_TERMINAL_SESSION_FLAGS_CHANGE_ROOT_TO_CURRENT_DIRECTORY;
 
   ply_trace ("creating terminal session for current terminal");
   session = ply_terminal_session_new (NULL);
@@ -275,45 +266,6 @@ attach_to_running_session (state_t *state)
 }
 
 static bool
-create_working_directory (state_t *state)
-{
-  ply_trace ("creating working directory '%s'",
-             PLY_WORKING_DIRECTORY);
-  if (!ply_create_detachable_directory (PLY_WORKING_DIRECTORY))
-    return false;
-
-  ply_trace ("changing to working directory");
-  if (chdir (PLY_WORKING_DIRECTORY) < 0)
-    return false;
-
-  ply_trace ("creating proc subdirectory");
-  if (!ply_create_directory ("proc"))
-    return false;
-
-  ply_trace ("creating dev subdirectory");
-  if (!ply_create_directory ("dev"))
-    return false;
-
-  ply_trace ("creating dev/pts subdirectory");
-  if (!ply_create_directory ("dev/pts"))
-    return false;
-
-  ply_trace ("creating usr/share/plymouth subdirectory");
-  if (!ply_create_directory ("usr/share/plymouth"))
-    return false;
-
-  ply_trace ("creating " PLYMOUTH_PLUGIN_PATH " subdirectory");
-  if (!ply_create_directory (PLYMOUTH_PLUGIN_PATH + 1))
-    return false;
-
-  ply_trace ("creating sysroot subdirectory");
-  if (!ply_create_directory ("sysroot"))
-    return false;
-
-  return true;
-}
-
-static bool
 get_kernel_command_line (state_t *state)
 {
   int fd;
@@ -335,44 +287,6 @@ get_kernel_command_line (state_t *state)
     }
 
   ply_trace ("Kernel command line is: '%s'", state->kernel_command_line);
-  return true;
-}
-
-static bool
-copy_data_files (state_t *state)
-{
-  char *logo_dir, *p;
-
-  ply_trace ("copying data files");
-  if (!ply_copy_directory ("/usr/share/plymouth",
-                           "usr/share/plymouth"))
-    return false;
-  ply_trace ("copied data files");
-
-  ply_trace ("copying plugins");
-  if (!ply_copy_directory (PLYMOUTH_PLUGIN_PATH,
-                           PLYMOUTH_PLUGIN_PATH + 1))
-    return false;
-
-  ply_trace ("copying logo");
-  logo_dir = strdup (PLYMOUTH_LOGO_FILE);
-  p = strrchr (logo_dir, '/');
-
-  if (p != NULL)
-    *p = '\0';
-
-  if (!ply_create_directory (logo_dir + 1))
-    {
-      free (logo_dir);
-      return false;
-    }
-  free (logo_dir);
-
-  if (!ply_copy_file (PLYMOUTH_LOGO_FILE,
-                      PLYMOUTH_LOGO_FILE + 1))
-    return false;
-  ply_trace ("copied plugins files");
-
   return true;
 }
 
@@ -439,11 +353,6 @@ static bool
 initialize_environment (state_t *state)
 {
   ply_trace ("initializing minimal work environment");
-  if (!create_working_directory (state))
-    return false;
-
-  if (!copy_data_files (state))
-    return false;
 
   if (!get_kernel_command_line (state))
     return false;
@@ -501,14 +410,11 @@ main (int    argc,
   state.loop = ply_event_loop_new ();
 
   /* before do anything we need to make sure we have a working
-   * environment.  /proc needs to be mounted and certain devices need
-   * to be accessible (like the framebuffer device, pseudoterminal
-   * devices, etc)
+   * environment.
    */
   if (!initialize_environment (&state))
     {
       ply_error ("could not setup basic operating environment: %m");
-      ply_list_directory (PLY_WORKING_DIRECTORY);
       ply_detach_daemon (daemon_handle, EX_OSERR);
       return EX_OSERR;
     }

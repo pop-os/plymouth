@@ -87,15 +87,15 @@ EOF
 (cd $LIBDIR
     BINS="${LIBEXECDIR}/plymouth/plymouthd ${BINDIR}/plymouth ${LIBDIR}/plymouth/spinfinity.so ${LIBDIR}/plymouth/text.so ${LIBDIR}/plymouth/details.so"
     for bin in $BINS ; do
-    DEPS=$(get_dso_deps $bin)
+    	DEPS=$(get_dso_deps $bin)
         for dep in $DEPS; do
             install -D -m755 $dep ${INITRDDIR}$(dirname $dep)
         done
     done
 )
 
-install -m755 ${LIBEXECDIR}/plymouth/plymouthd bin
-install -m755 ${BINDIR}/plymouth bin
+install -m755 ${LIBEXECDIR}/plymouth/plymouthd ${INITRDDIR}/bin
+install -m755 ${BINDIR}/plymouth ${INITRDDIR}/bin
 mkdir -p ${INITRDDIR}${LIBDIR}/plymouth
 install -m755 ${LIBDIR}/plymouth/text.so ${INITRDDIR}${LIBDIR}/plymouth
 install -m755 ${LIBDIR}/plymouth/details.so ${INITRDDIR}${LIBDIR}/plymouth

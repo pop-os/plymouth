@@ -448,7 +448,7 @@ main (int    argc,
       return EX_UNAVAILABLE;
     }
 
-  state.window = create_window (&state, 1);
+  state.window = create_window (&state, 7);
 
   ply_trace ("entering event loop");
   exit_code = ply_event_loop_run (state.loop);

@@ -70,19 +70,6 @@ static ply_boot_splash_t *start_boot_splash (state_t    *state,
                                              const char *module_path);
 
 static void
-on_session_start (state_t *state)
-{
-  ply_trace ("changing to original root fs");
-
-  if (fchdir (state->original_root_dir_fd) < 0)
-    {
-      ply_trace ("Could not change to original root directory "
-                 "to start session: %m");
-      return;
-    }
-}
-
-static void
 on_session_output (state_t    *state,
                    const char *output,
                    size_t      size)
@@ -265,8 +252,7 @@ start_boot_splash (state_t    *state,
 }
 
 static ply_terminal_session_t *
-spawn_session (state_t  *state,
-               char    **argv)
+attach_to_running_session (state_t *state)
 {
   ply_terminal_session_t *session;
   ply_terminal_session_flags_t flags;
@@ -289,34 +275,6 @@ spawn_session (state_t  *state,
                                      on_session_finished,
                                      state->ptmx,
                                      state))
-        {
-          ply_save_errno ();
-          ply_terminal_session_free (session);
-          ply_buffer_free (state->boot_buffer);
-          state->boot_buffer = NULL;
-          ply_restore_errno ();
-          return NULL;
-        }
-    }
-  else
-    {
-      flags |= PLY_TERMINAL_SESSION_FLAGS_RUN_IN_PARENT;
-      flags |= PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH;
-      flags |= PLY_TERMINAL_SESSION_FLAGS_CHANGE_ROOT_TO_CURRENT_DIRECTORY;
-
-      ply_trace ("opening terminal session for '%s'", argv[0]);
-      session = ply_terminal_session_new ((const char * const *) argv);
-      ply_trace ("attaching terminal session to event loop");
-      ply_terminal_session_attach_to_event_loop (session, state->loop);
-
-      ply_trace ("running '%s'", argv[0]);
-      if (!ply_terminal_session_run (session, flags,
-                                     (ply_terminal_session_begin_handler_t)
-                                     on_session_start,
-                                     (ply_terminal_session_output_handler_t)
-                                     on_session_output,
-                                     (ply_terminal_session_done_handler_t)
-                                     on_session_finished, state))
         {
           ply_save_errno ();
           ply_terminal_session_free (session);
@@ -655,7 +613,7 @@ main (int    argc,
 
   state.boot_buffer = ply_buffer_new ();
 
-  state.session = spawn_session (&state, argv + 1);
+  state.session = attach_to_running_session (&state);
 
   if (state.session == NULL)
     {

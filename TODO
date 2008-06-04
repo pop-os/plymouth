@@ -1,5 +1,4 @@
 - fix the tests so that they work better with "make check"
-- Allow plymouth to be started from nash instead of the other way around
 - Drop all the make ram disk and copy code.  That was just to make bolting things on easier.  We can integrate now.
 - allow longer than 255 byte replies from server to client
 - make server send immediate ACK for password request and then ANSWER later with a link back to original request in ANSWER

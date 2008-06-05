@@ -11,6 +11,8 @@ libply_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
 		    -no-undefined
 libply_la_SOURCES = ply-event-loop.c                                          \
 		    ply-event-loop.h                                          \
+		    ply-command-parser.h                                      \
+		    ply-command-parser.c                                      \
 		    ply-frame-buffer.h                                        \
 		    ply-frame-buffer.c                                        \
 		    ply-buffer.c                                              \

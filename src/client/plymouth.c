@@ -1,4 +1,4 @@
-/* rhgb-client.c - updates boot status
+/* plymouth.c - updates boot status
  *
  * Copyright (C) 2007 Red Hat, Inc
  *

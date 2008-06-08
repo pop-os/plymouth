@@ -32,7 +32,8 @@ typedef void (* ply_command_handler_t) (void *data,
 
 typedef enum
 {
-  PLY_COMMAND_OPTION_TYPE_BOOLEAN = 0,
+  PLY_COMMAND_OPTION_TYPE_FLAG = 0,
+  PLY_COMMAND_OPTION_TYPE_BOOLEAN,
   PLY_COMMAND_OPTION_TYPE_STRING,
   PLY_COMMAND_OPTION_TYPE_INTEGER
 } ply_command_option_type_t;

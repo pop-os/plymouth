@@ -89,7 +89,7 @@ main (int    argc,
   command_parser = ply_command_parser_new ("plymouth", "Boot splash control client");
 
   ply_command_parser_add_options (command_parser,
-                                  "help", "This help message", PLY_COMMAND_OPTION_TYPE_BOOLEAN,
+                                  "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "quit", "Tell boot daemon to quit", PLY_COMMAND_OPTION_TYPE_BOOLEAN,
                                   "sysinit", "Tell boot daemon root filesystem is mounted read-write", PLY_COMMAND_OPTION_TYPE_BOOLEAN,
                                   "show-splash", "Show splash screen", PLY_COMMAND_OPTION_TYPE_BOOLEAN,

@@ -421,6 +421,7 @@ ply_command_parser_get_options_for_command (ply_command_parser_t *parser,
         {
           switch (option->type)
             {
+              case PLY_COMMAND_OPTION_TYPE_FLAG:
               case PLY_COMMAND_OPTION_TYPE_BOOLEAN:
                 {
                   bool *option_result;
@@ -541,7 +542,8 @@ ply_command_option_read_arguments (ply_command_option_t *option,
 
   if (node == NULL)
     {
-      if (option->type == PLY_COMMAND_OPTION_TYPE_BOOLEAN)
+      if (option->type == PLY_COMMAND_OPTION_TYPE_BOOLEAN ||
+          option->type == PLY_COMMAND_OPTION_TYPE_FLAG)
         {
           option->result.as_boolean = true;
           return true;
@@ -561,6 +563,7 @@ ply_command_option_read_arguments (ply_command_option_t *option,
 
   switch (option->type)
     {
+      case PLY_COMMAND_OPTION_TYPE_FLAG:
       case PLY_COMMAND_OPTION_TYPE_BOOLEAN:
           option->result.as_boolean = (bool) rpmatch (argument);
           return true;
@@ -817,7 +820,7 @@ main (int    argc,
   parser = ply_command_parser_new (argv[0], "Test Program");
 
   ply_command_parser_add_options (parser,
-                                  "help", "This help message", PLY_COMMAND_OPTION_TYPE_BOOLEAN,
+                                  "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   NULL);
 
   ply_command_parser_add_command (parser,

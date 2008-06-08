@@ -25,6 +25,7 @@
 #include <stdlib.h>
 
 #include "ply-boot-client.h"
+#include "ply-command-parser.h"
 #include "ply-event-loop.h"
 #include "ply-logger.h"
 #include "ply-utils.h"
@@ -69,7 +70,8 @@ main (int    argc,
 {
   ply_event_loop_t *loop;
   ply_boot_client_t *client;
-  bool should_quit, should_ping, should_update, should_sysinit, should_ask_for_password, should_show_splash;
+  ply_command_parser_t *command_parser;
+  bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash;
   char *status;
   int exit_code;
   int i;
@@ -84,46 +86,51 @@ main (int    argc,
 
   loop = ply_event_loop_new ();
   client = ply_boot_client_new ();
+  command_parser = ply_command_parser_new ("plymouth", "Boot splash control client");
 
-  should_ping = false;
-  should_update = false;
-  should_quit = false;
-  should_ask_for_password = false;
-  should_show_splash = false;
-  status = NULL;
-  for (i = 1; i < argc; i++)
+  ply_command_parser_add_options (command_parser,
+                                  "help", "This help message", PLY_COMMAND_OPTION_TYPE_BOOLEAN,
+                                  "quit", "Tell boot daemon to quit", PLY_COMMAND_OPTION_TYPE_BOOLEAN,
+                                  "sysinit", "Tell boot daemon root filesystem is mounted read-write", PLY_COMMAND_OPTION_TYPE_BOOLEAN,
+                                  "show-splash", "Show splash screen", PLY_COMMAND_OPTION_TYPE_BOOLEAN,
+                                  "ask-for-password", "Ask user for password", PLY_COMMAND_OPTION_TYPE_BOOLEAN,
+                                  "update", "Tell boot daemon an update about boot progress", PLY_COMMAND_OPTION_TYPE_STRING,
+                                  NULL);
+
+  if (!ply_command_parser_parse_arguments (command_parser, loop, argv, argc))
     {
-      if (strstr (argv[i], "--help") != NULL)
-        {
-          print_usage ();
-          return 1;
-        }
-      if (strstr (argv[i], "--quit") != NULL)
-        should_quit = true;
-      else if (strstr (argv[i], "--ping") != NULL)
-        should_ping = true;
-      else if (strstr (argv[i], "--sysinit") != NULL)
-        should_sysinit = true;
-      else if (strstr (argv[i], "--show-splash") != NULL)
-        should_show_splash = true;
-      else if (strstr (argv[i], "--ask-for-password") != NULL)
-        should_ask_for_password = true;
-      else if (strstr (argv[i], "--update") != NULL)
-        {
-          const char *update_argument;
-          should_update = true;
-          update_argument = strstr (argv[i], "--update") + strlen ("--update");
+      char *help_string;
 
-          if (update_argument[0] == '\0')
-            {
-              print_usage ();
-              return 1;
-            }
-          status = strdup (update_argument + 1);
-        }
+      help_string = ply_command_parser_get_help_string (command_parser);
+
+      ply_error ("%s", help_string);
+
+      free (help_string);
+      return 1;
     }
 
-  if (!ply_boot_client_connect (client, 
+  ply_command_parser_get_options (command_parser,
+                                  "help", &should_help,
+                                  "quit", &should_quit,
+                                  "sysinit", &should_sysinit,
+                                  "show-splash", &should_show_splash,
+                                  "ask-for-password", &should_ask_for_password,
+                                  "update", &status,
+                                  NULL);
+
+  if (should_help)
+    {
+      char *help_string;
+
+      help_string = ply_command_parser_get_help_string (command_parser);
+
+      printf ("%s", help_string);
+
+      free (help_string);
+      return 0;
+    }
+
+  if (!ply_boot_client_connect (client,
                                 (ply_boot_client_disconnect_handler_t)
                                 on_disconnect, loop))
     {
@@ -163,7 +170,7 @@ main (int    argc,
                                  on_success, 
                                  (ply_boot_client_response_handler_t)
                                  on_failure, loop);
-  else if (should_update)
+  else if (status != NULL)
     ply_boot_client_update_daemon (client, status,
                                    (ply_boot_client_response_handler_t)
                                    on_success, 

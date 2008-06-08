@@ -177,7 +177,7 @@ append_command_options_to_buffer (ply_command_parser_t *parser,
                          (int) (25 - strlen (option->name)),
                          (int) (25 - strlen (option->name)),
                          option->type == PLY_COMMAND_OPTION_TYPE_BOOLEAN?
-                         "=[true|false]":
+                         "={true|false}":
                          option->type == PLY_COMMAND_OPTION_TYPE_STRING?
                          "=<string>":
                          option->type == PLY_COMMAND_OPTION_TYPE_INTEGER?
@@ -201,7 +201,8 @@ ply_command_parser_get_help_string (ply_command_parser_t *parser)
   append_command_options_to_buffer (parser, parser->main_command, buffer);
   ply_buffer_append (buffer, "\n");
 
-  ply_buffer_append (buffer, "Available subcommands:\n");
+  if (ply_list_get_length (parser->available_subcommands) > 0)
+    ply_buffer_append (buffer, "Available subcommands:\n");
   command_node = ply_list_get_first_node (parser->available_subcommands);
   while (command_node != NULL)
     {

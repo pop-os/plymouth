@@ -157,7 +157,8 @@ append_usage_line_to_buffer (ply_command_parser_t *parser,
       option_node = ply_list_get_next_node (parser->main_command->options, option_node);
     }
 
-  ply_buffer_append (buffer, "[subcommand [options]...]\n");
+  if (ply_list_get_length (parser->available_subcommands) > 0)
+    ply_buffer_append (buffer, "[subcommand [options]...]\n");
 }
 
 static void

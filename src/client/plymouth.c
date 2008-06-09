@@ -193,7 +193,7 @@ main (int    argc,
   else if (chroot_dir)
     ply_boot_client_tell_daemon_to_change_root (client, chroot_dir,
                                    (ply_boot_client_response_handler_t)
-                                   on_success, 
+                                   on_success,
                                    (ply_boot_client_response_handler_t)
                                    on_failure, loop);
   else

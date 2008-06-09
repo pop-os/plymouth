@@ -458,6 +458,8 @@ main (int    argc,
 
   state.window = create_window (&state, 7);
 
+  ply_window_take_console (state.window);
+
   ply_trace ("entering event loop");
   exit_code = ply_event_loop_run (state.loop);
   ply_trace ("exited event loop");

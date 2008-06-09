@@ -1,16 +1,12 @@
 Summary: Plymouth Graphical Boot Animation and Logger
 Name: plymouth
-Version: 0.0.1
-Release: 1%{?dist}
-License: GPLv2
+Version: 0.1.0
+Release: 1
+License: GPLv2+
 Group: System Environment/Base
-Source0: %{name}-%{version}.tar.bz2
-URL: http://git.freedesktop.org/plymouth
+Source0: http://freedesktop.org/software/plymouth/releases/%{name}-%{version}.tar.bz2
+URL: http://freedesktop.org/software/plymouth/releases
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-
-Conflicts: rhgb
-BuildRequires: libpng-devel
-Requires: mkinitrd
 
 %description
 Plymouth provides an attractive graphical boot animation in
@@ -18,10 +14,30 @@ place of the text messages that normally get shown.  Text
 messages are instead redirected to a log file for viewing
 after boot.
 
+%package libs
+Summary: Plymouth libraries
+Group: Development/Libraries
+Requires: %{name} = %{version}-%{release}
+
+%description libs
+This package contains the libply and libplybootsplash libraries
+used by Plymouth.
+
+%package devel
+Summary: Libraries and headers for writing Plymouth splash plugins
+Group: Development/Libraries
+Requires: %{name} = %{version}-%{release}
+Requires: pkgconfig
+
+%description devel
+This package contains the libply and libplybootsplash libraries
+and headers needed to develop 3rd party splash plugins for Plymouth.
+
 %package plugin-fade-in
 Summary: Plymouth "Fade-In" plugin
 Group: System Environment/Base
 Requires: %name = %{version}-%{release}
+BuildRequires: libpng-devel
 
 %description plugin-fade-in
 This package contains the "Fade-In" boot splash plugin for
@@ -32,6 +48,7 @@ while stars twinkle around the logo during system boot up.
 Summary: Plymouth "Spinfinity" plugin
 Group: System Environment/Base
 Requires: %name = %{version}-%{release}
+BuildRequires: libpng-devel
 
 %description plugin-spinfinity
 This package contains the "Spinfinity" boot splash plugin for
@@ -42,7 +59,8 @@ spins in the shape of an infinity sign.
 %setup -q
 
 %build
-%configure
+%configure --enable-tracing --disable-tests --without-boot-entry
+
 make
 
 %install
@@ -56,19 +74,33 @@ find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} \;
 %clean
 rm -rf $RPM_BUILD_ROOT
 
+%post -p /sbin/ldconfig
+%postun -p /sbin/ldconfig
+
 %files
 %defattr(-, root, root)
 %doc AUTHORS NEWS README
 %dir %{_datadir}/plymouth
-%{_datadir}/plymouth/bizcom.png
 %{_libexecdir}/plymouth/plymouthd
 %{_libexecdir}/plymouth/plymouth-update-initrd
-%{_libdir}/libply.so*
+%{_libexecdir}/plymouth/plymouth-populate-initrd
 %{_bindir}/plymouth
 %{_bindir}/rhgb-client
 %{_libdir}/plymouth/details.so
 %{_libdir}/plymouth/text.so
 %{_localstatedir}/run/plymouth
+
+%files devel
+%defattr(-, root, root)
+%{_libdir}/libply.so
+%{_libdir}/libplybootsplash.so
+%{_libdir}/pkgconfig/plymouth-1.pc
+%{_includedir}/plymouth-1
+
+%files libs
+%defattr(-, root, root)
+%{_libdir}/libply.so.*
+%{_libdir}/libplybootsplash.so.*
 
 %files plugin-fade-in
 %defattr(-, root, root)
@@ -88,7 +120,3 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/plymouth/spinfinity/lock.png
 %{_datadir}/plymouth/spinfinity/throbber-[0-3][0-9].png
 %{_libdir}/plymouth/spinfinity.so
-
-%changelog
-* Wed May 28 2008 Ray Strode <rstrode@redhat.com> - 0.0.1-1
-- Initial import, version 0.0.1

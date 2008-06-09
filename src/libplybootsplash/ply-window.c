@@ -362,6 +362,9 @@ ply_window_set_mode (ply_window_t      *window,
   assert (window != NULL);
   assert (mode == PLY_WINDOW_MODE_TEXT || mode == PLY_WINDOW_MODE_GRAPHICS);
 
+  if (ply_is_tracing ())
+    window->should_force_text_mode = true;
+
   switch (mode)
     {
       case PLY_WINDOW_MODE_TEXT:

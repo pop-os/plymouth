@@ -60,7 +60,7 @@ on_disconnect (ply_event_loop_t *loop)
 void
 print_usage (void)
 {
-  ply_log ("plymouth [--ping] [--update=STATUS] [--show-splash] [--details] [--sysinit] [--quit]");
+  ply_log ("plymouth [--ping] [--update=STATUS] [--show-splash] [--details] [--newroot=<directory>] [--sysinit] [--quit]");
   ply_flush_log ();
 }
 
@@ -72,7 +72,7 @@ main (int    argc,
   ply_boot_client_t *client;
   ply_command_parser_t *command_parser;
   bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash;
-  char *status;
+  char *status, *chroot_dir;
   int exit_code;
   int i;
 
@@ -90,6 +90,7 @@ main (int    argc,
 
   ply_command_parser_add_options (command_parser,
                                   "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "newroot", "Tell boot daemon that new root filesystem is mounted", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "quit", "Tell boot daemon to quit", PLY_COMMAND_OPTION_TYPE_BOOLEAN,
                                   "sysinit", "Tell boot daemon root filesystem is mounted read-write", PLY_COMMAND_OPTION_TYPE_BOOLEAN,
                                   "show-splash", "Show splash screen", PLY_COMMAND_OPTION_TYPE_BOOLEAN,
@@ -111,6 +112,7 @@ main (int    argc,
 
   ply_command_parser_get_options (command_parser,
                                   "help", &should_help,
+                                  "newroot", &chroot_dir,
                                   "quit", &should_quit,
                                   "sysinit", &should_sysinit,
                                   "show-splash", &should_show_splash,
@@ -184,6 +186,12 @@ main (int    argc,
                                    on_failure, loop);
   else if (should_sysinit)
     ply_boot_client_tell_daemon_system_is_initialized (client,
+                                   (ply_boot_client_response_handler_t)
+                                   on_success, 
+                                   (ply_boot_client_response_handler_t)
+                                   on_failure, loop);
+  else if (chroot_dir)
+    ply_boot_client_tell_daemon_to_change_root (client, chroot_dir,
                                    (ply_boot_client_response_handler_t)
                                    on_success, 
                                    (ply_boot_client_response_handler_t)

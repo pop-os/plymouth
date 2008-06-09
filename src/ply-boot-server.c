@@ -50,6 +50,7 @@ struct _ply_boot_server
   int socket_fd;
 
   ply_boot_server_update_handler_t update_handler;
+  ply_boot_server_newroot_handler_t newroot_handler;
   ply_boot_server_system_initialized_handler_t system_initialized_handler;
   ply_boot_server_show_splash_handler_t show_splash_handler;
   ply_boot_server_ask_for_password_handler_t ask_for_password_handler;
@@ -63,6 +64,7 @@ ply_boot_server_t *
 ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
                      ply_boot_server_ask_for_password_handler_t ask_for_password_handler,
                      ply_boot_server_show_splash_handler_t show_splash_handler,
+                     ply_boot_server_newroot_handler_t newroot_handler,
                      ply_boot_server_system_initialized_handler_t initialized_handler,
                      ply_boot_server_quit_handler_t    quit_handler,
                      void                             *user_data)
@@ -272,6 +274,11 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
        */
       return;
     }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_NEWROOT) != 0)
+    {
+      if (server->newroot_handler != NULL)
+        server->newroot_handler(server->user_data, argument, server);
+    }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PING) != 0)
     {
       ply_error ("received unknown command '%s' from client", command);
@@ -389,6 +396,12 @@ on_update (ply_event_loop_t  *loop,
 }
 
 static void
+on_newroot (ply_event_loop_t *loop)
+{
+  printf ("got newroot request\n");
+}
+
+static void
 on_system_initialized (ply_event_loop_t *loop)
 {
   printf ("got sysinit done request\n");
@@ -430,6 +443,7 @@ main (int    argc,
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
                                 (ply_boot_server_show_splash_handler_t) on_show_splash,
+                                (ply_boot_server_newroot_handler_t) on_newroot,
                                 (ply_boot_server_system_initialized_handler_t) on_system_initialized,
                                 (ply_boot_server_quit_handler_t) on_quit,
                                 loop);

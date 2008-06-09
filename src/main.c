@@ -103,12 +103,20 @@ on_ask_for_password (state_t      *state,
 }
 
 static void
+on_newroot (state_t    *state,
+             const char *root_dir)
+{
+  ply_trace ("new root mounted, switching to it");
+  chdir(root_dir);
+  chroot(".");
+}
+
+static void
 on_system_initialized (state_t *state)
 {
-
-  ply_trace ("system now initialized, preparing for root filesystem switch");
-  chdir("/sysroot");
-  chroot(".");
+  ply_trace ("system now initialized, opening boot.log");
+  ply_terminal_session_open_log (state->session,
+                                 "/var/log/boot.log");
 }
 
 static void
@@ -133,9 +141,7 @@ on_show_splash (state_t *state)
 static void
 on_quit (state_t *state)
 {
-  ply_trace ("time to quit, writing boot.log");
-  ply_terminal_session_open_log (state->session,
-                                 "/var/log/boot.log");
+  ply_trace ("time to quit, closing boot.log");
   ply_terminal_session_close_log (state->session);
   ply_trace ("hiding splash");
   if (state->boot_splash != NULL)
@@ -152,6 +158,7 @@ start_boot_server (state_t *state)
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
                                 (ply_boot_server_show_splash_handler_t) on_show_splash,
+                                (ply_boot_server_newroot_handler_t) on_newroot,
                                 (ply_boot_server_system_initialized_handler_t) on_system_initialized,
                                 (ply_boot_server_quit_handler_t) on_quit,
                                 state);

@@ -445,6 +445,20 @@ ply_boot_client_update_daemon (ply_boot_client_t                  *client,
 }
 
 void
+ply_boot_client_tell_daemon_to_change_root (ply_boot_client_t                  *client,
+                                            const char                         *root_dir,
+                                            ply_boot_client_response_handler_t  handler,
+                                            ply_boot_client_response_handler_t  failed_handler,
+                                            void                               *user_data)
+{
+  assert (client != NULL);
+  assert (root_dir != NULL);
+
+  ply_boot_client_queue_request(client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_NEWROOT,
+                                root_dir, handler, failed_handler, user_data);
+}
+
+void
 ply_boot_client_tell_daemon_system_is_initialized (ply_boot_client_t                  *client,
                                                    ply_boot_client_response_handler_t  handler,
                                                    ply_boot_client_response_handler_t  failed_handler,
@@ -576,6 +590,12 @@ on_update_failed (ply_event_loop_t *loop)
 {
   printf ("UPDATE FAILED! %m\n");
   ply_event_loop_exit (loop, 1);
+}
+
+static void
+on_newroot (ply_event_loop_t *loop)
+{
+  printf ("NEWROOT!\n");
 }
 
 static void

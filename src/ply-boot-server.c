@@ -274,7 +274,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
        */
       return;
     }
-  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_NEWROOT) != 0)
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_NEWROOT) == 0)
     {
       if (server->newroot_handler != NULL)
         server->newroot_handler(server->user_data, argument, server);

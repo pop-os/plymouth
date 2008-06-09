@@ -31,8 +31,8 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
 
 (cd $TMPDIR
     zcat $INITRD | cpio --quiet -Hnewc -i --make-directories
-    sed -i -e 's@^#!\(.*\)@#!/bin/plymouthd \1\n@' init 
-    sed -i -e 's@setquiet@&\n/bin/plymouth --show-splash\n/bin/plymouth --ask-for-password\n@' init
+    sed -i -e 's@mknod /dev/ttyS3 c 4 67@&\nmknod /dev/fb c 29 0\nmknod /dev/fb0 c 29 0\ndaemonize /bin/plymouthd\n/bin/plymouth --show-splash\n@' init
+    sed -i -e 's@switchroot@&\n/bin/plymouth --newroot /sysroot\n&\n@' init
     (cd $LIBDIR
         DEPS=$(get_lib_deps ${LIBEXECDIR}/plymouth/plymouthd ${BINDIR}/plymouth ${LIBDIR}/plymouth/spinfinity.so ${LIBDIR}/plymouth/text.so ${LIBDIR}/plymouth/details.so)
         for dep in $DEPS; do

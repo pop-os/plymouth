@@ -31,6 +31,7 @@
 
 #include "ply-buffer.h"
 #include "ply-list.h"
+#include "ply-utils.h"
 
 typedef union
 {
@@ -54,6 +55,8 @@ typedef struct
   char *description;
   ply_list_t *options;
 
+  int longest_option_length;
+
   ply_command_handler_t handler;
   void       *handler_data;
 } ply_command_t;
@@ -67,6 +70,7 @@ struct _ply_command_parser
   ply_list_t *read_subcommands;
 
   ply_list_t *arguments;
+  int longest_command_length;
 
   uint32_t dispatch_is_queued : 1;
 };
@@ -168,20 +172,37 @@ append_command_options_to_buffer (ply_command_parser_t *parser,
   while (option_node != NULL)
     {
       ply_command_option_t *option;
+      int option_width;
+      int description_width;
+      const char *option_type_string;
 
       option = (ply_command_option_t *) ply_list_node_get_data (option_node);
+
+      switch (option->type)
+        {
+          case PLY_COMMAND_OPTION_TYPE_FLAG:
+              option_type_string = "";
+              break;
+          case PLY_COMMAND_OPTION_TYPE_BOOLEAN:
+              option_type_string = "={true|false}";
+              break;
+          case PLY_COMMAND_OPTION_TYPE_STRING:
+              option_type_string = "=<string>";
+              break;
+          case PLY_COMMAND_OPTION_TYPE_INTEGER:
+              option_type_string = "=<integer>";
+              break;
+        }
+
+      option_width = command->longest_option_length - strlen (option->name) +
+                     strlen ("={true|false}");
+      description_width = MAX (80 - 10 - command->longest_option_length -
+                               strlen ("--") - strlen ("={true|false}"), 0);
       ply_buffer_append (buffer,
-                         "%-10.10s--%s%-*.*s%25s\n",
-                         "",
-                         option->name,
-                         (int) (25 - strlen (option->name)),
-                         (int) (25 - strlen (option->name)),
-                         option->type == PLY_COMMAND_OPTION_TYPE_BOOLEAN?
-                         "={true|false}":
-                         option->type == PLY_COMMAND_OPTION_TYPE_STRING?
-                         "=<string>":
-                         option->type == PLY_COMMAND_OPTION_TYPE_INTEGER?
-                         "=<integer>": "",
+                         "%-10.10s--%s%-*.*s%*s\n",
+                         "", option->name, option_width, option_width,
+                         option_type_string,
+                         description_width,
                          option->description);
       option_node = ply_list_get_next_node (command->options, option_node);
     }
@@ -210,9 +231,11 @@ ply_command_parser_get_help_string (ply_command_parser_t *parser)
 
       command = (ply_command_t *) ply_list_node_get_data (command_node);
 
-      ply_buffer_append (buffer, "\n%s%*s\n\n",
+      ply_buffer_append (buffer, "\n%s%*s%-*s\n\n",
                          command->name,
-                         (int)(62 - strlen (command->name)),
+                         (int)(80 - strlen (command->name) - strlen (command->description)),
+                         "",
+                         (int) strlen (command->name),
                          command->description);
 
       append_command_options_to_buffer (parser, command, buffer);
@@ -238,6 +261,9 @@ ply_command_add_option (ply_command_t *command,
   option = ply_command_option_new (name, description, type);
 
   ply_list_append_data (command->options, option);
+
+  command->longest_option_length = MAX (command->longest_option_length,
+                                        strlen (name));
 }
 
 static ply_command_option_t *
@@ -356,6 +382,8 @@ ply_command_parser_add_command (ply_command_parser_t *parser,
   va_end (args);
 
   ply_list_append_data (parser->available_subcommands, command);
+
+  parser->longest_command_length = MAX (parser->longest_command_length, strlen (name));
 }
 
 static void

@@ -142,7 +142,8 @@ static void
 on_quit (state_t *state)
 {
   ply_trace ("time to quit, closing boot.log");
-  ply_terminal_session_close_log (state->session);
+  if (state->session != NULL)
+    ply_terminal_session_close_log (state->session);
   ply_trace ("hiding splash");
   if (state->boot_splash != NULL)
     ply_boot_splash_hide (state->boot_splash);

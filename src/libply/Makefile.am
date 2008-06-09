@@ -4,32 +4,36 @@ INCLUDES = -I$(top_srcdir)                                                    \
 
 lib_LTLIBRARIES = libply.la
 
+libplydir = $(includedir)/plymouth-1/ply
+libply_HEADERS = \
+		    ply-event-loop.h                                          \
+		    ply-command-parser.h                                      \
+		    ply-frame-buffer.h                                        \
+		    ply-buffer.h                                              \
+		    ply-array.h                                               \
+		    ply-list.h                                                \
+		    ply-logger.h                                              \
+		    ply-image.h                                               \
+		    ply-terminal.h                                            \
+		    ply-terminal-session.h                                    \
+		    ply-utils.h
+
 libply_la_CFLAGS = $(PLYMOUTH_CFLAGS)
 libply_la_LIBADD = $(PLYMOUTH_LIBS)
 libply_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
 		    -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
 		    -no-undefined
 libply_la_SOURCES = ply-event-loop.c                                          \
-		    ply-event-loop.h                                          \
-		    ply-command-parser.h                                      \
+		    $(libply_HEADERS)                                         \
 		    ply-command-parser.c                                      \
-		    ply-frame-buffer.h                                        \
 		    ply-frame-buffer.c                                        \
 		    ply-buffer.c                                              \
-		    ply-buffer.h                                              \
 		    ply-array.c                                               \
-		    ply-array.h                                               \
 		    ply-list.c                                                \
-		    ply-list.h                                                \
 		    ply-logger.c                                              \
-		    ply-logger.h                                              \
 		    ply-image.c                                               \
-		    ply-image.h                                               \
 		    ply-terminal.c                                            \
-		    ply-terminal.h                                            \
 		    ply-terminal-session.c                                    \
-		    ply-terminal-session.h                                    \
-		    ply-utils.c                                               \
-		    ply-utils.h
+		    ply-utils.c
 
 MAINTAINERCLEANFILES = Makefile.in

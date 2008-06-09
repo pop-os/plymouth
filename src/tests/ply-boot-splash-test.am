@@ -3,11 +3,11 @@ TESTS += ply-boot-splash-test
 ply_boot_splash_test_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLY_BOOT_SPLASH_ENABLE_TEST
 ply_boot_splash_test_LDADD = $(PLYMOUTH_LIBS) ../libply/libply.la
 
-ply_boot_splash_test_SOURCES =                                                \
-                          $(srcdir)/../ply-answer.h                           \
-                          $(srcdir)/../ply-answer.c                           \
-                          $(srcdir)/../ply-boot-splash-plugin.h               \
-                          $(srcdir)/../ply-window.h                           \
-                          $(srcdir)/../ply-window.c                           \
-                          $(srcdir)/../ply-boot-splash.h                      \
+ply_boot_splash_test_SOURCES =                                                   \
+                          $(srcdir)/../libplybootsplash/ply-answer.h             \
+                          $(srcdir)/../libplybootsplash/ply-answer.c             \
+                          $(srcdir)/../libplybootsplash/ply-boot-splash-plugin.h \
+                          $(srcdir)/../libplybootsplash/ply-window.h             \
+                          $(srcdir)/../libplybootsplash/ply-window.c             \
+                          $(srcdir)/../ply-boot-splash.h                         \
                           $(srcdir)/../ply-boot-splash.c

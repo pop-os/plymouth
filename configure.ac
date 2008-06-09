@@ -66,6 +66,8 @@ AC_SUBST(background_color)
 
 AC_OUTPUT([Makefile
            src/libply/Makefile
+           src/libplybootsplash/Makefile
+           src/plymouth-1.pc
            src/splash-plugins/Makefile
            src/splash-plugins/spinfinity/Makefile
            src/splash-plugins/fade-in/Makefile

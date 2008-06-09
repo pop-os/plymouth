@@ -28,6 +28,4 @@ stamp-*
 *.rpm
 plymouth
 plymouthd
-
-
-
+*.pc

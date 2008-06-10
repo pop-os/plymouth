@@ -6,7 +6,7 @@ set -e
 
 [ -z "$LIBEXECDIR" ] && LIBEXECDIR="/usr/libexec"
 [ -z "$DATADIR" ] && DATADIR="/usr/share"
-[ -z "$INITRD" ] && INITRD="/boot/initrd-$(/bin/uname -r).img"
+[ -z "$INITRD" ] && INITRD="/boot/initrd-$(/sbin/grubby --default-kernel | sed 's/.*vmlinuz-//g').img"
 [ -z "$SYSTEMMAP" ] && SYSTEM_MAP="/boot/System.map-$(/bin/uname -r)"
 [ -z "$LIB" ] && [ $(head -n1 $SYSTEM_MAP | awk '{print $1}' | wc -c) -lt 16 ] && LIB="lib" || LIB="lib64"
 [ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"

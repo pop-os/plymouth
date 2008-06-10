@@ -233,6 +233,19 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
   buffer->alpha_bit_position = variable_screen_info.transp.offset;
   buffer->bits_for_alpha = variable_screen_info.transp.length;
 
+  /* Normally the pixel is divided between the color components.
+   * If we have less bits per pixel than bits per color component,
+   * then we know we aren't using a direct color mapping.  Instead
+   * we must be using an indexed palette and a pseudocolor mode, which
+   * we don't support.
+   */
+  if (variable_screen_info.bits_per_pixel <
+      buffer->bits_for_red + buffer->bits_for_green + buffer->bits_for_blue)
+    {
+      return false;
+    }
+
+
   if (ioctl(buffer->device_fd, FBIOGET_FSCREENINFO, &fixed_screen_info) < 0) 
     {
       return false;

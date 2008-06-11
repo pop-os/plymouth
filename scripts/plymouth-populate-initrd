@@ -102,14 +102,17 @@ install -m755 ${LIBDIR}/plymouth/details.so ${INITRDDIR}${LIBDIR}/plymouth
 install -D -m644 ${PLYMOUTH_LOGO_FILE} ${INITRDDIR}${PLYMOUTH_LOGO_FILE}
 mkdir -p ${INITRDDIR}${DATADIR}/plymouth
 
-# XXX should create a per-plugin script to do this
-if [ -f /${LIBDIR}/plymouth/spinfinity.so ]; then
-    install -m755 ${LIBDIR}/plymouth/spinfinity.so ${INITRDDIR}${LIBDIR}/plymouth
-
-    mkdir -p ${INITRDDIR}${DATADIR}/plymouth/spinfinity
-    install -m644 ${DATADIR}/plymouth/spinfinity/lock.png ${INITRDDIR}${DATADIR}/plymouth/spinfinity
-    install -m644 ${DATADIR}/plymouth/spinfinity/entry.png ${INITRDDIR}${DATADIR}/plymouth/spinfinity
-    install -m644 ${DATADIR}/plymouth/spinfinity/bullet.png ${INITRDDIR}${DATADIR}/plymouth/spinfinity
-    install -m644 ${DATADIR}/plymouth/spinfinity/box.png ${INITRDDIR}${DATADIR}/plymouth/spinfinity
-    install -m644 ${DATADIR}/plymouth/spinfinity/throbber-[0-3][0-9].png ${INITRDDIR}${DATADIR}/plymouth/spinfinity
+if [ ! -L ${LIBDIR}/plymouth/graphical.so ]; then
+   echo "${LIBDIR}/plymouth/graphical.so needs to be a symlink to desired plugin" > /dev/stderr
+   exit 1;
 fi
+
+PLUGIN_NAME=$(basename $(readlink ${LIBDIR}/plymouth/graphical.so) .so)
+
+if [ ! -f ${LIBDIR}/plymouth/${PLUGIN_NAME}.so ]; then
+   echo "${LIBDIR}/plymouth/graphical.so links to ${LIBDIR}/plymouth/${PLUGIN_NAME}.so which doesn't exist" > /dev/stderr
+   exit 1;
+fi
+
+install -m755 ${LIBDIR}/plymouth/${PLUGIN_NAME}.so ${INITRDDIR}${LIBDIR}/plymouth
+install -D -m644 ${DATADIR}/plymouth/${PLUGIN_NAME}/* ${INITRDDIR}${DATADIR}/plymouth/${PLUGIN_NAME}

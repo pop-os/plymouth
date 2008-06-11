@@ -115,4 +115,6 @@ if [ ! -f ${LIBDIR}/plymouth/${PLUGIN_NAME}.so ]; then
 fi
 
 install -m755 ${LIBDIR}/plymouth/${PLUGIN_NAME}.so ${INITRDDIR}${LIBDIR}/plymouth
+mkdir -p ${INITRDDIR}${DATADIR}/plymouth/${PLUGIN_NAME}
+install -m644 ${DATADIR}/plymouth/${PLUGIN_NAME}/* ${INITRDDIR}${DATADIR}/plymouth/${PLUGIN_NAME}
 install -D -m644 ${DATADIR}/plymouth/${PLUGIN_NAME}/* ${INITRDDIR}${DATADIR}/plymouth/${PLUGIN_NAME}

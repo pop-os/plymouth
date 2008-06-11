@@ -70,6 +70,14 @@ AC_SUBST(background_start_color)
 AC_ARG_WITH(background-end-color-stop, AC_HELP_STRING([--with-background-end-color], [first color end in background gradients used by boot splash plugins]),background_end_color=${withval},background_end_color=0x3a362f)
 AC_SUBST(background_end_color)
 
+AC_ARG_WITH(default-plugin, AC_HELP_STRING([--with-default-plugin=fade-in], [Plugin to use by default]),default_plugin_name=${withval},default_plugin_name=fade-in)
+AM_CONDITIONAL(ADD_DEFAULT_PLUGIN_LINK,
+               [test "$default_plugin_name" = "spinfinity" \
+                  -o "$default_plugin_name" = "fade-in"    \
+                  -o "$default_plugin_name" = "text"       \
+                  -o "$default_plugin_name" = "details"])
+AC_SUBST(default_plugin_name)
+
 AC_OUTPUT([Makefile
            src/libply/Makefile
            src/libplybootsplash/Makefile

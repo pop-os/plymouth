@@ -11,7 +11,7 @@ set -e
 [ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
 [ -z "$BINDIR" ] && BINDIR="/usr/bin"
 [ -z "$GRUB_MENU_TITLE" ] && GRUB_MENU_TITLE="Graphical Bootup"
-[ -z "$PLYMOUTH_LOGO_FILE" ] && PLYMOUTH_LOGO_FILE="/usr/share/pixmaps/system-logo-white.png"
+[ -z "$PLYMOUTH_LOGO_FILE" ] && PLYMOUTH_LOGO_FILE="@logofile@"
 
 INITRDDIR=$1 && shift
 if [ -z "$INITRDDIR" ]; then

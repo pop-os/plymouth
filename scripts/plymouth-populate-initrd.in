@@ -87,7 +87,7 @@ EOF
 (cd $LIBDIR
     BINS="${LIBEXECDIR}/plymouth/plymouthd ${BINDIR}/plymouth ${LIBDIR}/plymouth/spinfinity.so ${LIBDIR}/plymouth/text.so ${LIBDIR}/plymouth/details.so"
     for bin in $BINS ; do
-    	DEPS=$(get_dso_deps $bin)
+        DEPS=$(get_dso_deps $bin)
         for dep in $DEPS; do
             install -D -m755 $dep ${INITRDDIR}$(dirname $dep)
         done

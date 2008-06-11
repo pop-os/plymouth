@@ -20,9 +20,9 @@ fi
 
 function get_lib_deps()
 {
-    
+
     while [ $# -gt 0 ]; do
-        /usr/bin/ldd $1 | sed -n 's/.*=> \?\([^ ]*\) (.*$/\1/p' 
+        /usr/bin/ldd $1 | sed -n 's/.*=> \?\([^ ]*\) (.*$/\1/p'
         shift
     done | sort -u
 }
@@ -39,7 +39,7 @@ TMPDIR="$(mktemp -d $PWD/initrd.XXXXXXXXXX)"
             install -D -m755 $dep ${TMPDIR}$(dirname $dep)
         done
     )
-    /sbin/ldconfig -n $LIB 
+    /sbin/ldconfig -n $LIB
     /sbin/ldconfig -n .${LIBDIR}
 
     install -m755 ${LIBEXECDIR}/plymouth/plymouthd bin

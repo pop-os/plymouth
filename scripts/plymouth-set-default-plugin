@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -e
+
+[ -z "$LIBEXECDIR" ] && LIBEXECDIR="/usr/libexec"
+[ -z "$DATADIR" ] && DATADIR="/usr/share"
+[ -z "$LIB" ] && $(eu-readelf -h /usr/bin/plymouth | grep Class | grep -q ELF64) && LIB="lib64" || LIB="lib"
+[ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
+[ -z "$BINDIR" ] && BINDIR="/usr/bin"
+
+if [ $# -lt 1 ]; then
+        basename $(readlink ${LIBDIR}/plymouth/graphical.so) .so
+        exit $?
+fi
+
+if [ `id -u` -ne 0 ]; then
+        echo "This program must be run as root" > /dev/stderr
+        exit 1
+fi
+
+if [ ! -e ${LIBDIR}/plymouth/$1.so ]; then
+        echo "${LIBDIR}/plymouth/$1.so does not exist" > /dev/stderr
+        exit 1
+fi
+
+(cd ${LIBDIR}/plymouth; ln -sf $1 graphical.so)
+

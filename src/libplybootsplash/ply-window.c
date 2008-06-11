@@ -373,7 +373,8 @@ ply_window_set_mode (ply_window_t      *window,
         break;
 
       case PLY_WINDOW_MODE_GRAPHICS:
-        if (!ply_frame_buffer_device_is_open (window->frame_buffer))
+        if (!ply_frame_buffer_device_is_open (window->frame_buffer)
+            && !ply_frame_buffer_open (window->frame_buffer))
           return false;
 
         if (ioctl (window->tty_fd, KDSETMODE,

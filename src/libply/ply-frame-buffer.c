@@ -202,7 +202,7 @@ flush_xrgb32 (ply_frame_buffer_t *buffer)
     }
 }
 
-static bool 
+static bool
 ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
 {
   struct fb_var_screeninfo variable_screen_info;
@@ -212,9 +212,46 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
   assert (buffer->device_fd >= 0);
 
   if (ioctl (buffer->device_fd, FBIOGET_VSCREENINFO, &variable_screen_info) < 0)
+    return false;
+
+  if (ioctl(buffer->device_fd, FBIOGET_FSCREENINFO, &fixed_screen_info) < 0)
+    return false;
+
+  /* Normally the pixel is divided into channels between the color components.
+   * Each channel directly maps to a color channel on the hardware.
+   *
+   * There are some odd ball modes that use an indexed palette instead.  In
+   * those cases (pseudocolor, direct color, etc), the pixel value is just an
+   * index into a lookup table of the real color values.
+   *
+   * We don't support that.
+   */
+  if (fixed_screen_info.visual != FB_VISUAL_TRUECOLOR)
     {
-      return false;
+      int rc = -1;
+      int i;
+      int depths[] = {32, 24, 16, 0};
+
+      for (i = 0; depths[i] != 0; i++)
+        {
+          variable_screen_info.bits_per_pixel = depths[i];
+          variable_screen_info.activate |= FB_ACTIVATE_NOW | FB_ACTIVATE_FORCE;
+
+          rc = ioctl(buffer->device_fd, FBIOPUT_VSCREENINFO, &variable_screen_info);
+          if (rc >= 0)
+            break;
+        }
+
+      if (ioctl(buffer->device_fd, FBIOGET_VSCREENINFO, &variable_screen_info) < 0)
+        return false;
+
+      if (ioctl(buffer->device_fd, FBIOGET_FSCREENINFO, &fixed_screen_info) < 0)
+        return false;
     }
+
+  if (fixed_screen_info.visual != FB_VISUAL_TRUECOLOR ||
+      variable_screen_info.bits_per_pixel < 16)
+    return false;
 
   buffer->area.x = variable_screen_info.xoffset;
   buffer->area.y = variable_screen_info.yoffset;
@@ -233,40 +270,14 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
   buffer->alpha_bit_position = variable_screen_info.transp.offset;
   buffer->bits_for_alpha = variable_screen_info.transp.length;
 
-  if (variable_screen_info.bits_per_pixel <
-      buffer->bits_for_red + buffer->bits_for_green + buffer->bits_for_blue)
-    {
-      return false;
-    }
-
-
-  if (ioctl(buffer->device_fd, FBIOGET_FSCREENINFO, &fixed_screen_info) < 0) 
-    {
-      return false;
-    }
-
-  /* Normally the pixel is divided into channels between the color components.
-   * Each channel directly maps to a color channel on the hardware.
-   *
-   * There are some odd ball modes that use an indexed palette instead.  In
-   * those cases (pseudocolor, direct color, etc), the pixel value is just an
-   * index into a lookup table of the real color values.
-   *
-   * We don't support that.
-   */
-  if (fixed_screen_info.visual != FB_VISUAL_TRUECOLOR)
-    {
-      return false;
-    }
-
   buffer->bytes_per_pixel = variable_screen_info.bits_per_pixel >> 3;
   buffer->row_stride = fixed_screen_info.line_length / buffer->bytes_per_pixel;
   buffer->size = buffer->area.height * buffer->row_stride * buffer->bytes_per_pixel;
 
   if (buffer->bytes_per_pixel == 4 &&
-      buffer->red_bit_position == 16 &&
-      buffer->green_bit_position == 8 &&
-      buffer->blue_bit_position == 0)
+      buffer->red_bit_position == 16 && buffer->bits_for_red == 8 &&
+      buffer->green_bit_position == 8 && buffer->bits_for_green == 8 &&
+      buffer->blue_bit_position == 0 && buffer->bits_for_blue == 8)
     buffer->flush = flush_xrgb32;
   else
     buffer->flush = flush_generic;

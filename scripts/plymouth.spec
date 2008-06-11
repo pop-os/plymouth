@@ -38,6 +38,7 @@ Summary: Plymouth "Fade-In" plugin
 Group: System Environment/Base
 Requires: %name = %{version}-%{release}
 BuildRequires: libpng-devel
+Provides: plymouth-plugin
 
 %description plugin-fade-in
 This package contains the "Fade-In" boot splash plugin for
@@ -49,6 +50,7 @@ Summary: Plymouth "Spinfinity" plugin
 Group: System Environment/Base
 Requires: %name = %{version}-%{release}
 BuildRequires: libpng-devel
+Provides: plymouth-plugin
 
 %description plugin-spinfinity
 This package contains the "Spinfinity" boot splash plugin for
@@ -76,6 +78,26 @@ rm -rf $RPM_BUILD_ROOT
 
 %post -p /sbin/ldconfig
 %postun -p /sbin/ldconfig
+
+%post plugin-spinfinity
+if [ $1 -eq 1 ]; then
+    %{_sbindir}/plymouth-set-default-plugin spinfinity
+fi
+
+%postun plugin-spinfinity
+if [ $1 -eq 0 ]; then
+    %{_sbindir}/plymouth-set-default-plugin --reset
+fi
+
+%post plugin-fade-in
+if [ $1 -eq 1 ]; then
+    %{_sbindir}/plymouth-set-default-plugin fade-in
+fi
+
+%postun plugin-fade-in
+if [ $1 -eq 0 ]; then
+    %{_sbindir}/plymouth-set-default-plugin --reset
+fi
 
 %files
 %defattr(-, root, root)

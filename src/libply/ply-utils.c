@@ -664,7 +664,7 @@ ply_open_module (const char *module_path)
 
   if (handle == NULL)
     {
-      dlerror ();
+      ply_trace("Could not load module \"%s\": %s\n", module_path, dlerror());
       if (errno == 0)
         errno = ELIBACC;
     }

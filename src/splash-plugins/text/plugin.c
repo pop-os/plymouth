@@ -60,8 +60,6 @@ struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
 
-  int console_fd;
-
   ply_answer_t *pending_password_answer;
 
   uint32_t keyboard_input_is_hidden : 1;
@@ -75,7 +73,6 @@ create_plugin (void)
   ply_trace ("creating plugin");
 
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
-  plugin->console_fd = -1;
 
   return plugin;
 }
@@ -89,19 +86,6 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
     return;
 
   free (plugin);
-}
-
-static bool
-open_console (ply_boot_splash_plugin_t *plugin)
-{
-  assert (plugin != NULL);
-
-  plugin->console_fd = open ("/dev/tty1", O_RDWR | O_APPEND | O_NOCTTY);
-
-  if (plugin->console_fd < 0)
-    return false;
-
-  return true;
 }
 
 static void
@@ -165,10 +149,6 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                                  detach_from_event_loop,
                                  plugin);
 
-  ply_trace ("opening console");
-  if (!open_console (plugin))
-    return false;
-
   return true;
 }
 
@@ -179,7 +159,7 @@ update_status (ply_boot_splash_plugin_t *plugin,
   assert (plugin != NULL);
 
   ply_trace ("status update");
-  write (plugin->console_fd, ".", 1);
+  write (1, ".", 1);
 }
 
 void

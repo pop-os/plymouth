@@ -17,5 +17,10 @@ install-data-hook: plymouth-update-initrd plymouth-populate-initrd
 	PLYMOUTH_LOGO_FILE=$(logofile) $(initrdscriptdir)/plymouth-update-initrd
 endif
 
-EXTRA_DIST=$(initrdscript_SCRIPTS) $(sbinscripts_SCRIPTS) $(noinst_SCRIPTS) default.cfg
+EXTRA_DIST=$(initrdscript_SCRIPTS)                                             \
+           plymouth-update-initrd.in                                           \
+           plymouth-populate-initrd.in                                         \
+           $(sbinscripts_SCRIPTS)                                              \
+           $(noinst_SCRIPTS)                                                   \
+           default.cfg
 MAINTAINERCLEANFILES = Makefile.in plymouth-update-inird plymouth-populate-initrd

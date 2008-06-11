@@ -106,9 +106,10 @@ static void
 on_newroot (state_t    *state,
              const char *root_dir)
 {
-  ply_trace ("new root mounted, switching to it");
+  ply_trace ("new root mounted at \"%s\", switching to it", root_dir);
   chdir(root_dir);
   chroot(".");
+  chdir("/");
 }
 
 static void
@@ -338,16 +339,23 @@ plymouth_should_be_running (state_t *state)
   ply_trace ("checking if plymouth should be running");
 
   const char const *strings[] = {
-      " single ", " single", "single ",
-      " 1 ", " 1", "1 ",
-      " init=",
+      " single ", " single", "^single ",
+      " 1 ", " 1", "^1 ",
+      " init=", "^init=",
       NULL
   };
   int i;
 
   for (i = 0; strings[i] != NULL; i++)
     {
-      if (strstr (state->kernel_command_line, strings[i]) != NULL)
+      int cmp;
+      if (strings[0] == '^')
+          cmp = strncmp(state->kernel_command_line, strings+1,
+                        strlen(strings+1)) == 0;
+      else
+          cmp = strstr (state->kernel_command_line, strings[i]) != NULL;
+
+      if (cmp)
         {
           ply_trace ("kernel command line has option \"%s\"", strings[i]);
           return false;

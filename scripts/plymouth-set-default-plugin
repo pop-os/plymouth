@@ -18,10 +18,19 @@ if [ `id -u` -ne 0 ]; then
         exit 1
 fi
 
-if [ ! -e ${LIBDIR}/plymouth/$1.so ]; then
-        echo "${LIBDIR}/plymouth/$1.so does not exist" > /dev/stderr
+PLUGIN_NAME=$1
+if [ $1 = '--reset' ]; then
+        PLUGIN_NAME=$(basename $(ls -1 -t ${LIBDIR}/plymouth/*.so 2> /dev/null | grep -v graphical.so | head -n 1) .so)
+        if [ $PLUGIN_NAME = .so ]; then
+                rm -f ${LIBDIR}/plymouth/graphical.so
+                exit 0
+        fi
+fi
+
+if [ ! -e ${LIBDIR}/plymouth/${PLUGIN_NAME}.so ]; then
+        echo "${LIBDIR}/plymouth/${PLUGIN_NAME}.so does not exist" > /dev/stderr
         exit 1
 fi
 
-(cd ${LIBDIR}/plymouth; ln -sf $1 graphical.so)
+(cd ${LIBDIR}/plymouth; ln -sf ${PLUGIN_NAME}.so graphical.so)
 

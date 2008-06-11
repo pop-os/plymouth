@@ -61,7 +61,7 @@ spins in the shape of an infinity sign.
 %setup -q
 
 %build
-%configure --enable-tracing --disable-tests --without-boot-entry
+%configure --enable-tracing --disable-tests --without-boot-entry --without-default-plugin
 
 make
 
@@ -78,6 +78,10 @@ rm -rf $RPM_BUILD_ROOT
 
 %post -p /sbin/ldconfig
 %postun -p /sbin/ldconfig
+%preun
+if [ $1 -eq 1 ]; then
+    %{_sbindir}/plymouth-set-default-plugin --reset
+fi
 
 %post plugin-spinfinity
 if [ $1 -eq 1 ]; then
@@ -99,6 +103,7 @@ if [ $1 -eq 0 ]; then
     %{_sbindir}/plymouth-set-default-plugin --reset
 fi
 
+
 %files
 %defattr(-, root, root)
 %doc AUTHORS NEWS README
@@ -106,6 +111,7 @@ fi
 %{_libexecdir}/plymouth/plymouthd
 %{_libexecdir}/plymouth/plymouth-update-initrd
 %{_libexecdir}/plymouth/plymouth-populate-initrd
+%{_sbindir}/plymouth/plymouth-set-default-plugin
 %{_bindir}/plymouth
 %{_bindir}/rhgb-client
 %{_libdir}/plymouth/details.so

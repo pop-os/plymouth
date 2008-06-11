@@ -1,7 +1,7 @@
 Summary: Plymouth Graphical Boot Animation and Logger
 Name: plymouth
-Version: 0.1.0
-Release: 1
+Version: 0.2.0
+Release: 0%{?dist}
 License: GPLv2+
 Group: System Environment/Base
 Source0: http://freedesktop.org/software/plymouth/releases/%{name}-%{version}.tar.bz2
@@ -111,7 +111,7 @@ fi
 %{_libexecdir}/plymouth/plymouthd
 %{_libexecdir}/plymouth/plymouth-update-initrd
 %{_libexecdir}/plymouth/plymouth-populate-initrd
-%{_sbindir}/plymouth/plymouth-set-default-plugin
+%{_sbindir}/plymouth-set-default-plugin
 %{_bindir}/plymouth
 %{_bindir}/rhgb-client
 %{_libdir}/plymouth/details.so
@@ -146,5 +146,6 @@ fi
 %{_datadir}/plymouth/spinfinity/bullet.png
 %{_datadir}/plymouth/spinfinity/entry.png
 %{_datadir}/plymouth/spinfinity/lock.png
+%{_datadir}/plymouth/spinfinity/bizcom.png
 %{_datadir}/plymouth/spinfinity/throbber-[0-3][0-9].png
 %{_libdir}/plymouth/spinfinity.so

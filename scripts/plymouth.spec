@@ -116,6 +116,7 @@ fi
 %{_bindir}/rhgb-client
 %{_libdir}/plymouth/details.so
 %{_libdir}/plymouth/text.so
+%{_datadir}/plymouth/bizcom.png
 %{_localstatedir}/run/plymouth
 
 %files devel
@@ -146,6 +147,5 @@ fi
 %{_datadir}/plymouth/spinfinity/bullet.png
 %{_datadir}/plymouth/spinfinity/entry.png
 %{_datadir}/plymouth/spinfinity/lock.png
-%{_datadir}/plymouth/spinfinity/bizcom.png
 %{_datadir}/plymouth/spinfinity/throbber-[0-3][0-9].png
 %{_libdir}/plymouth/spinfinity.so

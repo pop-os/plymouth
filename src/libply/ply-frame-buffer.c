@@ -22,6 +22,7 @@
  */
 #include "config.h"
 #include "ply-frame-buffer.h"
+#include "ply-logger.h"
 
 #include <arpa/inet.h>
 #include <assert.h>
@@ -202,6 +203,29 @@ flush_xrgb32 (ply_frame_buffer_t *buffer)
     }
 }
 
+static const char const *p_visual(int visual)
+{
+  static const char const *visuals[] =
+    {
+      [FB_VISUAL_MONO01] = "FB_VISUAL_MONO01",
+      [FB_VISUAL_MONO10] = "FB_VISUAL_MONO10",
+      [FB_VISUAL_TRUECOLOR] = "FB_VISUAL_TRUECOLOR",
+      [FB_VISUAL_PSEUDOCOLOR] = "FB_VISUAL_PSEUDOCOLOR",
+      [FB_VISUAL_DIRECTCOLOR] = "FB_VISUAL_DIRECTCOLOR",
+      [FB_VISUAL_STATIC_PSEUDOCOLOR] = "FB_VISUAL_STATIC_PSEUDOCOLOR",
+      NULL
+    };
+  static char unknown[] = "invalid visual: -4294967295";
+
+  if (visual < FB_VISUAL_MONO01 || visual > FB_VISUAL_STATIC_PSEUDOCOLOR)
+    {
+      sprintf(unknown, "invalid visual: %d", visual);
+      return unknown;
+    }
+
+  return visuals[visual];
+}
+
 static bool
 ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
 {
@@ -232,6 +256,9 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
       int i;
       int depths[] = {32, 24, 16, 0};
 
+      ply_trace("Visual was %s, trying to find usable mode.\n",
+                p_visual(fixed_screen_info.visual));
+
       for (i = 0; depths[i] != 0; i++)
         {
           variable_screen_info.bits_per_pixel = depths[i];
@@ -239,7 +266,12 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
 
           rc = ioctl(buffer->device_fd, FBIOPUT_VSCREENINFO, &variable_screen_info);
           if (rc >= 0)
-            break;
+            {
+              if (ioctl(buffer->device_fd, FBIOGET_FSCREENINFO, &fixed_screen_info) < 0)
+                return false;
+              if (fixed_screen_info.visual == FB_VISUAL_TRUECOLOR)
+                break;
+            }
         }
 
       if (ioctl(buffer->device_fd, FBIOGET_VSCREENINFO, &variable_screen_info) < 0)
@@ -251,7 +283,11 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
 
   if (fixed_screen_info.visual != FB_VISUAL_TRUECOLOR ||
       variable_screen_info.bits_per_pixel < 16)
-    return false;
+    {
+      ply_trace("Visual is %s; not using graphics\n", 
+                p_visual(fixed_screen_info.visual));
+      return false;
+    }
 
   buffer->area.x = variable_screen_info.xoffset;
   buffer->area.y = variable_screen_info.yoffset;

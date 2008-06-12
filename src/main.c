@@ -349,9 +349,9 @@ plymouth_should_be_running (state_t *state)
   for (i = 0; strings[i] != NULL; i++)
     {
       int cmp;
-      if (strings[0] == '^')
-          cmp = strncmp(state->kernel_command_line, strings+1,
-                        strlen(strings+1)) == 0;
+      if (strings[i][0] == '^')
+          cmp = strncmp(state->kernel_command_line, strings[i]+1,
+                        strlen(strings[i]+1)) == 0;
       else
           cmp = strstr (state->kernel_command_line, strings[i]) != NULL;
 

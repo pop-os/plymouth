@@ -68,7 +68,7 @@ struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
   ply_frame_buffer_t *frame_buffer;
-  ply_frame_buffer_area_t box_area, lock_area;
+  ply_frame_buffer_area_t box_area, lock_area, logo_area;
   ply_image_t *logo_image;
   ply_image_t *bullet_image;
   ply_image_t *lock_image;
@@ -155,23 +155,22 @@ draw_background (ply_boot_splash_plugin_t *plugin,
 static void
 draw_logo (ply_boot_splash_plugin_t *plugin)
 {
-  ply_frame_buffer_area_t logo_area;
   uint32_t *logo_data;
   long width, height;
 
   width = ply_image_get_width (plugin->logo_image);
   height = ply_image_get_height (plugin->logo_image);
   logo_data = ply_image_get_data (plugin->logo_image);
-  ply_frame_buffer_get_size (plugin->frame_buffer, &logo_area);
-  logo_area.x = (logo_area.width / 2) - (width / 2);
-  logo_area.y = (logo_area.height / 2) - (height / 2);
-  logo_area.width = width;
-  logo_area.height = height;
+  ply_frame_buffer_get_size (plugin->frame_buffer, &plugin->logo_area);
+  plugin->logo_area.x = (plugin->logo_area.width / 2) - (width / 2);
+  plugin->logo_area.y = (plugin->logo_area.height / 2) - (height / 2);
+  plugin->logo_area.width = width;
+  plugin->logo_area.height = height;
 
   ply_frame_buffer_pause_updates (plugin->frame_buffer);
-  draw_background (plugin, &logo_area);
+  draw_background (plugin, &plugin->logo_area);
   ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer, 
-                                          &logo_area, 0, 0,
+                                          &plugin->logo_area, 0, 0,
                                           logo_data);
   ply_frame_buffer_unpause_updates (plugin->frame_buffer);
 }
@@ -196,7 +195,7 @@ start_animation (ply_boot_splash_plugin_t *plugin)
                   plugin->loop,
                   plugin->window,
                   area.width / 2.0 - width / 2.0,
-                  area.width / 2.0 - height / 2.0);
+                  area.height / 2.0 - height / 2.0);
 }
 
 static void

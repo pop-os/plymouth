@@ -23,6 +23,7 @@
 
 #include <errno.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "ply-boot-client.h"
 #include "ply-command-parser.h"
@@ -74,7 +75,6 @@ main (int    argc,
   bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash;
   char *status, *chroot_dir;
   int exit_code;
-  int i;
 
   exit_code = 0;
 

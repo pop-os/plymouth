@@ -35,7 +35,7 @@ typedef void (* ply_terminal_session_begin_handler_t)
     (void *user_data, ply_terminal_session_t *session);
 
 typedef void (* ply_terminal_session_output_handler_t)
-    (void *user_data, const char *output, size_t size, ply_terminal_session_t *session);
+    (void *user_data, const uint8_t *output, size_t size, ply_terminal_session_t *session);
 typedef void (* ply_terminal_session_done_handler_t) 
     (void *user_data, ply_terminal_session_t *session);
 

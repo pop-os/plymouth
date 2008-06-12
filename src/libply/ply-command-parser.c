@@ -193,6 +193,9 @@ append_command_options_to_buffer (ply_command_parser_t *parser,
           case PLY_COMMAND_OPTION_TYPE_INTEGER:
               option_type_string = "=<integer>";
               break;
+          default:
+              option_type_string = "";
+              break;
         }
 
       option_width = command->longest_option_length - strlen (option->name) +

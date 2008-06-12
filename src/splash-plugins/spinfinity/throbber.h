@@ -37,6 +37,7 @@ throbber_t *throbber_new (const char *image_dir,
                           const char *frames_prefix);
 void throbber_free (throbber_t *throbber);
 
+bool throbber_load (throbber_t *throbber);
 bool throbber_start (throbber_t         *throbber,
                      ply_event_loop_t   *loop,
                      ply_window_t       *window,

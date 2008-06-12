@@ -85,12 +85,12 @@ throbber_new (const char *image_dir,
   throbber->frames = ply_array_new ();
   throbber->frames_prefix = strdup (frames_prefix);
   throbber->image_dir = strdup (image_dir);
-  throbber->width = 82;
-  throbber->height = 47;
+  throbber->width = 0;
+  throbber->height = 0;
   throbber->frame_area.width = 0;
   throbber->frame_area.height = 0;
-  throbber->frame_area.x = 700;
-  throbber->frame_area.y = 700;
+  throbber->frame_area.x = 0;
+  throbber->frame_area.y = 0;
 
   return throbber;
 }
@@ -262,6 +262,18 @@ out:
 }
 
 bool
+throbber_load (throbber_t *throbber)
+{
+  if (ply_array_get_size (throbber->frames) != 0)
+    throbber_remove_frames (throbber->frames);
+
+  if (!throbber_add_frames (throbber))
+    return false;
+
+  return true;
+}
+
+bool
 throbber_start (throbber_t         *throbber,
                 ply_event_loop_t   *loop,
                 ply_window_t       *window,
@@ -270,12 +282,6 @@ throbber_start (throbber_t         *throbber,
 {
   assert (throbber != NULL);
   assert (throbber->loop == NULL);
-
-  if (ply_array_get_size (throbber->frames) == 0)
-    {
-      if (!throbber_add_frames (throbber))
-        return false;
-    }
 
   throbber->loop = loop;
   throbber->window = window;

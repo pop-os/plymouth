@@ -325,6 +325,10 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   if (!ply_image_load (plugin->box_image))
     return false;
 
+  ply_trace ("loading throbber");
+  if (!throbber_load (plugin->throbber))
+    return false;
+
   plugin->window = window;
 
   ply_trace ("setting graphics mode");

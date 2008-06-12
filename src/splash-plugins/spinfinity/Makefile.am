@@ -17,9 +17,7 @@ spinfinity_la_LDFLAGS = -module -avoid-version -export-dynamic
 spinfinity_la_LIBADD = $(PLYMOUTH_LIBS)                                      \
                        ../../libply/libply.la                                \
                        ../../libplybootsplash/libplybootsplash.la
-spinfinity_la_SOURCES = $(srcdir)/plugin.c                                   \
-                        $(srcdir)/throbber.h                                 \
-                        $(srcdir)/throbber.c
+spinfinity_la_SOURCES = $(srcdir)/plugin.c
 
 throbber_frames =                                                            \
                     throbber-00.png                                          \

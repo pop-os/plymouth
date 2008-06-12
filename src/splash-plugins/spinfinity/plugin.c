@@ -50,7 +50,7 @@
 #include "ply-utils.h"
 #include "ply-window.h"
 
-#include "throbber.h"
+#include "ply-throbber.h"
 
 #include <linux/kd.h>
 
@@ -77,7 +77,7 @@ struct _ply_boot_splash_plugin
   ply_window_t *window;
 
   entry_t *entry;
-  throbber_t *throbber;
+  ply_throbber_t *throbber;
 
   ply_answer_t *pending_password_answer;
 };
@@ -99,7 +99,7 @@ create_plugin (void)
   plugin->entry_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/entry.png");
   plugin->box_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/box.png");
 
-  plugin->throbber = throbber_new (PLYMOUTH_IMAGE_DIR "spinfinity",
+  plugin->throbber = ply_throbber_new (PLYMOUTH_IMAGE_DIR "spinfinity",
                                    "throbber-");
 
   return plugin;
@@ -140,7 +140,7 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_image_free (plugin->entry_image);
   ply_image_free (plugin->box_image);
   ply_image_free (plugin->lock_image);
-  throbber_free (plugin->throbber);
+  ply_throbber_free (plugin->throbber);
   free (plugin);
 }
 
@@ -189,9 +189,9 @@ start_animation (ply_boot_splash_plugin_t *plugin)
 
   ply_frame_buffer_get_size (plugin->frame_buffer, &area);
 
-  width = throbber_get_width (plugin->throbber);
-  height = throbber_get_height (plugin->throbber);
-  throbber_start (plugin->throbber,
+  width = ply_throbber_get_width (plugin->throbber);
+  height = ply_throbber_get_height (plugin->throbber);
+  ply_throbber_start (plugin->throbber,
                   plugin->loop,
                   plugin->window,
                   area.width / 2.0 - width / 2.0,
@@ -206,7 +206,7 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
-  throbber_stop (plugin->throbber);
+  ply_throbber_stop (plugin->throbber);
 
   for (i = 0; i < 10; i++)
     {
@@ -325,7 +325,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
     return false;
 
   ply_trace ("loading throbber");
-  if (!throbber_load (plugin->throbber))
+  if (!ply_throbber_load (plugin->throbber))
     return false;
 
   plugin->window = window;

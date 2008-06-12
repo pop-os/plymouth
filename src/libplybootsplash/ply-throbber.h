@@ -30,23 +30,23 @@
 #include "ply-frame-buffer.h"
 #include "ply-window.h"
 
-typedef struct _throbber throbber_t;
+typedef struct _ply_throbber ply_throbber_t;
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-throbber_t *throbber_new (const char *image_dir,
-                          const char *frames_prefix);
-void throbber_free (throbber_t *throbber);
+ply_throbber_t *ply_throbber_new (const char *image_dir,
+                                  const char *frames_prefix);
+void ply_throbber_free (ply_throbber_t *throbber);
 
-bool throbber_load (throbber_t *throbber);
-bool throbber_start (throbber_t         *throbber,
-                     ply_event_loop_t   *loop,
-                     ply_window_t       *window,
-                     long                x,
-                     long                y);
-void throbber_stop (throbber_t *throbber);
+bool ply_throbber_load (ply_throbber_t *throbber);
+bool ply_throbber_start (ply_throbber_t         *throbber,
+                         ply_event_loop_t   *loop,
+                         ply_window_t       *window,
+                         long                x,
+                         long                y);
+void ply_throbber_stop (ply_throbber_t *throbber);
 
-long throbber_get_width (throbber_t *throbber);
-long throbber_get_height (throbber_t *throbber);
+long ply_throbber_get_width (ply_throbber_t *throbber);
+long ply_throbber_get_height (ply_throbber_t *throbber);
 #endif
 
 #endif /* THROBBER_H */

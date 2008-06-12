@@ -40,7 +40,7 @@
 #include <unistd.h>
 #include <wchar.h>
 
-#include "throbber.h"
+#include "ply-throbber.h"
 #include "ply-event-loop.h"
 #include "ply-array.h"
 #include "ply-logger.h"
@@ -55,7 +55,7 @@
 #define FRAMES_PER_SECOND 30
 #endif
 
-struct _throbber
+struct _ply_throbber
 {
   ply_array_t *frames;
   ply_event_loop_t *loop;
@@ -71,16 +71,16 @@ struct _throbber
   double start_time, now;
 };
 
-throbber_t *
-throbber_new (const char *image_dir,
+ply_throbber_t *
+ply_throbber_new (const char *image_dir,
               const char *frames_prefix)
 {
-  throbber_t *throbber;
+  ply_throbber_t *throbber;
 
   assert (image_dir != NULL);
   assert (frames_prefix != NULL);
 
-  throbber = calloc (1, sizeof (throbber_t));
+  throbber = calloc (1, sizeof (ply_throbber_t));
 
   throbber->frames = ply_array_new ();
   throbber->frames_prefix = strdup (frames_prefix);
@@ -96,7 +96,7 @@ throbber_new (const char *image_dir,
 }
 
 static void
-throbber_remove_frames (throbber_t *throbber)
+ply_throbber_remove_frames (ply_throbber_t *throbber)
 {
   int i;
   ply_image_t **frames;
@@ -108,12 +108,12 @@ throbber_remove_frames (throbber_t *throbber)
 }
 
 void
-throbber_free (throbber_t *throbber)
+ply_throbber_free (ply_throbber_t *throbber)
 {
   if (throbber == NULL)
     return;
 
-  throbber_remove_frames (throbber);
+  ply_throbber_remove_frames (throbber);
   ply_array_free (throbber->frames);
 
   free (throbber->frames_prefix);
@@ -122,7 +122,7 @@ throbber_free (throbber_t *throbber)
 }
 
 static void
-animate_at_time (throbber_t *throbber,
+animate_at_time (ply_throbber_t *throbber,
                  double      time)
 {
   int number_of_frames;
@@ -159,7 +159,7 @@ animate_at_time (throbber_t *throbber,
 }
 
 static void
-on_timeout (throbber_t *throbber)
+on_timeout (ply_throbber_t *throbber)
 {
   double sleep_time;
   throbber->now = ply_get_timestamp ();
@@ -184,7 +184,7 @@ on_timeout (throbber_t *throbber)
 }
 
 static bool
-throbber_add_frame (throbber_t *throbber,
+ply_throbber_add_frame (ply_throbber_t *throbber,
                     const char *filename)
 {
   ply_image_t *image;
@@ -206,7 +206,7 @@ throbber_add_frame (throbber_t *throbber,
 }
 
 static bool
-throbber_add_frames (throbber_t *throbber)
+ply_throbber_add_frames (ply_throbber_t *throbber)
 {
   struct dirent **entries;
   int number_of_entries;
@@ -234,7 +234,7 @@ throbber_add_frames (throbber_t *throbber)
           filename = NULL;
           asprintf (&filename, "%s/%s", throbber->image_dir, entries[i]->d_name);
 
-          if (!throbber_add_frame (throbber, filename))
+          if (!ply_throbber_add_frame (throbber, filename))
             goto out;
 
           free (filename);
@@ -248,7 +248,7 @@ throbber_add_frames (throbber_t *throbber)
 out:
   if (!load_finished)
     {
-      throbber_remove_frames (throbber);
+      ply_throbber_remove_frames (throbber);
 
       while (entries[i] != NULL)
         {
@@ -262,19 +262,19 @@ out:
 }
 
 bool
-throbber_load (throbber_t *throbber)
+ply_throbber_load (ply_throbber_t *throbber)
 {
   if (ply_array_get_size (throbber->frames) != 0)
-    throbber_remove_frames (throbber->frames);
+    ply_throbber_remove_frames (throbber->frames);
 
-  if (!throbber_add_frames (throbber))
+  if (!ply_throbber_add_frames (throbber))
     return false;
 
   return true;
 }
 
 bool
-throbber_start (throbber_t         *throbber,
+ply_throbber_start (ply_throbber_t         *throbber,
                 ply_event_loop_t   *loop,
                 ply_window_t       *window,
                 long                x,
@@ -301,7 +301,7 @@ throbber_start (throbber_t         *throbber,
 }
 
 void
-throbber_stop (throbber_t *throbber)
+ply_throbber_stop (ply_throbber_t *throbber)
 {
   if (throbber->frame_area.width > 0)
     ply_frame_buffer_fill_with_hex_color (throbber->frame_buffer, &throbber->frame_area,
@@ -319,13 +319,13 @@ throbber_stop (throbber_t *throbber)
 }
 
 long
-throbber_get_width (throbber_t *throbber)
+ply_throbber_get_width (ply_throbber_t *throbber)
 {
   return throbber->width;
 }
 
 long
-throbber_get_height (throbber_t *throbber)
+ply_throbber_get_height (ply_throbber_t *throbber)
 {
   return throbber->height;
 }

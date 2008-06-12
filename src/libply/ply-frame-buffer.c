@@ -284,7 +284,7 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
   if (fixed_screen_info.visual != FB_VISUAL_TRUECOLOR ||
       variable_screen_info.bits_per_pixel < 16)
     {
-      ply_trace("Visual is %s; not using graphics\n", 
+      ply_trace("Visual is %s; not using graphics\n",
                 p_visual(fixed_screen_info.visual));
       return false;
     }

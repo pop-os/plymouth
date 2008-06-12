@@ -195,7 +195,7 @@ start_animation (ply_boot_splash_plugin_t *plugin)
                   plugin->loop,
                   plugin->window,
                   area.width / 2.0 - width / 2.0,
-                  area.height / 2.0 - height / 2.0);
+                  plugin->logo_area.y + plugin->logo_area.height + height / 2);
 }
 
 static void

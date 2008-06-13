@@ -102,20 +102,20 @@ install -m755 ${LIBDIR}/plymouth/details.so ${INITRDDIR}${LIBDIR}/plymouth
 install -D -m644 ${PLYMOUTH_LOGO_FILE} ${INITRDDIR}${PLYMOUTH_LOGO_FILE}
 mkdir -p ${INITRDDIR}${DATADIR}/plymouth
 
-if [ ! -L ${LIBDIR}/plymouth/graphical.so ]; then
-   echo "${LIBDIR}/plymouth/graphical.so needs to be a symlink to desired plugin" > /dev/stderr
+if [ ! -L ${LIBDIR}/plymouth/default.so ]; then
+   echo "${LIBDIR}/plymouth/default.so needs to be a symlink to desired plugin" > /dev/stderr
    exit 1;
 fi
 
-PLUGIN_NAME=$(basename $(readlink ${LIBDIR}/plymouth/graphical.so) .so)
+PLUGIN_NAME=$(basename $(readlink ${LIBDIR}/plymouth/default.so) .so)
 
 if [ ! -f ${LIBDIR}/plymouth/${PLUGIN_NAME}.so ]; then
-   echo "${LIBDIR}/plymouth/graphical.so links to ${LIBDIR}/plymouth/${PLUGIN_NAME}.so which doesn't exist" > /dev/stderr
+   echo "${LIBDIR}/plymouth/default.so links to ${LIBDIR}/plymouth/${PLUGIN_NAME}.so which doesn't exist" > /dev/stderr
    exit 1;
 fi
 
 install -m755 ${LIBDIR}/plymouth/${PLUGIN_NAME}.so ${INITRDDIR}${LIBDIR}/plymouth
-(cd ${INITRDDIR}${LIBDIR}/plymouth; ln -sf ${PLUGIN_NAME}.so graphical.so)
+(cd ${INITRDDIR}${LIBDIR}/plymouth; ln -sf ${PLUGIN_NAME}.so default.so)
 mkdir -p ${INITRDDIR}${DATADIR}/plymouth/${PLUGIN_NAME}
 install -m644 ${DATADIR}/plymouth/${PLUGIN_NAME}/* ${INITRDDIR}${DATADIR}/plymouth/${PLUGIN_NAME}
 install -D -m644 ${DATADIR}/plymouth/${PLUGIN_NAME}/* ${INITRDDIR}${DATADIR}/plymouth/${PLUGIN_NAME}

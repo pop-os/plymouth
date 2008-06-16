@@ -146,10 +146,10 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 
 static void
 draw_background (ply_boot_splash_plugin_t *plugin,
-		 ply_frame_buffer_area_t  *area)
+                 ply_frame_buffer_area_t  *area)
 {
-  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, area,
-					PLYMOUTH_BACKGROUND_COLOR);
+    ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, area,
+                                          PLYMOUTH_BACKGROUND_COLOR);
 }
 
 static void

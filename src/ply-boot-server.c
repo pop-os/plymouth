@@ -77,6 +77,7 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
   server->is_listening = false;
   server->update_handler = update_handler;
   server->ask_for_password_handler = ask_for_password_handler;
+  server->newroot_handler = newroot_handler;
   server->system_initialized_handler = initialized_handler;
   server->show_splash_handler = show_splash_handler;
   server->quit_handler = quit_handler;

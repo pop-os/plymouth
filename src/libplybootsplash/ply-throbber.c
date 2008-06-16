@@ -122,6 +122,14 @@ ply_throbber_free (ply_throbber_t *throbber)
 }
 
 static void
+draw_background (ply_throbber_t *throbber)
+{
+  ply_frame_buffer_fill_with_gradient (throbber->frame_buffer, &throbber->frame_area,
+                                       PLYMOUTH_BACKGROUND_START_COLOR,
+                                       PLYMOUTH_BACKGROUND_END_COLOR);
+}
+
+static void
 animate_at_time (ply_throbber_t *throbber,
                  double      time)
 {
@@ -141,9 +149,7 @@ animate_at_time (ply_throbber_t *throbber,
 
   ply_frame_buffer_pause_updates (throbber->frame_buffer);
   if (throbber->frame_area.width > 0)
-    ply_frame_buffer_fill_with_gradient (throbber->frame_buffer, &throbber->frame_area,
-                                         PLYMOUTH_BACKGROUND_START_COLOR,
-                                         PLYMOUTH_BACKGROUND_END_COLOR);
+    draw_background (throbber);
 
   frames = (ply_image_t * const *) ply_array_get_elements (throbber->frames);
 
@@ -305,8 +311,8 @@ void
 ply_throbber_stop (ply_throbber_t *throbber)
 {
   if (throbber->frame_area.width > 0)
-    ply_frame_buffer_fill_with_hex_color (throbber->frame_buffer, &throbber->frame_area,
-                                          PLYMOUTH_BACKGROUND_COLOR);
+    draw_background (throbber);
+
   throbber->frame_buffer = NULL;
   throbber->window = NULL;
 

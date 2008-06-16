@@ -243,8 +243,6 @@ static void
 detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
 {
   plugin->loop = NULL;
-
-  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
 }
 
 void
@@ -384,9 +382,9 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   plugin->frame_buffer = NULL;
 
-  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
   plugin->window = NULL;
 }
+
 static void
 draw_password_entry (ply_boot_splash_plugin_t *plugin)
 {

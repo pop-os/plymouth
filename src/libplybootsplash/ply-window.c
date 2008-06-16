@@ -338,8 +338,6 @@ ply_window_open (ply_window_t *window)
 void
 ply_window_close (ply_window_t *window)
 {
-  ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
-
   if (ply_frame_buffer_device_is_open (window->frame_buffer))
     ply_frame_buffer_close (window->frame_buffer);
 
@@ -408,7 +406,6 @@ ply_window_free (ply_window_t *window)
                                            ply_window_detach_from_event_loop,
                                            window);
 
-  ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
   ply_window_close (window);
 
   ply_buffer_free (window->keyboard_input_buffer);

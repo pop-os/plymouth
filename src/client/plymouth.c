@@ -163,11 +163,14 @@ main (int    argc,
                                                (ply_boot_client_response_handler_t)
                                                on_failure, loop);
   else if (should_quit)
-    ply_boot_client_tell_daemon_to_quit (client,
-                                         (ply_boot_client_response_handler_t)
-                                         on_success,
-                                         (ply_boot_client_response_handler_t)
-                                         on_failure, loop);
+    {
+      ply_boot_client_tell_daemon_to_quit (client,
+                                           (ply_boot_client_response_handler_t)
+                                           on_success,
+                                           (ply_boot_client_response_handler_t)
+                                           on_failure, loop);
+      ply_boot_client_disconnect(client);
+    }
   else if (should_ping)
     ply_boot_client_ping_daemon (client, 
                                  (ply_boot_client_response_handler_t)

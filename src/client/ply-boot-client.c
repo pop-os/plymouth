@@ -504,7 +504,6 @@ ply_boot_client_tell_daemon_to_quit (ply_boot_client_t                  *client,
 {
   assert (client != NULL);
 
-  client->disconnect_handler = NULL;
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_QUIT,
                                  NULL, handler, failed_handler, user_data);
 }

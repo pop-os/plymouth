@@ -141,8 +141,9 @@ animate_at_time (ply_throbber_t *throbber,
 
   ply_frame_buffer_pause_updates (throbber->frame_buffer);
   if (throbber->frame_area.width > 0)
-    ply_frame_buffer_fill_with_hex_color (throbber->frame_buffer, &throbber->frame_area,
-                                          PLYMOUTH_BACKGROUND_COLOR);
+    ply_frame_buffer_fill_with_gradient (throbber->frame_buffer, &throbber->frame_area,
+                                         PLYMOUTH_BACKGROUND_START_COLOR,
+                                         PLYMOUTH_BACKGROUND_END_COLOR);
 
   frames = (ply_image_t * const *) ply_array_get_elements (throbber->frames);
 

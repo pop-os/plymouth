@@ -8,7 +8,9 @@ libplybootsplashdir = $(includedir)/plymouth-1/plybootsplash
 libplybootsplash_HEADERS = ply-answer.h ply-throbber.h ply-window.h ply-boot-splash-plugin.h
 
 libplybootsplash_la_CFLAGS = $(PLYMOUTH_CFLAGS)                               \
-                             -DPLYMOUTH_BACKGROUND_COLOR=$(background_color)
+                             -DPLYMOUTH_BACKGROUND_COLOR=$(background_color)   \
+                       -DPLYMOUTH_BACKGROUND_END_COLOR=$(background_end_color) \
+                       -DPLYMOUTH_BACKGROUND_START_COLOR=$(background_start_color)
 libplybootsplash_la_LIBADD = $(PLYMOUTH_LIBS) ../libply/libply.la
 libplybootsplash_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
 		    -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \

@@ -9,7 +9,12 @@ set -e
 [ -z "$BINDIR" ] && BINDIR="/usr/bin"
 
 if [ $# -lt 1 ]; then
-        basename $(readlink ${LIBDIR}/plymouth/default.so) .so
+        PLUGIN_NAME=$(basename $(readlink ${LIBDIR}/plymouth/default.so) .so)
+        if [ -z "$PLUGIN_NAME" ]; then
+                $0 --reset
+                PLUGIN_NAME=$(basename $(readlink ${LIBDIR}/plymouth/default.so) .so)
+        fi
+        [ -n "$PLUGIN_NAME" ] && echo $PLUGIN_NAME || exit 1
         exit $?
 fi
 

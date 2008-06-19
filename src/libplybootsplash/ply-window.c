@@ -287,7 +287,7 @@ static int
 get_active_vt (void)
 {
   int console_fd;
-  struct vt_stat console_state;
+  struct vt_stat console_state = { 0 };
 
   console_fd = open ("/dev/tty0", O_RDONLY | O_NOCTTY);
 

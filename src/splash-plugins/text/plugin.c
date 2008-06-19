@@ -54,6 +54,9 @@
 #include <linux/kd.h>
 
 #define CLEAR_LINE_SEQUENCE "\033[2K\r\n"
+#define CLEAR_SCREEN_SEQUENCE "\033[2J"
+#define HIDE_CURSOR_SEQUENCE "\033[?25l"
+#define SHOW_CURSOR_SEQUENCE "\033[?25h"
 #define BACKSPACE "\b\033[0K"
 
 struct _ply_boot_splash_plugin
@@ -126,6 +129,24 @@ on_enter (ply_boot_splash_plugin_t *plugin,
     }
 }
 
+static void
+clear_screen (ply_boot_splash_plugin_t *plugin)
+{
+  write (STDOUT_FILENO, CLEAR_SCREEN_SEQUENCE, strlen (CLEAR_SCREEN_SEQUENCE));
+}
+
+static void
+hide_cursor (ply_boot_splash_plugin_t *plugin)
+{
+  write (STDOUT_FILENO, HIDE_CURSOR_SEQUENCE, strlen (HIDE_CURSOR_SEQUENCE));
+}
+
+static void
+show_cursor (ply_boot_splash_plugin_t *plugin)
+{
+  write (STDOUT_FILENO, SHOW_CURSOR_SEQUENCE, strlen (SHOW_CURSOR_SEQUENCE));
+}
+
 bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
@@ -148,6 +169,9 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
                                  detach_from_event_loop,
                                  plugin);
+
+  clear_screen (plugin);
+  hide_cursor (plugin);
 
   return true;
 }
@@ -183,6 +207,9 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                                              plugin);
       detach_from_event_loop (plugin);
     }
+
+  clear_screen (plugin);
+  show_cursor (plugin);
 }
 
 void

@@ -74,6 +74,9 @@ bool ply_window_set_mode (ply_window_t      *window,
                           ply_window_mode_t  mode);
 int  ply_window_get_number_of_text_rows (ply_window_t *window);
 int  ply_window_get_number_of_text_columns (ply_window_t *window);
+void ply_window_set_text_cursor_position (ply_window_t *window,
+                                          int           column,
+                                          int           row);
 
 void ply_window_attach_to_event_loop (ply_window_t     *window,
                                       ply_event_loop_t *loop);

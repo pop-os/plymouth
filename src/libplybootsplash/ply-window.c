@@ -53,6 +53,8 @@
 #define KEY_RETURN '\r'
 #define KEY_BACKSPACE '\177'
 
+#define MOVE_CURSOR_SEQUNCE(column,row) "\033[f"#row","#column
+
 struct _ply_window
 {
   ply_event_loop_t *loop;
@@ -436,6 +438,16 @@ int
 ply_window_get_number_of_text_columns (ply_window_t *window)
 {
   return window->number_of_text_columns;
+}
+
+void
+ply_window_set_text_cursor_position (ply_window_t *window,
+                                     int           column,
+                                     int           row)
+{
+  write (window->tty_fd,
+         MOVE_CURSOR_SEQUNCE(row,column),
+         strlen (MOVE_CURSOR_SEQUNCE(row,column)));
 }
 
 static void

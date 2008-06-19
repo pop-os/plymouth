@@ -70,6 +70,9 @@ struct _ply_window
   ply_fd_watch_t *tty_fd_watch;
   ply_window_mode_t mode;
 
+  int number_of_text_rows;
+  int number_of_text_columns;
+
   uint32_t should_force_text_mode : 1;
   uint32_t original_term_attributes_saved : 1;
 
@@ -300,6 +303,29 @@ out:
 }
 
 bool
+ply_window_look_up_geometry (ply_window_t *window)
+{
+    struct winsize window_size;
+
+    ply_trace ("looking up window text geometry");
+
+    if (ioctl (window->tty_fd, TIOCGWINSZ, &window_size) < 0)
+      {
+        ply_trace ("could not read window text geometry: %m");
+        return false;
+      }
+
+    window->number_of_text_rows = window_size.ws_row;
+    window->number_of_text_columns = window_size.ws_col;
+
+    ply_trace ("window is now %dx%d text cells",
+               window->number_of_text_columns,
+               window->number_of_text_rows);
+
+    return true;
+}
+
+bool
 ply_window_open (ply_window_t *window)
 {
   assert (window != NULL);
@@ -323,6 +349,15 @@ ply_window_open (ply_window_t *window)
 
   if (!ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT))
     return false;
+
+  if (!ply_window_look_up_geometry (window))
+    return false;
+
+  ply_event_loop_watch_signal (window->loop,
+                               SIGWINCH,
+                               (ply_event_handler_t)
+                               ply_window_look_up_geometry,
+                               window);
 
   if (window->loop != NULL)
     window->tty_fd_watch = ply_event_loop_watch_fd (window->loop, window->tty_fd,
@@ -349,6 +384,8 @@ ply_window_close (ply_window_t *window)
       ply_event_loop_stop_watching_fd (window->loop, window->tty_fd_watch);
       window->tty_fd_watch = NULL;
     }
+
+  ply_event_loop_stop_watching_signal (window->loop, SIGWINCH);
 
   ply_window_set_buffered_input (window);
 
@@ -392,11 +429,13 @@ ply_window_set_mode (ply_window_t      *window,
 int
 ply_window_get_number_of_text_rows (ply_window_t *window)
 {
+  return window->number_of_text_rows;
 }
 
 int
 ply_window_get_number_of_text_columns (ply_window_t *window)
 {
+  return window->number_of_text_columns;
 }
 
 static void

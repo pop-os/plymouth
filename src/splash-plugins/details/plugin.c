@@ -136,6 +136,8 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   assert (plugin != NULL);
 
+  ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
+
   ply_window_set_keyboard_input_handler (window,
                                          (ply_window_keyboard_input_handler_t)
                                          on_keyboard_input, plugin);

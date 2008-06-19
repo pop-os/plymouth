@@ -29,7 +29,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sysexits.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
+
+#include <linux/kd.h>
 
 #include "ply-answer.h"
 #include "ply-boot-server.h"
@@ -385,6 +388,18 @@ initialize_environment (state_t *state)
   return true;
 }
 
+static void
+on_crash (int signal)
+{
+    int fd;
+
+    fd = open ("/dev/tty7", O_RDWR | O_NOCTTY);
+
+    ioctl (fd, KDSETMODE, KD_TEXT);
+
+    close (fd);
+}
+
 int
 main (int    argc,
       char **argv)
@@ -422,6 +437,9 @@ main (int    argc,
       ply_error ("cannot daemonize: %m");
       return EX_UNAVAILABLE;
     }
+
+  signal (SIGABRT, on_crash);
+  signal (SIGSEGV, on_crash);
 
   state.loop = ply_event_loop_new ();
 

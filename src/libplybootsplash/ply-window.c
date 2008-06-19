@@ -387,7 +387,8 @@ ply_window_close (ply_window_t *window)
       window->tty_fd_watch = NULL;
     }
 
-  ply_event_loop_stop_watching_signal (window->loop, SIGWINCH);
+  if (window->loop != NULL)
+    ply_event_loop_stop_watching_signal (window->loop, SIGWINCH);
 
   ply_window_set_buffered_input (window);
 

@@ -257,6 +257,9 @@ ply_window_set_unbuffered_input (ply_window_t *window)
 
   cfmakeraw (&term_attributes);
 
+  /* Make \n return go to the beginning of the next line */
+  term_attributes.c_oflag |= ONLCR;
+
   if (tcsetattr (window->tty_fd, TCSAFLUSH, &term_attributes) != 0)
     return false;
 

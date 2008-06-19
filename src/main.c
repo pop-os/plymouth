@@ -184,8 +184,11 @@ start_boot_server (state_t *state)
 static void
 on_escape_pressed (state_t *state)
 {
-  ply_boot_splash_hide (state->boot_splash);
-  ply_boot_splash_free (state->boot_splash);
+  if (state->boot_splash != NULL)
+    {
+      ply_boot_splash_hide (state->boot_splash);
+      ply_boot_splash_free (state->boot_splash);
+    }
 
   state->boot_splash = start_boot_splash (state, PLYMOUTH_PLUGIN_PATH "details.so");
 }

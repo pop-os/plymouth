@@ -64,6 +64,9 @@ struct _ply_boot_splash_plugin
   ply_event_loop_t *loop;
 
   ply_answer_t *pending_password_answer;
+  ply_window_t *window;
+
+  int number_of_dots;
 
   uint32_t keyboard_input_is_hidden : 1;
 };
@@ -170,10 +173,31 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                                  detach_from_event_loop,
                                  plugin);
 
+  plugin->window = window;
+
   clear_screen (plugin);
   hide_cursor (plugin);
 
   return true;
+}
+
+static void
+print_dots (ply_boot_splash_plugin_t *plugin)
+{
+  int screen_width;
+  int screen_height;
+  char *dots;
+
+  screen_width = ply_window_get_number_of_text_columns (plugin->window);
+  screen_height = ply_window_get_number_of_text_rows (plugin->window);
+
+  clear_screen (plugin);
+  ply_window_set_text_cursor_position (plugin->window,
+                                       screen_width / 2 - plugin->number_of_dots / 2,
+                                       screen_height / 2);
+  dots = malloc (plugin->number_of_dots);
+  memset (dots, '.', plugin->number_of_dots);
+  write (STDOUT_FILENO, dots, plugin->number_of_dots);
 }
 
 void
@@ -183,7 +207,9 @@ update_status (ply_boot_splash_plugin_t *plugin,
   assert (plugin != NULL);
 
   ply_trace ("status update");
-  write (1, ".", 1);
+  plugin->number_of_dots++;
+
+  print_dots (plugin);
 }
 
 void
@@ -210,6 +236,8 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   clear_screen (plugin);
   show_cursor (plugin);
+
+  plugin->window = NULL;
 }
 
 void

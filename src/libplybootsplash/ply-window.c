@@ -389,6 +389,16 @@ ply_window_set_mode (ply_window_t      *window,
   return true;
 }
 
+int
+ply_window_get_number_of_text_rows (ply_window_t *window)
+{
+}
+
+int
+ply_window_get_number_of_text_columns (ply_window_t *window)
+{
+}
+
 static void
 ply_window_detach_from_event_loop (ply_window_t *window)
 {

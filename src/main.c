@@ -369,8 +369,8 @@ plymouth_should_be_running (state_t *state)
           return false;
         }
     }
-  
-  return true;
+
+  return strstr (state->kernel_command_line, "rhgb") != NULL;
 }
 
 static bool

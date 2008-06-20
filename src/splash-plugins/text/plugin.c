@@ -54,8 +54,6 @@
 #include <linux/kd.h>
 
 #define CLEAR_LINE_SEQUENCE "\033[2K\r\n"
-#define HIDE_CURSOR_SEQUENCE "\033[?25l"
-#define SHOW_CURSOR_SEQUENCE "\033[?25h"
 #define BACKSPACE "\b\033[0K"
 
 struct _ply_boot_splash_plugin
@@ -131,18 +129,6 @@ on_enter (ply_boot_splash_plugin_t *plugin,
     }
 }
 
-static void
-hide_cursor (ply_boot_splash_plugin_t *plugin)
-{
-  write (STDOUT_FILENO, HIDE_CURSOR_SEQUENCE, strlen (HIDE_CURSOR_SEQUENCE));
-}
-
-static void
-show_cursor (ply_boot_splash_plugin_t *plugin)
-{
-  write (STDOUT_FILENO, SHOW_CURSOR_SEQUENCE, strlen (SHOW_CURSOR_SEQUENCE));
-}
-
 bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
@@ -169,7 +155,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   plugin->window = window;
 
   ply_window_clear_screen (plugin->window);
-  hide_cursor (plugin);
+  ply_window_hide_text_cursor (plugin->window);
 
   return true;
 }
@@ -228,7 +214,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
     }
 
   ply_window_clear_screen (plugin->window);
-  show_cursor (plugin);
+  ply_window_show_text_cursor (plugin->window);
 
   plugin->window = NULL;
 }

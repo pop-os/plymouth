@@ -54,7 +54,6 @@
 #include <linux/kd.h>
 
 #define CLEAR_LINE_SEQUENCE "\033[2K\r\n"
-#define CLEAR_SCREEN_SEQUENCE "\033[2J"
 #define HIDE_CURSOR_SEQUENCE "\033[?25l"
 #define SHOW_CURSOR_SEQUENCE "\033[?25h"
 #define BACKSPACE "\b\033[0K"
@@ -133,12 +132,6 @@ on_enter (ply_boot_splash_plugin_t *plugin,
 }
 
 static void
-clear_screen (ply_boot_splash_plugin_t *plugin)
-{
-  write (STDOUT_FILENO, CLEAR_SCREEN_SEQUENCE, strlen (CLEAR_SCREEN_SEQUENCE));
-}
-
-static void
 hide_cursor (ply_boot_splash_plugin_t *plugin)
 {
   write (STDOUT_FILENO, HIDE_CURSOR_SEQUENCE, strlen (HIDE_CURSOR_SEQUENCE));
@@ -175,7 +168,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   plugin->window = window;
 
-  clear_screen (plugin);
+  ply_window_clear_screen (plugin->window);
   hide_cursor (plugin);
 
   return true;
@@ -191,7 +184,7 @@ print_dots (ply_boot_splash_plugin_t *plugin)
   screen_width = ply_window_get_number_of_text_columns (plugin->window);
   screen_height = ply_window_get_number_of_text_rows (plugin->window);
 
-  clear_screen (plugin);
+  ply_window_clear_screen (plugin->window);
   ply_window_set_text_cursor_position (plugin->window,
                                        screen_width / 2 - plugin->number_of_dots / 2,
                                        screen_height / 2);
@@ -234,7 +227,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
       detach_from_event_loop (plugin);
     }
 
-  clear_screen (plugin);
+  ply_window_clear_screen (plugin->window);
   show_cursor (plugin);
 
   plugin->window = NULL;

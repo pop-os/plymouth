@@ -53,6 +53,7 @@
 #define KEY_RETURN '\r'
 #define KEY_BACKSPACE '\177'
 
+#define CLEAR_SCREEN_SEQUENCE "\033[2J"
 #define MOVE_CURSOR_SEQUENCE "\033[%d;%df"
 
 struct _ply_window
@@ -452,6 +453,15 @@ ply_window_set_text_cursor_position (ply_window_t *window,
   asprintf (&sequence, MOVE_CURSOR_SEQUENCE, row, column);
   write (window->tty_fd, sequence, strlen (sequence));
   free (sequence);
+}
+
+void
+ply_window_clear_screen (ply_window_t *window)
+{
+  write (window->tty_fd, CLEAR_SCREEN_SEQUENCE, strlen (CLEAR_SCREEN_SEQUENCE));
+
+  if (ply_frame_buffer_device_is_open (window->frame_buffer))
+    ply_frame_buffer_fill_with_color (window->frame_buffer, NULL, 0.0, 0.0, 0.0, 1.0);
 }
 
 static void

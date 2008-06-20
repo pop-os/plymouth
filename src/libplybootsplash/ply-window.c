@@ -53,8 +53,13 @@
 #define KEY_RETURN '\r'
 #define KEY_BACKSPACE '\177'
 
+#ifndef CLEAR_SCREEN_SEQUENCE
 #define CLEAR_SCREEN_SEQUENCE "\033[2J"
+#endif
+
+#ifndef MOVE_CURSOR_SEQUENCE
 #define MOVE_CURSOR_SEQUENCE "\033[%d;%df"
+#endif
 
 struct _ply_window
 {

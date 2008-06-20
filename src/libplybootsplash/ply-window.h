@@ -77,6 +77,8 @@ int  ply_window_get_number_of_text_columns (ply_window_t *window);
 void ply_window_set_text_cursor_position (ply_window_t *window,
                                           int           column,
                                           int           row);
+void ply_window_hide_text_cursor (ply_window_t *window);
+void ply_window_show_text_cursor (ply_window_t *window);
 void ply_window_clear_screen (ply_window_t *window);
 
 void ply_window_attach_to_event_loop (ply_window_t     *window,

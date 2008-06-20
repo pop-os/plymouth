@@ -61,6 +61,14 @@
 #define MOVE_CURSOR_SEQUENCE "\033[%d;%df"
 #endif
 
+#ifndef HIDE_CURSOR_SEQUENCE
+#define HIDE_CURSOR_SEQUENCE "\033[?25l"
+#endif
+
+#ifndef SHOW_CURSOR_SEQUENCE
+#define SHOW_CURSOR_SEQUENCE "\033[?25h"
+#endif
+
 struct _ply_window
 {
   ply_event_loop_t *loop;
@@ -467,6 +475,18 @@ ply_window_clear_screen (ply_window_t *window)
 
   if (ply_frame_buffer_device_is_open (window->frame_buffer))
     ply_frame_buffer_fill_with_color (window->frame_buffer, NULL, 0.0, 0.0, 0.0, 1.0);
+}
+
+void
+ply_window_hide_text_cursor (ply_window_t *window)
+{
+  write (window->tty_fd, HIDE_CURSOR_SEQUENCE, strlen (HIDE_CURSOR_SEQUENCE));
+}
+
+void
+ply_window_show_text_cursor (ply_window_t *window)
+{
+  write (window->tty_fd, SHOW_CURSOR_SEQUENCE, strlen (SHOW_CURSOR_SEQUENCE));
 }
 
 static void

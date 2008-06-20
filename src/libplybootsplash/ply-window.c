@@ -53,7 +53,7 @@
 #define KEY_RETURN '\r'
 #define KEY_BACKSPACE '\177'
 
-#define MOVE_CURSOR_SEQUNCE "\033[%d;%df"
+#define MOVE_CURSOR_SEQUENCE "\033[%d;%df"
 
 struct _ply_window
 {
@@ -449,7 +449,7 @@ ply_window_set_text_cursor_position (ply_window_t *window,
   char *sequence;
 
   sequence = NULL;
-  asprintf (&sequence, MOVE_CURSOR_SEQUNCE, row, column);
+  asprintf (&sequence, MOVE_CURSOR_SEQUENCE, row, column);
   write (window->tty_fd, sequence, strlen (sequence));
   free (sequence);
 }

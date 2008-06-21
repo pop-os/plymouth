@@ -48,6 +48,7 @@
 #include "ply-logger.h"
 #include "ply-frame-buffer.h"
 #include "ply-image.h"
+#include "ply-text-pulser.h"
 #include "ply-utils.h"
 #include "ply-window.h"
 
@@ -63,7 +64,7 @@ struct _ply_boot_splash_plugin
   ply_answer_t *pending_password_answer;
   ply_window_t *window;
 
-  int number_of_dots;
+  ply_text_pulser_t *pulser;
 
   uint32_t keyboard_input_is_hidden : 1;
 };
@@ -76,6 +77,7 @@ create_plugin (void)
   ply_trace ("creating plugin");
 
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
+  plugin->pulser = ply_text_pulser_new ();
 
   return plugin;
 }
@@ -88,7 +90,40 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   if (plugin == NULL)
     return;
 
+  ply_text_pulser_free (plugin->pulser);
+
   free (plugin);
+}
+
+static void
+start_animation (ply_boot_splash_plugin_t *plugin)
+{
+
+  int window_width, window_height;
+  int width, height;
+  assert (plugin != NULL);
+  assert (plugin->loop != NULL);
+
+  ply_window_clear_screen (plugin->window);
+
+  window_width = ply_window_get_number_of_text_columns (plugin->window);
+  window_height = ply_window_get_number_of_text_rows (plugin->window);
+  width = ply_text_pulser_get_number_of_columns (plugin->pulser);
+  height = ply_text_pulser_get_number_of_rows (plugin->pulser);
+  ply_text_pulser_start (plugin->pulser,
+                         plugin->loop,
+                         plugin->window,
+                         window_width / 2.0 - width / 2.0,
+                         window_height / 2.0 - height / 2.0);
+}
+
+static void
+stop_animation (ply_boot_splash_plugin_t *plugin)
+{
+  assert (plugin != NULL);
+  assert (plugin->loop != NULL);
+
+  ply_text_pulser_stop (plugin->pulser);
 }
 
 static void
@@ -157,26 +192,9 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   ply_window_clear_screen (plugin->window);
   ply_window_hide_text_cursor (plugin->window);
 
+  start_animation (plugin);
+
   return true;
-}
-
-static void
-print_dots (ply_boot_splash_plugin_t *plugin)
-{
-  int screen_width;
-  int screen_height;
-  char *dots;
-
-  screen_width = ply_window_get_number_of_text_columns (plugin->window);
-  screen_height = ply_window_get_number_of_text_rows (plugin->window);
-
-  ply_window_clear_screen (plugin->window);
-  ply_window_set_text_cursor_position (plugin->window,
-                                       screen_width / 2 - plugin->number_of_dots / 2,
-                                       screen_height / 2);
-  dots = malloc (plugin->number_of_dots);
-  memset (dots, '.', plugin->number_of_dots);
-  write (STDOUT_FILENO, dots, plugin->number_of_dots);
 }
 
 void
@@ -186,9 +204,6 @@ update_status (ply_boot_splash_plugin_t *plugin,
   assert (plugin != NULL);
 
   ply_trace ("status update");
-  plugin->number_of_dots++;
-
-  print_dots (plugin);
 }
 
 void
@@ -206,6 +221,8 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   if (plugin->loop != NULL)
     {
+      stop_animation (plugin);
+
       ply_event_loop_stop_watching_for_exit (plugin->loop,
                                              (ply_event_loop_exit_handler_t)
                                              detach_from_event_loop,

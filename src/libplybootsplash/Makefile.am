@@ -5,7 +5,7 @@ INCLUDES = -I$(top_srcdir)                                                    \
 lib_LTLIBRARIES = libplybootsplash.la
 
 libplybootsplashdir = $(includedir)/plymouth-1/plybootsplash
-libplybootsplash_HEADERS = ply-answer.h ply-throbber.h ply-window.h ply-boot-splash-plugin.h
+libplybootsplash_HEADERS = ply-answer.h ply-text-pulser.h ply-throbber.h ply-window.h ply-boot-splash-plugin.h
 
 libplybootsplash_la_CFLAGS = $(PLYMOUTH_CFLAGS)                               \
                              -DPLYMOUTH_BACKGROUND_COLOR=$(background_color)   \
@@ -19,6 +19,7 @@ libplybootsplash_la_SOURCES = \
 		    $(libplybootsplash_HEADERS)                              \
 		    ply-answer.c                                             \
 		    ply-throbber.c                                           \
+		    ply-text-pulser.c                                        \
 		    ply-window.c
 
 MAINTAINERCLEANFILES = Makefile.in

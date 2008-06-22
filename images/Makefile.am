@@ -3,6 +3,6 @@ imagedir = $(datadir)/plymouth
 image_DATA = bizcom.png
 endif
 
-EXTRA_DIST = $(image_DATA)
+EXTRA_DIST = bizcom.png
 
 MAINTAINERCLEANFILES = Makefile.in

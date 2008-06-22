@@ -453,6 +453,9 @@ main (int    argc,
    */
   if (!initialize_environment (&state))
     {
+      if (errno == 0)
+        return 0;
+
       ply_error ("could not setup basic operating environment: %m");
       ply_detach_daemon (daemon_handle, EX_OSERR);
       return EX_OSERR;

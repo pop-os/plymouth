@@ -120,7 +120,7 @@ on_system_initialized (state_t *state)
 {
   ply_trace ("system now initialized, opening boot.log");
   ply_terminal_session_open_log (state->session,
-                                 "/var/log/boot.log");
+                                 PLYMOUTH_LOG_DIRECTORY "/boot.log");
 }
 
 static void

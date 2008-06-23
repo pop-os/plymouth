@@ -25,7 +25,7 @@ fi
 
 PLUGIN_NAME=$1
 if [ $1 = '--reset' ]; then
-        PLUGIN_NAME=$(basename $(ls -1 -t ${LIBDIR}/plymouth/*.so 2> /dev/null | grep -v default.so | head -n 1) .so)
+        PLUGIN_NAME=$(basename $(ls -1 -t ${LIBDIR}/plymouth/*.so 2> /dev/null | grep -v default.so | tail -n 1) .so)
         if [ $PLUGIN_NAME = .so ]; then
                 rm -f ${LIBDIR}/plymouth/default.so
                 exit 0

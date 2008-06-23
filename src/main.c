@@ -435,6 +435,8 @@ main (int    argc,
       return EX_USAGE;
     }
 
+  chdir ("/");
+
   daemon_handle = ply_create_daemon ();
 
   if (daemon_handle == NULL)

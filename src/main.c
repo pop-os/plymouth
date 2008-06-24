@@ -57,6 +57,7 @@ typedef struct
   long ptmx;
 
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
+  uint32_t showing_details : 1;
 } state_t;
 
 static ply_boot_splash_t *start_boot_splash (state_t    *state,
@@ -124,7 +125,21 @@ on_system_initialized (state_t *state)
 }
 
 static void
-on_show_splash (state_t *state)
+show_detailed_splash (state_t *state)
+{
+  ply_trace ("Showing detailed splash screen");
+  state->boot_splash = start_boot_splash (state,
+                                          PLYMOUTH_PLUGIN_PATH "details.so");
+
+  if (state->boot_splash == NULL)
+    {
+      ply_trace ("Could not start detailed splash screen, exiting");
+      exit (1);
+    }
+}
+
+static void
+show_default_splash (state_t *state)
 {
   ply_trace ("Showing splash screen");
   state->boot_splash = start_boot_splash (state,
@@ -140,6 +155,12 @@ on_show_splash (state_t *state)
 
   if (state->boot_splash == NULL)
     ply_error ("could not start boot splash: %m");
+}
+
+static void
+on_show_splash (state_t *state)
+{
+  show_default_splash (state);
 }
 
 static void
@@ -190,9 +211,19 @@ on_escape_pressed (state_t *state)
     {
       ply_boot_splash_hide (state->boot_splash);
       ply_boot_splash_free (state->boot_splash);
+      state->boot_splash = NULL;
     }
 
-  state->boot_splash = start_boot_splash (state, PLYMOUTH_PLUGIN_PATH "details.so");
+  if (!state->showing_details)
+    {
+      show_detailed_splash (state);
+      state->showing_details = true;
+    }
+  else
+    {
+      show_default_splash (state);
+      state->showing_details = false;
+    }
 }
 
 static ply_window_t *

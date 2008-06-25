@@ -369,6 +369,9 @@ ply_window_open (ply_window_t *window)
   if (!ply_window_look_up_geometry (window))
     return false;
 
+  ply_window_hide_text_cursor (window);
+  ply_window_set_text_cursor_position (window, 0, 0);
+
   ply_event_loop_watch_signal (window->loop,
                                SIGWINCH,
                                (ply_event_handler_t)
@@ -392,6 +395,8 @@ ply_window_open (ply_window_t *window)
 void
 ply_window_close (ply_window_t *window)
 {
+  ply_window_set_text_cursor_position (window, 0, 0);
+
   if (ply_frame_buffer_device_is_open (window->frame_buffer))
     ply_frame_buffer_close (window->frame_buffer);
 

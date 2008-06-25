@@ -105,6 +105,7 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   assert (plugin->loop != NULL);
 
   ply_window_clear_screen (plugin->window);
+  ply_window_hide_text_cursor (plugin->window);
 
   window_width = ply_window_get_number_of_text_columns (plugin->window);
   window_height = ply_window_get_number_of_text_rows (plugin->window);
@@ -160,7 +161,8 @@ on_enter (ply_boot_splash_plugin_t *plugin,
       ply_answer_with_string (plugin->pending_password_answer, line);
       plugin->keyboard_input_is_hidden = false;
       plugin->pending_password_answer = NULL;
-      write (STDOUT_FILENO, CLEAR_LINE_SEQUENCE, strlen (CLEAR_LINE_SEQUENCE));
+
+      start_animation (plugin);
     }
 }
 
@@ -188,9 +190,6 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                                  plugin);
 
   plugin->window = window;
-
-  ply_window_clear_screen (plugin->window);
-  ply_window_hide_text_cursor (plugin->window);
 
   start_animation (plugin);
 
@@ -240,9 +239,21 @@ void
 ask_for_password (ply_boot_splash_plugin_t *plugin,
                   ply_answer_t             *answer)
 {
+  int window_width, window_height;
+
   plugin->pending_password_answer = answer;
 
-  write (STDOUT_FILENO, "\nPassword: ", strlen ("\nPassword: "));
+  stop_animation (plugin);
+  ply_window_clear_screen (plugin->window);
+
+  window_width = ply_window_get_number_of_text_columns (plugin->window);
+  window_height = ply_window_get_number_of_text_rows (plugin->window);
+
+  ply_window_set_text_cursor_position (plugin->window,
+                                       window_width / 2 - strlen ("Password:        "),
+                                       window_height / 2);
+  write (STDOUT_FILENO, "Password: ", strlen ("Password: "));
+  ply_window_show_text_cursor (plugin->window);
   plugin->keyboard_input_is_hidden = true;
 }
 

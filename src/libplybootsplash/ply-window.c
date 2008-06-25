@@ -69,6 +69,18 @@
 #define SHOW_CURSOR_SEQUENCE "\033[?25h"
 #endif
 
+#ifndef COLOR_SEQUENCE_FORMAT
+#define COLOR_SEQUENCE_FORMAT "\033[%dm"
+#endif
+
+#ifndef FOREGROUND_COLOR_BASE
+#define FOREGROUND_COLOR_BASE 30
+#endif
+
+#ifndef BACKGROUND_COLOR_BASE
+#define BACKGROUND_COLOR_BASE 40
+#endif
+
 struct _ply_window
 {
   ply_event_loop_t *loop;
@@ -85,6 +97,8 @@ struct _ply_window
 
   ply_fd_watch_t *tty_fd_watch;
   ply_window_mode_t mode;
+  ply_window_color_t foreground_color;
+  ply_window_color_t background_color;
 
   int number_of_text_rows;
   int number_of_text_columns;
@@ -482,6 +496,48 @@ ply_window_clear_screen (ply_window_t *window)
 
   if (ply_frame_buffer_device_is_open (window->frame_buffer))
     ply_frame_buffer_fill_with_color (window->frame_buffer, NULL, 0.0, 0.0, 0.0, 1.0);
+}
+
+void
+ply_window_set_background_color (ply_window_t       *window,
+                                 ply_window_color_t  color)
+{
+  char *sequence;
+
+  sequence = NULL;
+  asprintf (&sequence, COLOR_SEQUENCE_FORMAT,
+            BACKGROUND_COLOR_BASE + color);
+  write (window->tty_fd, sequence, strlen (sequence));
+  free (sequence);
+
+  window->background_color = color;
+}
+
+void
+ply_window_set_foreground_color (ply_window_t       *window,
+                                 ply_window_color_t  color)
+{
+  char *sequence;
+
+  sequence = NULL;
+  asprintf (&sequence, COLOR_SEQUENCE_FORMAT,
+            FOREGROUND_COLOR_BASE + color);
+  write (window->tty_fd, sequence, strlen (sequence));
+  free (sequence);
+
+  window->foreground_color = color;
+}
+
+ply_window_color_t
+ply_window_get_background_color (ply_window_t *window)
+{
+  return window->background_color;
+}
+
+ply_window_color_t
+ply_window_get_foreground_color (ply_window_t *window)
+{
+  return window->foreground_color;
 }
 
 void

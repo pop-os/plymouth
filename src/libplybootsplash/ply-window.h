@@ -48,6 +48,19 @@ typedef enum
   PLY_WINDOW_MODE_GRAPHICS
 } ply_window_mode_t;
 
+typedef enum
+{
+  PLY_WINDOW_COLOR_BLACK = 0,
+  PLY_WINDOW_COLOR_RED,
+  PLY_WINDOW_COLOR_GREEN,
+  PLY_WINDOW_COLOR_BROWN,
+  PLY_WINDOW_COLOR_BLUE,
+  PLY_WINDOW_COLOR_MAGENTA,
+  PLY_WINDOW_COLOR_CYAN,
+  PLY_WINDOW_COLOR_WHITE,
+  PLY_WINDOW_COLOR_DEFAULT = PLY_WINDOW_COLOR_WHITE + 2
+} ply_window_color_t;
+
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_window_t *ply_window_new (int vt_number);
 void ply_window_free (ply_window_t *window);
@@ -80,6 +93,13 @@ void ply_window_set_text_cursor_position (ply_window_t *window,
 void ply_window_hide_text_cursor (ply_window_t *window);
 void ply_window_show_text_cursor (ply_window_t *window);
 void ply_window_clear_screen (ply_window_t *window);
+void ply_window_set_background_color (ply_window_t       *window,
+                                      ply_window_color_t  color);
+void ply_window_set_foreground_color (ply_window_t       *window,
+                                      ply_window_color_t  color);
+
+ply_window_color_t ply_window_get_background_color (ply_window_t *window);
+ply_window_color_t ply_window_get_foreground_color (ply_window_t *window);
 
 void ply_window_attach_to_event_loop (ply_window_t     *window,
                                       ply_event_loop_t *loop);

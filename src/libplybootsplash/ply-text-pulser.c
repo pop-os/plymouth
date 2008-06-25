@@ -53,10 +53,6 @@
 #define FRAMES_PER_SECOND 10
 #endif
 
-#ifndef INDICATOR_STRING
-#define INDICATOR_STRING "██████"
-#endif
-
 #define NUMBER_OF_INDICATOR_COLUMNS 6
 
 struct _ply_text_pulser
@@ -100,66 +96,24 @@ ply_text_pulser_free (ply_text_pulser_t *pulser)
 }
 
 static void
-draw_frame (ply_text_pulser_t *pulser,
-            int                column,
-            int                row)
-{
-  int i;
-
-  ply_window_set_text_cursor_position (pulser->window,
-                                       column, row);
-  /* Top of frame
-   */
-  write (STDOUT_FILENO, "┌", strlen ("┌"));
-  for (i = 0; i < pulser->number_of_columns - 2; i++)
-    write (STDOUT_FILENO, "─", strlen ("─"));
-  write (STDOUT_FILENO, "┐", strlen ("┐"));
-
-  ply_window_set_text_cursor_position (pulser->window,
-                                       column, row + 1);
-  /* Middle
-   */
-  write (STDOUT_FILENO, "│", strlen ("│"));
-
-  ply_window_set_text_cursor_position (pulser->window,
-                                       column + pulser->number_of_columns - 1,
-                                       row + 1);
-  write (STDOUT_FILENO, "│", strlen ("│"));
-
-  ply_window_set_text_cursor_position (pulser->window,
-                                       column, row + 2);
-  /* Bottom of frame
-   */
-  write (STDOUT_FILENO, "└", strlen ("└"));
-
-  for (i = 0; i < pulser->number_of_columns - 2; i++)
-    write (STDOUT_FILENO, "─", strlen ("─"));
-  write (STDOUT_FILENO, "┘", strlen ("┘"));
-}
-
-static void
-draw_indicator (ply_text_pulser_t *pulser)
-{
-  write (STDOUT_FILENO, INDICATOR_STRING, strlen (INDICATOR_STRING));
-}
-
-static void
 animate_at_time (ply_text_pulser_t *pulser,
                  double             time)
 {
   ply_window_set_mode (pulser->window, PLY_WINDOW_MODE_TEXT);
 
-  draw_frame (pulser, pulser->column, pulser->row);
-
   ply_window_set_text_cursor_position (pulser->window,
                                        pulser->column + pulser->spinner_position,
                                        pulser->row + 1);
+  ply_window_set_background_color (pulser->window, PLY_WINDOW_COLOR_DEFAULT);
   write (STDOUT_FILENO, "      ", strlen ("      "));
   pulser->spinner_position = ((pulser->number_of_columns - 2) - NUMBER_OF_INDICATOR_COLUMNS - 1)  * (.5 * sin (time) + .5) + 2;
   ply_window_set_text_cursor_position (pulser->window,
                                        pulser->column + pulser->spinner_position,
                                        pulser->row + 1);
-  draw_indicator (pulser);
+
+  ply_window_set_background_color (pulser->window, PLY_WINDOW_COLOR_WHITE);
+  write (STDOUT_FILENO, "      ", strlen ("      "));
+  ply_window_set_background_color (pulser->window, PLY_WINDOW_COLOR_DEFAULT);
 }
 
 static void

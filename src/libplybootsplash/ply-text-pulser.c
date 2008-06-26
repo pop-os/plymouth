@@ -128,7 +128,7 @@ animate_at_time (ply_text_pulser_t *pulser,
                                        pulser->column + pulser->spinner_position,
                                        pulser->row);
 
-  ply_window_set_background_color (pulser->window, PLY_WINDOW_COLOR_WHITE);
+  ply_window_set_background_color (pulser->window, PLY_WINDOW_COLOR_GREEN);
   write (STDOUT_FILENO, "      ", strlen ("      "));
   ply_window_set_background_color (pulser->window, PLY_WINDOW_COLOR_DEFAULT);
 }

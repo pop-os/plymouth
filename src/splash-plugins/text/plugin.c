@@ -104,6 +104,16 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
+  ply_window_set_color_hex_value (plugin->window,
+                                  PLY_WINDOW_COLOR_BROWN,
+                                  PLYMOUTH_BACKGROUND_END_COLOR);
+  ply_window_set_color_hex_value (plugin->window,
+                                  PLY_WINDOW_COLOR_BLUE,
+                                  PLYMOUTH_BACKGROUND_START_COLOR);
+  ply_window_set_color_hex_value (plugin->window,
+                                  PLY_WINDOW_COLOR_GREEN,
+                                  PLYMOUTH_BACKGROUND_COLOR);
+
   ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_BLUE);
   ply_window_clear_screen (plugin->window);
   ply_window_hide_text_cursor (plugin->window);

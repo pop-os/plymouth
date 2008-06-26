@@ -125,8 +125,6 @@ struct _ply_window
   void *enter_handler_user_data;
 };
 
-static bool ply_window_look_up_color_palette (ply_window_t *window);
-
 ply_window_t *
 ply_window_new (int vt_number)
 {
@@ -363,6 +361,24 @@ ply_window_look_up_geometry (ply_window_t *window)
     return true;
 }
 
+static bool
+ply_window_look_up_color_palette (ply_window_t *window)
+{
+  if (ioctl (window->tty_fd, GIO_CMAP, window->color_palette) < 0)
+      return false;
+
+  return true;
+}
+
+static bool
+ply_window_change_color_palette (ply_window_t *window)
+{
+  if (ioctl (window->tty_fd, PIO_CMAP, window->color_palette) < 0)
+    return false;
+
+  return true;
+}
+
 bool
 ply_window_open (ply_window_t *window)
 {
@@ -549,24 +565,6 @@ ply_window_color_t
 ply_window_get_foreground_color (ply_window_t *window)
 {
   return window->foreground_color;
-}
-
-static bool
-ply_window_look_up_color_palette (ply_window_t *window)
-{
-  if (ioctl (window->tty_fd, GIO_CMAP, window->color_palette) < 0)
-      return false;
-
-  return true;
-}
-
-static bool
-ply_window_change_color_palette (ply_window_t *window)
-{
-  if (ioctl (window->tty_fd, PIO_CMAP, window->color_palette) < 0)
-    return false;
-
-  return true;
 }
 
 uint32_t

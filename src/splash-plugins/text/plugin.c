@@ -104,6 +104,7 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
+  ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_BLUE);
   ply_window_clear_screen (plugin->window);
   ply_window_hide_text_cursor (plugin->window);
 
@@ -229,6 +230,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
       detach_from_event_loop (plugin);
     }
 
+  ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_DEFAULT);
   ply_window_clear_screen (plugin->window);
   ply_window_show_text_cursor (plugin->window);
 

@@ -104,6 +104,7 @@ struct _ply_window
   ply_window_color_t foreground_color;
   ply_window_color_t background_color;
 
+  uint8_t original_color_palette[TEXT_PALETTE_SIZE];
   uint8_t color_palette[TEXT_PALETTE_SIZE];
 
   int number_of_text_rows;
@@ -379,6 +380,22 @@ ply_window_change_color_palette (ply_window_t *window)
   return true;
 }
 
+static void
+ply_window_save_color_palette (ply_window_t *window)
+{
+  memcpy (window->original_color_palette, window->color_palette,
+          TEXT_PALETTE_SIZE);
+}
+
+static void
+ply_window_restore_color_palette (ply_window_t *window)
+{
+  memcpy (window->color_palette, window->original_color_palette,
+          TEXT_PALETTE_SIZE);
+
+  ply_window_change_color_palette (window);
+}
+
 bool
 ply_window_open (ply_window_t *window)
 {
@@ -410,6 +427,8 @@ ply_window_open (ply_window_t *window)
   if (!ply_window_look_up_color_palette (window))
     return false;
 
+  ply_window_save_color_palette (window);
+
   ply_window_hide_text_cursor (window);
   ply_window_set_text_cursor_position (window, 0, 0);
 
@@ -436,6 +455,7 @@ ply_window_open (ply_window_t *window)
 void
 ply_window_close (ply_window_t *window)
 {
+  ply_window_restore_color_palette (window);
   ply_window_set_text_cursor_position (window, 0, 0);
 
   if (ply_frame_buffer_device_is_open (window->frame_buffer))

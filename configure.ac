@@ -61,7 +61,7 @@ AC_SUBST(logofile)
 
 AM_CONDITIONAL(INSTALL_FALLBACK_LOGO,  [test "$logofile" = $datadir/plymouth/bizcom.png])
 
-AC_ARG_WITH(background-color, AC_HELP_STRING([--with-background-color], [background color used by boot splash plugins]),background_color=${withval},background_color=0x3a362f)
+AC_ARG_WITH(background-color, AC_HELP_STRING([--with-background-color], [background color used by boot splash plugins]),background_color=${withval},background_color=0x5d5950)
 AC_SUBST(background_color)
 
 AC_ARG_WITH(background-start-color-stop, AC_HELP_STRING([--with-background-start-color], [first color stop in background gradients used by boot splash plugins]),background_start_color=${withval},background_start_color=0x807c71)

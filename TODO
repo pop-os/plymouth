@@ -9,3 +9,4 @@
 - rotate boot.log per boot cycle (might be easiest to just fork/exec out to logrotate directly)
 - fix error handling.  In particular, ply_open_module gets it completely wrong (replies on errno instead of dlerror())
 - consider moving text code from ply-window to a ply-text-buffer analog of ply-frame-buffer
+- restore text color palette on exit

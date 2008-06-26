@@ -97,9 +97,14 @@ void ply_window_set_background_color (ply_window_t       *window,
                                       ply_window_color_t  color);
 void ply_window_set_foreground_color (ply_window_t       *window,
                                       ply_window_color_t  color);
-
 ply_window_color_t ply_window_get_background_color (ply_window_t *window);
 ply_window_color_t ply_window_get_foreground_color (ply_window_t *window);
+
+uint32_t ply_window_get_color_hex_value (ply_window_t       *window,
+                                         ply_window_color_t  color);
+void ply_window_set_color_hex_value (ply_window_t       *window,
+                                     ply_window_color_t  color,
+                                     uint32_t            hex_value);
 
 void ply_window_attach_to_event_loop (ply_window_t     *window,
                                       ply_event_loop_t *loop);

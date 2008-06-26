@@ -540,6 +540,86 @@ ply_window_get_foreground_color (ply_window_t *window)
   return window->foreground_color;
 }
 
+static uint8_t *
+ply_window_get_color_palette (ply_window_t *window)
+{
+  uint8_t *palette;
+
+  palette = malloc (48);
+
+  if (ioctl (window->tty_fd, GIO_CMAP, palette) < 0)
+    {
+      free (palette);
+      return NULL;
+    }
+
+  return palette;
+}
+
+static bool
+ply_window_set_color_palette (ply_window_t *window,
+                              uint8_t      *palette)
+{
+  if (ioctl (window->tty_fd, PIO_CMAP, palette) < 0)
+    return false;
+
+  return true;
+}
+
+uint32_t
+ply_window_get_color_hex_value (ply_window_t       *window,
+                                ply_window_color_t  color)
+{
+  uint8_t *palette;
+  uint8_t red, green, blue;
+  uint32_t hex_value;
+
+  assert (window != NULL);
+  assert (color >= 0 && color <= PLY_WINDOW_COLOR_WHITE);
+
+  palette = ply_window_get_color_palette (window);
+
+  if (palette == NULL)
+    return 0;
+
+  red = (uint8_t) *(palette + 3 * color);
+  green = (uint8_t) *(palette + 3 * color + 1);
+  blue = (uint8_t) *(palette + 3 * color + 2);
+  free (palette);
+
+  hex_value = red << 16 | green << 8 | blue;
+
+  return hex_value;
+}
+
+void
+ply_window_set_color_hex_value (ply_window_t       *window,
+                                ply_window_color_t  color,
+                                uint32_t            hex_value)
+{
+  uint8_t *palette;
+  uint8_t red, green, blue;
+
+  assert (window != NULL);
+  assert (color >= 0 && color <= PLY_WINDOW_COLOR_WHITE);
+
+  palette = ply_window_get_color_palette (window);
+
+  if (palette == NULL)
+    return;
+
+  red = (uint8_t) ((hex_value >> 16) & 0xff);
+  green = (uint8_t) ((hex_value >> 8) & 0xff);
+  blue = (uint8_t) (hex_value & 0xff);
+
+  *(palette + 3 * color) = red;
+  *(palette + 3 * color + 1) = green;
+  *(palette + 3 * color + 2) = blue;
+
+  ply_window_set_color_palette (window, palette);
+  free (palette);
+}
+
 void
 ply_window_hide_text_cursor (ply_window_t *window)
 {

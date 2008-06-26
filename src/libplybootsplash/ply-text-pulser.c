@@ -81,7 +81,7 @@ ply_text_pulser_new (void)
   pulser->column = 0;
   pulser->spinner_position = 0;
   pulser->number_of_columns = 40;
-  pulser->number_of_rows = 3;
+  pulser->number_of_rows = 1;
 
   return pulser;
 }
@@ -96,20 +96,37 @@ ply_text_pulser_free (ply_text_pulser_t *pulser)
 }
 
 static void
+draw_trough (ply_text_pulser_t *pulser,
+             int                column,
+             int                row)
+{
+  char *bytes;
+
+  ply_window_set_text_cursor_position (pulser->window,
+                                       column,
+                                       row);
+  ply_window_set_background_color (pulser->window, PLY_WINDOW_COLOR_BROWN);
+  bytes = malloc (pulser->number_of_columns);
+  memset (bytes, ' ', pulser->number_of_columns);
+  write (STDOUT_FILENO, bytes, pulser->number_of_columns);
+  free (bytes);
+}
+
+static void
 animate_at_time (ply_text_pulser_t *pulser,
                  double             time)
 {
   ply_window_set_mode (pulser->window, PLY_WINDOW_MODE_TEXT);
 
+  draw_trough (pulser, pulser->column, pulser->row);
+
   ply_window_set_text_cursor_position (pulser->window,
                                        pulser->column + pulser->spinner_position,
-                                       pulser->row + 1);
-  ply_window_set_background_color (pulser->window, PLY_WINDOW_COLOR_DEFAULT);
-  write (STDOUT_FILENO, "      ", strlen ("      "));
-  pulser->spinner_position = ((pulser->number_of_columns - 2) - NUMBER_OF_INDICATOR_COLUMNS - 1)  * (.5 * sin (time) + .5) + 2;
+                                       pulser->row);
+  pulser->spinner_position = (pulser->number_of_columns - strlen ("      ") + 1)  * (.5 * sin (time) + .5);
   ply_window_set_text_cursor_position (pulser->window,
                                        pulser->column + pulser->spinner_position,
-                                       pulser->row + 1);
+                                       pulser->row);
 
   ply_window_set_background_color (pulser->window, PLY_WINDOW_COLOR_WHITE);
   write (STDOUT_FILENO, "      ", strlen ("      "));

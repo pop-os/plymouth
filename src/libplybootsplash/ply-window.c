@@ -338,7 +338,7 @@ out:
   return console_state.v_active;
 }
 
-bool
+static bool
 ply_window_look_up_geometry (ply_window_t *window)
 {
     struct winsize window_size;

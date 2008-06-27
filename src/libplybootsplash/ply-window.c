@@ -537,12 +537,12 @@ ply_window_set_text_cursor_position (ply_window_t *window,
 void
 ply_window_clear_screen (ply_window_t *window)
 {
+  if (ply_frame_buffer_device_is_open (window->frame_buffer))
+    ply_frame_buffer_fill_with_color (window->frame_buffer, NULL, 0.0, 0.0, 0.0, 1.0);
+
   write (window->tty_fd, CLEAR_SCREEN_SEQUENCE, strlen (CLEAR_SCREEN_SEQUENCE));
 
   ply_window_set_text_cursor_position (window, 0, 0);
-
-  if (ply_frame_buffer_device_is_open (window->frame_buffer))
-    ply_frame_buffer_fill_with_color (window->frame_buffer, NULL, 0.0, 0.0, 0.0, 1.0);
 }
 
 void

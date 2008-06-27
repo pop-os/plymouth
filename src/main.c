@@ -173,6 +173,24 @@ on_show_splash (state_t *state)
 }
 
 static void
+on_hide_splash (state_t *state)
+{
+
+  if (state->boot_splash != NULL)
+    {
+      ply_boot_splash_hide (state->boot_splash);
+      ply_boot_splash_free (state->boot_splash);
+      state->boot_splash = NULL;
+    }
+
+  if (state->window != NULL)
+    {
+      ply_window_free (state->window);
+      state->window = NULL;
+    }
+}
+
+static void
 on_quit (state_t *state)
 {
   ply_trace ("time to quit, closing boot.log");
@@ -195,6 +213,7 @@ start_boot_server (state_t *state)
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
                                 (ply_boot_server_show_splash_handler_t) on_show_splash,
+                                (ply_boot_server_hide_splash_handler_t) on_hide_splash,
                                 (ply_boot_server_newroot_handler_t) on_newroot,
                                 (ply_boot_server_system_initialized_handler_t) on_system_initialized,
                                 (ply_boot_server_quit_handler_t) on_quit,

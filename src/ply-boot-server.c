@@ -53,6 +53,7 @@ struct _ply_boot_server
   ply_boot_server_newroot_handler_t newroot_handler;
   ply_boot_server_system_initialized_handler_t system_initialized_handler;
   ply_boot_server_show_splash_handler_t show_splash_handler;
+  ply_boot_server_hide_splash_handler_t hide_splash_handler;
   ply_boot_server_ask_for_password_handler_t ask_for_password_handler;
   ply_boot_server_quit_handler_t quit_handler;
   void *user_data;
@@ -64,6 +65,7 @@ ply_boot_server_t *
 ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
                      ply_boot_server_ask_for_password_handler_t ask_for_password_handler,
                      ply_boot_server_show_splash_handler_t show_splash_handler,
+                     ply_boot_server_hide_splash_handler_t hide_splash_handler,
                      ply_boot_server_newroot_handler_t newroot_handler,
                      ply_boot_server_system_initialized_handler_t initialized_handler,
                      ply_boot_server_quit_handler_t    quit_handler,
@@ -80,6 +82,7 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
   server->newroot_handler = newroot_handler;
   server->system_initialized_handler = initialized_handler;
   server->show_splash_handler = show_splash_handler;
+  server->hide_splash_handler = hide_splash_handler;
   server->quit_handler = quit_handler;
   server->user_data = user_data;
 
@@ -254,6 +257,12 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (server->show_splash_handler != NULL)
         server->show_splash_handler (server->user_data, server);
     }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_HIDE_SPLASH) == 0)
+    {
+      ply_trace ("got hide splash request");
+      if (server->hide_splash_handler != NULL)
+        server->hide_splash_handler (server->user_data, server);
+    }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_QUIT) == 0)
     {
       if (server->quit_handler != NULL)
@@ -415,6 +424,12 @@ on_show_splash (ply_event_loop_t *loop)
 }
 
 static void
+on_hide_splash (ply_event_loop_t *loop)
+{
+  printf ("got hide splash request\n");
+}
+
+static void
 on_quit (ply_event_loop_t *loop)
 {
   printf ("got quit request, quiting...\n");
@@ -444,6 +459,7 @@ main (int    argc,
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
                                 (ply_boot_server_show_splash_handler_t) on_show_splash,
+                                (ply_boot_server_hide_splash_handler_t) on_hide_splash,
                                 (ply_boot_server_newroot_handler_t) on_newroot,
                                 (ply_boot_server_system_initialized_handler_t) on_system_initialized,
                                 (ply_boot_server_quit_handler_t) on_quit,

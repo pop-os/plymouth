@@ -72,7 +72,7 @@ main (int    argc,
   ply_event_loop_t *loop;
   ply_boot_client_t *client;
   ply_command_parser_t *command_parser;
-  bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash;
+  bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash;
   char *status, *chroot_dir;
   int exit_code;
 
@@ -95,6 +95,7 @@ main (int    argc,
                                   "ping", "Check of boot daemon is running", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "sysinit", "Tell boot daemon root filesystem is mounted read-write", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "show-splash", "Show splash screen", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "hide-splash", "Hide splash screen", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "ask-for-password", "Ask user for password", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "update", "Tell boot daemon an update about boot progress", PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
@@ -118,6 +119,7 @@ main (int    argc,
                                   "ping", &should_ping,
                                   "sysinit", &should_sysinit,
                                   "show-splash", &should_show_splash,
+                                  "hide-splash", &should_hide_splash,
                                   "ask-for-password", &should_ask_for_password,
                                   "update", &status,
                                   NULL);
@@ -158,6 +160,12 @@ main (int    argc,
 
   if (should_show_splash)
     ply_boot_client_tell_daemon_to_show_splash (client,
+                                               (ply_boot_client_response_handler_t)
+                                               on_success,
+                                               (ply_boot_client_response_handler_t)
+                                               on_failure, loop);
+  else if (should_hide_splash)
+    ply_boot_client_tell_daemon_to_hide_splash (client,
                                                (ply_boot_client_response_handler_t)
                                                on_success,
                                                (ply_boot_client_response_handler_t)

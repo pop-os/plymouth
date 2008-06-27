@@ -10,3 +10,4 @@
 - fix error handling.  In particular, ply_open_module gets it completely wrong (replies on errno instead of dlerror())
 - consider moving text code from ply-window to a ply-text-buffer analog of ply-frame-buffer
 - maybe watch for VT switches and do things like restoring text color palette and stopping drawing the framebuffer
+- clean up the event loop watch api to always be in terms of watch objects instead of function/user_data pairs.

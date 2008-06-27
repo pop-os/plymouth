@@ -810,7 +810,8 @@ ply_event_loop_stop_watching_signal (ply_event_loop_t *loop,
   node = ply_signal_dispatcher_find_source_node (loop->signal_dispatcher,
                                                  signal_number);
 
-  assert (node != NULL);
+  if (node == NULL)
+    return;
 
   ply_signal_dispatcher_remove_source_node (loop->signal_dispatcher, node);
 }

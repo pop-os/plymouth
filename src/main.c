@@ -176,6 +176,7 @@ static void
 on_hide_splash (state_t *state)
 {
 
+  ply_trace ("hiding boot splash");
   if (state->boot_splash != NULL)
     {
       ply_boot_splash_hide (state->boot_splash);
@@ -183,8 +184,10 @@ on_hide_splash (state_t *state)
       state->boot_splash = NULL;
     }
 
+  ply_trace ("closing splash window");
   if (state->window != NULL)
     {
+      ply_window_close (state->window);
       ply_window_free (state->window);
       state->window = NULL;
     }

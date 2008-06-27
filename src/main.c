@@ -63,6 +63,8 @@ typedef struct
 static ply_boot_splash_t *start_boot_splash (state_t    *state,
                                              const char *module_path);
 
+static ply_window_t *create_window (state_t *state, int vt_number);
+
 static void
 on_session_output (state_t    *state,
                    const char *output,
@@ -160,6 +162,13 @@ show_default_splash (state_t *state)
 static void
 on_show_splash (state_t *state)
 {
+
+  if (state->window == NULL)
+    {
+      state->window = create_window (state, 7);
+      ply_window_take_console (state->window);
+    }
+
   show_default_splash (state);
 }
 
@@ -525,10 +534,6 @@ main (int    argc,
       ply_error ("could not tell parent to exit: %m");
       return EX_UNAVAILABLE;
     }
-
-  state.window = create_window (&state, 7);
-
-  ply_window_take_console (state.window);
 
   ply_trace ("entering event loop");
   exit_code = ply_event_loop_run (state.loop);

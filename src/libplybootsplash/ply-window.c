@@ -723,12 +723,6 @@ ply_window_attach_to_event_loop (ply_window_t     *window,
 
   window->loop = loop;
 
-  if (window->tty_fd >= 0)
-    window->tty_fd_watch = ply_event_loop_watch_fd (window->loop, window->tty_fd,
-                                                    PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
-                                                    (ply_event_handler_t) on_key_event,
-                                                    NULL, window);
-
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
                                  ply_window_detach_from_event_loop,
                                  window);

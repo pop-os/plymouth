@@ -165,7 +165,7 @@ on_show_splash (state_t *state)
 
   if (state->window == NULL)
     {
-      state->window = create_window (state, 7);
+      state->window = create_window (state, 1);
       ply_window_take_console (state->window);
     }
 
@@ -387,11 +387,11 @@ check_verbosity (state_t *state)
 }
 
 static bool
-set_console_io_to_vt7 (state_t *state)
+set_console_io_to_vt1 (state_t *state)
 {
   int fd;
 
-  fd = open ("/dev/tty7", O_RDWR | O_APPEND);
+  fd = open ("/dev/tty1", O_RDWR | O_APPEND);
 
   if (fd < 0)
     return false;
@@ -448,7 +448,7 @@ initialize_environment (state_t *state)
   if (!plymouth_should_be_running (state))
     return false;
 
-  if (!set_console_io_to_vt7 (state))
+  if (!set_console_io_to_vt1 (state))
     return false;
 
   ply_trace ("initialized minimal work environment");
@@ -460,7 +460,7 @@ on_crash (int signal)
 {
     int fd;
 
-    fd = open ("/dev/tty7", O_RDWR | O_NOCTTY);
+    fd = open ("/dev/tty1", O_RDWR | O_NOCTTY);
 
     ioctl (fd, KDSETMODE, KD_TEXT);
 

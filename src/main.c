@@ -191,6 +191,18 @@ on_hide_splash (state_t *state)
       ply_window_free (state->window);
       state->window = NULL;
     }
+
+  if (state->session != NULL)
+    {
+      ply_trace ("unredirecting console");
+      int fd;
+
+      fd = open ("/dev/console", O_RDWR | O_NOCTTY);
+      if (fd >= 0)
+          ioctl (fd, TIOCCONS);
+
+      close (fd);
+    }
 }
 
 static void

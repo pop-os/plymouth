@@ -65,13 +65,6 @@ on_disconnect (state_t *state)
   ply_event_loop_exit (state->loop, 2);
 }
 
-void
-print_usage (void)
-{
-  ply_log ("plymouth [--ping] [--update=STATUS] [--show-splash] [--details] [--newroot=<directory>] [--sysinit] [--quit]");
-  ply_flush_log ();
-}
-
 int
 main (int    argc,
       char **argv)
@@ -82,12 +75,6 @@ main (int    argc,
   int exit_code;
 
   exit_code = 0;
-
-  if (argc <= 1)
-    {
-      print_usage ();
-      return 1;
-    }
 
   state.loop = ply_event_loop_new ();
   state.client = ply_boot_client_new ();
@@ -129,13 +116,16 @@ main (int    argc,
                                   "update", &status,
                                   NULL);
 
-  if (should_help)
+  if (should_help || argc < 2)
     {
       char *help_string;
 
       help_string = ply_command_parser_get_help_string (state.command_parser);
 
-      printf ("%s", help_string);
+      if (argc < 2)
+        fprintf (stderr, "%s", help_string);
+      else
+        printf ("%s", help_string);
 
       free (help_string);
       return 0;

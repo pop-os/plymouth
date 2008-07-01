@@ -60,9 +60,9 @@ void ply_boot_client_tell_daemon_to_change_root (ply_boot_client_t              
                                                  ply_boot_client_response_handler_t  failed_handler,
                                                  void                               *user_data);
 void ply_boot_client_ask_daemon_for_password (ply_boot_client_t                  *client,
-                                         ply_boot_client_answer_handler_t    handler,
-                                         ply_boot_client_response_handler_t  failed_handler,
-                                         void                               *user_data);
+                                              ply_boot_client_answer_handler_t    handler,
+                                              ply_boot_client_response_handler_t  failed_handler,
+                                              void                               *user_data);
 void ply_boot_client_tell_daemon_system_is_initialized (ply_boot_client_t                  *client,
                                                         ply_boot_client_response_handler_t  handler,
                                                         ply_boot_client_response_handler_t  failed_handler,

@@ -38,18 +38,76 @@ typedef struct
   ply_command_parser_t *command_parser;
 } state_t;
 
-static void
-on_answer (ply_event_loop_t *loop,
-           const char       *answer)
+typedef struct
 {
-  write (STDOUT_FILENO, answer, strlen (answer));
-  ply_event_loop_exit (loop, 0);
+  state_t *state;
+  char    *command;
+} answer_state_t;
+
+static bool
+answer_via_command (answer_state_t *answer_state,
+                    const char     *answer,
+                    int            *exit_status)
+{
+  FILE *command_input_stream;
+  bool gave_answer;
+
+  gave_answer = false;
+  command_input_stream = popen (answer_state->command, "w");
+
+  if (command_input_stream == NULL)
+    goto out;
+
+  if (fwrite (answer, strlen (answer), 1, command_input_stream) != 1)
+    goto out;
+
+  if (fflush (command_input_stream) != 0)
+    goto out;
+
+  gave_answer = true;
+out:
+  if (command_input_stream != NULL)
+    *exit_status = pclose (command_input_stream);
+
+  return gave_answer;
 }
 
 static void
-on_success (state_t *state)
+on_answer_failure (answer_state_t *answer_state)
 {
-  ply_event_loop_exit (state->loop, 0);
+  ply_event_loop_exit (answer_state->state->loop, 1);
+}
+
+static void
+on_answer (answer_state_t   *answer_state,
+           const char       *answer)
+{
+  int exit_status;
+
+  exit_status = 0;
+  if (answer_state->command != NULL)
+    {
+      bool command_started = false;
+
+      exit_status = 127;
+      command_started = answer_via_command (answer_state, answer,
+                                            &exit_status);
+
+      if (command_started && (!WIFEXITED (exit_status) ||
+          WEXITSTATUS (exit_status) != 0))
+        {
+          ply_boot_client_ask_daemon_for_password (answer_state->state->client,
+                                                   (ply_boot_client_answer_handler_t)
+                                                   on_answer,
+                                                   (ply_boot_client_response_handler_t)
+                                                   on_answer_failure, answer_state);
+          return;
+        }
+    }
+  else
+    write (STDOUT_FILENO, answer, strlen (answer));
+
+  ply_event_loop_exit (answer_state->state->loop, exit_status);
 }
 
 static void
@@ -59,10 +117,43 @@ on_failure (state_t *state)
 }
 
 static void
+on_success (state_t *state)
+{
+  ply_event_loop_exit (state->loop, 0);
+}
+
+static void
 on_disconnect (state_t *state)
 {
   ply_error ("error: unexpectedly disconnected from boot status daemon");
   ply_event_loop_exit (state->loop, 2);
+}
+
+static void
+on_password_request (state_t    *state,
+                     const char *command)
+{
+  char *prompt;
+  char *program;
+  answer_state_t *answer_state;
+
+  prompt = NULL;
+  program = NULL;
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "command", &program, NULL);
+
+  answer_state = calloc (1, sizeof (answer_state_t));
+  answer_state->state = state;
+  answer_state->command = program != NULL? strdup (program): NULL;
+
+  ply_boot_client_ask_daemon_for_password (state->client,
+                                           (ply_boot_client_answer_handler_t)
+                                           on_answer,
+                                           (ply_boot_client_response_handler_t)
+                                           on_answer_failure, answer_state);
+
+  free (program);
 }
 
 int
@@ -91,6 +182,13 @@ main (int    argc,
                                   "ask-for-password", "Ask user for password", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "update", "Tell boot daemon an update about boot progress", PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "ask-for-password", "Ask user for passowrd",
+                                  (ply_command_handler_t)
+                                  on_password_request, &state,
+                                  "command", "Command to send password to via standard input",
+                                  PLY_COMMAND_OPTION_TYPE_STRING, NULL);
 
   if (!ply_command_parser_parse_arguments (state.command_parser, state.loop, argv, argc))
     {
@@ -184,11 +282,16 @@ main (int    argc,
                                    (ply_boot_client_response_handler_t)
                                    on_failure, &state);
   else if (should_ask_for_password)
-    ply_boot_client_ask_daemon_for_password (state.client,
-                                   (ply_boot_client_answer_handler_t)
-                                   on_answer,
-                                   (ply_boot_client_response_handler_t)
-                                   on_failure, &state);
+    {
+      answer_state_t answer_state = { 0 };
+
+      answer_state.state = &state;
+      ply_boot_client_ask_daemon_for_password (state.client,
+                                               (ply_boot_client_answer_handler_t)
+                                                on_answer,
+                                               (ply_boot_client_response_handler_t)
+                                               on_answer_failure, &answer_state);
+    }
   else if (should_sysinit)
     ply_boot_client_tell_daemon_system_is_initialized (state.client,
                                    (ply_boot_client_response_handler_t)
@@ -201,8 +304,6 @@ main (int    argc,
                                    on_success,
                                    (ply_boot_client_response_handler_t)
                                    on_failure, &state);
-  else
-    return 1;
 
   exit_code = ply_event_loop_run (state.loop);
 

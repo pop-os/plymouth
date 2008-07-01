@@ -31,6 +31,13 @@
 #include "ply-logger.h"
 #include "ply-utils.h"
 
+typedef struct
+{
+  ply_event_loop_t     *loop;
+  ply_boot_client_t    *client;
+  ply_command_parser_t *command_parser;
+} state_t;
+
 static void
 on_answer (ply_event_loop_t *loop,
            const char       *answer)
@@ -40,22 +47,22 @@ on_answer (ply_event_loop_t *loop,
 }
 
 static void
-on_success (ply_event_loop_t *loop)
+on_success (state_t *state)
 {
-  ply_event_loop_exit (loop, 0);
+  ply_event_loop_exit (state->loop, 0);
 }
 
 static void
-on_failure (ply_event_loop_t *loop)
+on_failure (state_t *state)
 {
-  ply_event_loop_exit (loop, 1);
+  ply_event_loop_exit (state->loop, 1);
 }
 
 static void
-on_disconnect (ply_event_loop_t *loop)
+on_disconnect (state_t *state)
 {
   ply_error ("error: unexpectedly disconnected from boot status daemon");
-  ply_event_loop_exit (loop, 2);
+  ply_event_loop_exit (state->loop, 2);
 }
 
 void
@@ -69,9 +76,7 @@ int
 main (int    argc,
       char **argv)
 {
-  ply_event_loop_t *loop;
-  ply_boot_client_t *client;
-  ply_command_parser_t *command_parser;
+  state_t state = { 0 };
   bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash;
   char *status, *chroot_dir;
   int exit_code;
@@ -84,11 +89,11 @@ main (int    argc,
       return 1;
     }
 
-  loop = ply_event_loop_new ();
-  client = ply_boot_client_new ();
-  command_parser = ply_command_parser_new ("plymouth", "Boot splash control client");
+  state.loop = ply_event_loop_new ();
+  state.client = ply_boot_client_new ();
+  state.command_parser = ply_command_parser_new ("plymouth", "Boot splash control client");
 
-  ply_command_parser_add_options (command_parser,
+  ply_command_parser_add_options (state.command_parser,
                                   "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "newroot", "Tell boot daemon that new root filesystem is mounted", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "quit", "Tell boot daemon to quit", PLY_COMMAND_OPTION_TYPE_FLAG,
@@ -100,11 +105,11 @@ main (int    argc,
                                   "update", "Tell boot daemon an update about boot progress", PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
-  if (!ply_command_parser_parse_arguments (command_parser, loop, argv, argc))
+  if (!ply_command_parser_parse_arguments (state.command_parser, state.loop, argv, argc))
     {
       char *help_string;
 
-      help_string = ply_command_parser_get_help_string (command_parser);
+      help_string = ply_command_parser_get_help_string (state.command_parser);
 
       ply_error ("%s", help_string);
 
@@ -112,7 +117,7 @@ main (int    argc,
       return 1;
     }
 
-  ply_command_parser_get_options (command_parser,
+  ply_command_parser_get_options (state.command_parser,
                                   "help", &should_help,
                                   "newroot", &chroot_dir,
                                   "quit", &should_quit,
@@ -128,7 +133,7 @@ main (int    argc,
     {
       char *help_string;
 
-      help_string = ply_command_parser_get_help_string (command_parser);
+      help_string = ply_command_parser_get_help_string (state.command_parser);
 
       printf ("%s", help_string);
 
@@ -136,9 +141,9 @@ main (int    argc,
       return 0;
     }
 
-  if (!ply_boot_client_connect (client,
+  if (!ply_boot_client_connect (state.client,
                                 (ply_boot_client_disconnect_handler_t)
-                                on_disconnect, loop))
+                                on_disconnect, &state))
     {
       if (should_ping)
          return 1;
@@ -156,62 +161,62 @@ main (int    argc,
       return errno;
     }
 
-  ply_boot_client_attach_to_event_loop (client, loop);
+  ply_boot_client_attach_to_event_loop (state.client, state.loop);
 
   if (should_show_splash)
-    ply_boot_client_tell_daemon_to_show_splash (client,
+    ply_boot_client_tell_daemon_to_show_splash (state.client,
                                                (ply_boot_client_response_handler_t)
                                                on_success,
                                                (ply_boot_client_response_handler_t)
-                                               on_failure, loop);
+                                               on_failure, &state);
   else if (should_hide_splash)
-    ply_boot_client_tell_daemon_to_hide_splash (client,
+    ply_boot_client_tell_daemon_to_hide_splash (state.client,
                                                (ply_boot_client_response_handler_t)
                                                on_success,
                                                (ply_boot_client_response_handler_t)
-                                               on_failure, loop);
+                                               on_failure, &state);
   else if (should_quit)
-    ply_boot_client_tell_daemon_to_quit (client,
+    ply_boot_client_tell_daemon_to_quit (state.client,
                                          (ply_boot_client_response_handler_t)
                                          on_success,
                                          (ply_boot_client_response_handler_t)
-                                         on_failure, loop);
+                                         on_failure, &state);
   else if (should_ping)
-    ply_boot_client_ping_daemon (client, 
+    ply_boot_client_ping_daemon (state.client,
                                  (ply_boot_client_response_handler_t)
                                  on_success, 
                                  (ply_boot_client_response_handler_t)
-                                 on_failure, loop);
+                                 on_failure, &state);
   else if (status != NULL)
-    ply_boot_client_update_daemon (client, status,
+    ply_boot_client_update_daemon (state.client, status,
                                    (ply_boot_client_response_handler_t)
                                    on_success, 
                                    (ply_boot_client_response_handler_t)
-                                   on_failure, loop);
+                                   on_failure, &state);
   else if (should_ask_for_password)
-    ply_boot_client_ask_daemon_for_password (client,
+    ply_boot_client_ask_daemon_for_password (state.client,
                                    (ply_boot_client_answer_handler_t)
                                    on_answer,
                                    (ply_boot_client_response_handler_t)
-                                   on_failure, loop);
+                                   on_failure, &state);
   else if (should_sysinit)
-    ply_boot_client_tell_daemon_system_is_initialized (client,
+    ply_boot_client_tell_daemon_system_is_initialized (state.client,
                                    (ply_boot_client_response_handler_t)
                                    on_success, 
                                    (ply_boot_client_response_handler_t)
-                                   on_failure, loop);
+                                   on_failure, &state);
   else if (chroot_dir)
-    ply_boot_client_tell_daemon_to_change_root (client, chroot_dir,
+    ply_boot_client_tell_daemon_to_change_root (state.client, chroot_dir,
                                    (ply_boot_client_response_handler_t)
                                    on_success,
                                    (ply_boot_client_response_handler_t)
-                                   on_failure, loop);
+                                   on_failure, &state);
   else
     return 1;
 
-  exit_code = ply_event_loop_run (loop);
+  exit_code = ply_event_loop_run (state.loop);
 
-  ply_boot_client_free (client);
+  ply_boot_client_free (state.client);
 
   return exit_code;
 }

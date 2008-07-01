@@ -256,6 +256,7 @@ ask_for_password (ply_boot_splash_plugin_t *plugin,
   plugin->pending_password_answer = answer;
 
   stop_animation (plugin);
+  ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_DEFAULT);
   ply_window_clear_screen (plugin->window);
 
   window_width = ply_window_get_number_of_text_columns (plugin->window);

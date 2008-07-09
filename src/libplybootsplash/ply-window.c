@@ -45,6 +45,7 @@
 #include "ply-logger.h"
 #include "ply-utils.h"
 
+#define KEY_CTRL_P ('\100' ^'P')
 #define KEY_CTRL_T ('\100' ^'T')
 #define KEY_CTRL_U ('\100' ^'U')
 #define KEY_CTRL_W ('\100' ^'W')
@@ -143,6 +144,40 @@ ply_window_new (int vt_number)
   return window;
 }
 
+static bool
+ply_window_look_up_color_palette (ply_window_t *window)
+{
+  if (ioctl (window->tty_fd, GIO_CMAP, window->color_palette) < 0)
+      return false;
+
+  return true;
+}
+
+static bool
+ply_window_change_color_palette (ply_window_t *window)
+{
+  if (ioctl (window->tty_fd, PIO_CMAP, window->color_palette) < 0)
+    return false;
+
+  return true;
+}
+
+static void
+ply_window_save_color_palette (ply_window_t *window)
+{
+  memcpy (window->original_color_palette, window->color_palette,
+          TEXT_PALETTE_SIZE);
+}
+
+static void
+ply_window_restore_color_palette (ply_window_t *window)
+{
+  memcpy (window->color_palette, window->original_color_palette,
+          TEXT_PALETTE_SIZE);
+
+  ply_window_change_color_palette (window);
+}
+
 static void
 process_backspace (ply_window_t *window)
 {
@@ -188,6 +223,12 @@ process_keyboard_input (ply_window_t *window,
     {
       switch (key)
         {
+
+          case KEY_CTRL_P:
+            ply_trace ("restore text palette to original value!");
+            ply_window_restore_color_palette (window);
+          return;
+
           case KEY_CTRL_T:
             ply_trace ("toggle text mode!");
             window->should_force_text_mode = !window->should_force_text_mode;
@@ -360,40 +401,6 @@ ply_window_look_up_geometry (ply_window_t *window)
                window->number_of_text_rows);
 
     return true;
-}
-
-static bool
-ply_window_look_up_color_palette (ply_window_t *window)
-{
-  if (ioctl (window->tty_fd, GIO_CMAP, window->color_palette) < 0)
-      return false;
-
-  return true;
-}
-
-static bool
-ply_window_change_color_palette (ply_window_t *window)
-{
-  if (ioctl (window->tty_fd, PIO_CMAP, window->color_palette) < 0)
-    return false;
-
-  return true;
-}
-
-static void
-ply_window_save_color_palette (ply_window_t *window)
-{
-  memcpy (window->original_color_palette, window->color_palette,
-          TEXT_PALETTE_SIZE);
-}
-
-static void
-ply_window_restore_color_palette (ply_window_t *window)
-{
-  memcpy (window->color_palette, window->original_color_palette,
-          TEXT_PALETTE_SIZE);
-
-  ply_window_change_color_palette (window);
 }
 
 bool

@@ -8,7 +8,7 @@ set -e
 [ -z "$DATADIR" ] && DATADIR="/usr/share"
 [ -z "$INITRD" ] && INITRD="/boot/initrd-$(/sbin/grubby --default-kernel | sed 's/.*vmlinuz-//g').img"
 [ -z "$SYSTEMMAP" ] && SYSTEM_MAP="/boot/System.map-$(/bin/uname -r)"
-[ -z "$LIB" ] && $(eu-readelf -h /usr/bin/plymouth | grep Class | grep -q ELF64) && LIB="lib64" || LIB="lib"
+[ -z "$LIB" ] && $(echo nash-showelfinterp /usr/bin/plymouth | /sbin/nash --forcequiet | grep -q lib64) && LIB="lib64" || LIB="lib"
 [ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
 [ -z "$BINDIR" ] && BINDIR="/usr/bin"
 [ -z "$GRUB_MENU_TITLE" ] && GRUB_MENU_TITLE="Graphical Bootup"

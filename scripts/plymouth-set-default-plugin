@@ -4,7 +4,7 @@ set -e
 
 [ -z "$LIBEXECDIR" ] && LIBEXECDIR="/usr/libexec"
 [ -z "$DATADIR" ] && DATADIR="/usr/share"
-[ -z "$LIB" ] && $(eu-readelf -h /usr/bin/plymouth | grep Class | grep -q ELF64) && LIB="lib64" || LIB="lib"
+[ -z "$LIB" ] && $(echo nash-showelfinterp /usr/bin/plymouth | /sbin/nash --forcequiet | grep -q lib64) && LIB="lib64" || LIB="lib"
 [ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
 [ -z "$BINDIR" ] && BINDIR="/usr/bin"
 

@@ -96,37 +96,6 @@ on_update (state_t     *state,
 }
 
 static void
-on_ask_for_password (state_t      *state,
-                     ply_answer_t *answer)
-{
-  if (state->boot_splash == NULL)
-    {
-      ply_answer_with_string (answer, "");
-      return;
-    }
-
-  ply_boot_splash_ask_for_password (state->boot_splash, answer);
-}
-
-static void
-on_newroot (state_t    *state,
-             const char *root_dir)
-{
-  ply_trace ("new root mounted at \"%s\", switching to it", root_dir);
-  chdir(root_dir);
-  chroot(".");
-  chdir("/");
-}
-
-static void
-on_system_initialized (state_t *state)
-{
-  ply_trace ("system now initialized, opening boot.log");
-  ply_terminal_session_open_log (state->session,
-                                 PLYMOUTH_LOG_DIRECTORY "/boot.log");
-}
-
-static void
 show_detailed_splash (state_t *state)
 {
   ply_trace ("Showing detailed splash screen");
@@ -157,6 +126,37 @@ show_default_splash (state_t *state)
 
   if (state->boot_splash == NULL)
     ply_error ("could not start boot splash: %m");
+}
+
+static void
+on_ask_for_password (state_t      *state,
+                     ply_answer_t *answer)
+{
+  if (state->boot_splash == NULL)
+    {
+      ply_answer_with_string (answer, "");
+      return;
+    }
+
+  ply_boot_splash_ask_for_password (state->boot_splash, answer);
+}
+
+static void
+on_newroot (state_t    *state,
+             const char *root_dir)
+{
+  ply_trace ("new root mounted at \"%s\", switching to it", root_dir);
+  chdir(root_dir);
+  chroot(".");
+  chdir("/");
+}
+
+static void
+on_system_initialized (state_t *state)
+{
+  ply_trace ("system now initialized, opening boot.log");
+  ply_terminal_session_open_log (state->session,
+                                 PLYMOUTH_LOG_DIRECTORY "/boot.log");
 }
 
 static bool

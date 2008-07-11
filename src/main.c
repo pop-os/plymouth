@@ -134,7 +134,9 @@ on_ask_for_password (state_t      *state,
 {
   if (state->boot_splash == NULL)
     {
-      ply_answer_with_string (answer, "");
+      show_detailed_splash (state);
+      if (state->boot_splash == NULL)
+        ply_answer_with_string (answer, "");
       return;
     }
 

@@ -65,6 +65,8 @@ static ply_boot_splash_t *start_boot_splash (state_t    *state,
 
 static ply_window_t *create_window (state_t *state, int vt_number);
 
+static bool plymouth_should_show_default_splash (state_t *state);
+
 static void
 on_session_output (state_t    *state,
                    const char *output,
@@ -169,7 +171,10 @@ on_show_splash (state_t *state)
       ply_window_take_console (state->window);
     }
 
-  show_default_splash (state);
+  if (plymouth_should_show_default_splash (state))
+    show_default_splash (state);
+  else
+    show_detailed_splash (state);
 }
 
 static void
@@ -416,7 +421,7 @@ set_console_io_to_vt1 (state_t *state)
 }
 
 static bool
-plymouth_should_be_running (state_t *state)
+plymouth_should_show_default_splash (state_t *state)
 {
   ply_trace ("checking if plymouth should be running");
 
@@ -456,9 +461,6 @@ initialize_environment (state_t *state)
     return false;
 
   check_verbosity (state);
-
-  if (!plymouth_should_be_running (state))
-    return false;
 
   if (!set_console_io_to_vt1 (state))
     return false;

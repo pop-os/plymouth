@@ -65,8 +65,6 @@ static ply_boot_splash_t *start_boot_splash (state_t    *state,
 
 static ply_window_t *create_window (state_t *state, int vt_number);
 
-static bool plymouth_should_show_default_splash (state_t *state);
-
 static void
 on_session_output (state_t    *state,
                    const char *output,
@@ -159,6 +157,38 @@ show_default_splash (state_t *state)
 
   if (state->boot_splash == NULL)
     ply_error ("could not start boot splash: %m");
+}
+
+static bool
+plymouth_should_show_default_splash (state_t *state)
+{
+  ply_trace ("checking if plymouth should be running");
+
+  const char const *strings[] = {
+      " single ", " single", "^single ",
+      " 1 ", " 1", "^1 ",
+      " init=", "^init=",
+      NULL
+  };
+  int i;
+
+  for (i = 0; strings[i] != NULL; i++)
+    {
+      int cmp;
+      if (strings[i][0] == '^')
+          cmp = strncmp(state->kernel_command_line, strings[i]+1,
+                        strlen(strings[i]+1)) == 0;
+      else
+          cmp = strstr (state->kernel_command_line, strings[i]) != NULL;
+
+      if (cmp)
+        {
+          ply_trace ("kernel command line has option \"%s\"", strings[i]);
+          return false;
+        }
+    }
+
+  return strstr (state->kernel_command_line, "rhgb") != NULL;
 }
 
 static void
@@ -418,38 +448,6 @@ set_console_io_to_vt1 (state_t *state)
   dup2 (fd, STDERR_FILENO);
 
   return true;
-}
-
-static bool
-plymouth_should_show_default_splash (state_t *state)
-{
-  ply_trace ("checking if plymouth should be running");
-
-  const char const *strings[] = {
-      " single ", " single", "^single ",
-      " 1 ", " 1", "^1 ",
-      " init=", "^init=",
-      NULL
-  };
-  int i;
-
-  for (i = 0; strings[i] != NULL; i++)
-    {
-      int cmp;
-      if (strings[i][0] == '^')
-          cmp = strncmp(state->kernel_command_line, strings[i]+1,
-                        strlen(strings[i]+1)) == 0;
-      else
-          cmp = strstr (state->kernel_command_line, strings[i]) != NULL;
-
-      if (cmp)
-        {
-          ply_trace ("kernel command line has option \"%s\"", strings[i]);
-          return false;
-        }
-    }
-
-  return strstr (state->kernel_command_line, "rhgb") != NULL;
 }
 
 static bool

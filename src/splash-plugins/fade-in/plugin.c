@@ -196,15 +196,18 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 
 static void
 draw_background (ply_boot_splash_plugin_t *plugin,
-		 ply_frame_buffer_area_t  *area)
+                 ply_frame_buffer_area_t  *area)
 {
-#if 0
-  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, area,
-					PLYMOUTH_BACKGROUND_COLOR);
-#else
-  ply_frame_buffer_fill_with_gradient (plugin->frame_buffer, area,
-                                       0x807c71, 0x3a362f);
-#endif
+  ply_frame_buffer_area_t screen_area;
+
+  if (area == NULL)
+    {
+      ply_frame_buffer_get_size (plugin->frame_buffer, &screen_area);
+      area = &screen_area;
+    }
+
+  ply_window_erase_area (plugin->window, area->x, area->y,
+                         area->width, area->height);
 }
 
 static void
@@ -417,6 +420,46 @@ on_enter (ply_boot_splash_plugin_t *plugin,
   start_animation (plugin);
 }
 
+void
+on_draw (ply_boot_splash_plugin_t *plugin,
+         int                       x,
+         int                       y,
+         int                       width,
+         int                       height)
+{
+  ply_frame_buffer_area_t area;
+
+  area.x = x;
+  area.y = y;
+  area.width = width;
+  area.height = height;
+
+  draw_background (plugin, &area);
+
+  if (plugin->pending_password_answer != NULL)
+    draw_password_entry (plugin);
+  else
+    animate_at_time (plugin, plugin->now);
+}
+
+void
+on_erase (ply_boot_splash_plugin_t *plugin,
+          int                       x,
+          int                       y,
+          int                       width,
+          int                       height)
+{
+  ply_frame_buffer_area_t area;
+
+  area.x = x;
+  area.y = y;
+  area.width = width;
+  area.height = height;
+
+  ply_frame_buffer_fill_with_gradient (plugin->frame_buffer, &area,
+                                       0x807c71, 0x3a362f);
+}
+
 bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
@@ -435,6 +478,14 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   ply_window_set_enter_handler (window,
                                 (ply_window_enter_handler_t)
                                 on_enter, plugin);
+
+  ply_window_set_draw_handler (window,
+                               (ply_window_draw_handler_t)
+                               on_draw, plugin);
+
+  ply_window_set_erase_handler (window,
+                               (ply_window_erase_handler_t)
+                               on_erase, plugin);
 
   plugin->loop = loop;
 

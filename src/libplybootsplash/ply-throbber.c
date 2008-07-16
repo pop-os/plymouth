@@ -124,9 +124,10 @@ ply_throbber_free (ply_throbber_t *throbber)
 static void
 draw_background (ply_throbber_t *throbber)
 {
-  ply_frame_buffer_fill_with_gradient (throbber->frame_buffer, &throbber->frame_area,
-                                       PLYMOUTH_BACKGROUND_START_COLOR,
-                                       PLYMOUTH_BACKGROUND_END_COLOR);
+  ply_window_erase_area (throbber->window,
+                         throbber->x, throbber->y,
+                         throbber->frame_area.width,
+                         throbber->frame_area.height);
 }
 
 static void

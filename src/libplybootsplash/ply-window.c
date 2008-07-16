@@ -125,6 +125,12 @@ struct _ply_window
 
   ply_window_enter_handler_t enter_handler;
   void *enter_handler_user_data;
+
+  ply_window_draw_handler_t draw_handler;
+  void *draw_handler_user_data;
+
+  ply_window_erase_handler_t erase_handler;
+  void *erase_handler_user_data;
 };
 
 ply_window_t *
@@ -594,6 +600,30 @@ ply_window_get_foreground_color (ply_window_t *window)
   return window->foreground_color;
 }
 
+void
+ply_window_draw_area (ply_window_t *window,
+                      int           x,
+                      int           y,
+                      int           width,
+                      int           height)
+{
+  if (window->draw_handler != NULL)
+    window->draw_handler (window->draw_handler_user_data,
+                          x, y, width, height);
+}
+
+void
+ply_window_erase_area (ply_window_t *window,
+                       int           x,
+                       int           y,
+                       int           width,
+                       int           height)
+{
+  if (window->erase_handler != NULL)
+    window->erase_handler (window->erase_handler_user_data,
+                           x, y, width, height);
+}
+
 uint32_t
 ply_window_get_color_hex_value (ply_window_t       *window,
                                 ply_window_color_t  color)
@@ -718,6 +748,28 @@ ply_window_set_enter_handler (ply_window_t *window,
 
   window->enter_handler = enter_handler;
   window->enter_handler_user_data = user_data;
+}
+
+void
+ply_window_set_draw_handler (ply_window_t *window,
+                             ply_window_draw_handler_t draw_handler,
+                             void         *user_data)
+{
+  assert (window != NULL);
+
+  window->draw_handler = draw_handler;
+  window->draw_handler_user_data = user_data;
+}
+
+void
+ply_window_set_erase_handler (ply_window_t *window,
+                              ply_window_erase_handler_t erase_handler,
+                              void         *user_data)
+{
+  assert (window != NULL);
+
+  window->erase_handler = erase_handler;
+  window->erase_handler_user_data = user_data;
 }
 
 void

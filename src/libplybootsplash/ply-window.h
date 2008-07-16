@@ -42,6 +42,17 @@ typedef void (* ply_window_escape_handler_t) (void *user_data);
 typedef void (* ply_window_enter_handler_t) (void *user_data,
                                              const char *line);
 
+typedef void (* ply_window_draw_handler_t) (void *user_data,
+                                            int   x,
+                                            int   y,
+                                            int   width,
+                                            int   height);
+typedef void (* ply_window_erase_handler_t) (void *user_data,
+                                             int   x,
+                                             int   y,
+                                             int   width,
+                                             int   height);
+
 typedef enum
 {
   PLY_WINDOW_MODE_TEXT,
@@ -77,6 +88,12 @@ void ply_window_set_escape_handler (ply_window_t *window,
 void ply_window_set_enter_handler (ply_window_t *window,
                                    ply_window_enter_handler_t enter_handler,
                                    void         *user_data);
+void ply_window_set_draw_handler (ply_window_t *window,
+                                  ply_window_draw_handler_t draw_handler,
+                                  void         *user_data);
+void ply_window_set_erase_handler (ply_window_t *window,
+                                   ply_window_erase_handler_t erase_handler,
+                                   void         *user_data);
 
 bool ply_window_open (ply_window_t *window);
 bool ply_window_take_console (ply_window_t *window);
@@ -99,6 +116,18 @@ void ply_window_set_foreground_color (ply_window_t       *window,
                                       ply_window_color_t  color);
 ply_window_color_t ply_window_get_background_color (ply_window_t *window);
 ply_window_color_t ply_window_get_foreground_color (ply_window_t *window);
+
+void ply_window_draw_area (ply_window_t *window,
+                           int           x,
+                           int           y,
+                           int           width,
+                           int           height);
+
+void ply_window_erase_area (ply_window_t *window,
+                            int           x,
+                            int           y,
+                            int           width,
+                            int           height);
 
 uint32_t ply_window_get_color_hex_value (ply_window_t       *window,
                                          ply_window_color_t  color);

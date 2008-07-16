@@ -45,6 +45,7 @@
 #include "ply-logger.h"
 #include "ply-utils.h"
 
+#define KEY_CTRL_L ('\100' ^'L')
 #define KEY_CTRL_P ('\100' ^'P')
 #define KEY_CTRL_T ('\100' ^'T')
 #define KEY_CTRL_U ('\100' ^'U')
@@ -229,6 +230,19 @@ process_keyboard_input (ply_window_t *window,
     {
       switch (key)
         {
+
+          case KEY_CTRL_L:
+            if (ply_frame_buffer_device_is_open (window->frame_buffer))
+              {
+                  ply_frame_buffer_area_t area;
+
+                  ply_trace ("redrawing screen");
+
+                  ply_frame_buffer_get_size (window->frame_buffer, &area);
+                  ply_window_draw_area (window, area.x, area.y,
+                                        area.width, area.height);
+              }
+          return;
 
           case KEY_CTRL_P:
             ply_trace ("restore text palette to original value!");

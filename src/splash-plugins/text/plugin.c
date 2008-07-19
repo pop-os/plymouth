@@ -177,6 +177,28 @@ on_enter (ply_boot_splash_plugin_t *plugin,
     }
 }
 
+void
+on_draw (ply_boot_splash_plugin_t *plugin,
+         int                       x,
+         int                       y,
+         int                       width,
+         int                       height)
+{
+  ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_BLUE);
+  ply_window_clear_screen (plugin->window);
+}
+
+void
+on_erase (ply_boot_splash_plugin_t *plugin,
+          int                       x,
+          int                       y,
+          int                       width,
+          int                       height)
+{
+  ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_BLUE);
+  ply_window_clear_screen (plugin->window);
+}
+
 bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
@@ -194,6 +216,12 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   ply_window_set_enter_handler (window,
                                 (ply_window_enter_handler_t)
                                 on_enter, plugin);
+  ply_window_set_draw_handler (window,
+                               (ply_window_draw_handler_t)
+                                on_draw, plugin);
+  ply_window_set_erase_handler (window,
+                                (ply_window_erase_handler_t)
+                                on_erase, plugin);
 
   plugin->loop = loop;
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
@@ -228,6 +256,8 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
   ply_window_set_keyboard_input_handler (window, NULL, NULL);
   ply_window_set_backspace_handler (window, NULL, NULL);
   ply_window_set_enter_handler (window, NULL, NULL);
+  ply_window_set_draw_handler (window, NULL, NULL);
+  ply_window_set_erase_handler (window, NULL, NULL);
 
   if (plugin->loop != NULL)
     {

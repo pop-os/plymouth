@@ -42,6 +42,10 @@ PLYMOUTH_LIBS="-lm -ldl $IMAGE_LIBS"
 AC_SUBST(PLYMOUTH_CFLAGS)
 AC_SUBST(PLYMOUTH_LIBS)
 
+PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.12.0 ])
+AC_SUBST(GTK_CFLAGS)
+AC_SUBST(GTK_LIBS)
+
 AC_ARG_ENABLE(tracing, AS_HELP_STRING([--enable-tracing],[enable verbose tracing code]),enable_tracing=$enableval,enable_tracing=yes)
 
 if test x$enable_tracing = xyes; then
@@ -89,6 +93,7 @@ AC_OUTPUT([Makefile
            src/splash-plugins/details/Makefile
            src/Makefile
            src/client/Makefile
+           src/viewer/Makefile
            src/tests/Makefile
            src/libply/tests/Makefile
            src/client/tests/Makefile

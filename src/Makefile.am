@@ -1,4 +1,4 @@
-SUBDIRS = libply libplybootsplash . splash-plugins client tests
+SUBDIRS = libply libplybootsplash . splash-plugins client viewer tests
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/libply                                                 \
            -I$(srcdir)/libplybootsplash                                       \

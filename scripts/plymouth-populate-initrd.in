@@ -57,21 +57,11 @@ set_verbose $verbose
 
 [ -z "$INITRDDIR" ] && usage error
 
-(cd $LIBDIR
-    BINS="${LIBEXECDIR}/plymouth/plymouthd ${BINDIR}/plymouth ${LIBDIR}/plymouth/spinfinity.so ${LIBDIR}/plymouth/text.so ${LIBDIR}/plymouth/details.so"
-    for bin in $BINS ; do
-        DEPS=$(get_dso_deps $bin)
-        for dep in $DEPS; do
-            inst $dep $INITRDDIR
-        done
-    done
-)
-
 inst ${LIBEXECDIR}/plymouth/plymouthd $INITRDDIR /bin/plymouthd
 inst ${BINDIR}/plymouth $INITRDDIR
 inst ${LIBDIR}/plymouth/text.so $INITRDDIR
 inst ${LIBDIR}/plymouth/details.so $INITRDDIR
-inst ${PLYMOUH_LOGO_FILE} $INITRDDIR
+inst ${PLYMOUTH_LOGO_FILE} $INITRDDIR
 mkdir -p ${INITRDDIR}${DATADIR}/plymouth
 
 PLUGIN_NAME=$(plymouth-set-default-plugin)
@@ -87,7 +77,7 @@ if [ ! -f ${LIBDIR}/plymouth/${PLUGIN_NAME}.so ]; then
 fi
 
 inst ${LIBDIR}/plymouth/${PLUGIN_NAME}.so $INITRDDIR
-inst ${LIBDIR}/plymouth/default.so $INITRDIR
+inst ${LIBDIR}/plymouth/default.so $INITRDDIR
 if [ -d ${DATADIR}/plymouth/${PLUGIN_NAME} ]; then
     for x in ${DATADIR}/plymouth/${PLUGIN_NAME}/* ; do
         [ ! -f "$x" ] && break

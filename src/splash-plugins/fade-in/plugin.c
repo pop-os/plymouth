@@ -42,6 +42,7 @@
 #include "ply-answer.h"
 #include "ply-boot-splash-plugin.h"
 #include "ply-buffer.h"
+#include "ply-entry.h"
 #include "ply-event-loop.h"
 #include "ply-list.h"
 #include "ply-logger.h"
@@ -64,26 +65,17 @@ typedef struct
   double speed;
 } star_t;
 
-typedef struct
-{
-  int x;
-  int y;
-  int number_of_bullets;
-} entry_t;
-
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
   ply_frame_buffer_t *frame_buffer;
   ply_image_t *logo_image;
   ply_image_t *star_image;
-  ply_image_t *bullet_image;
   ply_image_t *lock_image;
-  ply_image_t *entry_image;
   ply_list_t *stars;
   ply_window_t *window;
 
-  entry_t *entry;
+  ply_entry_t *entry;
 
   ply_answer_t *pending_password_answer;
 
@@ -103,31 +95,10 @@ create_plugin (void)
   plugin->logo_image = ply_image_new (PLYMOUTH_LOGO_FILE);
   plugin->star_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/star.png");
   plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/lock.png");
-  plugin->bullet_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/bullet.png");
-  plugin->entry_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/entry.png");
+  plugin->entry = ply_entry_new (PLYMOUTH_IMAGE_DIR "fade-in");
   plugin->stars = ply_list_new ();
 
   return plugin;
-}
-
-static entry_t *
-entry_new (int x,
-           int y)
-{
-
-  entry_t *entry;
-
-  entry = calloc (1, sizeof (entry_t));
-  entry->x = x;
-  entry->y = y;
-
-  return entry;
-}
-
-static void
-entry_free (entry_t *entry)
-{
-  free (entry);
 }
 
 star_t *
@@ -188,9 +159,8 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   free_stars (plugin);
   ply_image_free (plugin->logo_image);
   ply_image_free (plugin->star_image);
-  ply_image_free (plugin->bullet_image);
-  ply_image_free (plugin->entry_image);
   ply_image_free (plugin->lock_image);
+  ply_entry_free (plugin->entry);
   free (plugin);
 }
 
@@ -392,15 +362,13 @@ on_keyboard_input (ply_boot_splash_plugin_t *plugin,
   if (plugin->pending_password_answer == NULL)
     return;
 
-  plugin->entry->number_of_bullets++;
-  draw_password_entry (plugin);
+  ply_entry_add_bullet (plugin->entry);
 }
 
 void
 on_backspace (ply_boot_splash_plugin_t *plugin)
 {
-  plugin->entry->number_of_bullets--;
-  draw_password_entry (plugin);
+  ply_entry_remove_bullet (plugin->entry);
 }
 
 void
@@ -414,9 +382,7 @@ on_enter (ply_boot_splash_plugin_t *plugin,
   ply_answer_with_string (plugin->pending_password_answer, text);
   plugin->pending_password_answer = NULL;
 
-  plugin->entry->number_of_bullets = 0;
-  entry_free (plugin->entry);
-  plugin->entry = NULL;
+  ply_entry_hide (plugin->entry);
   start_animation (plugin);
 }
 
@@ -437,7 +403,7 @@ on_draw (ply_boot_splash_plugin_t *plugin,
   draw_background (plugin, &area);
 
   if (plugin->pending_password_answer != NULL)
-    draw_password_entry (plugin);
+    ply_entry_draw (plugin->entry);
   else
     animate_at_time (plugin, plugin->now);
 }
@@ -501,12 +467,8 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   if (!ply_image_load (plugin->lock_image))
     return false;
 
-  ply_trace ("loading bullet image");
-  if (!ply_image_load (plugin->bullet_image))
-    return false;
-
-  ply_trace ("loading entry image");
-  if (!ply_image_load (plugin->entry_image))
+  ply_trace ("loading entry");
+  if (!ply_entry_load (plugin->entry))
     return false;
 
   plugin->window = window;
@@ -635,56 +597,6 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
   ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
   plugin->window = NULL;
 }
-static void
-draw_password_entry (ply_boot_splash_plugin_t *plugin)
-{
-  ply_frame_buffer_area_t lock_area, entry_area, bullet_area;
-  uint32_t *lock_data, *entry_data, *bullet_data;
-  int x, y, i;
-
-  ply_frame_buffer_pause_updates (plugin->frame_buffer);
-  entry_data = ply_image_get_data (plugin->entry_image);
-  entry_area.width = ply_image_get_width (plugin->entry_image);
-  entry_area.height = ply_image_get_height (plugin->entry_image);
-  entry_area.x = plugin->entry->x;
-  entry_area.y = plugin->entry->y;
-
-  draw_background (plugin, &entry_area);
-
-  ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
-                                          &entry_area, 0, 0,
-                                          entry_data);
-
-  lock_data = ply_image_get_data (plugin->lock_image);
-  lock_area.width = ply_image_get_width (plugin->lock_image);
-  lock_area.height = ply_image_get_height (plugin->lock_image);
-
-  x = plugin->entry->x - lock_area.width;
-  y = plugin->entry->y + entry_area.height / 2.0 - lock_area.height / 2.0;
-
-  lock_area.x = x;
-  lock_area.y = y;
-  draw_background (plugin, &lock_area);
-  ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
-                                          &lock_area, 0, 0,
-                                          lock_data);
-
-
-  bullet_data = ply_image_get_data (plugin->bullet_image);
-  bullet_area.width = ply_image_get_width (plugin->bullet_image);
-  bullet_area.height = ply_image_get_height (plugin->bullet_image);
-
-  for (i = 0; i < plugin->entry->number_of_bullets; i++)
-    {
-      bullet_area.x = plugin->entry->x + (i + 1) * bullet_area.width;
-      bullet_area.y = plugin->entry->y + entry_area.height / 2.0 - bullet_area.height / 2.0;
-
-      ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
-                                              &bullet_area, 0, 0,
-                                              bullet_data);
-    }
-  ply_frame_buffer_unpause_updates (plugin->frame_buffer);
-}
 
 static void
 show_password_entry (ply_boot_splash_plugin_t *plugin)
@@ -696,19 +608,21 @@ show_password_entry (ply_boot_splash_plugin_t *plugin)
 
   assert (plugin != NULL);
 
+  draw_background (plugin, NULL);
+
   ply_frame_buffer_get_size (plugin->frame_buffer, &area);
   lock_width = ply_image_get_width (plugin->lock_image);
   lock_height = ply_image_get_height (plugin->lock_image);
 
-  entry_width = ply_image_get_width (plugin->entry_image);
-  entry_height = ply_image_get_height (plugin->entry_image);
+  entry_width = ply_entry_get_width (plugin->entry);
+  entry_height = ply_entry_get_height (plugin->entry);
 
   x = area.width / 2.0 - (lock_width + entry_width) / 2.0 + lock_width;
   y = area.height / 2.0 - entry_height / 2.0;
 
-  plugin->entry = entry_new (x, y);
   draw_background (plugin, NULL);
-  draw_password_entry (plugin);
+
+  ply_entry_show (plugin->entry, plugin->loop, plugin->window, x, y);
 }
 
 void

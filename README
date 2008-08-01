@@ -14,7 +14,7 @@ text mode.
 
 In either text or graphics mode, the boot messages are completely occluded.  After
 the root file system is mounted read-write, the messages are dumped to
-/var/log/bootmessages.log.  Also, the user can see the messages at any time during
+/var/log/boot.log.  Also, the user can see the messages at any time during
 boot up by hitting the escape key.
 
 Plymouth isn't really designed to be built from source by end users.  For it to work

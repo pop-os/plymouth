@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include <errno.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -179,6 +180,8 @@ main (int    argc,
   int exit_code;
 
   exit_code = 0;
+
+  signal (SIGPIPE, SIG_IGN);
 
   state.loop = ply_event_loop_new ();
   state.client = ply_boot_client_new ();

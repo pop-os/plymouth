@@ -589,19 +589,38 @@ ply_command_option_read_arguments (ply_command_option_t *option,
   assert (argument != NULL);
 
   if (argument_is_option (argument))
-    return false;
+    {
+      if (option->type == PLY_COMMAND_OPTION_TYPE_BOOLEAN ||
+          option->type == PLY_COMMAND_OPTION_TYPE_FLAG)
+        {
+          option->result.as_boolean = true;
+          return true;
+        }
 
-  ply_list_remove_node (arguments, node);
+      return false;
+    }
 
   switch (option->type)
     {
       case PLY_COMMAND_OPTION_TYPE_FLAG:
       case PLY_COMMAND_OPTION_TYPE_BOOLEAN:
+
+          /* next argument isn't ours, so treat it like an unqualified
+           * flag
+           */
+          if (rpmatch (argument) < 0)
+            {
+              option->result.as_boolean = true;
+              return true;
+            }
+
           option->result.as_boolean = (bool) rpmatch (argument);
+          ply_list_remove_node (arguments, node);
           return true;
 
       case PLY_COMMAND_OPTION_TYPE_STRING:
-         option->result.as_string = strdup (argument);
+        option->result.as_string = strdup (argument);
+        ply_list_remove_node (arguments, node);
         return true;
 
       case PLY_COMMAND_OPTION_TYPE_INTEGER:
@@ -625,7 +644,7 @@ ply_command_option_read_arguments (ply_command_option_t *option,
            return false;
 
          option->result.as_integer = (int) argument_as_long;
-
+         ply_list_remove_node (arguments, node);
          return true;
         }
     }

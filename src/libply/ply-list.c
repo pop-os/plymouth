@@ -215,8 +215,6 @@ ply_list_unlink_node (ply_list_t      *list,
   if (node == NULL)
     return;
 
-  assert (ply_list_find_node (list, node->data) == node);
-
   node_before = node->previous;
   node_after = node->next;
 
@@ -237,16 +235,13 @@ ply_list_unlink_node (ply_list_t      *list,
 
   list->number_of_nodes--;
   assert (ply_list_find_node (list, node->data) != node);
-  assert (ply_list_find_node (list, node->data) == NULL);
 }
 
 void
 ply_list_remove_node (ply_list_t      *list,
                       ply_list_node_t *node)
 {
-  assert (ply_list_find_node (list, node->data) != NULL);
   ply_list_unlink_node (list, node);
-  assert (ply_list_find_node (list, node->data) == NULL);
   ply_list_node_free (node);
 }
 

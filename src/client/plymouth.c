@@ -175,7 +175,7 @@ main (int    argc,
       char **argv)
 {
   state_t state = { 0 };
-  bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash, should_wait;
+  bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash, should_wait, should_be_verbose;
   char *status, *chroot_dir;
   int exit_code;
 
@@ -189,6 +189,7 @@ main (int    argc,
 
   ply_command_parser_add_options (state.command_parser,
                                   "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "debug", "Enable verbose debug logging", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "newroot", "Tell boot daemon that new root filesystem is mounted", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "quit", "Tell boot daemon to quit", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "ping", "Check of boot daemon is running", PLY_COMMAND_OPTION_TYPE_FLAG,
@@ -221,6 +222,7 @@ main (int    argc,
 
   ply_command_parser_get_options (state.command_parser,
                                   "help", &should_help,
+                                  "debug", &should_be_verbose,
                                   "newroot", &chroot_dir,
                                   "quit", &should_quit,
                                   "ping", &should_ping,
@@ -246,6 +248,9 @@ main (int    argc,
       free (help_string);
       return 0;
     }
+
+  if (should_be_verbose && !ply_is_tracing ())
+    ply_toggle_tracing ();
 
   if (!ply_boot_client_connect (state.client,
                                 (ply_boot_client_disconnect_handler_t)

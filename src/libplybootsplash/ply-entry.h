@@ -44,6 +44,7 @@ void ply_entry_show (ply_entry_t         *entry,
                      long                 y);
 void ply_entry_hide (ply_entry_t *entry);
 void ply_entry_draw (ply_entry_t *entry);
+bool ply_entry_is_hidden (ply_entry_t *entry);
 
 long ply_entry_get_width (ply_entry_t *entry);
 long ply_entry_get_height (ply_entry_t *entry);

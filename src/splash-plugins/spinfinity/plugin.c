@@ -449,8 +449,13 @@ ask_for_password (ply_boot_splash_plugin_t *plugin,
 {
   plugin->pending_password_answer = answer;
 
-  stop_animation (plugin);
-  show_password_entry (plugin);
+  if (ply_entry_is_hidden (plugin->entry))
+    {
+      stop_animation (plugin);
+      show_password_entry (plugin);
+    }
+  else
+    ply_entry_draw (plugin->entry);
 }
 
 ply_boot_splash_plugin_interface_t *

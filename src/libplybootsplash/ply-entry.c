@@ -67,6 +67,8 @@ struct _ply_entry
 
   int number_of_bullets;
   int max_number_of_visible_bullets;
+
+  uint32_t is_hidden : 1;
 };
 
 ply_entry_t *
@@ -88,6 +90,8 @@ ply_entry_new (const char *image_dir)
   asprintf (&image_path, "%s/bullet.png", image_dir);
   entry->bullet_image = ply_image_new (image_path);
   free (image_path);
+
+  entry->is_hidden = true;
 
   return entry;
 }
@@ -144,6 +148,9 @@ ply_entry_draw (ply_entry_t *entry)
   ply_frame_buffer_area_t bullet_area;
   uint32_t *text_field_data, *bullet_data;
   int i, number_of_visible_bullets;
+
+  if (entry->is_hidden)
+    return;
 
   ply_frame_buffer_pause_updates (entry->frame_buffer);
 
@@ -219,6 +226,8 @@ ply_entry_show (ply_entry_t      *entry,
   entry->area.x = x;
   entry->area.y = y;
 
+  entry->is_hidden = false;
+
   ply_entry_draw (entry);
 }
 
@@ -229,6 +238,15 @@ ply_entry_hide (ply_entry_t *entry)
 
   entry->frame_buffer = NULL;
   entry->window = NULL;
+  entry->loop = NULL;
+
+  entry->is_hidden = true;
+}
+
+bool
+ply_entry_is_hidden (ply_entry_t *entry)
+{
+  return entry->is_hidden;
 }
 
 long

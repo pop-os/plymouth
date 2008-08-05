@@ -51,6 +51,7 @@ long ply_entry_get_height (ply_entry_t *entry);
 
 void ply_entry_add_bullet (ply_entry_t *entry);
 void ply_entry_remove_bullet (ply_entry_t *entry);
+void ply_entry_remove_all_bullets (ply_entry_t *entry);
 #endif
 
 #endif /* PLY_ENTRY_H */

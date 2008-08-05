@@ -245,6 +245,7 @@ on_enter (ply_boot_splash_plugin_t *plugin,
   plugin->pending_password_answer = NULL;
 
   ply_entry_hide (plugin->entry);
+  ply_entry_remove_all_bullets (plugin->entry);
   start_animation (plugin);
 }
 

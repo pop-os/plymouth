@@ -210,6 +210,13 @@ ply_entry_remove_bullet (ply_entry_t *entry)
 }
 
 void
+ply_entry_remove_all_bullets (ply_entry_t *entry)
+{
+  entry->number_of_bullets = 0;
+  ply_entry_draw (entry);
+}
+
+void
 ply_entry_show (ply_entry_t      *entry,
                 ply_event_loop_t *loop,
                 ply_window_t     *window,

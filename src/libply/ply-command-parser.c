@@ -292,6 +292,9 @@ ply_command_get_option (ply_command_t *command,
       node = next_node;
     }
 
+  if (node == NULL)
+      return NULL;
+
   return option;
 }
 

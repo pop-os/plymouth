@@ -125,8 +125,21 @@ on_success (state_t *state)
 static void
 on_disconnect (state_t *state)
 {
-  ply_error ("error: unexpectedly disconnected from boot status daemon");
-  ply_event_loop_exit (state->loop, 2);
+  bool wait;
+  int status = 0;
+
+  wait = false;
+  ply_command_parser_get_options (state->command_parser,
+                                   "wait", &wait,
+                                   NULL
+                                  );
+
+  if (! wait) {
+      ply_error ("error: unexpectedly disconnected from boot status daemon");
+      status = 2;
+  }
+
+  ply_event_loop_exit (state->loop, status);
 }
 
 static void
@@ -161,7 +174,7 @@ main (int    argc,
       char **argv)
 {
   state_t state = { 0 };
-  bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash;
+  bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash, should_wait;
   char *status, *chroot_dir;
   int exit_code;
 
@@ -181,6 +194,7 @@ main (int    argc,
                                   "hide-splash", "Hide splash screen", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "ask-for-password", "Ask user for password", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "update", "Tell boot daemon an update about boot progress", PLY_COMMAND_OPTION_TYPE_STRING,
+                                  "wait", "Wait for boot daemon to quit", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,
@@ -212,6 +226,7 @@ main (int    argc,
                                   "hide-splash", &should_hide_splash,
                                   "ask-for-password", &should_ask_for_password,
                                   "update", &status,
+                                  "wait", &should_wait,
                                   NULL);
 
   if (should_help || argc < 2)
@@ -304,6 +319,8 @@ main (int    argc,
                                    on_success,
                                    (ply_boot_client_response_handler_t)
                                    on_failure, &state);
+  else if (should_wait)
+    {} // Do nothing
 
   exit_code = ply_event_loop_run (state.loop);
 

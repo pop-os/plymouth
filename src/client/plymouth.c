@@ -21,10 +21,15 @@
  */
 #include "config.h"
 
+#include <assert.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "ply-boot-client.h"
 #include "ply-command-parser.h"
@@ -45,30 +50,86 @@ typedef struct
   char    *command;
 } answer_state_t;
 
+static char **
+split_string (const char *command,
+              const char  delimiter)
+{
+  const char *p, *q;
+  int i, number_of_delimiters;
+  char **args;
+
+  number_of_delimiters = 0;
+  for (p = command; *p != '\0'; p++)
+    {
+      if (*p == delimiter &&
+          *(p + 1) != delimiter)
+      number_of_delimiters++;
+    }
+
+  /* there is one more arg that delimiters between args
+   * and a trailing NULL arg
+   */
+  args = calloc (number_of_delimiters + 2, sizeof (char *));
+  q = command;
+  i = 0;
+  for (p = command; *p != '\0'; p++)
+    {
+      if (*p == delimiter)
+        {
+          args[i++] = strndup (q, p - q);
+
+	  while (*p == delimiter)
+	    p++;
+
+	  q = p;
+	}
+      
+      assert (*q != delimiter);
+      assert (i <= number_of_delimiters);
+    }
+
+  args[i++] = strndup (q, p - q);
+
+  return args;
+}
+
 static bool
 answer_via_command (answer_state_t *answer_state,
                     const char     *answer,
                     int            *exit_status)
 {
-  FILE *command_input_stream;
   bool gave_answer;
+  pid_t pid;
+  int command_input_sender_fd, command_input_receiver_fd;
 
   gave_answer = false;
-  command_input_stream = popen (answer_state->command, "w");
+  if (!ply_open_unidirectional_pipe (&command_input_sender_fd,
+                                     &command_input_receiver_fd))  return false;
 
-  if (command_input_stream == NULL)
-    goto out;
+  pid = fork (); 
 
-  if (fwrite (answer, strlen (answer), 1, command_input_stream) != 1)
-    goto out;
+  if (pid < 0)
+    return false;
 
-  if (fflush (command_input_stream) != 0)
+  if (pid == 0)
+    {
+      char **args;
+      close (command_input_sender_fd);
+      args = split_string (answer_state->command, ' ');
+      dup2 (command_input_receiver_fd, STDIN_FILENO);
+      execvp (args[0], args); 
+      ply_trace ("could not run command: %m");
+      _exit (127);
+    }
+  close (command_input_receiver_fd);
+
+  if (write (command_input_sender_fd, answer, strlen (answer)) < 0)
     goto out;
 
   gave_answer = true;
 out:
-  if (command_input_stream != NULL)
-    *exit_status = pclose (command_input_stream);
+  close (command_input_sender_fd);
+  waitpid (pid, exit_status, 0); 
 
   return gave_answer;
 }
@@ -108,7 +169,10 @@ on_answer (answer_state_t   *answer_state,
   else
     write (STDOUT_FILENO, answer, strlen (answer));
 
-  ply_event_loop_exit (answer_state->state->loop, exit_status);
+  if (WIFSIGNALED (exit_status))
+    raise (WTERMSIG (exit_status));
+
+  ply_event_loop_exit (answer_state->state->loop, WEXITSTATUS (exit_status));
 }
 
 static void

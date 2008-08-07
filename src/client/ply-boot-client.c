@@ -104,9 +104,14 @@ ply_boot_client_cancel_unsent_requests (ply_boot_client_t *client)
       node = next_node;
     }
 
-  ply_event_loop_stop_watching_fd (client->loop, 
-                                   client->daemon_can_take_request_watch);
-  client->daemon_can_take_request_watch = NULL;
+  if (client->daemon_can_take_request_watch != NULL)
+    {
+      assert (client->loop != NULL);
+
+      ply_event_loop_stop_watching_fd (client->loop, 
+                                       client->daemon_can_take_request_watch);
+      client->daemon_can_take_request_watch = NULL;
+    }
 }
 
 static void
@@ -132,9 +137,14 @@ ply_boot_client_cancel_requests_waiting_for_replies (ply_boot_client_t *client)
       node = next_node;
     }
 
-  ply_event_loop_stop_watching_fd (client->loop, 
-                                   client->daemon_has_reply_watch);
-  client->daemon_has_reply_watch = NULL;
+  if (client->daemon_has_reply_watch != NULL)
+    {
+      assert (client->loop != NULL);
+
+      ply_event_loop_stop_watching_fd (client->loop, 
+                                       client->daemon_has_reply_watch);
+      client->daemon_has_reply_watch = NULL;
+    }
 }
 
 static void
@@ -288,9 +298,13 @@ out:
 
   if (ply_list_get_length (client->requests_waiting_for_replies) == 0)
     {
-      ply_event_loop_stop_watching_fd (client->loop,
-                                       client->daemon_has_reply_watch);
-      client->daemon_has_reply_watch = NULL;
+      if (client->daemon_has_reply_watch != NULL)
+        {
+          assert (client->loop != NULL);
+          ply_event_loop_stop_watching_fd (client->loop,
+                                           client->daemon_has_reply_watch);
+          client->daemon_has_reply_watch = NULL;
+        }
     }
 }
 
@@ -379,9 +393,14 @@ ply_boot_client_process_pending_requests (ply_boot_client_t *client)
 
   if (ply_list_get_length (client->requests_to_send) == 0)
     {
-      ply_event_loop_stop_watching_fd (client->loop,
-                                       client->daemon_can_take_request_watch);
-      client->daemon_can_take_request_watch = NULL;
+      if (client->daemon_has_reply_watch != NULL)
+        {
+          assert (client->loop != NULL);
+
+          ply_event_loop_stop_watching_fd (client->loop,
+                                           client->daemon_can_take_request_watch);
+          client->daemon_can_take_request_watch = NULL;
+        }
     }
 }
 
@@ -534,7 +553,10 @@ static void
 ply_boot_client_detach_from_event_loop (ply_boot_client_t *client)
 {
   assert (client != NULL);
+  ply_trace ("detaching from event loop");
   client->loop = NULL;
+  client->daemon_can_take_request_watch = NULL;
+  client->daemon_has_reply_watch = NULL;
 }
 
 static void

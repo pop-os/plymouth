@@ -80,7 +80,7 @@ do                                                                             \
         ply_logger_flush (logger);                                             \
         errno = _old_errno;                                                    \
         ply_logger_inject (logger,                                             \
-                           "[%s] %45.45s:" format "\n",                        \
+                           "[%s] %45.45s:" format "\r\n",                      \
                            __FILE__, __func__, ##args);                        \
         ply_logger_flush (logger);                                             \
         errno = _old_errno;                                                    \

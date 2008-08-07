@@ -715,6 +715,9 @@ ply_event_loop_stop_watching_fd (ply_event_loop_t *loop,
   ply_event_destination_t *destination;
   ply_event_source_t *source;
 
+  assert (loop != NULL);
+  assert (watch != NULL);
+
   destination = ply_event_loop_get_destination_from_fd_watch (loop, watch);
   assert (destination != NULL);
 

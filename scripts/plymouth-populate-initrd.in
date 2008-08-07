@@ -2,8 +2,6 @@
 
 [ -z "$DESTDIR" ] || exit 0
 
-set -e
-
 [ -z "$LIBEXECDIR" ] && LIBEXECDIR="/usr/libexec"
 [ -z "$DATADIR" ] && DATADIR="/usr/share"
 [ -z "$SYSTEMMAP" ] && SYSTEM_MAP="/boot/System.map-$(/bin/uname -r)"

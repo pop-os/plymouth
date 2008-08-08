@@ -114,6 +114,7 @@ struct _ply_window
 
   uint32_t should_force_text_mode : 1;
   uint32_t original_term_attributes_saved : 1;
+  uint32_t supports_text_color : 1;
 
   ply_window_keyboard_input_handler_t keyboard_input_handler;
   void *keyboard_input_handler_user_data;
@@ -151,18 +152,21 @@ ply_window_new (int vt_number)
   return window;
 }
 
-static bool
+static void
 ply_window_look_up_color_palette (ply_window_t *window)
 {
   if (ioctl (window->tty_fd, GIO_CMAP, window->color_palette) < 0)
-      return false;
-
-  return true;
+    window->supports_text_color = false;
+  else
+    window->supports_text_color = true;
 }
 
 static bool
 ply_window_change_color_palette (ply_window_t *window)
 {
+  if (!window->supports_text_color)
+    return true;
+
   if (ioctl (window->tty_fd, PIO_CMAP, window->color_palette) < 0)
     return false;
 
@@ -172,6 +176,9 @@ ply_window_change_color_palette (ply_window_t *window)
 static void
 ply_window_save_color_palette (ply_window_t *window)
 {
+  if (!window->supports_text_color);
+    return;
+
   memcpy (window->original_color_palette, window->color_palette,
           TEXT_PALETTE_SIZE);
 }
@@ -179,6 +186,9 @@ ply_window_save_color_palette (ply_window_t *window)
 static void
 ply_window_restore_color_palette (ply_window_t *window)
 {
+  if (!window->supports_text_color);
+    return;
+
   memcpy (window->color_palette, window->original_color_palette,
           TEXT_PALETTE_SIZE);
 
@@ -451,9 +461,7 @@ ply_window_open (ply_window_t *window)
   if (!ply_window_look_up_geometry (window))
     return false;
 
-  if (!ply_window_look_up_color_palette (window))
-    return false;
-
+  ply_window_look_up_color_palette (window);
   ply_window_save_color_palette (window);
 
   ply_window_hide_text_cursor (window);
@@ -688,6 +696,12 @@ void
 ply_window_show_text_cursor (ply_window_t *window)
 {
   write (window->tty_fd, SHOW_CURSOR_SEQUENCE, strlen (SHOW_CURSOR_SEQUENCE));
+}
+
+bool
+ply_window_supports_text_color (ply_window_t *window)
+{
+  return window->supports_text_color;
 }
 
 static void

@@ -110,6 +110,7 @@ void ply_window_set_text_cursor_position (ply_window_t *window,
 void ply_window_hide_text_cursor (ply_window_t *window);
 void ply_window_show_text_cursor (ply_window_t *window);
 void ply_window_clear_screen (ply_window_t *window);
+bool ply_window_supports_text_color (ply_window_t *window);
 void ply_window_set_background_color (ply_window_t       *window,
                                       ply_window_color_t  color);
 void ply_window_set_foreground_color (ply_window_t       *window,

@@ -195,6 +195,14 @@ ply_window_restore_color_palette (ply_window_t *window)
   ply_window_change_color_palette (window);
 }
 
+void
+ply_window_reset_colors (ply_window_t *window)
+{
+  assert (window != NULL);
+
+  ply_window_restore_color_palette (window);
+}
+
 static void
 process_backspace (ply_window_t *window)
 {
@@ -442,9 +450,16 @@ ply_window_open (ply_window_t *window)
 
   if (window->vt_number == 0)
     {
+      char tty_name[512] = "";
+
       window->vt_number = get_active_vt ();
       free (window->tty_name);
-      asprintf (&window->tty_name, "/dev/tty%d", window->vt_number);
+      window->tty_name = NULL;
+
+      if (readlink ("/proc/self/fd/0", tty_name, sizeof (tty_name) - 1) < 0)
+        return false;
+
+      window->tty_name = strdup (tty_name);
     }
 
   window->tty_fd = open (window->tty_name, O_RDWR | O_NOCTTY);

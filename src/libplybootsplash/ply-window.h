@@ -135,6 +135,7 @@ uint32_t ply_window_get_color_hex_value (ply_window_t       *window,
 void ply_window_set_color_hex_value (ply_window_t       *window,
                                      ply_window_color_t  color,
                                      uint32_t            hex_value);
+void ply_window_reset_colors (ply_window_t *window);
 
 void ply_window_attach_to_event_loop (ply_window_t     *window,
                                       ply_event_loop_t *loop);

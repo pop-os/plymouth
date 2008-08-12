@@ -1,5 +1,5 @@
 /*
- *  bootmessages - Display boot messages
+ *  plymout-log-viewer.c - Display boot messages
  *
  *  Copyright (C) 2008 Red Hat, Inc.
  *
@@ -18,11 +18,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Street #330, Boston, MA 02111-1307, USA.
- */
-
-/* Compile with:
- * 
- * cc -o bootmessages bootmessages.c `pkg-config --cflags --libs gtk+-2.0`
  */
 
 #include <stdlib.h>

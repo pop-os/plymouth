@@ -21,8 +21,13 @@
  */
 
 #include <stdlib.h>
-#include <locale.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <locale.h>
+
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
 
@@ -32,6 +37,10 @@
 
 #ifndef DEFAULT_LOG
 #define DEFAULT_LOG "/var/log/boot.log"
+#endif
+
+#ifndef DEFAULT_SPOOL_FILE
+#define DEFAULT_SPOOL_FILE "/var/spool/plymouth/boot.log"
 #endif
 
 static gboolean show_icon = FALSE;
@@ -66,40 +75,19 @@ activate_icon (GtkStatusIcon *icon,
   gtk_window_present (GTK_WINDOW (window));
 }
 
-static char *
-parse_etc_sysconfig_i18n (void)
+static gboolean
+check_for_errors (const char *file)
 {
-  char *content;
-  gsize length;
-  char *lang;
-  char *p, *q;
+  struct stat log_info, spool_file_info;
 
-  lang = NULL;
+  if (stat (file, &log_info) < 0)
+    return FALSE;
 
-  if (!g_file_get_contents ("/etc/sysconfig/i18n", &content, &length, NULL))
-    return NULL;
+  if (stat (DEFAULT_SPOOL_FILE, &spool_file_info) < 0)
+    return FALSE;
 
-  p = strstr (content, "LANG=");
-  if (!p)
-    goto out;
-
-  p = strchr (p, '"');
-  if (!p)
-    goto out;
-
-  p++;
-  q = strchr (p, '"');
-
-  if (!q)
-    goto out; 
-
-  lang = g_strndup (p, q - p);
-
-out:
-  g_free (content);
-
-  g_print ("boot lang: %s\n", lang);
-  return lang;
+  return spool_file_info.st_dev == log_info.st_dev &&
+         spool_file_info.st_ino == log_info.st_ino;
 }
 
 static GtkTextBuffer *
@@ -114,32 +102,10 @@ read_boot_log (const char  *file,
   GtkTextBuffer *buffer;
   GtkTextTag *blue;
   GtkTextIter iter;
-  const char *failed;
-  const char *warning;
   GString *partial;
-  char *boot_lang;
-  char *lang;
 
   if (!g_file_get_contents (file, &content, &length, error))
     return NULL;
-
-  /* 
-   * We need to briefly change to the locale from /etc/sysconfig/i18n to:
-   * - pick the right initscripts translations
-   * - convert boot.log to UTF-8
-   */
-
-  boot_lang = parse_etc_sysconfig_i18n ();
-  lang = setlocale (LC_ALL, NULL);
-
-  if (boot_lang == NULL)
-    boot_lang = g_strdup (lang);
-
-  setlocale (LC_ALL, boot_lang);
-
-  bind_textdomain_codeset ("initscripts", "UTF-8");
-  failed = dgettext ("initscripts", "FAILED");
-  warning = dgettext ("initscripts", "WARNING"); 
 
   content_utf8 = g_locale_to_utf8 (content, length, NULL, NULL, NULL);
   if (content_utf8)
@@ -148,12 +114,8 @@ read_boot_log (const char  *file,
       content = content_utf8;   
     }
   
-  setlocale (LC_ALL, lang);
-
-  if (strstr (content, failed) != NULL)
+  if (check_for_errors (file))
     *seen_errors = 2;
-  else if (strstr (content, warning) != NULL)
-    *seen_errors = 1;
   else
     *seen_errors = 0;
 

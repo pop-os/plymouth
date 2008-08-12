@@ -161,7 +161,7 @@ spool_error (state_t *state)
 {
   ply_trace ("spooling error for viewer");
 
-  unlink (PLYMOUTH_SPOOL_DIRECTORY "boot.log");
+  unlink (PLYMOUTH_SPOOL_DIRECTORY "/boot.log");
 
   ply_create_file_link (PLYMOUTH_LOG_DIRECTORY "/boot.log",
                         PLYMOUTH_SPOOL_DIRECTORY "/boot.log");

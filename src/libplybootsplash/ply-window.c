@@ -176,7 +176,7 @@ ply_window_change_color_palette (ply_window_t *window)
 static void
 ply_window_save_color_palette (ply_window_t *window)
 {
-  if (!window->supports_text_color);
+  if (!window->supports_text_color)
     return;
 
   memcpy (window->original_color_palette, window->color_palette,
@@ -186,7 +186,7 @@ ply_window_save_color_palette (ply_window_t *window)
 static void
 ply_window_restore_color_palette (ply_window_t *window)
 {
-  if (!window->supports_text_color);
+  if (!window->supports_text_color)
     return;
 
   memcpy (window->color_palette, window->original_color_palette,

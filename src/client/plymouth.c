@@ -239,7 +239,7 @@ main (int    argc,
       char **argv)
 {
   state_t state = { 0 };
-  bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash, should_wait, should_be_verbose;
+  bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash, should_wait, should_be_verbose, report_error;
   char *status, *chroot_dir;
   int exit_code;
 
@@ -262,6 +262,7 @@ main (int    argc,
                                   "hide-splash", "Hide splash screen", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "ask-for-password", "Ask user for password", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "update", "Tell boot daemon an update about boot progress", PLY_COMMAND_OPTION_TYPE_STRING,
+                                  "details", "Tell boot daemon there were errors during boot", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "wait", "Wait for boot daemon to quit", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   NULL);
 
@@ -296,6 +297,7 @@ main (int    argc,
                                   "ask-for-password", &should_ask_for_password,
                                   "update", &status,
                                   "wait", &should_wait,
+                                  "details", &report_error,
                                   NULL);
 
   if (should_help || argc < 2)
@@ -391,8 +393,15 @@ main (int    argc,
                                    on_success,
                                    (ply_boot_client_response_handler_t)
                                    on_failure, &state);
+
   else if (should_wait)
     {} // Do nothing
+  else if (report_error)
+    ply_boot_client_tell_daemon_about_error (state.client,
+                                             (ply_boot_client_response_handler_t)
+                                             on_success,
+                                             (ply_boot_client_response_handler_t)
+                                             on_failure, &state);
 
   exit_code = ply_event_loop_run (state.loop);
 

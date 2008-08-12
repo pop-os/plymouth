@@ -438,6 +438,7 @@ ply_terminal_session_open_log (ply_terminal_session_t *session,
   assert (session->logger != NULL);
 
   ply_save_errno ();
+  unlink (filename);
   log_is_opened = ply_logger_open_file (session->logger, filename, true);
   if (log_is_opened)
     ply_logger_flush (session->logger);

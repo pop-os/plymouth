@@ -540,6 +540,16 @@ ply_boot_client_tell_daemon_to_quit (ply_boot_client_t                  *client,
 }
 
 void
+ply_boot_client_tell_daemon_about_error (ply_boot_client_t                  *client,
+                                         ply_boot_client_response_handler_t  handler,
+                                         ply_boot_client_response_handler_t  failed_handler,
+                                         void                               *user_data)
+{
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_ERROR,
+                                 NULL, handler, failed_handler, user_data);
+}
+
+void
 ply_boot_client_disconnect (ply_boot_client_t *client)
 {
   assert (client != NULL);

@@ -58,6 +58,9 @@ typedef struct
 
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
   uint32_t showing_details : 1;
+  uint32_t system_initialized : 1;
+
+  int number_of_errors;
 } state_t;
 
 static ply_boot_splash_t *start_boot_splash (state_t    *state,
@@ -154,11 +157,39 @@ on_newroot (state_t    *state,
 }
 
 static void
+spool_error (state_t *state)
+{
+  ply_trace ("spooling error for viewer");
+
+  unlink (PLYMOUTH_SPOOL_DIRECTORY "boot.log");
+
+  ply_create_file_link (PLYMOUTH_LOG_DIRECTORY "/boot.log",
+                        PLYMOUTH_SPOOL_DIRECTORY "/boot.log");
+}
+
+static void
 on_system_initialized (state_t *state)
 {
   ply_trace ("system now initialized, opening boot.log");
+  state->system_initialized = true;
   ply_terminal_session_open_log (state->session,
                                  PLYMOUTH_LOG_DIRECTORY "/boot.log");
+
+  if (state->number_of_errors > 0)
+    spool_error (state);
+}
+
+static void
+on_error (state_t *state)
+{
+  ply_trace ("encountered error during boot up");
+
+  if (state->system_initialized && state->number_of_errors == 0)
+    spool_error (state);
+  else
+    ply_trace ("not spooling because number of errors %d", state->number_of_errors);
+
+  state->number_of_errors++;
 }
 
 static bool
@@ -268,6 +299,7 @@ start_boot_server (state_t *state)
                                 (ply_boot_server_hide_splash_handler_t) on_hide_splash,
                                 (ply_boot_server_newroot_handler_t) on_newroot,
                                 (ply_boot_server_system_initialized_handler_t) on_system_initialized,
+                                (ply_boot_server_error_handler_t) on_error,
                                 (ply_boot_server_quit_handler_t) on_quit,
                                 state);
 

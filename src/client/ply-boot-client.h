@@ -83,6 +83,10 @@ void ply_boot_client_tell_daemon_to_quit (ply_boot_client_t                  *cl
 void ply_boot_client_disconnect (ply_boot_client_t *client);
 void ply_boot_client_attach_to_event_loop (ply_boot_client_t *client,
                                            ply_event_loop_t  *loop);
+void ply_boot_client_tell_daemon_about_error (ply_boot_client_t                  *client,
+                                              ply_boot_client_response_handler_t  handler,
+                                              ply_boot_client_response_handler_t  failed_handler,
+                                              void                               *user_data);
 
 #endif
 

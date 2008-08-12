@@ -751,6 +751,16 @@ ply_create_directory (const char *directory)
   return true;
 }
 
+bool
+ply_create_file_link (const char *source,
+                      const char *destination)
+{
+  if (link (source, destination) < 0)
+    return false;
+
+  return true;
+}
+
 ply_daemon_handle_t *
 ply_create_daemon (void)
 {

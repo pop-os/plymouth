@@ -4,6 +4,7 @@ INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/libplybootsplash                                       \
            -I$(srcdir)                                                        \
            -DPLYMOUTH_LOG_DIRECTORY=\"$(localstatedir)/log\"                  \
+           -DPLYMOUTH_SPOOL_DIRECTORY=\"$(localstatedir)/spool/plymouth\"     \
            -DPLYMOUTH_LOGO_FILE=\"$(logofile)\"
 
 plymouthdbindir = $(libexecdir)/plymouth
@@ -20,12 +21,14 @@ plymouthd_SOURCES =                                                            \
                    main.c
 
 plymouthdrundir = $(localstatedir)/run/plymouth
+plymouthdspooldir = $(localstatedir)/spool/plymouth
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = plymouth-1.pc
 
 install-data-hook:
 	-mkdir -p $(DESTDIR)$(plymouthdrundir)
+	-mkdir -p $(DESTDIR)$(plymouthdspooldir)
 
 EXTRA_DIST = plymouth-1.pc.in
 MAINTAINERCLEANFILES = Makefile.in

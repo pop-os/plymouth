@@ -285,16 +285,26 @@ ply_logger_free (ply_logger_t *logger)
 
 bool 
 ply_logger_open_file (ply_logger_t    *logger,
-                      const char      *filename)
+                      const char      *filename,
+                      bool             world_readable)
 {
   int fd;
+  mode_t mode;
 
   assert (logger != NULL);
   assert (filename != NULL);
 
-  fd = open (filename, PLY_LOGGER_OPEN_FLAGS, 0600);
+  if (world_readable)
+    mode = 0644;
+  else
+    mode = 0600;
+
+  fd = open (filename, PLY_LOGGER_OPEN_FLAGS, mode);
 
   if (fd < 0)
+    return false;
+
+  if (fchmod (fd, mode) < 0)
     return false;
 
   ply_logger_set_output_fd (logger, fd);

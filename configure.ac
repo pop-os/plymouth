@@ -60,6 +60,10 @@ AC_ARG_WITH(boot-entry, AS_HELP_STRING([--with-boot-entry],[create initrd and gr
 
 AM_CONDITIONAL(ADD_BOOT_ENTRY,  [test "$with_boot_entry" = yes])
 
+AC_ARG_WITH(gdm-autostart-file, AS_HELP_STRING([--with-gdm-autostart-file],[start log viewer from gdm on boot errors]),with_gdm_autostart_file=$withval,with_gdm_autostart_file=yes)
+
+AM_CONDITIONAL(START_FROM_GDM,  [test "$with_gdm_autostart_file" = yes])
+
 AC_ARG_WITH(logo, AC_HELP_STRING([--with-logo], [logo used by boot splash plugins]),logofile=${withval},logofile=$datadir/plymouth/bizcom.png)
 AC_SUBST(logofile)
 

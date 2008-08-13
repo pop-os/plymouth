@@ -502,7 +502,7 @@ initialize_environment (state_t *state)
 }
 
 static void
-on_crash (int signal)
+on_crash (int signum)
 {
     int fd;
 
@@ -511,6 +511,9 @@ on_crash (int signal)
     ioctl (fd, KDSETMODE, KD_TEXT);
 
     close (fd);
+
+    signal (signum, SIG_DFL);
+    raise(signum);
 }
 
 int

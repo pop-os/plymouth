@@ -207,6 +207,12 @@ plymouth_should_show_default_splash (state_t *state)
   };
   int i;
 
+  if (state->console != NULL)
+    return false;
+
+  if (state->window == NULL)
+    return false;
+
   for (i = 0; strings[i] != NULL; i++)
     {
       int cmp;
@@ -233,7 +239,9 @@ on_show_splash (state_t *state)
   if (state->window == NULL)
     {
       state->window = create_window (state, 1);
-      ply_window_take_console (state->window);
+
+      if (state->window != NULL && state->console == NULL)
+        ply_window_take_console (state->window);
     }
 
   if (plymouth_should_show_default_splash (state))
@@ -353,7 +361,7 @@ create_window (state_t    *state,
   ply_window_attach_to_event_loop (window, state->loop);
 
   ply_trace ("opening window");
-  if (!ply_window_open (window))
+  if (state->console == NULL && !ply_window_open (window))
     {
       ply_save_errno ();
       ply_trace ("could not open window: %m");

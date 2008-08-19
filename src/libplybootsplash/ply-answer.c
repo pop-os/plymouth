@@ -69,6 +69,15 @@ ply_answer_with_string (ply_answer_t *answer,
 
 }
 
+void
+ply_answer_unknown (ply_answer_t *answer)
+{
+  assert (answer != NULL);
+
+  if (answer->handler != NULL)
+    answer->handler (answer->user_data, NULL, answer);
+}
+
 #ifdef PLY_ANSWER_ENABLE_TEST
 
 #include <stdio.h>

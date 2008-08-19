@@ -47,6 +47,7 @@ struct _ply_boot_server
 {
   ply_event_loop_t *loop;
   ply_list_t *connections;
+  ply_list_t *cached_answers;
   int socket_fd;
 
   ply_boot_server_update_handler_t update_handler;
@@ -77,6 +78,7 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
 
   server = calloc (1, sizeof (ply_boot_server_t));
   server->connections = ply_list_new ();
+  server->cached_answers = ply_list_new ();
   server->loop = NULL;
   server->is_listening = false;
   server->update_handler = update_handler;
@@ -99,6 +101,7 @@ ply_boot_server_free (ply_boot_server_t *server)
     return;
 
   ply_list_free (server->connections);
+  ply_list_free (server->cached_answers);
   free (server);
 }
 
@@ -226,7 +229,7 @@ ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
           ply_error ("could not write bytes: %m");
     }
 
-  ply_answer_free (answer);
+  ply_list_append_data (connection->server->cached_answers, answer);
 }
 
 static void

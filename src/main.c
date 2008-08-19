@@ -60,6 +60,8 @@ typedef struct
   uint32_t showing_details : 1;
   uint32_t system_initialized : 1;
 
+  char *console;
+
   int number_of_errors;
 } state_t;
 
@@ -467,12 +469,43 @@ check_verbosity (state_t *state)
     ply_trace ("tracing shouldn't be enabled!");
 }
 
+static void
+check_for_serial_console (state_t *state)
+{
+  char *console_key;
+
+  ply_trace ("checking if splash screen should be disabled");
+
+  console_key = strstr (state->kernel_command_line, " console=");
+  if (console_key != NULL)
+    {
+      char *end;
+      ply_trace ("serial console found!");
+      state->console = strdup (console_key + strlen (" console="));
+
+      end = strpbrk (state->console, " \n\t\v");
+
+      if (end != NULL)
+        *end = '\0';
+    }
+}
+
 static bool
-set_console_io_to_vt1 (state_t *state)
+redirect_standard_io_to_device (char *device)
 {
   int fd;
+  char *file;
 
-  fd = open ("/dev/tty1", O_RDWR | O_APPEND);
+  ply_trace ("redirecting stdio to %s", device);
+
+  if (strncmp (device, "/dev/", strlen ("/dev/")) == 0)
+    file = strdup (device);
+  else
+    asprintf (&file, "/dev/%s", device);
+
+  fd = open (file, O_RDWR | O_APPEND);
+
+  free (file);
 
   if (fd < 0)
     return false;
@@ -493,9 +526,12 @@ initialize_environment (state_t *state)
     return false;
 
   check_verbosity (state);
+  check_for_serial_console (state);
 
-  if (!set_console_io_to_vt1 (state))
-    return false;
+  if (state->console != NULL)
+    redirect_standard_io_to_device (state->console);
+  else
+    redirect_standard_io_to_device ("tty1");
 
   ply_trace ("initialized minimal work environment");
   return true;

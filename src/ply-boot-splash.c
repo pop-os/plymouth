@@ -226,7 +226,7 @@ ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
 
   if (splash->plugin_interface->ask_for_password == NULL)
     {
-      ply_answer_with_string (answer, "");
+      ply_answer_unknown (answer);
       return;
     }
 

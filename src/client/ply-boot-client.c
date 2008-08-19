@@ -282,6 +282,10 @@ ply_boot_client_process_incoming_replies (ply_boot_client_t *client)
 
       ((ply_boot_client_answer_handler_t) request->handler) (request->user_data, answer, client);
     }
+  else if (memcmp (byte, PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER, sizeof (uint8_t)) == 0)
+    {
+      ((ply_boot_client_answer_handler_t) request->handler) (request->user_data, NULL, client);
+    }
   else
     goto out;
 

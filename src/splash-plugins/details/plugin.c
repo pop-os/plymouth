@@ -56,6 +56,10 @@
 #define CLEAR_LINE_SEQUENCE "\033[2K\r\n"
 #define BACKSPACE "\b\033[0K"
 
+void ask_for_password (ply_boot_splash_plugin_t *plugin,
+                       ply_answer_t             *answer);
+
+ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
@@ -136,17 +140,26 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   assert (plugin != NULL);
 
-  ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
+  if (window != NULL)
+    {
+      ply_boot_splash_plugin_interface_t *interface;
 
-  ply_window_set_keyboard_input_handler (window,
-                                         (ply_window_keyboard_input_handler_t)
-                                         on_keyboard_input, plugin);
-  ply_window_set_backspace_handler (window,
-                                    (ply_window_backspace_handler_t)
-                                    on_backspace, plugin);
-  ply_window_set_enter_handler (window,
-                                (ply_window_enter_handler_t)
-                                on_enter, plugin);
+      ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
+
+      ply_window_set_keyboard_input_handler (window,
+                                             (ply_window_keyboard_input_handler_t)
+                                             on_keyboard_input, plugin);
+      ply_window_set_backspace_handler (window,
+                                        (ply_window_backspace_handler_t)
+                                        on_backspace, plugin);
+      ply_window_set_enter_handler (window,
+                                    (ply_window_enter_handler_t)
+                                    on_enter, plugin);
+
+      interface = ply_boot_splash_plugin_get_interface ();
+
+      interface->ask_for_password = ask_for_password;
+    }
 
   plugin->loop = loop;
 
@@ -223,7 +236,6 @@ ply_boot_splash_plugin_get_interface (void)
       .update_status = update_status,
       .on_boot_output = on_boot_output,
       .hide_splash_screen = hide_splash_screen,
-      .ask_for_password = ask_for_password,
     };
 
   return &plugin_interface;

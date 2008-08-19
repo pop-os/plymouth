@@ -35,6 +35,7 @@
 #define PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK "\x6"
 #define PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK "\x15"
 #define PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER "\x2"
+#define PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER "\x5"
 
 #endif /* PLY_BOOT_PROTOCOL_H */
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

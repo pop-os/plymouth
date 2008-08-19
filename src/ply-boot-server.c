@@ -197,21 +197,34 @@ ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
 
   size_t size;
 
-  /* FIXME: support up to 4 billion
+  /* splash plugin isn't able to ask for password,
+   * punt to client
    */
-  if (strlen (password) > 255)
-    ply_error ("password to long to fit in buffer");
+  if (password == NULL)
+    {
+      if (!ply_write (connection->fd,
+                      PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER,
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER)))
+        ply_error ("could not write bytes: %m");
+    }
+  else
+    {
+      /* FIXME: support up to 4 billion
+      */
+      if (strlen (password) > 255)
+          ply_error ("password to long to fit in buffer");
 
-  size = (uint8_t) strlen (password);
+      size = (uint8_t) strlen (password);
 
-  if (!ply_write (connection->fd,
-                  PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER,
-                  strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER)) ||
-      !ply_write (connection->fd,
-                  &size, sizeof (uint8_t)) ||
-      !ply_write (connection->fd,
-                  password, size))
-    ply_error ("could not write bytes: %m");
+      if (!ply_write (connection->fd,
+                      PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER,
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER)) ||
+          !ply_write (connection->fd,
+                      &size, sizeof (uint8_t)) ||
+          !ply_write (connection->fd,
+                      password, size))
+          ply_error ("could not write bytes: %m");
+    }
 
   ply_answer_free (answer);
 }

@@ -102,9 +102,16 @@ answer_via_command (answer_state_t *answer_state,
   pid_t pid;
   int command_input_sender_fd, command_input_receiver_fd;
 
+  /* answer may be NULL which means,
+   * "The daemon can't ask the user questions,
+   *   do all the prompting from the client"
+   */
+
   gave_answer = false;
-  if (!ply_open_unidirectional_pipe (&command_input_sender_fd,
-                                     &command_input_receiver_fd))  return false;
+  if (answer != NULL &&
+    !ply_open_unidirectional_pipe (&command_input_sender_fd,
+                                   &command_input_receiver_fd))
+    return false;
 
   pid = fork (); 
 
@@ -114,21 +121,29 @@ answer_via_command (answer_state_t *answer_state,
   if (pid == 0)
     {
       char **args;
-      close (command_input_sender_fd);
       args = split_string (answer_state->command, ' ');
-      dup2 (command_input_receiver_fd, STDIN_FILENO);
+      if (answer != NULL)
+        {
+          close (command_input_sender_fd);
+          dup2 (command_input_receiver_fd, STDIN_FILENO);
+        }
       execvp (args[0], args); 
       ply_trace ("could not run command: %m");
       _exit (127);
     }
-  close (command_input_receiver_fd);
 
-  if (write (command_input_sender_fd, answer, strlen (answer)) < 0)
-    goto out;
+  if (answer != NULL)
+    {
+      close (command_input_receiver_fd);
+
+      if (write (command_input_sender_fd, answer, strlen (answer)) < 0)
+        goto out;
+    }
 
   gave_answer = true;
 out:
-  close (command_input_sender_fd);
+  if (answer != NULL)
+    close (command_input_sender_fd);
   waitpid (pid, exit_status, 0); 
 
   return gave_answer;

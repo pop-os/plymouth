@@ -198,7 +198,7 @@ ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
                                         ply_answer_t          *answer)
 {
 
-  size_t size;
+  uint8_t size;
 
   /* splash plugin isn't able to ask for password,
    * punt to client

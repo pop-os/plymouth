@@ -311,7 +311,7 @@ ply_boot_client_process_incoming_replies (ply_boot_client_t *client)
       array = ply_array_new ();
 
       p = answer;
-      p = q;
+      q = p;
       for (i = 0; i < size; i++, q++)
         {
           if (*q == '\0')

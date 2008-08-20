@@ -46,6 +46,7 @@ void ply_answer_with_string (ply_answer_t *answer,
                              const char   *string);
 
 void ply_answer_unknown (ply_answer_t *answer);
+char *ply_answer_get_string (ply_answer_t *answer);
 #endif
 
 #endif /* PLY_ANSWER_H */

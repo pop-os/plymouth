@@ -34,6 +34,7 @@ struct _ply_answer
 {
   ply_answer_handler_t  handler;
   void                 *user_data;
+  char                 *string;
 };
 
 ply_answer_t *
@@ -55,6 +56,7 @@ ply_answer_free (ply_answer_t *answer)
   if (answer == NULL)
     return;
 
+  free (answer->string);
   free (answer);
 }
 
@@ -64,9 +66,16 @@ ply_answer_with_string (ply_answer_t *answer,
 {
   assert (answer != NULL);
 
+  answer->string = strdup (string);
+
   if (answer->handler != NULL)
     answer->handler (answer->user_data, string, answer);
+}
 
+char *
+ply_answer_get_string (ply_answer_t *answer)
+{
+  return strdup (answer->string);
 }
 
 void

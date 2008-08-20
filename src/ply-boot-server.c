@@ -308,6 +308,71 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
        */
       return;
     }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_CACHED_PASSWORD) == 0)
+    {
+      ply_list_node_t *node;
+      ply_buffer_t *buffer;
+      size_t buffer_size;
+      uint8_t size;
+
+      buffer = ply_buffer_new ();
+
+      node = ply_list_get_first_node (server->cached_answers);
+
+      /* Add each answer separated by their NUL terminators into
+       * a buffer that we write out to the client
+       */
+      while (node != NULL)
+        {
+          ply_list_node_t *next_node;
+          ply_answer_t *answer;
+          char *answer_string;
+
+          next_node = ply_list_get_next_node (server->cached_answers, node);
+          answer = ply_list_node_get_data (node);
+          answer_string = ply_answer_get_string (answer);
+          ply_buffer_append_bytes (buffer,
+                                   answer_string,
+                                   strlen (answer_string) + 1);
+          free (answer_string);
+
+          node = next_node;
+        }
+
+      buffer_size = ply_buffer_get_size (buffer);
+
+      /* splash plugin doesn't have any cached passwords
+      */
+      if (buffer_size == 0)
+        {
+          if (!ply_write (connection->fd,
+                          PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER,
+                          strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER)))
+              ply_error ("could not write bytes: %m");
+        }
+      else
+        {
+          /* FIXME: This is likely too small, we need to add another
+           * layer of indirection that says how many bytes the size
+           * is.
+           */
+          if (buffer_size > 255)
+            ply_error ("passwords too long to fit in buffer");
+
+          size = buffer_size;
+
+          if (!ply_write (connection->fd,
+                          PLY_BOOT_PROTOCOL_RESPONSE_TYPE_MULTIPLE_ANSWERS,
+                          strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_MULTIPLE_ANSWERS)) ||
+              !ply_write (connection->fd,
+                          &size, sizeof (uint8_t)) ||
+              !ply_write (connection->fd,
+                          ply_buffer_get_bytes (buffer), size))
+              ply_error ("could not write bytes: %m");
+        }
+
+      ply_buffer_free (buffer);
+    }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_NEWROOT) == 0)
     {
       if (server->newroot_handler != NULL)

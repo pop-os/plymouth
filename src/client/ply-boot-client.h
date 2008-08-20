@@ -35,6 +35,10 @@ typedef void (* ply_boot_client_response_handler_t) (void              *user_dat
 typedef void (* ply_boot_client_answer_handler_t) (void              *user_data,
                                                    const char        *answer,
                                                    ply_boot_client_t *client);
+
+typedef void (* ply_boot_client_multiple_answers_handler_t) (void    *user_data,
+                                                             const char * const *answers,
+                                                             ply_boot_client_t *client);
 typedef void (* ply_boot_client_disconnect_handler_t) (void              *user_data,
                                                        ply_boot_client_t *client);
 
@@ -63,6 +67,11 @@ void ply_boot_client_ask_daemon_for_password (ply_boot_client_t                 
                                               ply_boot_client_answer_handler_t    handler,
                                               ply_boot_client_response_handler_t  failed_handler,
                                               void                               *user_data);
+
+void ply_boot_client_ask_daemon_for_cached_passwords (ply_boot_client_t                  *client,
+                                                      ply_boot_client_multiple_answers_handler_t    handler,
+                                                      ply_boot_client_response_handler_t  failed_handler,
+                                                      void                               *user_data);
 void ply_boot_client_tell_daemon_system_is_initialized (ply_boot_client_t                  *client,
                                                         ply_boot_client_response_handler_t  handler,
                                                         ply_boot_client_response_handler_t  failed_handler,

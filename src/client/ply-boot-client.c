@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "ply-array.h"
 #include "ply-event-loop.h"
 #include "ply-list.h"
 #include "ply-logger.h"
@@ -282,6 +283,52 @@ ply_boot_client_process_incoming_replies (ply_boot_client_t *client)
 
       ((ply_boot_client_answer_handler_t) request->handler) (request->user_data, answer, client);
     }
+  else if (memcmp (byte, PLY_BOOT_PROTOCOL_RESPONSE_TYPE_MULTIPLE_ANSWERS, sizeof (uint8_t)) == 0)
+    {
+      ply_array_t *array;
+      char **answers;
+      char *answer;
+      char *p;
+      char *q;
+      uint8_t i;
+
+      array = NULL;
+      answers = NULL;
+
+      if (!ply_read (client->socket_fd, &size, sizeof (uint8_t)))
+        goto out;
+
+      assert (size > 0);
+
+      answer = malloc (size);
+
+      if (!ply_read (client->socket_fd, answer, size))
+        {
+          free (answer);
+          goto out;
+        }
+
+      array = ply_array_new ();
+
+      p = answer;
+      p = q;
+      for (i = 0; i < size; i++, q++)
+        {
+          if (*q == '\0')
+            {
+              ply_array_add_element (array, strdup (p));
+              p = q + 1;
+            }
+        }
+      free (answer);
+
+      answers = (char **) ply_array_steal_elements (array);
+      ply_array_free (array);
+
+      ((ply_boot_client_multiple_answers_handler_t) request->handler) (request->user_data, (const char * const *) answers, client);
+
+      ply_free_string_array (answers);
+    }
   else if (memcmp (byte, PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER, sizeof (uint8_t)) == 0)
     {
       ((ply_boot_client_answer_handler_t) request->handler) (request->user_data, NULL, client);
@@ -503,6 +550,19 @@ ply_boot_client_ask_daemon_for_password (ply_boot_client_t                  *cli
   assert (client != NULL);
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PASSWORD,
+                                 NULL, (ply_boot_client_response_handler_t)
+                                 handler, failed_handler, user_data);
+}
+
+void
+ply_boot_client_ask_daemon_for_cached_passwords (ply_boot_client_t                  *client,
+                                                 ply_boot_client_multiple_answers_handler_t    handler,
+                                                 ply_boot_client_response_handler_t  failed_handler,
+                                                 void                               *user_data)
+{
+  assert (client != NULL);
+
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_CACHED_PASSWORD,
                                  NULL, (ply_boot_client_response_handler_t)
                                  handler, failed_handler, user_data);
 }

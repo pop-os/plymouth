@@ -191,6 +191,44 @@ on_answer (answer_state_t   *answer_state,
 }
 
 static void
+on_multiple_answers (answer_state_t     *answer_state,
+                     const char * const *answers)
+{
+  bool need_to_ask_user;
+  int i;
+  int exit_status;
+
+  assert (answer_state->command != NULL);
+
+  need_to_ask_user = true;
+  for (i = 0; answers[i] != NULL; i++)
+    {
+      bool command_started;
+      exit_status = 127;
+      command_started = answer_via_command (answer_state, answers[i],
+                                            &exit_status);
+      if (command_started && WIFEXITED (exit_status) &&
+          WEXITSTATUS (exit_status) == 0)
+        {
+          need_to_ask_user = false;
+          break;
+        }
+    }
+
+  if (need_to_ask_user)
+    {
+      ply_boot_client_ask_daemon_for_password (answer_state->state->client,
+                                               (ply_boot_client_answer_handler_t)
+                                               on_answer,
+                                               (ply_boot_client_response_handler_t)
+                                               on_answer_failure, answer_state);
+      return;
+    }
+
+  ply_event_loop_exit (answer_state->state->loop, 0);
+}
+
+static void
 on_failure (state_t *state)
 {
   ply_event_loop_exit (state->loop, 1);
@@ -238,15 +276,25 @@ on_password_request (state_t    *state,
 
   answer_state = calloc (1, sizeof (answer_state_t));
   answer_state->state = state;
-  answer_state->command = program != NULL? strdup (program): NULL;
+  answer_state->command = program;
 
-  ply_boot_client_ask_daemon_for_password (state->client,
-                                           (ply_boot_client_answer_handler_t)
-                                           on_answer,
-                                           (ply_boot_client_response_handler_t)
-                                           on_answer_failure, answer_state);
+  if (answer_state->command != NULL)
+    {
+      ply_boot_client_ask_daemon_for_cached_passwords (state->client,
+                                                       (ply_boot_client_multiple_answers_handler_t)
+                                                       on_multiple_answers,
+                                                       (ply_boot_client_response_handler_t)
+                                                       on_answer_failure, answer_state);
 
-  free (program);
+    }
+  else
+    {
+      ply_boot_client_ask_daemon_for_password (state->client,
+                                               (ply_boot_client_answer_handler_t)
+                                               on_answer,
+                                               (ply_boot_client_response_handler_t)
+                                               on_answer_failure, answer_state);
+    }
 }
 
 int

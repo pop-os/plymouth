@@ -330,7 +330,7 @@ main (int    argc,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,
-                                  "ask-for-password", "Ask user for passowrd",
+                                  "ask-for-password", "Ask user for password",
                                   (ply_command_handler_t)
                                   on_password_request, &state,
                                   "command", "Command to send password to via standard input",

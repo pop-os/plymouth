@@ -215,6 +215,15 @@ ply_boot_splash_update_output (ply_boot_splash_t *splash,
 }
 
 void
+ply_boot_splash_root_mounted (ply_boot_splash_t *splash)
+{
+  assert (splash != NULL);
+
+  if (splash->plugin_interface->on_root_mounted != NULL)
+    splash->plugin_interface->on_root_mounted (splash->plugin);
+}
+
+void
 ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
                                   const char        *prompt,
                                   ply_answer_t      *answer)

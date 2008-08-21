@@ -158,6 +158,8 @@ on_newroot (state_t    *state,
   chdir(root_dir);
   chroot(".");
   chdir("/");
+
+  ply_boot_splash_root_mounted (state->boot_splash);
 }
 
 static void

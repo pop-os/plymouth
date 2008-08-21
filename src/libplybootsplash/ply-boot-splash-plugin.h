@@ -49,6 +49,7 @@ typedef struct
   void (* on_boot_output) (ply_boot_splash_plugin_t *plugin,
                            const char               *output,
                            size_t                    size);
+  void (* on_root_mounted) (ply_boot_splash_plugin_t *plugin);
   void (* hide_splash_screen) (ply_boot_splash_plugin_t *plugin,
                                ply_event_loop_t         *loop,
                                ply_window_t             *window);

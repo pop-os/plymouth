@@ -460,6 +460,11 @@ ask_for_password (ply_boot_splash_plugin_t *plugin,
     ply_entry_draw (plugin->entry);
 }
 
+void
+on_root_mounted (ply_boot_splash_plugin_t *plugin)
+{
+}
+
 ply_boot_splash_plugin_interface_t *
 ply_boot_splash_plugin_get_interface (void)
 {
@@ -471,6 +476,7 @@ ply_boot_splash_plugin_get_interface (void)
       .update_status = update_status,
       .hide_splash_screen = hide_splash_screen,
       .ask_for_password = ask_for_password,
+      .on_root_mounted = on_root_mounted
     };
 
   return &plugin_interface;

@@ -543,6 +543,8 @@ ply_boot_client_tell_daemon_system_is_initialized (ply_boot_client_t            
 
 void
 ply_boot_client_ask_daemon_for_password (ply_boot_client_t                  *client,
+
+                                         const char *prompt,
                                          ply_boot_client_answer_handler_t    handler,
                                          ply_boot_client_response_handler_t  failed_handler,
                                          void                               *user_data)
@@ -550,7 +552,7 @@ ply_boot_client_ask_daemon_for_password (ply_boot_client_t                  *cli
   assert (client != NULL);
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PASSWORD,
-                                 NULL, (ply_boot_client_response_handler_t)
+                                 prompt, (ply_boot_client_response_handler_t)
                                  handler, failed_handler, user_data);
 }
 

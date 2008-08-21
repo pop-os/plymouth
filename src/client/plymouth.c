@@ -48,6 +48,7 @@ typedef struct
 {
   state_t *state;
   char    *command;
+  char    *prompt;
 } answer_state_t;
 
 static char **
@@ -127,6 +128,7 @@ answer_via_command (answer_state_t *answer_state,
           close (command_input_sender_fd);
           dup2 (command_input_receiver_fd, STDIN_FILENO);
         }
+
       execvp (args[0], args); 
       ply_trace ("could not run command: %m");
       _exit (127);
@@ -174,6 +176,7 @@ on_answer (answer_state_t   *answer_state,
           WEXITSTATUS (exit_status) != 0))
         {
           ply_boot_client_ask_daemon_for_password (answer_state->state->client,
+                                                   answer_state->prompt,
                                                    (ply_boot_client_answer_handler_t)
                                                    on_answer,
                                                    (ply_boot_client_response_handler_t)
@@ -218,6 +221,7 @@ on_multiple_answers (answer_state_t     *answer_state,
   if (need_to_ask_user)
     {
       ply_boot_client_ask_daemon_for_password (answer_state->state->client,
+                                               answer_state->prompt,
                                                (ply_boot_client_answer_handler_t)
                                                on_answer,
                                                (ply_boot_client_response_handler_t)
@@ -272,11 +276,14 @@ on_password_request (state_t    *state,
   program = NULL;
   ply_command_parser_get_command_options (state->command_parser,
                                           command,
-                                          "command", &program, NULL);
+                                          "command", &program,
+                                          "prompt", &prompt,
+                                          NULL);
 
   answer_state = calloc (1, sizeof (answer_state_t));
   answer_state->state = state;
   answer_state->command = program;
+  answer_state->prompt = prompt;
 
   if (answer_state->command != NULL)
     {
@@ -290,6 +297,7 @@ on_password_request (state_t    *state,
   else
     {
       ply_boot_client_ask_daemon_for_password (state->client,
+                                               answer_state->prompt,
                                                (ply_boot_client_answer_handler_t)
                                                on_answer,
                                                (ply_boot_client_response_handler_t)
@@ -334,6 +342,8 @@ main (int    argc,
                                   (ply_command_handler_t)
                                   on_password_request, &state,
                                   "command", "Command to send password to via standard input",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
+                                  "prompt", "Message to display when asking for password",
                                   PLY_COMMAND_OPTION_TYPE_STRING, NULL);
 
   if (!ply_command_parser_parse_arguments (state.command_parser, state.loop, argv, argc))
@@ -439,6 +449,7 @@ main (int    argc,
 
       answer_state.state = &state;
       ply_boot_client_ask_daemon_for_password (state.client,
+                                               NULL,
                                                (ply_boot_client_answer_handler_t)
                                                 on_answer,
                                                (ply_boot_client_response_handler_t)

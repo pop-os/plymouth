@@ -1,6 +1,7 @@
 INCLUDES = -I$(top_srcdir)                                                    \
-           -I$(srcdir)/../../libply                                           \
-           -I$(srcdir)/../../libplybootsplash                                 \
+           -I$(srcdir)/../../../libply                                        \
+           -I$(srcdir)/../../../libplybootsplash                              \
+           -I$(srcdir)/../../..                                               \
            -I$(srcdir)/../..                                                  \
            -I$(srcdir)/..                                                     \
            -I$(srcdir)
@@ -17,8 +18,8 @@ spinfinity_la_CFLAGS = $(PLYMOUTH_CFLAGS)                                    \
 
 spinfinity_la_LDFLAGS = -module -avoid-version -export-dynamic
 spinfinity_la_LIBADD = $(PLYMOUTH_LIBS)                                      \
-                       ../../libply/libply.la                                \
-                       ../../libplybootsplash/libplybootsplash.la
+                       ../../../libply/libply.la                             \
+                       ../../../libplybootsplash/libplybootsplash.la
 spinfinity_la_SOURCES = $(srcdir)/plugin.c
 
 throbber_frames =                                                            \

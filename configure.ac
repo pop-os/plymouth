@@ -90,11 +90,12 @@ AC_OUTPUT([Makefile
            src/libply/Makefile
            src/libplybootsplash/Makefile
            src/plymouth-1.pc
-           src/splash-plugins/Makefile
-           src/splash-plugins/spinfinity/Makefile
-           src/splash-plugins/fade-in/Makefile
-           src/splash-plugins/text/Makefile
-           src/splash-plugins/details/Makefile
+           src/plugins/Makefile
+           src/plugins/splash/Makefile
+           src/plugins/splash/spinfinity/Makefile
+           src/plugins/splash/fade-in/Makefile
+           src/plugins/splash/text/Makefile
+           src/plugins/splash/details/Makefile
            src/Makefile
            src/client/Makefile
            src/viewer/Makefile

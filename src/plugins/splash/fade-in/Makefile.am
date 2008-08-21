@@ -1,6 +1,7 @@
 INCLUDES = -I$(top_srcdir)                                                    \
-           -I$(srcdir)/../../libply                                           \
-           -I$(srcdir)/../../libplybootsplash                                 \
+           -I$(srcdir)/../../../libply                                        \
+           -I$(srcdir)/../../../libplybootsplash                              \
+           -I$(srcdir)/../../..                                               \
            -I$(srcdir)/../..                                                  \
            -I$(srcdir)/..                                                     \
            -I$(srcdir)
@@ -16,8 +17,8 @@ fade_in_la_CFLAGS = $(PLYMOUTH_CFLAGS)                                        \
                     -DPLYMOUTH_BACKGROUND_START_COLOR=$(background_start_color)
 fade_in_la_LDFLAGS = -module -avoid-version -export-dynamic
 fade_in_la_LIBADD = $(PLYMOUTH_LIBS)                                          \
-                    ../../libply/libply.la                                    \
-                    ../../libplybootsplash/libplybootsplash.la
+                    ../../../libply/libply.la                                 \
+                    ../../../libplybootsplash/libplybootsplash.la
 fade_in_la_SOURCES = $(srcdir)/plugin.c
 
 plymouthdir = $(datadir)/plymouth/fade-in

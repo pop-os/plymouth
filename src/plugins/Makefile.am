@@ -1,0 +1,3 @@
+SUBDIRS = splash
+
+MAINTAINERCLEANFILES = Makefile.in

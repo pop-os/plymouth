@@ -295,6 +295,10 @@ ask_for_password (ply_boot_splash_plugin_t *plugin,
   window_height = ply_window_get_number_of_text_rows (plugin->window);
 
   ply_window_set_text_cursor_position (plugin->window,
+                                       window_width / 2 - strlen (prompt) / 2,
+                                       window_height / 2 - 1);
+  write (STDOUT_FILENO, prompt, strlen (prompt));
+  ply_window_set_text_cursor_position (plugin->window,
                                        window_width / 2 - strlen ("Password:        "),
                                        window_height / 2);
   write (STDOUT_FILENO, "Password: ", strlen ("Password: "));

@@ -525,6 +525,12 @@ on_quit (ply_event_loop_t *loop)
   ply_event_loop_exit (loop, 0);
 }
 
+static void
+on_error (ply_event_loop_t *loop)
+{
+  printf ("got error starting service\n");
+}
+
 static char *
 on_ask_for_password (ply_event_loop_t *loop)
 {
@@ -551,6 +557,7 @@ main (int    argc,
                                 (ply_boot_server_hide_splash_handler_t) on_hide_splash,
                                 (ply_boot_server_newroot_handler_t) on_newroot,
                                 (ply_boot_server_system_initialized_handler_t) on_system_initialized,
+                                (ply_boot_server_error_handler_t) on_error,
                                 (ply_boot_server_quit_handler_t) on_quit,
                                 loop);
 

@@ -78,12 +78,12 @@ split_string (const char *command,
         {
           args[i++] = strndup (q, p - q);
 
-	  while (*p == delimiter)
-	    p++;
+          while (*p == delimiter)
+              p++;
 
-	  q = p;
-	}
-      
+          q = p;
+        }
+
       assert (*q != delimiter);
       assert (i <= number_of_delimiters);
     }

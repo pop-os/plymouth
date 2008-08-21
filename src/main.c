@@ -135,6 +135,7 @@ show_default_splash (state_t *state)
 
 static void
 on_ask_for_password (state_t      *state,
+                     const char   *prompt,
                      ply_answer_t *answer)
 {
   if (state->boot_splash == NULL)
@@ -145,7 +146,8 @@ on_ask_for_password (state_t      *state,
       return;
     }
 
-  ply_boot_splash_ask_for_password (state->boot_splash, answer);
+  ply_boot_splash_ask_for_password (state->boot_splash,
+                                    prompt, answer);
 }
 
 static void

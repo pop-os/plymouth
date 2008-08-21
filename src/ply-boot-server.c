@@ -302,6 +302,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
       if (server->ask_for_password_handler != NULL)
         server->ask_for_password_handler (server->user_data,
+                                          argument,
                                           answer,
                                           server);
       /* will reply later

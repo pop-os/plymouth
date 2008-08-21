@@ -216,6 +216,7 @@ ply_boot_splash_update_output (ply_boot_splash_t *splash,
 
 void
 ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
+                                  const char        *prompt,
                                   ply_answer_t      *answer)
 {
 
@@ -231,6 +232,7 @@ ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
     }
 
   splash->plugin_interface->ask_for_password (splash->plugin,
+                                              prompt,
                                               answer);
 }
 

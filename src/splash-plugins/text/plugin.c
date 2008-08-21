@@ -280,6 +280,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
 void
 ask_for_password (ply_boot_splash_plugin_t *plugin,
+                  const char               *prompt,
                   ply_answer_t             *answer)
 {
   int window_width, window_height;

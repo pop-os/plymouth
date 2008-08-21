@@ -627,6 +627,7 @@ show_password_entry (ply_boot_splash_plugin_t *plugin)
 
 void
 ask_for_password (ply_boot_splash_plugin_t *plugin,
+                  const char               *prompt,
                   ply_answer_t             *answer)
 {
   plugin->pending_password_answer = answer;

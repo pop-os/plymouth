@@ -57,6 +57,7 @@
 #define BACKSPACE "\b\033[0K"
 
 void ask_for_password (ply_boot_splash_plugin_t *plugin,
+                       const char               *prompt,
                        ply_answer_t             *answer);
 
 ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
@@ -217,6 +218,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
 void
 ask_for_password (ply_boot_splash_plugin_t *plugin,
+                  const char               *prompt,
                   ply_answer_t             *answer)
 {
   plugin->pending_password_answer = answer;

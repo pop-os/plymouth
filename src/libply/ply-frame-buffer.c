@@ -958,6 +958,12 @@ ply_frame_buffer_fill_with_argb32_data (ply_frame_buffer_t     *buffer,
                                                             x, y, data, 1.0);
 }
 
+const char *
+ply_frame_buffer_get_bytes (ply_frame_buffer_t *buffer)
+{
+  return (char *) buffer->shadow_buffer;
+}
+
 #ifdef PLY_FRAME_BUFFER_ENABLE_TEST
 
 #include <math.h>

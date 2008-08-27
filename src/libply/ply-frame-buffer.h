@@ -89,6 +89,9 @@ bool ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t      
                                                         uint32_t                *data,
                                                         double                   opacity);
 
+const char *ply_frame_buffer_get_bytes (ply_frame_buffer_t *buffer);
+
+
 #endif
 
 #endif /* PLY_FRAME_BUFFER_H */

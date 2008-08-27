@@ -74,7 +74,7 @@ struct _ply_frame_buffer
 
   void (*flush)(ply_frame_buffer_t *buffer);
 
-  uint32_t is_paused : 1;
+  int pause_count;
 };
 
 static bool ply_frame_buffer_open_device (ply_frame_buffer_t  *buffer);
@@ -507,7 +507,7 @@ ply_frame_buffer_flush (ply_frame_buffer_t *buffer)
 {
   assert (buffer != NULL);
 
-  if (buffer->is_paused)
+  if (buffer->pause_count > 0)
     return true;
 
   (*buffer->flush) (buffer);
@@ -538,7 +538,7 @@ ply_frame_buffer_new (const char *device_name)
   buffer->map_address = MAP_FAILED;
   buffer->shadow_buffer = NULL;
 
-  buffer->is_paused = false;
+  buffer->pause_count = 0;
 
   return buffer;
 }
@@ -606,15 +606,15 @@ ply_frame_buffer_pause_updates (ply_frame_buffer_t *buffer)
 {
   assert (buffer != NULL);
 
-  buffer->is_paused = true;
+  buffer->pause_count++;
 }
 
 bool
 ply_frame_buffer_unpause_updates (ply_frame_buffer_t *buffer)
 {
   assert (buffer != NULL);
-  
-  buffer->is_paused = false;
+
+  buffer->pause_count--;
   return ply_frame_buffer_flush (buffer);
 }
 

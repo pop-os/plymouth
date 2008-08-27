@@ -253,6 +253,12 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   ply_trace ("hiding splash screen");
 
+  if (plugin->pending_password_answer != NULL)
+    {
+      ply_answer_with_string (plugin->pending_password_answer, "");
+      plugin->pending_password_answer = NULL;
+    }
+
   ply_window_set_keyboard_input_handler (window, NULL, NULL);
   ply_window_set_backspace_handler (window, NULL, NULL);
   ply_window_set_enter_handler (window, NULL, NULL);

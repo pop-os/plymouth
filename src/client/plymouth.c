@@ -204,19 +204,21 @@ on_multiple_answers (answer_state_t     *answer_state,
   assert (answer_state->command != NULL);
 
   need_to_ask_user = true;
-  for (i = 0; answers[i] != NULL; i++)
-    {
-      bool command_started;
-      exit_status = 127;
-      command_started = answer_via_command (answer_state, answers[i],
-                                            &exit_status);
-      if (command_started && WIFEXITED (exit_status) &&
-          WEXITSTATUS (exit_status) == 0)
-        {
-          need_to_ask_user = false;
-          break;
-        }
-    }
+
+  if (answers != NULL)
+    for (i = 0; answers[i] != NULL; i++)
+      {
+        bool command_started;
+        exit_status = 127;
+        command_started = answer_via_command (answer_state, answers[i],
+                                              &exit_status);
+        if (command_started && WIFEXITED (exit_status) &&
+            WEXITSTATUS (exit_status) == 0)
+          {
+            need_to_ask_user = false;
+            break;
+          }
+      }
 
   if (need_to_ask_user)
     {

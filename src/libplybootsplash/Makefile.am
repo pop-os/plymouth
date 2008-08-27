@@ -1,16 +1,18 @@
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)                                                        \
-           -I$(srcdir)/../libply
+           -I$(srcdir)/../libply                                              \
+           -I$(srcdir)/../plugins/controls
 
 lib_LTLIBRARIES = libplybootsplash.la
 
 libplybootsplashdir = $(includedir)/plymouth-1/plybootsplash
-libplybootsplash_HEADERS = ply-answer.h ply-entry.h ply-text-pulser.h ply-throbber.h ply-window.h ply-boot-splash-plugin.h
+libplybootsplash_HEADERS = ply-answer.h ply-entry.h ply-text-pulser.h ply-throbber.h ply-window.h ply-label.h ply-boot-splash-plugin.h
 
 libplybootsplash_la_CFLAGS = $(PLYMOUTH_CFLAGS)                               \
                              -DPLYMOUTH_BACKGROUND_COLOR=$(background_color)   \
                        -DPLYMOUTH_BACKGROUND_END_COLOR=$(background_end_color) \
-                       -DPLYMOUTH_BACKGROUND_START_COLOR=$(background_start_color)
+                       -DPLYMOUTH_BACKGROUND_START_COLOR=$(background_start_color) \
+                       -DPLYMOUTH_PLUGIN_PATH=\"$(libdir)/plymouth/\"
 libplybootsplash_la_LIBADD = $(PLYMOUTH_LIBS) ../libply/libply.la
 libplybootsplash_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
 		    -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
@@ -18,7 +20,8 @@ libplybootsplash_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
 libplybootsplash_la_SOURCES = \
 		    $(libplybootsplash_HEADERS)                              \
 		    ply-answer.c                                             \
-		    ply-entry.c                                             \
+		    ply-entry.c                                              \
+		    ply-label.c                                              \
 		    ply-throbber.c                                           \
 		    ply-text-pulser.c                                        \
 		    ply-window.c

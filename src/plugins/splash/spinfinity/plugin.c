@@ -44,6 +44,7 @@
 #include "ply-buffer.h"
 #include "ply-entry.h"
 #include "ply-event-loop.h"
+#include "ply-label.h"
 #include "ply-list.h"
 #include "ply-logger.h"
 #include "ply-frame-buffer.h"
@@ -71,8 +72,11 @@ struct _ply_boot_splash_plugin
 
   ply_entry_t *entry;
   ply_throbber_t *throbber;
+  ply_label_t *label;
 
   ply_answer_t *pending_password_answer;
+
+  uint32_t root_is_mounted : 1;
 };
 
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
@@ -91,6 +95,7 @@ create_plugin (void)
   plugin->entry = ply_entry_new (PLYMOUTH_IMAGE_DIR "spinfinity");
   plugin->throbber = ply_throbber_new (PLYMOUTH_IMAGE_DIR "spinfinity",
                                    "throbber-");
+  plugin->label = ply_label_new ();
 
   return plugin;
 }
@@ -106,6 +111,7 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_image_free (plugin->lock_image);
   ply_entry_free (plugin->entry);
   ply_throbber_free (plugin->throbber);
+  ply_label_free (plugin->label);
   free (plugin);
 }
 
@@ -267,7 +273,10 @@ on_draw (ply_boot_splash_plugin_t *plugin,
   draw_background (plugin, &area);
 
   if (plugin->pending_password_answer != NULL)
-    ply_entry_draw (plugin->entry);
+    {
+      ply_entry_draw (plugin->entry);
+      ply_label_draw (plugin->label);
+    }
   else
     draw_logo (plugin);
   ply_frame_buffer_unpause_updates (plugin->frame_buffer);
@@ -400,7 +409,8 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 }
 
 static void
-show_password_entry (ply_boot_splash_plugin_t *plugin)
+show_password_prompt (ply_boot_splash_plugin_t *plugin,
+                      const char               *prompt)
 {
   ply_frame_buffer_area_t area;
   int x, y;
@@ -442,6 +452,20 @@ show_password_entry (ply_boot_splash_plugin_t *plugin)
                                           &plugin->lock_area, 0, 0,
                                           lock_data);
 
+  if (prompt != NULL)
+    {
+      int label_width, label_height;
+
+      ply_label_set_text (plugin->label, prompt);
+      label_width = ply_label_get_width (plugin->label);
+      label_height = ply_label_get_height (plugin->label);
+
+      x = plugin->box_area.x + plugin->lock_area.width / 2;
+      y = plugin->box_area.y + plugin->box_area.height + label_height;
+
+      ply_label_show (plugin->label, plugin->window, x, y);
+    }
+
 }
 
 void
@@ -454,15 +478,19 @@ ask_for_password (ply_boot_splash_plugin_t *plugin,
   if (ply_entry_is_hidden (plugin->entry))
     {
       stop_animation (plugin);
-      show_password_entry (plugin);
+      show_password_prompt (plugin, prompt);
     }
   else
-    ply_entry_draw (plugin->entry);
+    {
+      ply_entry_draw (plugin->entry);
+      ply_label_draw (plugin->label);
+    }
 }
 
 void
 on_root_mounted (ply_boot_splash_plugin_t *plugin)
 {
+  plugin->root_is_mounted = true;
 }
 
 ply_boot_splash_plugin_interface_t *

@@ -373,6 +373,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
         }
 
       ply_buffer_free (buffer);
+      return;
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_NEWROOT) == 0)
     {

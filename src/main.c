@@ -488,11 +488,12 @@ check_for_serial_console (state_t *state)
 
   ply_trace ("checking if splash screen should be disabled");
 
-  console_key = strstr (state->kernel_command_line, " console=");
-  if (console_key != NULL)
+  while ((console_key = strstr (state->kernel_command_line, " console=")) != NULL)
     {
       char *end;
       ply_trace ("serial console found!");
+
+      free (state->console);
       state->console = strdup (console_key + strlen (" console="));
 
       end = strpbrk (state->console, " \n\t\v");

@@ -237,7 +237,13 @@ ask_for_password (ply_boot_splash_plugin_t *plugin,
   if (plugin->window != NULL)
     ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
 
-  write (STDOUT_FILENO, "\nPassword: ", strlen ("\nPassword: "));
+  if (prompt != NULL)
+    {
+      write (STDOUT_FILENO, "\r\n", strlen ("\r\n"));
+      write (STDOUT_FILENO, prompt, strlen (prompt));
+    }
+
+  write (STDOUT_FILENO, "\r\nPassword: ", strlen ("\r\nPassword: "));
   plugin->keyboard_input_is_hidden = true;
 }
 

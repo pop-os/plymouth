@@ -485,16 +485,20 @@ static void
 check_for_serial_console (state_t *state)
 {
   char *console_key;
+  char *remaining_command_line;
 
   ply_trace ("checking if splash screen should be disabled");
 
-  while ((console_key = strstr (state->kernel_command_line, " console=")) != NULL)
+  remaining_command_line = state->kernel_command_line;
+  while ((console_key = strstr (remaining_command_line, " console=")) != NULL)
     {
       char *end;
       ply_trace ("serial console found!");
 
       free (state->console);
       state->console = strdup (console_key + strlen (" console="));
+
+      remaining_command_line = console_key + strlen (state->console) + strlen (" console=");
 
       end = strpbrk (state->console, " \n\t\v,");
 

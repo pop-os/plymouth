@@ -496,7 +496,7 @@ check_for_serial_console (state_t *state)
       free (state->console);
       state->console = strdup (console_key + strlen (" console="));
 
-      end = strpbrk (state->console, " \n\t\v");
+      end = strpbrk (state->console, " \n\t\v,");
 
       if (end != NULL)
         *end = '\0';

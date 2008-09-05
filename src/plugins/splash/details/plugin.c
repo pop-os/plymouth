@@ -66,6 +66,7 @@ struct _ply_boot_splash_plugin
   ply_event_loop_t *loop;
 
   ply_answer_t *pending_password_answer;
+  ply_window_t *window;
 
   uint32_t keyboard_input_is_hidden : 1;
 };
@@ -160,6 +161,8 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
       interface = ply_boot_splash_plugin_get_interface ();
 
       interface->ask_for_password = ask_for_password;
+
+      plugin->window = window;
     }
 
   plugin->loop = loop;
@@ -209,6 +212,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
     {
       ply_answer_with_string (plugin->pending_password_answer, "");
       plugin->pending_password_answer = NULL;
+      plugin->keyboard_input_is_hidden = false;
     }
 
   ply_window_set_keyboard_input_handler (window, NULL, NULL);
@@ -220,6 +224,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                                          detach_from_event_loop,
                                          plugin);
   detach_from_event_loop (plugin);
+  plugin->window = NULL;
 }
 
 void
@@ -228,6 +233,9 @@ ask_for_password (ply_boot_splash_plugin_t *plugin,
                   ply_answer_t             *answer)
 {
   plugin->pending_password_answer = answer;
+
+  if (plugin->window != NULL)
+    ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
 
   write (STDOUT_FILENO, "\nPassword: ", strlen ("\nPassword: "));
   plugin->keyboard_input_is_hidden = true;

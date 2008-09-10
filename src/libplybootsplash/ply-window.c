@@ -506,7 +506,6 @@ void
 ply_window_close (ply_window_t *window)
 {
   ply_window_restore_color_palette (window);
-  ply_window_set_text_cursor_position (window, 0, 0);
 
   if (ply_frame_buffer_device_is_open (window->frame_buffer))
     ply_frame_buffer_close (window->frame_buffer);

@@ -602,6 +602,12 @@ main (int    argc,
       return EX_USAGE;
     }
 
+  if (geteuid () != 0)
+    {
+      ply_error ("plymouthd must be run as root user");
+      return EX_OSERR;
+    }
+
   chdir ("/");
 
   daemon_handle = ply_create_daemon ();

@@ -169,7 +169,6 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
   assert (splash->plugin_interface != NULL);
   assert (splash->plugin != NULL);
   assert (splash->plugin_interface->show_splash_screen != NULL);
-  assert (splash->window != NULL);
 
   ply_trace ("showing splash screen\n");
   if (!splash->plugin_interface->show_splash_screen (splash->plugin,

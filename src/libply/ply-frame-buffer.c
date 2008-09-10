@@ -158,7 +158,7 @@ flush_generic (ply_frame_buffer_t *buffer)
           uint32_t pixel_value;
           uint_fast32_t device_pixel_value;
 
-          pixel_value = buffer->shadow_buffer[row * buffer->row_stride + column];
+          pixel_value = buffer->shadow_buffer[row * buffer->area.width + column];
 
           device_pixel_value =
             ply_frame_buffer_pixel_value_to_device_pixel_value (buffer,
@@ -187,7 +187,7 @@ flush_xrgb32 (ply_frame_buffer_t *buffer)
   y2 = y1 + buffer->area_to_flush.height;
 
   dst = &buffer->map_address[(y1 * buffer->row_stride + x1) * 4];
-  src = (char *) &buffer->shadow_buffer[y1 * buffer->row_stride + x1];
+  src = (char *) &buffer->shadow_buffer[y1 * buffer->area.width + x1];
 
   if (buffer->area_to_flush.width == buffer->row_stride)
     {
@@ -199,7 +199,7 @@ flush_xrgb32 (ply_frame_buffer_t *buffer)
     {
       memcpy (dst, src, buffer->area_to_flush.width * 4);
       dst += buffer->row_stride * 4;
-      src += buffer->row_stride * 4;
+      src += buffer->area.width * 4;
     }
 }
 
@@ -428,12 +428,12 @@ ply_frame_buffer_blend_value_at_pixel (ply_frame_buffer_t *buffer,
 
   if ((pixel_value >> 24) != 0xff)
     {
-      old_pixel_value = buffer->shadow_buffer[y * buffer->row_stride + x];
+      old_pixel_value = buffer->shadow_buffer[y * buffer->area.width + x];
 
       pixel_value = blend_two_pixel_values (pixel_value, old_pixel_value);
     }
 
-  buffer->shadow_buffer[y * buffer->row_stride + x] = pixel_value;
+  buffer->shadow_buffer[y * buffer->area.width + x] = pixel_value;
 }
 
 static void
@@ -581,8 +581,8 @@ ply_frame_buffer_open (ply_frame_buffer_t *buffer)
     }
 
   buffer->shadow_buffer =
-    realloc (buffer->shadow_buffer, 4 * buffer->row_stride * buffer->area.height);
-  memset (buffer->shadow_buffer, 0, 4 * buffer->row_stride * buffer->area.height);
+    realloc (buffer->shadow_buffer, 4 * buffer->area.width * buffer->area.height);
+  memset (buffer->shadow_buffer, 0, 4 * buffer->area.width * buffer->area.height);
   ply_frame_buffer_fill_with_color (buffer, NULL, 0.0, 0.0, 0.0, 1.0);
 
   is_open = true;
@@ -804,7 +804,7 @@ ply_frame_buffer_fill_with_gradient (ply_frame_buffer_t      *buffer,
                   (((green + NOISE ()) & COLOR_MASK) >> GREEN_SHIFT) |
                   (((blue  + NOISE ()) & COLOR_MASK) >> BLUE_SHIFT);
 
-              buffer->shadow_buffer[y * buffer->row_stride + x] = pixel;
+              buffer->shadow_buffer[y * buffer->area.width + x] = pixel;
             }
         }
 

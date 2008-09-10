@@ -505,7 +505,7 @@ check_for_serial_console (state_t *state)
       if (end != NULL)
         {
           *end = '\0';
-          remaining_command_line += end - console;
+          remaining_command_line += end - state->console;
         }
     }
 }

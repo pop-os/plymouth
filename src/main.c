@@ -498,12 +498,15 @@ check_for_serial_console (state_t *state)
       free (state->console);
       state->console = strdup (console_key + strlen (" console="));
 
-      remaining_command_line = console_key + strlen (state->console) + strlen (" console=");
+      remaining_command_line = console_key + strlen (" console=");
 
       end = strpbrk (state->console, " \n\t\v,");
 
       if (end != NULL)
-        *end = '\0';
+        {
+          *end = '\0';
+          remaining_command_line += end - console;
+        }
     }
 }
 

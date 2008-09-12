@@ -1,4 +1,4 @@
-SUBDIRS = src scripts images
+SUBDIRS = src images scripts
 DISTCHECK_CONFIGURE_FLAGS = --without-boot-entry --disable-tests
 
 EXTRA_DIST = ChangeLog                                                         \

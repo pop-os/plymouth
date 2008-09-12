@@ -108,6 +108,6 @@ AC_OUTPUT([Makefile
            src/tests/Makefile
            src/libply/tests/Makefile
            src/client/tests/Makefile
-           scripts/Makefile
            images/Makefile
+           scripts/Makefile
 ])

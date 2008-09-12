@@ -14,7 +14,7 @@ plymouth-populate-initrd: $(srcdir)/plymouth-populate-initrd.in
 
 if ADD_BOOT_ENTRY
 install-data-hook: plymouth-update-initrd plymouth-populate-initrd
-	PLYMOUTH_LOGO_FILE=$(logofile) $(initrdscriptdir)/plymouth-update-initrd
+	PLYMOUTH_LOGO_FILE=$(DESTDIR)/$(logofile) $(DESTDIR)/$(initrdscriptdir)/plymouth-update-initrd
 endif
 
 EXTRA_DIST= plymouth-update-initrd.in                                          \

@@ -307,6 +307,26 @@ on_password_request (state_t    *state,
     }
 }
 
+static void
+on_quit_request (state_t    *state,
+                 const char *command)
+{
+  bool should_retain_splash;
+
+  should_retain_splash = false;
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "retain-splash", &should_retain_splash,
+                                          NULL);
+
+  ply_boot_client_tell_daemon_to_quit (state->client,
+                                       should_retain_splash,
+                                       (ply_boot_client_response_handler_t)
+                                       on_success,
+                                       (ply_boot_client_response_handler_t)
+                                       on_failure, state);
+}
+
 int
 main (int    argc,
       char **argv)
@@ -347,6 +367,13 @@ main (int    argc,
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   "prompt", "Message to display when asking for password",
                                   PLY_COMMAND_OPTION_TYPE_STRING, NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "quit", "Tell boot daemon to quit",
+                                  (ply_command_handler_t)
+                                  on_quit_request, &state,
+                                  "retain-splash", "Don't explicitly hide boot splash on exit",
+                                  PLY_COMMAND_OPTION_TYPE_FLAG, NULL);
 
   if (!ply_command_parser_parse_arguments (state.command_parser, state.loop, argv, argc))
     {

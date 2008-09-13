@@ -294,9 +294,12 @@ on_quit (state_t *state)
   ply_trace ("time to quit, closing boot.log");
   if (state->session != NULL)
     ply_terminal_session_close_log (state->session);
-  ply_trace ("hiding splash");
+  ply_trace ("unloading splash");
   if (state->boot_splash != NULL)
-    ply_boot_splash_hide (state->boot_splash);
+    {
+      ply_boot_splash_free (state->boot_splash);
+      state->boot_splash = NULL;
+    }
   ply_trace ("exiting event loop");
   ply_event_loop_exit (state->loop, 0);
 }

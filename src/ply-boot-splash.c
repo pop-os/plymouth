@@ -77,19 +77,6 @@ ply_boot_splash_new (const char   *module_name,
   return splash;
 }
 
-void
-ply_boot_splash_free (ply_boot_splash_t *splash)
-{
-  if (splash == NULL)
-    return;
-
-  if (splash->is_shown)
-    ply_boot_splash_hide (splash);
-
-  free (splash->module_name);
-  free (splash);
-}
-
 static bool
 ply_boot_splash_load_plugin (ply_boot_splash_t *splash)
 {
@@ -148,6 +135,19 @@ ply_boot_splash_unload_plugin (ply_boot_splash_t *splash)
   ply_close_module (splash->module_handle);
   splash->plugin_interface = NULL;
   splash->module_handle = NULL;
+}
+
+void
+ply_boot_splash_free (ply_boot_splash_t *splash)
+{
+  if (splash == NULL)
+    return;
+
+  if (splash->module_handle != NULL)
+    ply_boot_splash_unload_plugin (splash);
+
+  free (splash->module_name);
+  free (splash);
 }
 
 bool

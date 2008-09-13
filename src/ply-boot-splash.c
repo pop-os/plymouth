@@ -263,7 +263,6 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
                                                 splash->loop,
                                                 splash->window);
 
-  ply_boot_splash_unload_plugin (splash);
   splash->is_shown = false;
 
   if (splash->loop != NULL)

@@ -170,10 +170,11 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
   assert (splash->plugin != NULL);
   assert (splash->plugin_interface->show_splash_screen != NULL);
 
+  splash->plugin_interface->add_window (splash->plugin, splash->window);
+
   ply_trace ("showing splash screen\n");
   if (!splash->plugin_interface->show_splash_screen (splash->plugin,
                                                      splash->loop,
-                                                     splash->window,
                                                      splash->boot_buffer))
     {
 
@@ -260,8 +261,9 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
   assert (splash->plugin_interface->hide_splash_screen != NULL);
 
   splash->plugin_interface->hide_splash_screen (splash->plugin,
-                                                splash->loop,
-                                                splash->window);
+                                                splash->loop);
+
+  splash->plugin_interface->remove_window (splash->plugin, splash->window);
 
   splash->is_shown = false;
 

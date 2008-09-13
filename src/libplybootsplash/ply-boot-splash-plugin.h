@@ -40,9 +40,13 @@ typedef struct
   ply_boot_splash_plugin_t * (* create_plugin) (void);
   void (* destroy_plugin) (ply_boot_splash_plugin_t *plugin);
 
+  void (* add_window) (ply_boot_splash_plugin_t *plugin,
+                       ply_window_t             *window);
+
+  void (* remove_window) (ply_boot_splash_plugin_t *plugin,
+                          ply_window_t             *window);
   bool (* show_splash_screen) (ply_boot_splash_plugin_t *plugin,
                                ply_event_loop_t         *loop,
-                               ply_window_t             *window,
                                ply_buffer_t             *boot_buffer);
   void (* update_status) (ply_boot_splash_plugin_t *plugin,
                           const char               *status);
@@ -51,8 +55,7 @@ typedef struct
                            size_t                    size);
   void (* on_root_mounted) (ply_boot_splash_plugin_t *plugin);
   void (* hide_splash_screen) (ply_boot_splash_plugin_t *plugin,
-                               ply_event_loop_t         *loop,
-                               ply_window_t             *window);
+                               ply_event_loop_t         *loop);
 
   void (* ask_for_password) (ply_boot_splash_plugin_t *plugin,
                              const char               *prompt,

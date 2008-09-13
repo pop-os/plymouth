@@ -132,37 +132,48 @@ on_enter (ply_boot_splash_plugin_t *plugin,
     }
 }
 
+void
+add_window (ply_boot_splash_plugin_t *plugin,
+            ply_window_t             *window)
+{
+  plugin->window = window;
+}
+
+void
+remove_window (ply_boot_splash_plugin_t *plugin,
+               ply_window_t             *window)
+{
+  plugin->window = NULL;
+}
+
 bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
-                    ply_window_t             *window,
                     ply_buffer_t             *boot_buffer)
 {
   size_t size;
 
   assert (plugin != NULL);
 
-  if (window != NULL)
+  if (plugin->window != NULL)
     {
       ply_boot_splash_plugin_interface_t *interface;
 
-      ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
+      ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
 
-      ply_window_set_keyboard_input_handler (window,
+      ply_window_set_keyboard_input_handler (plugin->window,
                                              (ply_window_keyboard_input_handler_t)
                                              on_keyboard_input, plugin);
-      ply_window_set_backspace_handler (window,
+      ply_window_set_backspace_handler (plugin->window,
                                         (ply_window_backspace_handler_t)
                                         on_backspace, plugin);
-      ply_window_set_enter_handler (window,
+      ply_window_set_enter_handler (plugin->window,
                                     (ply_window_enter_handler_t)
                                     on_enter, plugin);
 
       interface = ply_boot_splash_plugin_get_interface ();
 
       interface->ask_for_password = ask_for_password;
-
-      plugin->window = window;
     }
 
   plugin->loop = loop;
@@ -201,8 +212,7 @@ on_boot_output (ply_boot_splash_plugin_t *plugin,
 
 void
 hide_splash_screen (ply_boot_splash_plugin_t *plugin,
-                    ply_event_loop_t         *loop,
-                    ply_window_t             *window)
+                    ply_event_loop_t         *loop)
 {
   assert (plugin != NULL);
 
@@ -215,16 +225,15 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
       plugin->keyboard_input_is_hidden = false;
     }
 
-  ply_window_set_keyboard_input_handler (window, NULL, NULL);
-  ply_window_set_backspace_handler (window, NULL, NULL);
-  ply_window_set_enter_handler (window, NULL, NULL);
+  ply_window_set_keyboard_input_handler (plugin->window, NULL, NULL);
+  ply_window_set_backspace_handler (plugin->window, NULL, NULL);
+  ply_window_set_enter_handler (plugin->window, NULL, NULL);
 
   ply_event_loop_stop_watching_for_exit (plugin->loop,
                                          (ply_event_loop_exit_handler_t)
                                          detach_from_event_loop,
                                          plugin);
   detach_from_event_loop (plugin);
-  plugin->window = NULL;
 }
 
 void
@@ -254,6 +263,8 @@ ply_boot_splash_plugin_get_interface (void)
     {
       .create_plugin = create_plugin,
       .destroy_plugin = destroy_plugin,
+      .add_window = add_window,
+      .remove_window = remove_window,
       .show_splash_screen = show_splash_screen,
       .update_status = update_status,
       .on_boot_output = on_boot_output,

@@ -20,9 +20,10 @@
  *
  * Some implementation taken from the cairo library.
  *
- * Written by: Kristian Høgsberg <krh@redhat.com>
+ * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
+ *             Kristian Høgsberg <krh@redhat.com>
  *             Ray Strode <rstrode@redhat.com>
- *             Carl D. Worth (cworth@cworth.org>
+ *             Carl D. Worth <cworth@cworth.org>
  */
 #include "config.h"
 #include "ply-image.h"
@@ -39,6 +40,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <math.h>
 
 #include <png.h>
 
@@ -264,6 +266,85 @@ ply_image_get_height (ply_image_t *image)
   assert (image != NULL);
 
   return image->height;
+}
+
+ply_image_t *
+ply_image_resize (ply_image_t *image,
+                  long         width,
+                  long         height)
+{
+  ply_image_t *new_image;
+  int x, y;
+  int old_x, old_y, old_width, old_height;
+  float scale_x, scale_y;
+
+  new_image = ply_image_new (image->filename);
+
+  new_image->layout.address = malloc (height * width * 4);
+
+  new_image->width = width;
+  new_image->height = height;
+
+  old_width = ply_image_get_width (image);
+  old_height = ply_image_get_height (image);
+
+  scale_x = ((double) old_width) / width;
+  scale_y = ((double) old_height) / height;
+
+  for (y = 0; y < height; y++)
+    {
+      old_y = y * scale_y;
+      for (x=0; x < width; x++)
+        {
+          old_x = x * scale_x;
+          new_image->layout.as_pixels[x + y * width] = image->layout.as_pixels[old_x + old_y * old_width];
+        }
+    }
+  return new_image;
+}
+
+ply_image_t *
+ply_image_rotate (ply_image_t *image,
+                  long         center_x,
+                  long         center_y,
+                  double       theta_offset)
+{
+  ply_image_t *new_image;
+  int x, y;
+  int old_x, old_y;
+  int width;
+  int height;
+
+  width = ply_image_get_width (image);
+  height = ply_image_get_height (image);
+
+  new_image = ply_image_new (image->filename);
+
+  new_image->layout.address = malloc (height * width * 4);
+  new_image->width = width;
+  new_image->height = height;
+
+  for (y = 0; y < height; y++)
+    {
+      for (x = 0; x < width; x++)
+        {
+          double d;
+          double theta;
+
+          d = sqrt ((x - center_x) * (x - center_x) + (y - center_y) * (y - center_y));
+          theta = atan2 (y - center_y, x - center_x);
+
+          theta -= theta_offset;
+          old_x = center_x + d * cos (theta);
+          old_y = center_y + d * sin (theta);
+
+          if (old_x < 0 || old_x >= width || old_y < 0 || old_y >= height)
+            new_image->layout.as_pixels[x +y * width] = 0x00000000;
+          else
+            new_image->layout.as_pixels[x + y * width] = image->layout.as_pixels[old_x + old_y * width];
+        }
+    }
+  return new_image;
 }
 
 #ifdef PLY_IMAGE_ENABLE_TEST

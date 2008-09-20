@@ -36,6 +36,8 @@ uint32_t *ply_image_get_data (ply_image_t *image);
 ssize_t ply_image_get_size (ply_image_t *image);
 long ply_image_get_width (ply_image_t *image);
 long ply_image_get_height (ply_image_t *image);
+ply_image_t *ply_image_resize (ply_image_t *image, long width, long height);
+ply_image_t *ply_image_rotate (ply_image_t *oldimage, long center_x, long center_y, double theta_offset);
 
 #endif
 

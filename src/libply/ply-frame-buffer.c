@@ -922,8 +922,9 @@ ply_frame_buffer_fill_with_hex_color (ply_frame_buffer_t      *buffer,
 }
 
 bool 
-ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t      *buffer,
+ply_frame_buffer_fill_with_argb32_data_at_opacity_with_clip (ply_frame_buffer_t      *buffer,
                                                    ply_frame_buffer_area_t *area,
+                                                   ply_frame_buffer_area_t *clip,
                                                    unsigned long            x,
                                                    unsigned long            y,
                                                    uint32_t                *data,
@@ -941,6 +942,14 @@ ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t      *buff
 
   ply_frame_buffer_area_intersect (area, &buffer->area, &cropped_area);
 
+  if (clip)
+    ply_frame_buffer_area_intersect (&cropped_area, clip, &cropped_area);
+
+  if (cropped_area.width == 0 || cropped_area.height == 0)
+    return true;
+
+  x += cropped_area.x - area->x;
+  y += cropped_area.y - area->y;
   opacity_as_byte = (uint8_t) (opacity * 255.0);
 
   for (row = y; row < y + cropped_area.height; row++)
@@ -968,13 +977,37 @@ ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t      *buff
 }
 
 bool 
+ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t      *buffer,
+                                                   ply_frame_buffer_area_t *area,
+                                                   unsigned long            x,
+                                                   unsigned long            y,
+                                                   uint32_t                *data,
+                                                   double                   opacity)
+{
+  return ply_frame_buffer_fill_with_argb32_data_at_opacity_with_clip (buffer, area, NULL,
+                                                            x, y, data, opacity);
+}
+  
+bool 
 ply_frame_buffer_fill_with_argb32_data (ply_frame_buffer_t     *buffer,
                                         ply_frame_buffer_area_t *area,
                                         unsigned long       x,
                                         unsigned long       y,
                                         uint32_t           *data)
 {
-  return ply_frame_buffer_fill_with_argb32_data_at_opacity (buffer, area,
+  return ply_frame_buffer_fill_with_argb32_data_at_opacity_with_clip (buffer, area, NULL,
+                                                            x, y, data, 1.0);
+}
+
+bool 
+ply_frame_buffer_fill_with_argb32_data_with_clip (ply_frame_buffer_t     *buffer,
+                                        ply_frame_buffer_area_t *area,
+                                        ply_frame_buffer_area_t *clip,
+                                        unsigned long       x,
+                                        unsigned long       y,
+                                        uint32_t           *data)
+{
+  return ply_frame_buffer_fill_with_argb32_data_at_opacity_with_clip (buffer, area, clip,
                                                             x, y, data, 1.0);
 }
 

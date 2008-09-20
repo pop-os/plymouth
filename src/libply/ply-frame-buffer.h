@@ -89,6 +89,20 @@ bool ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t      
                                                         uint32_t                *data,
                                                         double                   opacity);
 
+bool ply_frame_buffer_fill_with_argb32_data_with_clip (ply_frame_buffer_t      *buffer,
+                                                       ply_frame_buffer_area_t  *area,
+                                                       ply_frame_buffer_area_t  *clip,
+                                                       unsigned long        x,
+                                                       unsigned long        y,
+                                                       uint32_t            *data);
+bool ply_frame_buffer_fill_with_argb32_data_at_opacity_with_clip (ply_frame_buffer_t      *buffer,
+                                                                  ply_frame_buffer_area_t *area,
+                                                                  ply_frame_buffer_area_t *clip,
+                                                                  unsigned long            x,
+                                                                  unsigned long            y,
+                                                                  uint32_t                *data,
+                                                                  double                   opacity);
+
 const char *ply_frame_buffer_get_bytes (ply_frame_buffer_t *buffer);
 
 

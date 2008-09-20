@@ -731,6 +731,7 @@ ply_window_free (ply_window_t *window)
 {
   if (window == NULL)
     return;
+  free(window->tty_name);
 
   if (window->loop != NULL)
     ply_event_loop_stop_watching_for_exit (window->loop,

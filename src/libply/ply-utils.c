@@ -771,7 +771,6 @@ ply_create_daemon (void)
   if (!ply_open_unidirectional_pipe (&sender_fd, &receiver_fd))
     return NULL;
 
-  handle = calloc (1, sizeof (int));
 
   pid = fork ();
 
@@ -793,6 +792,7 @@ ply_create_daemon (void)
     }
   close (receiver_fd);
 
+  handle = calloc (1, sizeof (int));
   *handle = sender_fd;
 
   return (ply_daemon_handle_t *) handle;

@@ -280,6 +280,7 @@ ply_logger_free (ply_logger_t *logger)
     }
 
   free (logger->filename);
+  free (logger->buffer);
   free (logger);
 }
 

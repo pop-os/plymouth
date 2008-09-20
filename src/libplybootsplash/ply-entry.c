@@ -101,7 +101,8 @@ ply_entry_free (ply_entry_t *entry)
 {
   if (entry == NULL)
     return;
-
+  ply_image_free (entry->text_field_image);
+  ply_image_free (entry->bullet_image);
   free (entry);
 }
 

@@ -102,6 +102,8 @@ while (0)
         ply_logger_close_file (ply_logger_get_default ())
 #define ply_flush_log()                                                        \
         ply_logger_flush (ply_logger_get_default ())
+#define ply_free_log()                                                         \
+        ply_logger_free (ply_logger_get_default ())
 #define ply_log(format, args...)                                               \
         ply_logger_inject (ply_logger_get_default (), format "\n", ##args)
 #define ply_log_without_new_line(format, args...)                              \
@@ -110,6 +112,8 @@ while (0)
         ply_logger_inject (ply_logger_get_error_default (), format "\n", ##args)
 #define ply_error_without_new_line(format, args...)                            \
         ply_logger_inject (ply_logger_get_error_default (), format, ##args)
+#define ply_free_error_log()                                                   \
+        ply_logger_free (ply_logger_get_error_default ())
 
 #define ply_toggle_tracing()                                                   \
         ply_logger_toggle_tracing (ply_logger_get_error_default ())

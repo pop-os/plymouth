@@ -226,6 +226,7 @@ ply_image_load (ply_image_t *image)
   free (rows);
   png_read_end (png, info);
   ply_image_close_file (image);
+  png_destroy_read_struct (&png, &info, NULL);
 
   image->width = width;
   image->height = height;

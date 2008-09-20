@@ -94,12 +94,19 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
   return server;
 }
 
+static void ply_boot_connection_on_hangup (ply_boot_connection_t *connection);
+
 void
 ply_boot_server_free (ply_boot_server_t *server)
 {
+  ply_list_node_t *node;
   if (server == NULL)
     return;
-
+  while (node = ply_list_get_first_node(server->connections))
+    {
+      ply_boot_connection_t *connection = ply_list_node_get_data (node);
+      ply_boot_connection_on_hangup (connection);
+    }
   ply_list_free (server->connections);
   ply_list_free (server->cached_answers);
   free (server);
@@ -171,12 +178,18 @@ ply_boot_connection_read_request (ply_boot_connection_t  *connection,
       uint8_t argument_size;
 
       if (!ply_read (connection->fd, &argument_size, sizeof (uint8_t)))
-        return false;
+        {
+          free(command);
+          return false;
+        }
 
       *argument = calloc (argument_size, sizeof (char));
 
       if (!ply_read (connection->fd, *argument, argument_size))
-        return false;
+        {
+          free(command);
+          return false;
+        }
     }
   return true;
 }
@@ -257,6 +270,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
         ply_error ("could not write bytes: %m");
 
+      free(command);
       return;
     }
 
@@ -307,6 +321,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                                           server);
       /* will reply later
        */
+      free(command);
       return;
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_CACHED_PASSWORD) == 0)
@@ -373,6 +388,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
         }
 
       ply_buffer_free (buffer);
+      free(command);
       return;
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_NEWROOT) == 0)
@@ -389,6 +405,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
         ply_error ("could not write bytes: %m");
 
+      free(command);
       return;
     }
 
@@ -398,6 +415,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
     {
       ply_error ("could not write bytes: %m");
     }
+  free(command);
 }
 
 static void

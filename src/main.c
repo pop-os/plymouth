@@ -87,6 +87,7 @@ on_session_finished (state_t *state)
 {
   ply_log ("\nSession finished...exiting logger\n");
   ply_flush_log ();
+  ply_free_log ();
   ply_event_loop_exit (state->loop, 1);
 }
 
@@ -690,6 +691,8 @@ main (int    argc,
   ply_event_loop_free (state.loop);
 
   ply_trace ("exiting with code %d", exit_code);
+
+  ply_free_error_log();
 
   return exit_code;
 }

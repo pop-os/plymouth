@@ -933,6 +933,9 @@ ply_frame_buffer_fill_with_argb32_data_at_opacity (ply_frame_buffer_t      *buff
           uint32_t pixel_value;
 
           pixel_value = data[area->width * row + column];
+          if ((pixel_value >> 24) == 0x00)
+            continue;
+
           pixel_value = make_pixel_value_translucent (pixel_value, opacity_as_byte);
           ply_frame_buffer_blend_value_at_pixel (buffer,
                                                  cropped_area.x + (column - x),

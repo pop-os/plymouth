@@ -32,8 +32,8 @@ typedef struct _ply_frame_buffer_area ply_frame_buffer_area_t;
 
 struct _ply_frame_buffer_area
 {
-  unsigned long x;
-  unsigned long y;
+  long x;
+  long y;
   unsigned long width;
   unsigned long height;
 };

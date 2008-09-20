@@ -100,6 +100,10 @@ static void ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t     *buf
 
 static bool ply_frame_buffer_flush (ply_frame_buffer_t *buffer);
 
+static void ply_frame_buffer_area_intersect (ply_frame_buffer_area_t *area1,
+                                             ply_frame_buffer_area_t *area2,
+                                             ply_frame_buffer_area_t *result);
+
 static bool
 ply_frame_buffer_open_device (ply_frame_buffer_t  *buffer)
 {
@@ -442,10 +446,12 @@ ply_frame_buffer_fill_area_with_pixel_value (ply_frame_buffer_t     *buffer,
                                              uint32_t            pixel_value)
 {
   unsigned long row, column;
+  ply_frame_buffer_area_t cropped_area;
+  ply_frame_buffer_area_intersect (area, &buffer->area, &cropped_area);
 
-  for (row = area->y; row < area->y + area->height; row++)
+  for (row = cropped_area.y; row < cropped_area.y + cropped_area.height; row++)
     {
-      for (column = area->x; column < area->x + area->width; column++)
+      for (column = cropped_area.x; column < cropped_area.x + cropped_area.width; column++)
         {
           ply_frame_buffer_blend_value_at_pixel (buffer, 
                                                  column, row,
@@ -488,17 +494,17 @@ static void
 ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t      *buffer,
                                          ply_frame_buffer_area_t *area)
 {
+  ply_frame_buffer_area_t cropped_area;
   assert (buffer != NULL);
   assert (area != NULL);
-  assert (area->x >= buffer->area.x);
-  assert (area->y >= buffer->area.y);
-  assert (area->x + area->width <= buffer->area.x + buffer->area.width);
-  assert (area->y + area->height <= buffer->area.y + buffer->area.height);
-  assert (area->width >= 0);
-  assert (area->height >= 0);
+
+  ply_frame_buffer_area_intersect (area, &buffer->area, &cropped_area);
+
+  if (cropped_area.width == 0 || cropped_area.height == 0)
+    return;
 
   ply_frame_buffer_area_union (&buffer->area_to_flush,
-                               area,
+                               &cropped_area,
                                &buffer->area_to_flush);
 }
 
@@ -683,6 +689,7 @@ ply_frame_buffer_area_intersect (ply_frame_buffer_area_t *area1,
                                  ply_frame_buffer_area_t *result)
 {
   unsigned long x1, y1, x2, y2;
+  long width, height;
 
   if (area1->width == 0)
     {
@@ -704,8 +711,18 @@ ply_frame_buffer_area_intersect (ply_frame_buffer_area_t *area1,
   result->x = MAX(area1->x, area2->x);
   result->y = MAX(area1->y, area2->y);
 
-  result->width = MIN(x1, x2) - result->x;
-  result->height = MIN(y1, y2) - result->y;
+  width = MIN(x1, x2) - result->x;
+  height = MIN(y1, y2) - result->y;
+  if (width <= 0 || height <= 0)
+    {
+      result->width = 0;
+      result->height = 0;
+    }
+  else
+    {
+      result->width = width;
+      result->height = height;
+    }
 }
 
 bool

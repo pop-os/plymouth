@@ -1,6 +1,7 @@
 /* ply-list.c - linked list implementation
  *
  * Copyright (C) 2007 Red Hat, Inc.
+ *               2008 Charlie Brej <cbrej@cs.man.ac.uk>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +18,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
  * 02111-1307, USA.
  *
- * Written by: Ray Strode <rstrode@redhat.com>
+ * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
+ *             Ray Strode <rstrode@redhat.com>
  */
 #include "config.h"
 #include "ply-list.h"

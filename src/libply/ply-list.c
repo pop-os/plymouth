@@ -59,20 +59,7 @@ ply_list_new (void)
 void
 ply_list_free (ply_list_t *list)
 {
-			  ply_list_node_t *node;
-
-  if (list == NULL)
-    return;
-
-  node = list->first_node;
-  while (node != NULL)
-    {
-      ply_list_node_t *next_node;
-      next_node = node->next;
-      ply_list_remove_node (list, node);
-      node = next_node;
-    }
-
+  ply_list_remove_all_nodes (list);
   free (list);
 }
 
@@ -245,6 +232,24 @@ ply_list_remove_node (ply_list_t      *list,
   ply_list_node_free (node);
 }
 
+void
+ply_list_remove_all_nodes (ply_list_t *list)
+{
+  ply_list_node_t *node;
+
+  if (list == NULL)
+    return;
+
+  node = list->first_node;
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      next_node = node->next;
+      ply_list_remove_node (list, node);
+      node = next_node;
+    }
+}
+
 ply_list_node_t *
 ply_list_get_first_node (ply_list_t *list)
 {
@@ -263,11 +268,46 @@ ply_list_get_next_node (ply_list_t     *list,
 {
   return node->next;
 }
+void ply_list_sort (ply_list_t  *list,
+                    ply_list_compare_func_t *compare)
+{
+  ply_list_node_t *nodea;
+  ply_list_node_t *nodeb;
+  int clean;
+  do
+    {
+      clean=1;
+      nodea = ply_list_get_first_node (list);
+      if (!nodea) return;
+      nodeb = ply_list_get_next_node (list, nodea);
+      while (nodeb)
+        {
+          if ((compare)(ply_list_node_get_data(nodea), ply_list_node_get_data(nodeb))>0)
+            {
+              void* temp = ply_list_node_get_data(nodea);
+              ply_list_node_set_data(nodea, ply_list_node_get_data(nodeb));
+              ply_list_node_set_data(nodeb, temp);
+              clean=0;
+            }
+          nodea = nodeb;
+          nodeb = ply_list_get_next_node (list, nodea);
+        }
+    }
+  while (!clean);
+ 
+}
 
 void *
 ply_list_node_get_data (ply_list_node_t *node)
 {
   return node->data;
+}
+
+void 
+ply_list_node_set_data (ply_list_node_t *node, void *data)
+{
+  node->data = data;
+  return;
 }
 
 #ifdef PLY_LIST_ENABLE_TEST

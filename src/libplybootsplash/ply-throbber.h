@@ -28,6 +28,7 @@
 
 #include "ply-event-loop.h"
 #include "ply-frame-buffer.h"
+#include "ply-trigger.h"
 #include "ply-window.h"
 
 typedef struct _ply_throbber ply_throbber_t;
@@ -43,7 +44,8 @@ bool ply_throbber_start (ply_throbber_t         *throbber,
                          ply_window_t       *window,
                          long                x,
                          long                y);
-void ply_throbber_stop (ply_throbber_t *throbber);
+void ply_throbber_stop (ply_throbber_t *throbber,
+                        ply_trigger_t  *stop_trigger);
 
 long ply_throbber_get_width (ply_throbber_t *throbber);
 long ply_throbber_get_height (ply_throbber_t *throbber);

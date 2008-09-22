@@ -65,10 +65,11 @@ struct _ply_throbber
   ply_window_t            *window;
   ply_frame_buffer_t      *frame_buffer;
   ply_frame_buffer_area_t  frame_area;
+  ply_trigger_t *stop_trigger;
 
   long x, y;
   long width, height;
-  double start_time, now;
+  double start_time, previous_time, now;
 };
 
 ply_throbber_t *
@@ -130,7 +131,7 @@ draw_background (ply_throbber_t *throbber)
                          throbber->frame_area.height);
 }
 
-static void
+static bool
 animate_at_time (ply_throbber_t *throbber,
                  double      time)
 {
@@ -138,15 +139,25 @@ animate_at_time (ply_throbber_t *throbber,
   int frame_number;
   ply_image_t * const * frames;
   uint32_t *frame_data;
+  bool should_continue;
 
   ply_window_set_mode (throbber->window, PLY_WINDOW_MODE_GRAPHICS);
 
   number_of_frames = ply_array_get_size (throbber->frames);
 
   if (number_of_frames == 0)
-    return;
+    return true;
+
+  should_continue = true;
 
   frame_number = (.5 * sin (time) + .5) * number_of_frames;
+
+  if (throbber->stop_trigger != NULL)
+    {
+      if ((time - throbber->previous_time) >= 2 * M_PI)
+        frame_number = number_of_frames - 1;
+      should_continue = false;
+    }
 
   ply_frame_buffer_pause_updates (throbber->frame_buffer);
   if (throbber->frame_area.width > 0)
@@ -164,31 +175,49 @@ animate_at_time (ply_throbber_t *throbber,
                                           &throbber->frame_area, 0, 0,
                                           frame_data);
   ply_frame_buffer_unpause_updates (throbber->frame_buffer);
+
+  return should_continue;
 }
 
 static void
 on_timeout (ply_throbber_t *throbber)
 {
   double sleep_time;
+  bool should_continue;
+  throbber->previous_time = throbber->now;
   throbber->now = ply_get_timestamp ();
 
 #ifdef REAL_TIME_ANIMATION
-  animate_at_time (throbber,
-                   throbber->now - throbber->start_time);
+  should_continue = animate_at_time (throbber,
+                                 throbber->now - throbber->start_time);
 #else
   static double time = 0.0;
   time += 1.0 / FRAMES_PER_SECOND;
-  animate_at_time (throbber, time);
+  should_continue = animate_at_time (throbber, time);
 #endif
 
   sleep_time = 1.0 / FRAMES_PER_SECOND;
   sleep_time = MAX (sleep_time - (ply_get_timestamp () - throbber->now),
                     0.005);
 
-  ply_event_loop_watch_for_timeout (throbber->loop,
-                                    sleep_time,
-                                    (ply_event_loop_timeout_handler_t)
-                                    on_timeout, throbber);
+  if (!should_continue)
+    {
+
+      draw_background (throbber);
+
+      if (throbber->stop_trigger != NULL)
+        {
+          ply_trigger_pull (throbber->stop_trigger, NULL);
+          throbber->stop_trigger = NULL;
+        }
+    }
+  else
+    {
+      ply_event_loop_watch_for_timeout (throbber->loop,
+                                        sleep_time,
+                                        (ply_event_loop_timeout_handler_t)
+                                        on_timeout, throbber);
+    }
 }
 
 static bool
@@ -308,8 +337,8 @@ ply_throbber_start (ply_throbber_t         *throbber,
   return true;
 }
 
-void
-ply_throbber_stop (ply_throbber_t *throbber)
+static void
+ply_throbber_stop_now (ply_throbber_t *throbber)
 {
   if (throbber->frame_area.width > 0)
     draw_background (throbber);
@@ -324,6 +353,20 @@ ply_throbber_stop (ply_throbber_t *throbber)
                                                 on_timeout, throbber);
       throbber->loop = NULL;
     }
+}
+
+void
+ply_throbber_stop (ply_throbber_t *throbber,
+                   ply_trigger_t  *stop_trigger)
+{
+
+  if (stop_trigger == NULL)
+    {
+      ply_throbber_stop_now (throbber);
+      return;
+    }
+
+  throbber->stop_trigger = stop_trigger;
 }
 
 long

@@ -75,6 +75,7 @@ struct _ply_boot_splash_plugin
   ply_label_t *label;
 
   ply_answer_t *pending_password_answer;
+  ply_trigger_t *idle_trigger;
 
   uint32_t root_is_mounted : 1;
   uint32_t is_visible : 1;
@@ -205,14 +206,15 @@ start_animation (ply_boot_splash_plugin_t *plugin)
 }
 
 static void
-stop_animation (ply_boot_splash_plugin_t *plugin)
+stop_animation (ply_boot_splash_plugin_t *plugin,
+                ply_trigger_t            *trigger)
 {
   int i;
 
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
-  ply_throbber_stop (plugin->throbber);
+  ply_throbber_stop (plugin->throbber, trigger);
 
 #ifdef ENABLE_FADE_OUT
   for (i = 0; i < 10; i++)
@@ -240,7 +242,7 @@ static void
 on_interrupt (ply_boot_splash_plugin_t *plugin)
 {
   ply_event_loop_exit (plugin->loop, 1);
-  stop_animation (plugin);
+  stop_animation (plugin, NULL);
   ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
 }
 
@@ -440,7 +442,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   if (plugin->loop != NULL)
     {
-      stop_animation (plugin);
+      stop_animation (plugin, NULL);
 
       ply_event_loop_stop_watching_for_exit (plugin->loop, (ply_event_loop_exit_handler_t)
                                              detach_from_event_loop,
@@ -521,7 +523,7 @@ ask_for_password (ply_boot_splash_plugin_t *plugin,
 
   if (ply_entry_is_hidden (plugin->entry))
     {
-      stop_animation (plugin);
+      stop_animation (plugin, NULL);
       show_password_prompt (plugin, prompt);
     }
   else
@@ -537,6 +539,13 @@ on_root_mounted (ply_boot_splash_plugin_t *plugin)
   plugin->root_is_mounted = true;
 }
 
+void
+become_idle (ply_boot_splash_plugin_t *plugin,
+             ply_trigger_t            *idle_trigger)
+{
+  stop_animation (plugin, idle_trigger);
+}
+
 ply_boot_splash_plugin_interface_t *
 ply_boot_splash_plugin_get_interface (void)
 {
@@ -550,7 +559,8 @@ ply_boot_splash_plugin_get_interface (void)
       .update_status = update_status,
       .hide_splash_screen = hide_splash_screen,
       .ask_for_password = ask_for_password,
-      .on_root_mounted = on_root_mounted
+      .on_root_mounted = on_root_mounted,
+      .become_idle = become_idle
     };
 
   return &plugin_interface;

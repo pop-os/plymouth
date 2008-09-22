@@ -34,6 +34,8 @@
 
 typedef struct _ply_boot_splash ply_boot_splash_t;
 
+typedef void (* ply_boot_splash_on_idle_handler_t) (void *user_data);
+
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_boot_splash_t *ply_boot_splash_new (const char *module_name,
                                         ply_window_t *window,
@@ -53,6 +55,10 @@ void ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
 void ply_boot_splash_hide (ply_boot_splash_t *splash);
 void ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
                                            ply_event_loop_t  *loop);
+void ply_boot_splash_become_idle (ply_boot_splash_t               *splash,
+                                  ply_boot_splash_on_idle_handler_t  idle_handler,
+                                  void                            *user_data);
+
 
 #endif
 

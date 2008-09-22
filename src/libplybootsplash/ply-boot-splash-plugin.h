@@ -27,9 +27,10 @@
 #include <unistd.h>
 
 #include "ply-answer.h"
-#include "ply-event-loop.h"
-#include "ply-window.h"
 #include "ply-buffer.h"
+#include "ply-event-loop.h"
+#include "ply-trigger.h"
+#include "ply-window.h"
 
 typedef struct _ply_boot_splash_plugin ply_boot_splash_plugin_t;
 
@@ -60,6 +61,8 @@ typedef struct
   void (* ask_for_password) (ply_boot_splash_plugin_t *plugin,
                              const char               *prompt,
                              ply_answer_t             *answer);
+  void (* become_idle) (ply_boot_splash_plugin_t       *plugin,
+                        ply_trigger_t                  *idle_trigger);
 } ply_boot_splash_plugin_interface_t;
 
 #endif /* PLY_BOOT_SPLASH_PLUGIN_H */

@@ -36,6 +36,7 @@
 #include "ply-event-loop.h"
 #include "ply-list.h"
 #include "ply-logger.h"
+#include "ply-trigger.h"
 #include "ply-utils.h"
 
 struct _ply_boot_splash
@@ -46,6 +47,7 @@ struct _ply_boot_splash
   ply_boot_splash_plugin_t *plugin;
   ply_window_t *window;
   ply_buffer_t *boot_buffer;
+  ply_trigger_t *idle_trigger;
 
   char *module_name;
   char *status;
@@ -288,6 +290,24 @@ ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t) 
                                  ply_boot_splash_detach_from_event_loop,
                                  splash); 
+}
+
+void
+ply_boot_splash_become_idle (ply_boot_splash_t                  *splash,
+                             ply_boot_splash_on_idle_handler_t  idle_handler,
+                             void                              *user_data)
+{
+  assert (splash->idle_trigger == NULL);
+
+  if (splash->plugin_interface->become_idle == NULL)
+    {
+      idle_handler (user_data);
+      return;
+    }
+
+  splash->idle_trigger = ply_trigger_new ((ply_trigger_handler_t) idle_handler, user_data, &splash->idle_trigger);
+
+  splash->plugin_interface->become_idle (splash->plugin, splash->idle_trigger);
 }
 
 #ifdef PLY_BOOT_SPLASH_ENABLE_TEST

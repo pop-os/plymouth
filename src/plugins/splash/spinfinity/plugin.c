@@ -452,6 +452,8 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   plugin->frame_buffer = NULL;
   plugin->is_visible = false;
+
+  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
 }
 
 static void

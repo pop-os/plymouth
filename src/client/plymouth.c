@@ -49,6 +49,7 @@ typedef struct
   state_t *state;
   char    *command;
   char    *prompt;
+  int      number_of_tries_left;
 } answer_state_t;
 
 static char **
@@ -175,13 +176,18 @@ on_answer (answer_state_t   *answer_state,
       if (command_started && (!WIFEXITED (exit_status) ||
           WEXITSTATUS (exit_status) != 0))
         {
-          ply_boot_client_ask_daemon_for_password (answer_state->state->client,
-                                                   answer_state->prompt,
-                                                   (ply_boot_client_answer_handler_t)
-                                                   on_answer,
-                                                   (ply_boot_client_response_handler_t)
-                                                   on_answer_failure, answer_state);
-          return;
+          answer_state->number_of_tries_left--;
+
+          if (answer_state->number_of_tries_left > 0)
+            {
+              ply_boot_client_ask_daemon_for_password (answer_state->state->client,
+                                                       answer_state->prompt,
+                                                       (ply_boot_client_answer_handler_t)
+                                                       on_answer,
+                                                       (ply_boot_client_response_handler_t)
+                                                       on_answer_failure, answer_state);
+              return;
+            }
         }
     }
   else
@@ -272,20 +278,27 @@ on_password_request (state_t    *state,
 {
   char *prompt;
   char *program;
+  int number_of_tries;
   answer_state_t *answer_state;
 
   prompt = NULL;
   program = NULL;
+  number_of_tries = 0;
   ply_command_parser_get_command_options (state->command_parser,
                                           command,
                                           "command", &program,
                                           "prompt", &prompt,
+                                          "number-of-tries", &number_of_tries,
                                           NULL);
+
+  if (number_of_tries <= 0)
+    number_of_tries = 3;
 
   answer_state = calloc (1, sizeof (answer_state_t));
   answer_state->state = state;
   answer_state->command = program;
   answer_state->prompt = prompt;
+  answer_state->number_of_tries_left = number_of_tries;
 
   if (answer_state->command != NULL)
     {
@@ -366,7 +379,10 @@ main (int    argc,
                                   "command", "Command to send password to via standard input",
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   "prompt", "Message to display when asking for password",
-                                  PLY_COMMAND_OPTION_TYPE_STRING, NULL);
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
+                                  "number-of-tries", "Number of times to ask before giving up (requires --command)",
+                                  PLY_COMMAND_OPTION_TYPE_INTEGER,
+                                  NULL);
 
   ply_command_parser_add_command (state.command_parser,
                                   "quit", "Tell boot daemon to quit",
@@ -478,6 +494,7 @@ main (int    argc,
       answer_state_t answer_state = { 0 };
 
       answer_state.state = &state;
+      answer_state.number_of_tries_left = 1;
       ply_boot_client_ask_daemon_for_password (state.client,
                                                NULL,
                                                (ply_boot_client_answer_handler_t)

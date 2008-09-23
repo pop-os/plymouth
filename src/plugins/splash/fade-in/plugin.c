@@ -156,6 +156,14 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   if (plugin == NULL)
     return;
 
+  if (plugin->loop != NULL)
+    {
+      ply_event_loop_stop_watching_for_exit (plugin->loop, (ply_event_loop_exit_handler_t)
+                                             detach_from_event_loop,
+                                             plugin);
+      detach_from_event_loop (plugin);
+    }
+
   free_stars (plugin);
   ply_image_free (plugin->logo_image);
   ply_image_free (plugin->star_image);

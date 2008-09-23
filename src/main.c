@@ -289,7 +289,8 @@ on_hide_splash (state_t *state)
 }
 
 static void
-on_quit (state_t *state)
+on_quit (state_t *state,
+         bool     retain_splash)
 {
   ply_trace ("time to quit, closing boot.log");
   if (state->session != NULL)
@@ -297,6 +298,8 @@ on_quit (state_t *state)
   ply_trace ("unloading splash");
   if (state->boot_splash != NULL)
     {
+      if (!retain_splash)
+        ply_boot_splash_hide (state->boot_splash);
       ply_boot_splash_free (state->boot_splash);
       state->boot_splash = NULL;
     }

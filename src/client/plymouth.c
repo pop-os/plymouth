@@ -429,6 +429,7 @@ main (int    argc,
                                                on_failure, &state);
   else if (should_quit)
     ply_boot_client_tell_daemon_to_quit (state.client,
+                                         false,
                                          (ply_boot_client_response_handler_t)
                                          on_success,
                                          (ply_boot_client_response_handler_t)

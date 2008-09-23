@@ -595,14 +595,18 @@ ply_boot_client_tell_daemon_to_hide_splash (ply_boot_client_t                  *
 
 void
 ply_boot_client_tell_daemon_to_quit (ply_boot_client_t                  *client,
+                                     bool                                retain_splash,
                                      ply_boot_client_response_handler_t  handler,
                                      ply_boot_client_response_handler_t  failed_handler,
                                      void                               *user_data)
 {
+  char arg[2] = "";
+
   assert (client != NULL);
 
+  arg[0] = (char) (retain_splash != false);
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_QUIT,
-                                 NULL, handler, failed_handler, user_data);
+                                 arg, handler, failed_handler, user_data);
 }
 
 void

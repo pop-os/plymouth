@@ -303,8 +303,12 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_QUIT) == 0)
     {
+      bool retain_splash;
+
+      retain_splash = (bool) argument[0];
+
       if (server->quit_handler != NULL)
-        server->quit_handler (server->user_data, server);
+        server->quit_handler (server->user_data, retain_splash, server);
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PASSWORD) == 0)
     {

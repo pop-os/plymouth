@@ -321,6 +321,18 @@ on_password_request (state_t    *state,
 }
 
 static void
+on_report_error_request (state_t    *state,
+                         const char *command)
+{
+  ply_boot_client_tell_daemon_about_error (state->client,
+                                           (ply_boot_client_response_handler_t)
+                                           on_success,
+                                           (ply_boot_client_response_handler_t)
+                                           on_failure, state);
+
+}
+
+static void
 on_quit_request (state_t    *state,
                  const char *command)
 {
@@ -382,6 +394,12 @@ main (int    argc,
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   "number-of-tries", "Number of times to ask before giving up (requires --command)",
                                   PLY_COMMAND_OPTION_TYPE_INTEGER,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "report-error", "Tell boot daemon there were errors during boot",
+                                  (ply_command_handler_t)
+                                  on_report_error_request, &state,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,

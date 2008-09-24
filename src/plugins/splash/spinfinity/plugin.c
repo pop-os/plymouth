@@ -65,8 +65,8 @@
 #define BAR_HEIGHT 16
 #endif
 
-#ifndef DEFAULT_BOOTTIME
-#define DEFAULT_BOOTTIME 45.0
+#ifndef DEFAULT_BOOT_DURATION
+#define DEFAULT_BOOT_DURATION 45.0
 #endif
 
 #define BOOTTIME_FILE PLYMOUTH_TIME_DIR "/boot-time"
@@ -85,7 +85,7 @@ struct _ply_boot_splash_plugin
   ply_throbber_t *throbber;
   ply_label_t *label;
 
-  double boot_time;
+  double boot_duration;
   double start_time;
   double wait_time;
 
@@ -116,12 +116,12 @@ create_plugin (void)
   plugin->label = ply_label_new ();
 
   plugin->start_time = ply_get_timestamp ();
-  plugin->boot_time = DEFAULT_BOOTTIME;
+  plugin->boot_duration = DEFAULT_BOOT_DURATION;
   /* We should be reading from the initrd at this point */
   fh = fopen(BOOTTIME_FILE,"r"); 
   if (fh != NULL) {
       int r;
-      r = fscanf (fh,"%lf",&plugin->boot_time);
+      r = fscanf (fh,"%lf",&plugin->boot_duration);
       /* Don't need to check the return value - if this failed we still have
        * the default BOOTTIME value, which was set above */
       fclose (fh);
@@ -144,7 +144,7 @@ tell_gdm_to_transition (void)
 void
 destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
-  FILE *boot_time;
+  FILE *boot_duration;
   if (plugin == NULL)
     return;
 
@@ -164,12 +164,12 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_throbber_free (plugin->throbber);
   ply_label_free (plugin->label);
 
-  ply_trace ("writing boot_time");
+  ply_trace ("writing boot_duration");
   /* At this point we should have a real rootfs */
-  boot_time = fopen (BOOTTIME_FILE,"w");
-  if (boot_time != NULL) { 
-    fprintf (boot_time,"%.1f\n", (ply_get_timestamp () - plugin->start_time));
-    fclose (boot_time);
+  boot_duration = fopen (BOOTTIME_FILE,"w");
+  if (boot_duration != NULL) { 
+    fprintf (boot_duration,"%.1f\n", (ply_get_timestamp () - plugin->start_time));
+    fclose (boot_duration);
   }
 
 #ifdef PLY_ENABLE_GDM_TRANSITION
@@ -234,7 +234,7 @@ draw_bar (ply_boot_splash_plugin_t *plugin)
 
   /* Fun made-up smoothing function to make the growth asymptotic:
    * fraction(time,estimate)=1-2^(-(time^1.45)/estimate) */
-  fraction = 1.0-pow(2.0,-pow(ply_get_timestamp () - plugin->start_time,1.45)/plugin->boot_time);
+  fraction = 1.0-pow(2.0,-pow(ply_get_timestamp () - plugin->start_time,1.45)/plugin->boot_duration);
 
   width = (long) (plugin->bar_area.width * fraction);
   if (width < 0)

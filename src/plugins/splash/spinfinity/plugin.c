@@ -85,9 +85,9 @@ struct _ply_boot_splash_plugin
   ply_throbber_t *throbber;
   ply_label_t *label;
 
-  double boottime;
-  double starttime;
-  double waittime;
+  double boot_time;
+  double start_time;
+  double wait_time;
 
   ply_answer_t *pending_password_answer;
   ply_trigger_t *idle_trigger;
@@ -115,13 +115,13 @@ create_plugin (void)
                                    "throbber-");
   plugin->label = ply_label_new ();
 
-  plugin->starttime = ply_get_timestamp ();
-  plugin->boottime = DEFAULT_BOOTTIME;
+  plugin->start_time = ply_get_timestamp ();
+  plugin->boot_time = DEFAULT_BOOTTIME;
   /* We should be reading from the initrd at this point */
   fh = fopen(BOOTTIME_FILE,"r"); 
   if (fh != NULL) {
       int r;
-      r = fscanf (fh,"%lf",&plugin->boottime);
+      r = fscanf (fh,"%lf",&plugin->boot_time);
       /* Don't need to check the return value - if this failed we still have
        * the default BOOTTIME value, which was set above */
       fclose (fh);
@@ -144,7 +144,7 @@ tell_gdm_to_transition (void)
 void
 destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
-  FILE *boottime;
+  FILE *boot_time;
   if (plugin == NULL)
     return;
 
@@ -164,12 +164,12 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_throbber_free (plugin->throbber);
   ply_label_free (plugin->label);
 
-  ply_trace ("writing boottime");
+  ply_trace ("writing boot_time");
   /* At this point we should have a real rootfs */
-  boottime = fopen (BOOTTIME_FILE,"w");
-  if (boottime != NULL) { 
-    fprintf (boottime,"%.1f\n", (ply_get_timestamp () - plugin->starttime));
-    fclose (boottime);
+  boot_time = fopen (BOOTTIME_FILE,"w");
+  if (boot_time != NULL) { 
+    fprintf (boot_time,"%.1f\n", (ply_get_timestamp () - plugin->start_time));
+    fclose (boot_time);
   }
 
 #ifdef PLY_ENABLE_GDM_TRANSITION
@@ -234,7 +234,7 @@ draw_bar (ply_boot_splash_plugin_t *plugin)
 
   /* Fun made-up smoothing function to make the growth asymptotic:
    * fraction(time,estimate)=1-2^(-(time^1.45)/estimate) */
-  fraction = 1.0-pow(2.0,-pow(ply_get_timestamp () - plugin->starttime,1.45)/plugin->boottime);
+  fraction = 1.0-pow(2.0,-pow(ply_get_timestamp () - plugin->start_time,1.45)/plugin->boot_time);
 
   width = (long) (plugin->bar_area.width * fraction);
   if (width < 0)
@@ -364,7 +364,7 @@ on_enter (ply_boot_splash_plugin_t *plugin,
 
   ply_entry_hide (plugin->entry);
   ply_entry_remove_all_bullets (plugin->entry);
-  plugin->starttime += (ply_get_timestamp() - plugin->waittime);
+  plugin->start_time += (ply_get_timestamp() - plugin->wait_time);
   start_animation (plugin);
 }
 
@@ -606,7 +606,7 @@ ask_for_password (ply_boot_splash_plugin_t *plugin,
                   ply_answer_t             *answer)
 {
   plugin->pending_password_answer = answer;
-  plugin->waittime = ply_get_timestamp ();
+  plugin->wait_time = ply_get_timestamp ();
 
   if (ply_entry_is_hidden (plugin->entry))
     {

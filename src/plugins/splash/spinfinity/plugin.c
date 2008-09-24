@@ -69,7 +69,7 @@
 #define DEFAULT_BOOTTIME 45.0
 #endif
 
-#define BOOTTIME_FILE "/var/lib/boottime"
+#define BOOTTIME_FILE PLYMOUTH_TIME_DIR "/boot-time"
 
 struct _ply_boot_splash_plugin
 {

@@ -88,7 +88,6 @@ struct _ply_boot_splash_plugin
   double boottime;
   double starttime;
   double waittime;
-  unsigned bar_mode; /* XXX remove when we decide on a mode */
 
   ply_answer_t *pending_password_answer;
   ply_trigger_t *idle_trigger;
@@ -127,24 +126,6 @@ create_plugin (void)
        * the default BOOTTIME value, which was set above */
       fclose (fh);
   }
-  /* XXX REMOVE THIS WHEN WE DECIDE ON A PROPER METHOD */
-  plugin->bar_mode = 0; /* Default to "off" */
-  fh = fopen("/proc/cmdline","r");
-  if (fh != NULL) {
-    char cmdline[1024];
-    size_t r;
-    r = fread(cmdline,sizeof(char),sizeof(cmdline),fh);
-    fclose(fh);
-    if (r > 0) {
-      if (strstr(cmdline,"timebar:0") != NULL)      /* No bar */
-        plugin->bar_mode = 0;
-      else if (strstr(cmdline,"timebar:1") != NULL) /* Linear bar */
-        plugin->bar_mode = 1;
-      else if (strstr(cmdline,"timebar:2") != NULL) /* Exponential bar */
-        plugin->bar_mode = 2;
-    }
-  }
-  /* XXX END TEST CODE */
 
   return plugin;
 }
@@ -250,13 +231,11 @@ draw_bar (ply_boot_splash_plugin_t *plugin)
   plugin->bar_area.x = 0; /* possibly unnecessary, but hey.. can't hurt */
   plugin->bar_area.y = plugin->bar_area.height - BAR_HEIGHT;
   plugin->bar_area.height = BAR_HEIGHT;
-  /* XXX Remove when we decide on a mode */
-  if (plugin->bar_mode == 1) 
-    fraction = (ply_get_timestamp () - plugin->starttime) / plugin->boottime;
-  else /* Shouldn't get here unless bar_mode is > 0 */
-    /* Fun made-up smoothing function to make the growth asymptotic:
-     * fraction(time,estimate)=1-2^(-(time^1.45)/estimate) */
-    fraction = 1.0-pow(2.0,-pow(ply_get_timestamp () - plugin->starttime,1.45)/plugin->boottime);
+
+  /* Fun made-up smoothing function to make the growth asymptotic:
+   * fraction(time,estimate)=1-2^(-(time^1.45)/estimate) */
+  fraction = 1.0-pow(2.0,-pow(ply_get_timestamp () - plugin->starttime,1.45)/plugin->boottime);
+
   width = (long) (plugin->bar_area.width * fraction);
   if (width < 0)
     width = 0;
@@ -275,8 +254,6 @@ animate_bar (ply_boot_splash_plugin_t *plugin)
 {
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
-  if (plugin->bar_mode == 0)
-    return;
   draw_bar (plugin);
   ply_event_loop_watch_for_timeout(plugin->loop,
                                    1.0 / FRAMES_PER_SECOND,

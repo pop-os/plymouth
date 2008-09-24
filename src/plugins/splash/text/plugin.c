@@ -103,16 +103,7 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   /* It doesn't ever make sense to keep this plugin on screen
    * after exit
    */
-  hide_splash_screen (plugin);
-
-  if (plugin->loop != NULL)
-    {
-      ply_event_loop_stop_watching_for_exit (plugin->loop,
-                                             (ply_event_loop_exit_handler_t)
-                                             detach_from_event_loop,
-                                             plugin);
-      detach_from_event_loop (plugin);
-    }
+  hide_splash_screen (plugin, plugin->loop);
 
   ply_text_pulser_free (plugin->pulser);
 

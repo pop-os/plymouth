@@ -18,6 +18,7 @@
  * 02111-1307, USA.
  *
  * Written by: Ray Strode <rstrode@redhat.com>
+ *             Will Woods <wwoods@redhat.com>
  */
 #include "config.h"
 
@@ -60,11 +61,21 @@
 #define FRAMES_PER_SECOND 30
 #endif
 
+#ifndef BAR_HEIGHT
+#define BAR_HEIGHT 16
+#endif
+
+#ifndef DEFAULT_BOOTTIME
+#define DEFAULT_BOOTTIME 45.0
+#endif
+
+#define BOOTTIME_FILE "/var/lib/boottime"
+
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
   ply_frame_buffer_t *frame_buffer;
-  ply_frame_buffer_area_t box_area, lock_area, logo_area;
+  ply_frame_buffer_area_t box_area, lock_area, logo_area, bar_area;
   ply_image_t *logo_image;
   ply_image_t *lock_image;
   ply_image_t *box_image;
@@ -73,6 +84,11 @@ struct _ply_boot_splash_plugin
   ply_entry_t *entry;
   ply_throbber_t *throbber;
   ply_label_t *label;
+
+  double boottime;
+  double starttime;
+  double waittime;
+  unsigned bar_mode; /* XXX remove when we decide on a mode */
 
   ply_answer_t *pending_password_answer;
   ply_trigger_t *idle_trigger;
@@ -85,6 +101,7 @@ static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 ply_boot_splash_plugin_t *
 create_plugin (void)
 {
+  FILE *fh;
   ply_boot_splash_plugin_t *plugin;
 
   srand ((int) ply_get_timestamp ());
@@ -98,6 +115,36 @@ create_plugin (void)
   plugin->throbber = ply_throbber_new (PLYMOUTH_IMAGE_DIR "spinfinity",
                                    "throbber-");
   plugin->label = ply_label_new ();
+
+  plugin->starttime = ply_get_timestamp ();
+  plugin->boottime = DEFAULT_BOOTTIME;
+  /* We should be reading from the initrd at this point */
+  fh = fopen(BOOTTIME_FILE,"r"); 
+  if (fh != NULL) {
+      int r;
+      r = fscanf (fh,"%lf",&plugin->boottime);
+      /* Don't need to check the return value - if this failed we still have
+       * the default BOOTTIME value, which was set above */
+      fclose (fh);
+  }
+  /* XXX REMOVE THIS WHEN WE DECIDE ON A PROPER METHOD */
+  plugin->bar_mode = 0; /* Default to "off" */
+  fh = fopen("/proc/cmdline","r");
+  if (fh != NULL) {
+    char cmdline[1024];
+    size_t r;
+    r = fread(cmdline,sizeof(char),sizeof(cmdline),fh);
+    fclose(fh);
+    if (r > 0) {
+      if (strstr(cmdline,"timebar:0") != NULL)      /* No bar */
+        plugin->bar_mode = 0;
+      else if (strstr(cmdline,"timebar:1") != NULL) /* Linear bar */
+        plugin->bar_mode = 1;
+      else if (strstr(cmdline,"timebar:2") != NULL) /* Exponential bar */
+        plugin->bar_mode = 2;
+    }
+  }
+  /* XXX END TEST CODE */
 
   return plugin;
 }
@@ -116,6 +163,7 @@ tell_gdm_to_transition (void)
 void
 destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
+  FILE *boottime;
   if (plugin == NULL)
     return;
 
@@ -134,6 +182,14 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_entry_free (plugin->entry);
   ply_throbber_free (plugin->throbber);
   ply_label_free (plugin->label);
+
+  ply_trace ("writing boottime");
+  /* At this point we should have a real rootfs */
+  boottime = fopen (BOOTTIME_FILE,"w");
+  if (boottime != NULL) { 
+    fprintf (boottime,"%.1f\n", (ply_get_timestamp () - plugin->starttime));
+    fclose (boottime);
+  }
 
 #ifdef PLY_ENABLE_GDM_TRANSITION
   if (plugin->is_visible)
@@ -183,6 +239,52 @@ draw_logo (ply_boot_splash_plugin_t *plugin)
 }
 
 static void
+draw_bar (ply_boot_splash_plugin_t *plugin)
+{
+  long width, height;
+  double fraction;
+
+  height = BAR_HEIGHT; /* TODO: configurable */
+
+  ply_frame_buffer_get_size (plugin->frame_buffer, &plugin->bar_area);
+  plugin->bar_area.x = 0; /* possibly unnecessary, but hey.. can't hurt */
+  plugin->bar_area.y = plugin->bar_area.height - BAR_HEIGHT;
+  plugin->bar_area.height = BAR_HEIGHT;
+  /* XXX Remove when we decide on a mode */
+  if (plugin->bar_mode == 1) 
+    fraction = (ply_get_timestamp () - plugin->starttime) / plugin->boottime;
+  else /* Shouldn't get here unless bar_mode is > 0 */
+    /* Fun made-up smoothing function to make the growth asymptotic:
+     * fraction(time,estimate)=1-2^(-(time^1.45)/estimate) */
+    fraction = 1.0-pow(2.0,-pow(ply_get_timestamp () - plugin->starttime,1.45)/plugin->boottime);
+  width = (long) (plugin->bar_area.width * fraction);
+  if (width < 0)
+    width = 0;
+  if (width < plugin->bar_area.width)
+    plugin->bar_area.width = width;
+  ply_frame_buffer_pause_updates (plugin->frame_buffer);
+  draw_background (plugin, &plugin->bar_area);
+  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, 
+                                        &plugin->bar_area,
+                                        0xffffff); /* white */
+  ply_frame_buffer_unpause_updates (plugin->frame_buffer);
+}
+
+static void
+animate_bar (ply_boot_splash_plugin_t *plugin)
+{
+  assert (plugin != NULL);
+  assert (plugin->loop != NULL);
+  if (plugin->bar_mode == 0)
+    return;
+  draw_bar (plugin);
+  ply_event_loop_watch_for_timeout(plugin->loop,
+                                   1.0 / FRAMES_PER_SECOND,
+                                   (ply_event_loop_timeout_handler_t)
+                                   animate_bar, plugin);
+}
+
+static void
 start_animation (ply_boot_splash_plugin_t *plugin)
 {
 
@@ -203,6 +305,7 @@ start_animation (ply_boot_splash_plugin_t *plugin)
                   plugin->window,
                   area.width / 2.0 - width / 2.0,
                   plugin->logo_area.y + plugin->logo_area.height + height / 2);
+  animate_bar (plugin);
 }
 
 static void
@@ -215,6 +318,9 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
   assert (plugin->loop != NULL);
 
   ply_throbber_stop (plugin->throbber, trigger);
+  ply_event_loop_stop_watching_for_timeout(plugin->loop,
+                                           (ply_event_loop_timeout_handler_t)
+                                           animate_bar, plugin); 
 
 #ifdef ENABLE_FADE_OUT
   for (i = 0; i < 10; i++)
@@ -281,6 +387,7 @@ on_enter (ply_boot_splash_plugin_t *plugin,
 
   ply_entry_hide (plugin->entry);
   ply_entry_remove_all_bullets (plugin->entry);
+  plugin->starttime += (ply_get_timestamp() - plugin->waittime);
   start_animation (plugin);
 }
 
@@ -522,6 +629,7 @@ ask_for_password (ply_boot_splash_plugin_t *plugin,
                   ply_answer_t             *answer)
 {
   plugin->pending_password_answer = answer;
+  plugin->waittime = ply_get_timestamp ();
 
   if (ply_entry_is_hidden (plugin->entry))
     {

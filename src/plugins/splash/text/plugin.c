@@ -68,6 +68,8 @@ struct _ply_boot_splash_plugin
 
   uint32_t keyboard_input_is_hidden : 1;
 };
+void hide_splash_screen (ply_boot_splash_plugin_t *plugin,
+                         ply_event_loop_t         *loop);
 
 ply_boot_splash_plugin_t *
 create_plugin (void)
@@ -97,6 +99,11 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 
   if (plugin == NULL)
     return;
+
+  /* It doesn't ever make sense to keep this plugin on screen
+   * after exit
+   */
+  hide_splash_screen (plugin);
 
   if (plugin->loop != NULL)
     {

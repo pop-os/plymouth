@@ -159,6 +159,9 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
   assert (splash->module_name != NULL);
   assert (splash->loop != NULL);
 
+  if (splash->is_shown)
+    return true;
+
   ply_trace ("trying to load %s", splash->module_name);
   if (!ply_boot_splash_load_plugin (splash))
     {

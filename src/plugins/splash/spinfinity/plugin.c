@@ -225,6 +225,7 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
+  ply_progress_bar_hide (plugin->progress_bar);
   ply_throbber_stop (plugin->throbber, trigger);
 
 #ifdef ENABLE_FADE_OUT

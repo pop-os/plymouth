@@ -277,7 +277,7 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
   total_duration = duration / percent_done;
 
   /* Hi Will! */
-  percent_done = 1.0 - pow (2.0, -pow (duration, 1.45) / total_duration);
+  percent_done = 1.0 - pow (2.0, -pow (duration, 1.45) / total_duration) * (1.0 - percent_done);
 
   ply_text_progress_bar_set_percent_done (plugin->progress_bar, percent_done);
   ply_text_progress_bar_draw (plugin->progress_bar);

@@ -448,7 +448,7 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
 
   /* Fun made-up smoothing function to make the growth asymptotic:
    * fraction(time,estimate)=1-2^(-(time^1.45)/estimate) */
-  percent_done = 1.0 - pow (2.0, -pow (duration, 1.45) / total_duration);
+  percent_done = 1.0 - pow (2.0, -pow (duration, 1.45) / total_duration) * (1.0 - percent_done);
 
   ply_progress_bar_set_percent_done (plugin->progress_bar, percent_done);
   ply_progress_bar_draw (plugin->progress_bar);

@@ -276,12 +276,6 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
       plugin->pending_password_answer = NULL;
     }
 
-  ply_window_set_keyboard_input_handler (plugin->window, NULL, NULL);
-  ply_window_set_backspace_handler (plugin->window, NULL, NULL);
-  ply_window_set_enter_handler (plugin->window, NULL, NULL);
-  ply_window_set_draw_handler (plugin->window, NULL, NULL);
-  ply_window_set_erase_handler (plugin->window, NULL, NULL);
-
   if (plugin->loop != NULL)
     {
       stop_animation (plugin);
@@ -293,10 +287,19 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
       detach_from_event_loop (plugin);
     }
 
-  ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_DEFAULT);
-  ply_window_clear_screen (plugin->window);
-  ply_window_show_text_cursor (plugin->window);
-  ply_window_reset_colors (plugin->window);
+  if (plugin->window != NULL)
+    {
+      ply_window_set_keyboard_input_handler (plugin->window, NULL, NULL);
+      ply_window_set_backspace_handler (plugin->window, NULL, NULL);
+      ply_window_set_enter_handler (plugin->window, NULL, NULL);
+      ply_window_set_draw_handler (plugin->window, NULL, NULL);
+      ply_window_set_erase_handler (plugin->window, NULL, NULL);
+
+      ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_DEFAULT);
+      ply_window_clear_screen (plugin->window);
+      ply_window_show_text_cursor (plugin->window);
+      ply_window_reset_colors (plugin->window);
+    }
 }
 
 void

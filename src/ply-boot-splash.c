@@ -165,7 +165,7 @@ save_boot_duration (ply_boot_splash_t *splash)
 
   if (fp != NULL)
     {
-      fprintf (fp, "%.1f\n", (ply_get_timestamp () - splash->start_time));
+      fprintf (fp, "%.1lf\n", (ply_get_timestamp () - splash->start_time));
       fclose (fp);
     }
 }

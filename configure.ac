@@ -97,6 +97,7 @@ AC_ARG_WITH(default-plugin, AC_HELP_STRING([--with-default-plugin=fade-in], [Plu
 AM_CONDITIONAL(ADD_DEFAULT_PLUGIN_LINK,
                [test "$default_plugin_name" = "spinfinity" \
                   -o "$default_plugin_name" = "fade-in"    \
+                  -o "$default_plugin_name" = "pulser"     \
                   -o "$default_plugin_name" = "text"       \
                   -o "$default_plugin_name" = "details"])
 AC_SUBST(default_plugin_name)

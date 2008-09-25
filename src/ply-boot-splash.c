@@ -18,6 +18,7 @@
  * 02111-1307, USA.
  *
  * Written by: Ray Strode <rstrode@redhat.com>
+ *             Soeren Sandmann <sandmann@redhat.com>
  */
 #include "config.h"
 #include "ply-boot-splash.h"
@@ -205,14 +206,26 @@ static void
 ply_boot_splash_update_progress (ply_boot_splash_t *splash)
 {
   double time_in_seconds;
+  double default_percentage;
   double percentage;
 
   assert (splash != NULL);
 
   time_in_seconds = ply_get_timestamp () - splash->start_time;
 
-  percentage = CLAMP (time_in_seconds / splash->boot_duration,
-                      0.0, 1.0);
+  default_percentage = time_in_seconds / DEFAULT_BOOT_DURATION;
+  percentage = time_in_seconds / splash->boot_duration;
+
+  /* We intepolate the percentage between the real percentage (based
+   * on what's stored on disk) with the default percentage (based on
+   * a 60 second boot time)
+   *
+   * This is because we initially assume 60 seconds until / is mounted,
+   * and we don't want any large jumps
+   */
+  percentage = percentage * percentage + default_percentage * (1.0 - percentage);
+
+  percentage = CLAMP (percentage, 0.0, 1.0);
 
   if (splash->plugin_interface->on_boot_progress != NULL)
     splash->plugin_interface->on_boot_progress (splash->plugin,

@@ -66,12 +66,6 @@
 #define BAR_HEIGHT 16
 #endif
 
-#ifndef DEFAULT_BOOT_DURATION
-#define DEFAULT_BOOT_DURATION 45.0
-#endif
-
-#define BOOTTIME_FILE PLYMOUTH_TIME_DIR "/boot-time"
-
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
@@ -87,10 +81,6 @@ struct _ply_boot_splash_plugin
   ply_label_t *label;
   ply_progress_bar_t *progress_bar;
 
-  double boot_duration;
-  double start_time;
-  double wait_time;
-
   ply_trigger_t *pending_password_answer;
   ply_trigger_t *idle_trigger;
 
@@ -102,7 +92,6 @@ static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 ply_boot_splash_plugin_t *
 create_plugin (void)
 {
-  FILE *fh;
   ply_boot_splash_plugin_t *plugin;
 
   srand ((int) ply_get_timestamp ());
@@ -117,18 +106,6 @@ create_plugin (void)
                                    "throbber-");
   plugin->label = ply_label_new ();
   plugin->progress_bar = ply_progress_bar_new ();
-
-  plugin->start_time = ply_get_timestamp ();
-  plugin->boot_duration = DEFAULT_BOOT_DURATION;
-  /* We should be reading from the initrd at this point */
-  fh = fopen(BOOTTIME_FILE,"r"); 
-  if (fh != NULL) {
-      int r;
-      r = fscanf (fh,"%lf",&plugin->boot_duration);
-      /* Don't need to check the return value - if this failed we still have
-       * the default BOOTTIME value, which was set above */
-      fclose (fh);
-  }
 
   return plugin;
 }
@@ -147,10 +124,8 @@ tell_gdm_to_transition (void)
 void
 destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
-  FILE *boot_duration;
   if (plugin == NULL)
     return;
-
 
   if (plugin->loop != NULL)
     {
@@ -167,14 +142,6 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_throbber_free (plugin->throbber);
   ply_label_free (plugin->label);
   ply_progress_bar_free (plugin->progress_bar);
-
-  ply_trace ("writing boot_duration");
-  /* At this point we should have a real rootfs */
-  boot_duration = fopen (BOOTTIME_FILE,"w");
-  if (boot_duration != NULL) { 
-    fprintf (boot_duration,"%.1f\n", (ply_get_timestamp () - plugin->start_time));
-    fclose (boot_duration);
-  }
 
 #ifdef PLY_ENABLE_GDM_TRANSITION
   if (plugin->is_visible)
@@ -224,30 +191,6 @@ draw_logo (ply_boot_splash_plugin_t *plugin)
 }
 
 static void
-animate_bar (ply_boot_splash_plugin_t *plugin)
-{
-  double duration;
-  double percent_done;
-
-  assert (plugin != NULL);
-  assert (plugin->loop != NULL);
-
-  duration = ply_get_timestamp () - plugin->start_time;
-
-  /* Fun made-up smoothing function to make the growth asymptotic:
-   * fraction(time,estimate)=1-2^(-(time^1.45)/estimate) */
-  percent_done = 1.0 - pow (2.0, -pow (duration, 1.45) / plugin->boot_duration);
-
-  ply_progress_bar_set_percent_done (plugin->progress_bar, percent_done);
-  ply_progress_bar_draw (plugin->progress_bar);
-
-  ply_event_loop_watch_for_timeout(plugin->loop,
-                                   1.0 / FRAMES_PER_SECOND,
-                                   (ply_event_loop_timeout_handler_t)
-                                   animate_bar, plugin);
-}
-
-static void
 start_animation (ply_boot_splash_plugin_t *plugin)
 {
 
@@ -271,7 +214,6 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   ply_progress_bar_show (plugin->progress_bar,
                          plugin->window,
                          0, area.height - ply_progress_bar_get_height (plugin->progress_bar));
-  animate_bar (plugin);
 }
 
 static void
@@ -284,9 +226,6 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
   assert (plugin->loop != NULL);
 
   ply_throbber_stop (plugin->throbber, trigger);
-  ply_event_loop_stop_watching_for_timeout(plugin->loop,
-                                           (ply_event_loop_timeout_handler_t)
-                                           animate_bar, plugin); 
 
 #ifdef ENABLE_FADE_OUT
   for (i = 0; i < 10; i++)
@@ -353,7 +292,6 @@ on_enter (ply_boot_splash_plugin_t *plugin,
 
   ply_entry_hide (plugin->entry);
   ply_entry_remove_all_bullets (plugin->entry);
-  plugin->start_time += (ply_get_timestamp() - plugin->wait_time);
   start_animation (plugin);
 }
 
@@ -499,6 +437,23 @@ update_status (ply_boot_splash_plugin_t *plugin,
 }
 
 void
+on_boot_progress (ply_boot_splash_plugin_t *plugin,
+                  double                    duration,
+                  double                    percent_done)
+{
+  double total_duration;
+
+  total_duration = duration / percent_done;
+
+  /* Fun made-up smoothing function to make the growth asymptotic:
+   * fraction(time,estimate)=1-2^(-(time^1.45)/estimate) */
+  percent_done = 1.0 - pow (2.0, -pow (duration, 1.45) / total_duration);
+
+  ply_progress_bar_set_percent_done (plugin->progress_bar, percent_done);
+  ply_progress_bar_draw (plugin->progress_bar);
+}
+
+void
 hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop)
 {
@@ -598,7 +553,6 @@ ask_for_password (ply_boot_splash_plugin_t *plugin,
                   ply_trigger_t            *answer)
 {
   plugin->pending_password_answer = answer;
-  plugin->wait_time = ply_get_timestamp ();
 
   if (ply_entry_is_hidden (plugin->entry))
     {
@@ -636,10 +590,11 @@ ply_boot_splash_plugin_get_interface (void)
       .remove_window = remove_window,
       .show_splash_screen = show_splash_screen,
       .update_status = update_status,
+      .on_boot_progress = on_boot_progress,
       .hide_splash_screen = hide_splash_screen,
       .ask_for_password = ask_for_password,
       .on_root_mounted = on_root_mounted,
-      .become_idle = become_idle
+      .become_idle = become_idle,
     };
 
   return &plugin_interface;

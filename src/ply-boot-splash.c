@@ -39,6 +39,16 @@
 #include "ply-trigger.h"
 #include "ply-utils.h"
 
+#ifndef UPDATES_PER_SECOND
+#define UPDATES_PER_SECOND 30
+#endif
+
+#ifndef DEFAULT_BOOT_DURATION
+#define DEFAULT_BOOT_DURATION 45.0
+#endif
+
+#define BOOT_DURATION_FILE PLYMOUTH_TIME_DIRECTORY "/boot-duration"
+
 struct _ply_boot_splash
 {
   ply_event_loop_t *loop;
@@ -51,6 +61,10 @@ struct _ply_boot_splash
 
   char *module_name;
   char *status;
+
+  double boot_duration;
+  double start_time;
+  double wait_time;
 
   uint32_t is_shown : 1;
 };
@@ -124,6 +138,39 @@ ply_boot_splash_load_plugin (ply_boot_splash_t *splash)
 }
 
 static void
+load_boot_duration (ply_boot_splash_t *splash)
+{
+  FILE *fp;
+  int items_matched;
+
+  fp = fopen (BOOT_DURATION_FILE,"r"); 
+
+  if (fp == NULL)
+    return;
+
+  items_matched = fscanf (fp, "%lf", &splash->boot_duration);
+
+  fclose (fp);
+
+  if (items_matched != 1)
+    splash->boot_duration = DEFAULT_BOOT_DURATION;
+}
+
+static void
+save_boot_duration (ply_boot_splash_t *splash)
+{
+  FILE *fp;
+
+  fp = fopen (BOOT_DURATION_FILE,"w");
+
+  if (fp != NULL)
+    {
+      fprintf (fp, "%.1f\n", (ply_get_timestamp () - splash->start_time));
+      fclose (fp);
+    }
+}
+
+static void
 ply_boot_splash_unload_plugin (ply_boot_splash_t *splash)
 {
   assert (splash != NULL);
@@ -137,6 +184,8 @@ ply_boot_splash_unload_plugin (ply_boot_splash_t *splash)
   ply_close_module (splash->module_handle);
   splash->plugin_interface = NULL;
   splash->module_handle = NULL;
+
+  save_boot_duration (splash);
 }
 
 void
@@ -152,6 +201,26 @@ ply_boot_splash_free (ply_boot_splash_t *splash)
   free (splash);
 }
 
+static void
+ply_boot_splash_update_progress (ply_boot_splash_t *splash)
+{
+  double time_in_seconds;
+
+  assert (splash != NULL);
+
+  time_in_seconds = ply_get_timestamp () - splash->start_time;
+
+  if (splash->plugin_interface->on_boot_progress != NULL)
+    splash->plugin_interface->on_boot_progress (splash->plugin,
+                                                time_in_seconds,
+                                                time_in_seconds / splash->boot_duration);
+
+  ply_event_loop_watch_for_timeout (splash->loop,
+                                   1.0 / UPDATES_PER_SECOND,
+                                   (ply_event_loop_timeout_handler_t)
+                                   ply_boot_splash_update_progress, splash);
+}
+
 bool
 ply_boot_splash_show (ply_boot_splash_t *splash)
 {
@@ -161,6 +230,9 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
 
   if (splash->is_shown)
     return true;
+
+  splash->start_time = ply_get_timestamp ();
+  splash->boot_duration = DEFAULT_BOOT_DURATION;
 
   ply_trace ("trying to load %s", splash->module_name);
   if (!ply_boot_splash_load_plugin (splash))
@@ -187,6 +259,14 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
       ply_trace ("can't show splash: %m");
       ply_restore_errno ();
       return false;
+    }
+
+  if (splash->plugin_interface->on_boot_progress != NULL)
+    {
+      ply_event_loop_watch_for_timeout (splash->loop,
+                                        1.0 / UPDATES_PER_SECOND,
+                                        (ply_event_loop_timeout_handler_t)
+                                        ply_boot_splash_update_progress, splash);
     }
 
   splash->is_shown = true;
@@ -226,6 +306,15 @@ ply_boot_splash_root_mounted (ply_boot_splash_t *splash)
 
   if (splash->plugin_interface->on_root_mounted != NULL)
     splash->plugin_interface->on_root_mounted (splash->plugin);
+
+  if (splash->plugin_interface->on_boot_progress != NULL)
+    load_boot_duration (splash);
+}
+
+static void
+on_password_answered (ply_boot_splash_t *splash)
+{
+  splash->start_time += (ply_get_timestamp () - splash->wait_time);
 }
 
 void
@@ -244,6 +333,11 @@ ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
       ply_trigger_pull (trigger, NULL);
       return;
     }
+
+  splash->wait_time = ply_get_timestamp ();
+  ply_trigger_add_handler (trigger,
+                           (ply_trigger_handler_t)
+                           on_password_answered, splash);
 
   splash->plugin_interface->ask_for_password (splash->plugin,
                                               prompt,
@@ -274,6 +368,13 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
 
   if (splash->loop != NULL)
     {
+      if (splash->plugin_interface->on_boot_progress != NULL)
+        {
+          ply_event_loop_stop_watching_for_timeout (splash->loop,
+                                                    (ply_event_loop_timeout_handler_t)
+                                                    ply_boot_splash_update_progress, splash);
+        }
+
       ply_event_loop_stop_watching_for_exit (splash->loop, (ply_event_loop_exit_handler_t)
                                              ply_boot_splash_detach_from_event_loop,
                                              splash);

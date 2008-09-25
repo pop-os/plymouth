@@ -4,6 +4,7 @@ INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/libplybootsplash                                       \
            -I$(srcdir)                                                        \
            -DPLYMOUTH_LOG_DIRECTORY=\"$(localstatedir)/log\"                  \
+           -DPLYMOUTH_TIME_DIRECTORY=\"$(localstatedir)/lib/plymouth/\"       \
            -DPLYMOUTH_SPOOL_DIRECTORY=\"$(localstatedir)/spool/plymouth\"     \
            -DPLYMOUTH_LOGO_FILE=\"$(logofile)\"
 

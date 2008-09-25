@@ -47,6 +47,7 @@
 #include "ply-event-loop.h"
 #include "ply-label.h"
 #include "ply-list.h"
+#include "ply-progress-bar.h"
 #include "ply-logger.h"
 #include "ply-frame-buffer.h"
 #include "ply-image.h"
@@ -84,6 +85,7 @@ struct _ply_boot_splash_plugin
   ply_entry_t *entry;
   ply_throbber_t *throbber;
   ply_label_t *label;
+  ply_progress_bar_t *progress_bar;
 
   double boot_duration;
   double start_time;
@@ -114,6 +116,7 @@ create_plugin (void)
   plugin->throbber = ply_throbber_new (PLYMOUTH_IMAGE_DIR "spinfinity",
                                    "throbber-");
   plugin->label = ply_label_new ();
+  plugin->progress_bar = ply_progress_bar_new ();
 
   plugin->start_time = ply_get_timestamp ();
   plugin->boot_duration = DEFAULT_BOOT_DURATION;
@@ -163,6 +166,7 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_entry_free (plugin->entry);
   ply_throbber_free (plugin->throbber);
   ply_label_free (plugin->label);
+  ply_progress_bar_free (plugin->progress_bar);
 
   ply_trace ("writing boot_duration");
   /* At this point we should have a real rootfs */
@@ -220,41 +224,23 @@ draw_logo (ply_boot_splash_plugin_t *plugin)
 }
 
 static void
-draw_bar (ply_boot_splash_plugin_t *plugin)
+animate_bar (ply_boot_splash_plugin_t *plugin)
 {
-  long width, height;
-  double fraction;
+  double duration;
+  double percent_done;
 
-  height = BAR_HEIGHT; /* TODO: configurable */
+  assert (plugin != NULL);
+  assert (plugin->loop != NULL);
 
-  ply_frame_buffer_get_size (plugin->frame_buffer, &plugin->bar_area);
-  plugin->bar_area.x = 0; /* possibly unnecessary, but hey.. can't hurt */
-  plugin->bar_area.y = plugin->bar_area.height - BAR_HEIGHT;
-  plugin->bar_area.height = BAR_HEIGHT;
+  duration = ply_get_timestamp () - plugin->start_time;
 
   /* Fun made-up smoothing function to make the growth asymptotic:
    * fraction(time,estimate)=1-2^(-(time^1.45)/estimate) */
-  fraction = 1.0-pow(2.0,-pow(ply_get_timestamp () - plugin->start_time,1.45)/plugin->boot_duration);
+  percent_done = 1.0 - pow (2.0, -pow (duration, 1.45) / plugin->boot_duration);
 
-  width = (long) (plugin->bar_area.width * fraction);
-  if (width < 0)
-    width = 0;
-  if (width < plugin->bar_area.width)
-    plugin->bar_area.width = width;
-  ply_frame_buffer_pause_updates (plugin->frame_buffer);
-  draw_background (plugin, &plugin->bar_area);
-  ply_frame_buffer_fill_with_hex_color (plugin->frame_buffer, 
-                                        &plugin->bar_area,
-                                        0xffffff); /* white */
-  ply_frame_buffer_unpause_updates (plugin->frame_buffer);
-}
+  ply_progress_bar_set_percent_done (plugin->progress_bar, percent_done);
+  ply_progress_bar_draw (plugin->progress_bar);
 
-static void
-animate_bar (ply_boot_splash_plugin_t *plugin)
-{
-  assert (plugin != NULL);
-  assert (plugin->loop != NULL);
-  draw_bar (plugin);
   ply_event_loop_watch_for_timeout(plugin->loop,
                                    1.0 / FRAMES_PER_SECOND,
                                    (ply_event_loop_timeout_handler_t)
@@ -282,6 +268,9 @@ start_animation (ply_boot_splash_plugin_t *plugin)
                   plugin->window,
                   area.width / 2.0 - width / 2.0,
                   plugin->logo_area.y + plugin->logo_area.height + height / 2);
+  ply_progress_bar_show (plugin->progress_bar,
+                         plugin->window,
+                         0, area.height - ply_progress_bar_get_height (plugin->progress_bar));
   animate_bar (plugin);
 }
 
@@ -391,7 +380,10 @@ on_draw (ply_boot_splash_plugin_t *plugin,
       ply_label_draw (plugin->label);
     }
   else
-    draw_logo (plugin);
+    {
+      draw_logo (plugin);
+      ply_progress_bar_draw (plugin->progress_bar);
+    }
   ply_frame_buffer_unpause_updates (plugin->frame_buffer);
 }
 

@@ -1,4 +1,4 @@
-SUBDIRS = spinfinity fade-in pulser details
+SUBDIRS = spinfinity fade-in text pulser details
 MAINTAINERCLEANFILES = Makefile.in
 
 if ADD_DEFAULT_PLUGIN_LINK

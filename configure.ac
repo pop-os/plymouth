@@ -109,6 +109,7 @@ AC_OUTPUT([Makefile
            src/plugins/splash/Makefile
            src/plugins/splash/spinfinity/Makefile
            src/plugins/splash/fade-in/Makefile
+           src/plugins/splash/text/Makefile
            src/plugins/splash/pulser/Makefile
            src/plugins/splash/details/Makefile
            src/plugins/controls/Makefile

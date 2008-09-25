@@ -145,9 +145,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   ply_window_clear_screen (plugin->window);
   ply_window_hide_text_cursor (plugin->window);
 
-  ply_text_progress_bar_start (plugin->progress_bar,
-                         plugin->loop,
-                         plugin->window);
+  ply_text_progress_bar_show (plugin->progress_bar,
+                              plugin->window);
 }
 
 static void
@@ -156,7 +155,7 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
-  ply_text_progress_bar_stop (plugin->progress_bar);
+  ply_text_progress_bar_hide (plugin->progress_bar);
 }
 
 void
@@ -269,6 +268,22 @@ update_status (ply_boot_splash_plugin_t *plugin,
 }
 
 void
+on_boot_progress (ply_boot_splash_plugin_t *plugin,
+                  double                    duration,
+                  double                    percent_done)
+{
+  double total_duration;
+
+  total_duration = duration / percent_done;
+
+  /* Hi Will! */
+  percent_done = 1.0 - pow (2.0, -pow (duration, 1.45) / total_duration);
+
+  ply_text_progress_bar_set_percent_done (plugin->progress_bar, percent_done);
+  ply_text_progress_bar_draw (plugin->progress_bar);
+}
+
+void
 hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop)
 {
@@ -350,6 +365,7 @@ ply_boot_splash_plugin_get_interface (void)
       .remove_window = remove_window,
       .show_splash_screen = show_splash_screen,
       .update_status = update_status,
+      .on_boot_progress = on_boot_progress,
       .hide_splash_screen = hide_splash_screen,
       .ask_for_password = ask_for_password,
     };

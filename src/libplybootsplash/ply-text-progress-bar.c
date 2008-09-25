@@ -43,7 +43,6 @@
 #include <wchar.h>
 
 #include "ply-text-progress-bar.h"
-#include "ply-event-loop.h"
 #include "ply-array.h"
 #include "ply-logger.h"
 #include "ply-utils.h"
@@ -62,15 +61,14 @@ char *os_string = OS_STRING;
 
 struct _ply_text_progress_bar
 {
-  ply_event_loop_t *loop;
-
   ply_window_t            *window;
 
   int column, row;
   int number_of_rows;
   int number_of_columns;
-  int spinner_position;
-  double start_time, now;
+
+  double percent_done;
+  uint32_t is_hidden : 1;
 };
 
 ply_text_progress_bar_t *
@@ -82,7 +80,6 @@ ply_text_progress_bar_new (void)
 
   progress_bar->row = 0;
   progress_bar->column = 0;
-  progress_bar->spinner_position = 0;
   progress_bar->number_of_columns = 0;
   progress_bar->number_of_rows = 0;
 
@@ -124,106 +121,74 @@ out:
    free(buf);
 }
 
-/* Hi Will! */
-static double
-woodsify(double time, double estimate)
-{
-    return 1.0 - pow(2.0, -pow(time, 1.45) / estimate);
-}
-
-#define STARTUP_TIME 20.0
-
-static void
-animate_at_time (ply_text_progress_bar_t *progress_bar,
-                 double             time)
+void
+ply_text_progress_bar_draw (ply_text_progress_bar_t *progress_bar)
 {
     int i, width = progress_bar->number_of_columns - 2 - strlen(os_string);
     double brown_fraction, blue_fraction, white_fraction;
 
+    if (progress_bar->is_hidden)
+      return;
+
     ply_window_set_mode (progress_bar->window, PLY_WINDOW_MODE_TEXT);
     ply_window_set_text_cursor_position(progress_bar->window,
-					progress_bar->column,
-					progress_bar->row);
+                                        progress_bar->column,
+                                        progress_bar->row);
 
-    brown_fraction = woodsify(time, STARTUP_TIME);
-    blue_fraction  = woodsify(time, STARTUP_TIME / brown_fraction);
-    white_fraction = woodsify(time, STARTUP_TIME / blue_fraction);
+    brown_fraction = progress_bar->percent_done;
+    blue_fraction  = progress_bar->percent_done - (.2 * (1.0 - brown_fraction)) * brown_fraction;
+    white_fraction = progress_bar->percent_done - (1.0 - progress_bar->percent_done) * blue_fraction;
 
-    for (i = 0; i < width; i += 1) {
-	double f = (double)i / (double)width;
-	if (f < white_fraction)
-	    ply_window_set_background_color (progress_bar->window,
-					     PLY_WINDOW_COLOR_WHITE);
-	else if (f < blue_fraction)
-	    ply_window_set_background_color (progress_bar->window,
-					     PLY_WINDOW_COLOR_BLUE);
-	else if (f < brown_fraction)
-	    ply_window_set_background_color (progress_bar->window,
-					     PLY_WINDOW_COLOR_BROWN);
-	else break;
+    for (i = 0; i < width; i++) {
+        double f;
 
-	write (STDOUT_FILENO, " ", strlen (" "));
+        f = (double) i / (double) width;
+        if (f < white_fraction)
+            ply_window_set_background_color (progress_bar->window,
+                                             PLY_WINDOW_COLOR_WHITE);
+        else if (f < blue_fraction)
+            ply_window_set_background_color (progress_bar->window,
+                                             PLY_WINDOW_COLOR_BLUE);
+        else if (f < brown_fraction)
+            ply_window_set_background_color (progress_bar->window,
+                                             PLY_WINDOW_COLOR_BROWN);
+        else
+          break;
+
+        write (STDOUT_FILENO, " ", strlen (" "));
     }
 
     ply_window_set_background_color (progress_bar->window, PLY_WINDOW_COLOR_BLACK);
 
     if (brown_fraction > 0.5) {
-	if (white_fraction > 0.875)
-	    ply_window_set_foreground_color (progress_bar->window,
-					     PLY_WINDOW_COLOR_WHITE);
-	else if (blue_fraction > 0.66)
-	    ply_window_set_foreground_color (progress_bar->window,
-					     PLY_WINDOW_COLOR_BLUE);
-	else
-	    ply_window_set_foreground_color (progress_bar->window,
-					     PLY_WINDOW_COLOR_BROWN);
+        if (white_fraction > 0.875)
+            ply_window_set_foreground_color (progress_bar->window,
+                                             PLY_WINDOW_COLOR_WHITE);
+        else if (blue_fraction > 0.66)
+            ply_window_set_foreground_color (progress_bar->window,
+                                             PLY_WINDOW_COLOR_BLUE);
+        else
+            ply_window_set_foreground_color (progress_bar->window,
+                                             PLY_WINDOW_COLOR_BROWN);
 
-	ply_window_set_text_cursor_position(progress_bar->window,
-					    progress_bar->column + width,
-					    progress_bar->row);
+        ply_window_set_text_cursor_position(progress_bar->window,
+                                            progress_bar->column + width,
+                                            progress_bar->row);
 
 
-	write (STDOUT_FILENO, os_string, strlen(os_string));
-	
-	ply_window_set_foreground_color (progress_bar->window,
-					 PLY_WINDOW_COLOR_DEFAULT);
+        write (STDOUT_FILENO, os_string, strlen(os_string));
+
+        ply_window_set_foreground_color (progress_bar->window,
+                                         PLY_WINDOW_COLOR_DEFAULT);
     }
 }
 
-static void
-on_timeout (ply_text_progress_bar_t *progress_bar)
-{
-  double sleep_time;
-  progress_bar->now = ply_get_timestamp ();
-
-#ifdef REAL_TIME_ANIMATION
-  animate_at_time (progress_bar,
-                   progress_bar->now - progress_bar->start_time);
-#else
-  static double time = 0.0;
-  time += 1.0 / FRAMES_PER_SECOND;
-  animate_at_time (progress_bar, time);
-#endif
-
-  sleep_time = 1.0 / FRAMES_PER_SECOND;
-  sleep_time = MAX (sleep_time - (ply_get_timestamp () - progress_bar->now),
-                    0.005);
-
-  ply_event_loop_watch_for_timeout (progress_bar->loop,
-                                    sleep_time,
-                                    (ply_event_loop_timeout_handler_t)
-                                    on_timeout, progress_bar);
-}
-
-bool
-ply_text_progress_bar_start (ply_text_progress_bar_t  *progress_bar,
-                       ply_event_loop_t   *loop,
-                       ply_window_t       *window)
+void
+ply_text_progress_bar_show (ply_text_progress_bar_t  *progress_bar,
+                            ply_window_t       *window)
 {
   assert (progress_bar != NULL);
-  assert (progress_bar->loop == NULL);
 
-  progress_bar->loop = loop;
   progress_bar->window = window;
 
   progress_bar->number_of_rows = ply_window_get_number_of_text_rows(window);
@@ -231,30 +196,31 @@ ply_text_progress_bar_start (ply_text_progress_bar_t  *progress_bar,
   progress_bar->number_of_columns = ply_window_get_number_of_text_columns(window);
   progress_bar->column = 2;
 
-  progress_bar->start_time = ply_get_timestamp ();
-  
   get_os_string ();
 
-  ply_event_loop_watch_for_timeout (progress_bar->loop,
-                                    1.0 / FRAMES_PER_SECOND,
-                                    (ply_event_loop_timeout_handler_t)
-                                    on_timeout, progress_bar);
+  progress_bar->is_hidden = false;
 
-  return true;
+  ply_text_progress_bar_draw (progress_bar);
 }
 
 void
-ply_text_progress_bar_stop (ply_text_progress_bar_t *progress_bar)
+ply_text_progress_bar_hide (ply_text_progress_bar_t *progress_bar)
 {
   progress_bar->window = NULL;
+  progress_bar->is_hidden = true;
+}
 
-  if (progress_bar->loop != NULL)
-    {
-      ply_event_loop_stop_watching_for_timeout (progress_bar->loop,
-                                                (ply_event_loop_timeout_handler_t)
-                                                on_timeout, progress_bar);
-      progress_bar->loop = NULL;
-    }
+void
+ply_text_progress_bar_set_percent_done (ply_text_progress_bar_t  *progress_bar,
+                                        double percent_done)
+{
+  progress_bar->percent_done = percent_done;
+}
+
+double
+ply_text_progress_bar_get_percent_done (ply_text_progress_bar_t  *progress_bar)
+{
+  return progress_bar->percent_done;
 }
 
 int

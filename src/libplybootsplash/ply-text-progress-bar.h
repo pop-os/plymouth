@@ -37,11 +37,15 @@ typedef struct _ply_text_progress_bar ply_text_progress_bar_t;
 ply_text_progress_bar_t *ply_text_progress_bar_new (void);
 void ply_text_progress_bar_free (ply_text_progress_bar_t *progress_bar);
 
-bool ply_text_progress_bar_load (ply_text_progress_bar_t *progress_bar);
-bool ply_text_progress_bar_start (ply_text_progress_bar_t  *progress_bar,
-                            ply_event_loop_t   *loop,
-                            ply_window_t       *window);
-void ply_text_progress_bar_stop (ply_text_progress_bar_t *progress_bar);
+void ply_text_progress_bar_draw (ply_text_progress_bar_t *progress_bar);
+void ply_text_progress_bar_show (ply_text_progress_bar_t  *progress_bar,
+                                 ply_window_t       *window);
+void ply_text_progress_bar_hide (ply_text_progress_bar_t *progress_bar);
+
+void ply_text_progress_bar_set_percent_done (ply_text_progress_bar_t  *progress_bar,
+                                             double percent_done);
+
+double ply_text_progress_bar_get_percent_done (ply_text_progress_bar_t  *progress_bar);
 
 int ply_text_progress_bar_get_number_of_rows (ply_text_progress_bar_t *progress_bar);
 int ply_text_progress_bar_get_number_of_columns (ply_text_progress_bar_t *progress_bar);

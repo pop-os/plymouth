@@ -34,9 +34,14 @@ typedef void (* ply_trigger_handler_t) (void          *user_data,
                                         const void    *trigger_data,
                                         ply_trigger_t *trigger);
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-ply_trigger_t *ply_trigger_new (ply_trigger_handler_t  handler,
-                                void                 *user_data,
-                                ply_trigger_t       **post_pull_free_address);
+ply_trigger_t *ply_trigger_new (ply_trigger_t **free_address);
+
+void ply_trigger_add_handler (ply_trigger_t          *trigger,
+                              ply_trigger_handler_t   handler,
+                              void                   *user_data);
+void ply_trigger_remove_handler (ply_trigger_t         *trigger,
+                                 ply_trigger_handler_t  handler,
+                                 void                  *user_data);
 void ply_trigger_free (ply_trigger_t *trigger);
 
 void ply_trigger_pull (ply_trigger_t *trigger,

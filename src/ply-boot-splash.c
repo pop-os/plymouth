@@ -308,7 +308,10 @@ ply_boot_splash_become_idle (ply_boot_splash_t                  *splash,
       return;
     }
 
-  splash->idle_trigger = ply_trigger_new ((ply_trigger_handler_t) idle_handler, user_data, &splash->idle_trigger);
+  splash->idle_trigger = ply_trigger_new (&splash->idle_trigger);
+  ply_trigger_add_handler (splash->idle_trigger,
+                           (ply_trigger_handler_t) idle_handler,
+                           user_data);
 
   splash->plugin_interface->become_idle (splash->plugin, splash->idle_trigger);
 }

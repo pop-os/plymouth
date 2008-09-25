@@ -20,6 +20,7 @@
  * Written by: Adam Jackson <ajax@redhat.com>
  *             Bill Nottingham <notting@redhat.com>
  *             Ray Strode <rstrode@redhat.com>
+ *             Soeren Sandmann <sandmann@redhat.com>
  */
 #include "config.h"
 
@@ -135,9 +136,9 @@ ply_text_progress_bar_draw (ply_text_progress_bar_t *progress_bar)
                                         progress_bar->column,
                                         progress_bar->row);
 
-    brown_fraction = progress_bar->percent_done;
-    blue_fraction  = progress_bar->percent_done - (.2 * (1.0 - brown_fraction)) * brown_fraction;
-    white_fraction = progress_bar->percent_done - (1.0 - progress_bar->percent_done) * blue_fraction;
+    brown_fraction = - (progress_bar->percent_done * progress_bar->percent_done) + 2 * progress_bar->percent_done;
+    blue_fraction  = progress_bar->percent_done;
+    white_fraction = progress_bar->percent_done * progress_bar->percent_done;
 
     for (i = 0; i < width; i++) {
         double f;

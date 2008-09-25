@@ -39,6 +39,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <time.h>
 #include <linux/fs.h>
 
 #include <dlfcn.h>
@@ -566,13 +567,13 @@ ply_close_all_fds (void)
 double 
 ply_get_timestamp (void)
 {
-  const double microseconds_per_second = 1000000.0;
+  const double nanoseconds_per_second = 1000000000.0;
   double timestamp;
-  struct timeval now = { 0L, /* zero-filled */ };
+  struct timespec now = { 0L, /* zero-filled */ };
 
-  gettimeofday (&now, NULL);
-  timestamp = ((microseconds_per_second * now.tv_sec) + now.tv_usec) /
-               microseconds_per_second;
+  clock_gettime (CLOCK_MONOTONIC, &now);
+  timestamp = ((nanoseconds_per_second * now.tv_sec) + now.tv_nsec) /
+               nanoseconds_per_second;
 
   return timestamp;
 }

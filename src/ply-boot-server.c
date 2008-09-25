@@ -31,9 +31,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "ply-buffer.h"
 #include "ply-event-loop.h"
 #include "ply-list.h"
 #include "ply-logger.h"
+#include "ply-trigger.h"
 #include "ply-utils.h"
 
 typedef struct 
@@ -47,7 +49,7 @@ struct _ply_boot_server
 {
   ply_event_loop_t *loop;
   ply_list_t *connections;
-  ply_list_t *cached_answers;
+  ply_list_t *cached_passwords;
   int socket_fd;
 
   ply_boot_server_update_handler_t update_handler;
@@ -78,7 +80,7 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
 
   server = calloc (1, sizeof (ply_boot_server_t));
   server->connections = ply_list_new ();
-  server->cached_answers = ply_list_new ();
+  server->cached_passwords = ply_list_new ();
   server->loop = NULL;
   server->is_listening = false;
   server->update_handler = update_handler;
@@ -108,7 +110,7 @@ ply_boot_server_free (ply_boot_server_t *server)
       ply_boot_connection_on_hangup (connection);
     }
   ply_list_free (server->connections);
-  ply_list_free (server->cached_answers);
+  ply_list_free (server->cached_passwords);
   free (server);
 }
 
@@ -207,8 +209,7 @@ ply_boot_connection_is_from_root (ply_boot_connection_t *connection)
 
 static void
 ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
-                                        const char            *password,
-                                        ply_answer_t          *answer)
+                                        const char            *password)
 {
 
   uint8_t size;
@@ -240,9 +241,11 @@ ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
           !ply_write (connection->fd,
                       password, size))
           ply_error ("could not write bytes: %m");
+
+      ply_list_append_data (connection->server->cached_passwords,
+                            strdup (password));
     }
 
-  ply_list_append_data (connection->server->cached_answers, answer);
 }
 
 static void
@@ -312,9 +315,11 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PASSWORD) == 0)
     {
-      ply_answer_t *answer;
+      ply_trigger_t *answer;
 
-      answer = ply_answer_new ((ply_answer_handler_t)
+      answer = ply_trigger_new (NULL);
+      ply_trigger_add_handler (answer,
+                               (ply_trigger_handler_t)
                                ply_boot_connection_on_password_answer,
                                connection);
 
@@ -337,7 +342,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
       buffer = ply_buffer_new ();
 
-      node = ply_list_get_first_node (server->cached_answers);
+      node = ply_list_get_first_node (server->cached_passwords);
 
       /* Add each answer separated by their NUL terminators into
        * a buffer that we write out to the client
@@ -345,17 +350,14 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       while (node != NULL)
         {
           ply_list_node_t *next_node;
-          ply_answer_t *answer;
-          char *answer_string;
+          const char *password;
 
-          next_node = ply_list_get_next_node (server->cached_answers, node);
-          answer = ply_list_node_get_data (node);
-          answer_string = ply_answer_get_string (answer);
+          next_node = ply_list_get_next_node (server->cached_passwords, node);
+          password = (const char *) ply_list_node_get_data (node);
+
           ply_buffer_append_bytes (buffer,
-                                   answer_string,
-                                   strlen (answer_string) + 1);
-          free (answer_string);
-
+                                   password,
+                                   strlen (password) + 1);
           node = next_node;
         }
 

@@ -40,7 +40,7 @@
 #include <values.h>
 #include <wchar.h>
 
-#include "ply-answer.h"
+#include "ply-trigger.h"
 #include "ply-boot-splash-plugin.h"
 #include "ply-buffer.h"
 #include "ply-event-loop.h"
@@ -61,7 +61,7 @@ struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
 
-  ply_answer_t *pending_password_answer;
+  ply_trigger_t *pending_password_answer;
   ply_window_t *window;
 
   ply_text_pulser_t *pulser;
@@ -176,7 +176,7 @@ on_enter (ply_boot_splash_plugin_t *plugin,
 {
   if (plugin->pending_password_answer != NULL)
     {
-      ply_answer_with_string (plugin->pending_password_answer, line);
+      ply_trigger_pull (plugin->pending_password_answer, line);
       plugin->keyboard_input_is_hidden = false;
       plugin->pending_password_answer = NULL;
 
@@ -272,7 +272,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   if (plugin->pending_password_answer != NULL)
     {
-      ply_answer_with_string (plugin->pending_password_answer, "");
+      ply_trigger_pull (plugin->pending_password_answer, "");
       plugin->pending_password_answer = NULL;
     }
 
@@ -305,7 +305,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 void
 ask_for_password (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
-                  ply_answer_t             *answer)
+                  ply_trigger_t            *answer)
 {
   int window_width, window_height;
 

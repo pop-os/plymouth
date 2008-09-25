@@ -34,12 +34,12 @@
 
 #include <linux/kd.h>
 
-#include "ply-answer.h"
 #include "ply-boot-server.h"
 #include "ply-boot-splash.h"
 #include "ply-event-loop.h"
 #include "ply-logger.h"
 #include "ply-terminal-session.h"
+#include "ply-trigger.h"
 #include "ply-utils.h"
 
 #ifndef PLY_MAX_COMMAND_LINE_SIZE
@@ -137,13 +137,13 @@ show_default_splash (state_t *state)
 static void
 on_ask_for_password (state_t      *state,
                      const char   *prompt,
-                     ply_answer_t *answer)
+                     ply_trigger_t *answer)
 {
   if (state->boot_splash == NULL)
     {
       show_detailed_splash (state);
       if (state->boot_splash == NULL)
-        ply_answer_with_string (answer, "");
+        ply_trigger_pull (answer, "");
       return;
     }
 

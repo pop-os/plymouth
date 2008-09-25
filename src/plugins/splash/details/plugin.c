@@ -40,7 +40,6 @@
 #include <wchar.h>
 #include <values.h>
 
-#include "ply-answer.h"
 #include "ply-boot-splash-plugin.h"
 #include "ply-buffer.h"
 #include "ply-event-loop.h"
@@ -48,6 +47,7 @@
 #include "ply-logger.h"
 #include "ply-frame-buffer.h"
 #include "ply-image.h"
+#include "ply-trigger.h"
 #include "ply-utils.h"
 #include "ply-window.h"
 
@@ -58,14 +58,14 @@
 
 void ask_for_password (ply_boot_splash_plugin_t *plugin,
                        const char               *prompt,
-                       ply_answer_t             *answer);
+                       ply_trigger_t            *answer);
 
 ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
 
-  ply_answer_t *pending_password_answer;
+  ply_trigger_t *pending_password_answer;
   ply_window_t *window;
 
   uint32_t keyboard_input_is_hidden : 1;
@@ -125,7 +125,7 @@ on_enter (ply_boot_splash_plugin_t *plugin,
 {
   if (plugin->pending_password_answer != NULL)
     {
-      ply_answer_with_string (plugin->pending_password_answer, line);
+      ply_trigger_pull (plugin->pending_password_answer, line);
       plugin->keyboard_input_is_hidden = false;
       plugin->pending_password_answer = NULL;
       write (STDOUT_FILENO, CLEAR_LINE_SEQUENCE, strlen (CLEAR_LINE_SEQUENCE));
@@ -220,7 +220,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   if (plugin->pending_password_answer != NULL)
     {
-      ply_answer_with_string (plugin->pending_password_answer, "");
+      ply_trigger_pull (plugin->pending_password_answer, "");
       plugin->pending_password_answer = NULL;
       plugin->keyboard_input_is_hidden = false;
     }
@@ -239,7 +239,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 void
 ask_for_password (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
-                  ply_answer_t             *answer)
+                  ply_trigger_t            *answer)
 {
   plugin->pending_password_answer = answer;
 

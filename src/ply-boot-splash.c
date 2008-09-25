@@ -231,7 +231,7 @@ ply_boot_splash_root_mounted (ply_boot_splash_t *splash)
 void
 ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
                                   const char        *prompt,
-                                  ply_answer_t      *answer)
+                                  ply_trigger_t     *trigger)
 {
 
   assert (splash != NULL);
@@ -241,13 +241,13 @@ ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
 
   if (splash->plugin_interface->ask_for_password == NULL)
     {
-      ply_answer_unknown (answer);
+      ply_trigger_pull (trigger, NULL);
       return;
     }
 
   splash->plugin_interface->ask_for_password (splash->plugin,
                                               prompt,
-                                              answer);
+                                              trigger);
 }
 
 static void

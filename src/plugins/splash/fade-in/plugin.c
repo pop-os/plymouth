@@ -39,7 +39,6 @@
 #include <unistd.h>
 #include <wchar.h>
 
-#include "ply-answer.h"
 #include "ply-boot-splash-plugin.h"
 #include "ply-buffer.h"
 #include "ply-entry.h"
@@ -48,6 +47,7 @@
 #include "ply-logger.h"
 #include "ply-frame-buffer.h"
 #include "ply-image.h"
+#include "ply-trigger.h"
 #include "ply-utils.h"
 #include "ply-window.h"
 
@@ -77,7 +77,7 @@ struct _ply_boot_splash_plugin
 
   ply_entry_t *entry;
 
-  ply_answer_t *pending_password_answer;
+  ply_trigger_t *pending_password_answer;
 
   double start_time;
   double now;
@@ -387,7 +387,7 @@ on_enter (ply_boot_splash_plugin_t *plugin,
   if (plugin->pending_password_answer == NULL)
     return;
 
-  ply_answer_with_string (plugin->pending_password_answer, text);
+  ply_trigger_pull (plugin->pending_password_answer, text);
   plugin->pending_password_answer = NULL;
 
   ply_entry_hide (plugin->entry);
@@ -598,7 +598,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   if (plugin->pending_password_answer != NULL)
     {
-      ply_answer_with_string (plugin->pending_password_answer, "");
+      ply_trigger_pull (plugin->pending_password_answer, "");
       plugin->pending_password_answer = NULL;
     }
 
@@ -651,7 +651,7 @@ show_password_entry (ply_boot_splash_plugin_t *plugin)
 void
 ask_for_password (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
-                  ply_answer_t             *answer)
+                  ply_trigger_t            *answer)
 {
   plugin->pending_password_answer = answer;
 

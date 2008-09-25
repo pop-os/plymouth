@@ -205,15 +205,19 @@ static void
 ply_boot_splash_update_progress (ply_boot_splash_t *splash)
 {
   double time_in_seconds;
+  double percentage;
 
   assert (splash != NULL);
 
   time_in_seconds = ply_get_timestamp () - splash->start_time;
 
+  percentage = CLAMP (time_in_seconds / splash->boot_duration,
+                      0.0, 1.0);
+
   if (splash->plugin_interface->on_boot_progress != NULL)
     splash->plugin_interface->on_boot_progress (splash->plugin,
                                                 time_in_seconds,
-                                                time_in_seconds / splash->boot_duration);
+                                                percentage);
 
   ply_event_loop_watch_for_timeout (splash->loop,
                                    1.0 / UPDATES_PER_SECOND,

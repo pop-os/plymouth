@@ -23,6 +23,7 @@ plymouthd_SOURCES =                                                            \
 
 plymouthdrundir = $(localstatedir)/run/plymouth
 plymouthdspooldir = $(localstatedir)/spool/plymouth
+plymouthdtimedir = $(localstatedir)/lib/plymouth
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = plymouth-1.pc
@@ -30,6 +31,7 @@ pkgconfig_DATA = plymouth-1.pc
 install-data-hook:
 	-mkdir -p $(DESTDIR)$(plymouthdrundir)
 	-mkdir -p $(DESTDIR)$(plymouthdspooldir)
+	-mkdir -p $(DESTDIR)$(plymouthdtimedir)
 
 EXTRA_DIST = plymouth-1.pc.in
 MAINTAINERCLEANFILES = Makefile.in

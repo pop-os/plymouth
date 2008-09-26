@@ -4,8 +4,6 @@ ply_boot_splash_test_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLY_BOOT_SPLASH_ENABLE_TEST
 ply_boot_splash_test_LDADD = $(PLYMOUTH_LIBS) ../libply/libply.la
 
 ply_boot_splash_test_SOURCES =                                                   \
-                          $(srcdir)/../libplybootsplash/ply-answer.h             \
-                          $(srcdir)/../libplybootsplash/ply-answer.c             \
                           $(srcdir)/../libplybootsplash/ply-boot-splash-plugin.h \
                           $(srcdir)/../libplybootsplash/ply-window.h             \
                           $(srcdir)/../libplybootsplash/ply-window.c             \

@@ -42,9 +42,14 @@ PLYMOUTH_LIBS="-lm -ldl $IMAGE_LIBS"
 AC_SUBST(PLYMOUTH_CFLAGS)
 AC_SUBST(PLYMOUTH_LIBS)
 
-PKG_CHECK_MODULES(PANGO, [pangocairo >= 1.21.0 ])
-AC_SUBST(PANGO_CFLAGS)
-AC_SUBST(PANGO_LIBS)
+AC_ARG_ENABLE(pango, AS_HELP_STRING([--enable-pango],[enable building with pango, disabled there is no encryption prompts]),enable_pango=$enableval,enable_pango=yes)
+AM_CONDITIONAL(ENABLE_PANGO,  [test "$enable_pango" = yes])
+
+if test x$enable_pango = xyes; then
+  PKG_CHECK_MODULES(PANGO, [pangocairo >= 1.21.0 ])
+  AC_SUBST(PANGO_CFLAGS)
+  AC_SUBST(PANGO_LIBS)
+fi
 
 PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.12.0 ])
 AC_SUBST(GTK_CFLAGS)

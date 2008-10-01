@@ -836,56 +836,6 @@ ply_window_get_frame_buffer (ply_window_t *window)
   return window->frame_buffer;
 }
 
-static bool
-switch_to_vt (int tty_fd,
-              int vt_number)
-{
-  if (ioctl (tty_fd, VT_ACTIVATE, vt_number) < 0)
-    return false;
-
-  ioctl (tty_fd, VT_WAITACTIVE, vt_number);
-
-  return get_active_vt () == vt_number;
-}
-
-bool
-ply_window_take_console (ply_window_t *window)
-{
-  assert (window != NULL);
-
-  return switch_to_vt (window->tty_fd, window->vt_number);
-}
-
-bool
-ply_window_give_console (ply_window_t *window,
-                         int           vt_number)
-{
-  char *tty_name;
-  int   tty_fd;
-  bool vt_switched;
-
-  assert (window != NULL);
-  assert (vt_number > 0);
-  assert (vt_number != window->vt_number);
-
-  tty_name = NULL;
-  asprintf (&tty_name, "/dev/tty%d", vt_number);
-  tty_fd = open (tty_name, O_RDONLY | O_NOCTTY);
-
-  if (tty_fd < 0)
-    {
-      free (tty_name);
-      return false;
-    }
-  free (tty_name);
-
-  vt_switched = switch_to_vt (tty_fd, vt_number);
-
-  close (tty_fd);
-
-  return vt_switched;
-}
-
 #ifdef PLY_WINDOW_ENABLE_TEST
 
 #include <stdio.h>
@@ -938,14 +888,6 @@ main (int    argc,
     {
       ply_save_errno ();
       perror ("could not open window");
-      ply_restore_errno ();
-      return errno;
-    }
-
-  if (!ply_window_take_console (window))
-    {
-      ply_save_errno ();
-      ply_error ("could not move console to vt %d: %m", vt_number);
       ply_restore_errno ();
       return errno;
     }

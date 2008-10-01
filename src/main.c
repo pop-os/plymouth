@@ -242,12 +242,7 @@ on_show_splash (state_t *state)
 {
 
   if (state->window == NULL)
-    {
-      state->window = create_window (state, 1);
-
-      if (state->window != NULL && state->console == NULL)
-        ply_window_take_console (state->window);
-    }
+    state->window = create_window (state, 1);
 
   if (plymouth_should_show_default_splash (state))
     show_default_splash (state);

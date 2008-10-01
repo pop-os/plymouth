@@ -492,12 +492,6 @@ main (int    argc,
       return errno;
     }
 
-  if (!ply_window_take_console (state.window))
-    {
-      perror ("could not switch console to window vt");
-      return errno;
-    }
-
   ply_window_attach_to_event_loop (state.window, state.loop);
   ply_window_set_escape_handler (state.window,
                                  (ply_window_escape_handler_t) on_quit, &state);

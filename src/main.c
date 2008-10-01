@@ -68,7 +68,8 @@ typedef struct
 static ply_boot_splash_t *start_boot_splash (state_t    *state,
                                              const char *module_path);
 
-static ply_window_t *create_window (state_t *state, int vt_number);
+static ply_window_t *create_window (state_t    *state,
+	                            const char *tty_name);
 
 static void
 on_session_output (state_t    *state,
@@ -242,7 +243,7 @@ on_show_splash (state_t *state)
 {
 
   if (state->window == NULL)
-    state->window = create_window (state, 1);
+    state->window = create_window (state, state->console);
 
   if (plymouth_should_show_default_splash (state))
     show_default_splash (state);
@@ -369,12 +370,12 @@ on_escape_pressed (state_t *state)
 
 static ply_window_t *
 create_window (state_t    *state,
-               int         vt_number)
+	       const char *tty_name)
 {
   ply_window_t *window;
 
-  ply_trace ("creating window on vt %d", vt_number);
-  window = ply_window_new (vt_number);
+  ply_trace ("creating window on %s", tty_name != NULL? tty_name : "active vt");
+  window = ply_window_new (tty_name);
 
   ply_trace ("attaching window to event loop");
   ply_window_attach_to_event_loop (window, state->loop);

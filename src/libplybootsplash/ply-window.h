@@ -96,6 +96,7 @@ void ply_window_set_erase_handler (ply_window_t *window,
                                    void         *user_data);
 
 bool ply_window_open (ply_window_t *window);
+bool ply_window_is_open (ply_window_t *window);
 void ply_window_close (ply_window_t *window);
 bool ply_window_set_mode (ply_window_t      *window,
                           ply_window_mode_t  mode);

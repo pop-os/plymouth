@@ -115,6 +115,7 @@ struct _ply_window
   uint32_t should_force_text_mode : 1;
   uint32_t original_term_attributes_saved : 1;
   uint32_t supports_text_color : 1;
+  uint32_t is_open : 1;
 
   ply_window_keyboard_input_handler_t keyboard_input_handler;
   void *keyboard_input_handler_user_data;
@@ -502,12 +503,22 @@ ply_window_open (ply_window_t *window)
    */
   ply_frame_buffer_open (window->frame_buffer);
 
+  window->is_open = true;
+
   return true;
+}
+
+bool
+ply_window_is_open (ply_window_t *window)
+{
+  return window->is_open;
 }
 
 void
 ply_window_close (ply_window_t *window)
 {
+  window->is_open = false;
+
   ply_window_restore_color_palette (window);
 
   if (ply_frame_buffer_device_is_open (window->frame_buffer))

@@ -228,6 +228,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
   ply_window_set_keyboard_input_handler (plugin->window, NULL, NULL);
   ply_window_set_backspace_handler (plugin->window, NULL, NULL);
   ply_window_set_enter_handler (plugin->window, NULL, NULL);
+  ply_window_clear_screen (plugin->window);
 
   ply_event_loop_stop_watching_for_exit (plugin->loop,
                                          (ply_event_loop_exit_handler_t)

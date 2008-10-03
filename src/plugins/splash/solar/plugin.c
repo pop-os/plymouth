@@ -50,23 +50,30 @@
 #include "ply-logger.h"
 #include "ply-frame-buffer.h"
 #include "ply-image.h"
+#include "ply-trigger.h"
 #include "ply-utils.h"
 #include "ply-window.h"
 
 #include <linux/kd.h>
 
 #ifndef FRAMES_PER_SECOND
-#define FRAMES_PER_SECOND 50
+#define FRAMES_PER_SECOND 20
 #endif
 
 #define FLARE_FRAMES_PER_SECOND 10
 #define FLARE_COUNT 60
 #define FLARE_LINE_COUNT 4
 
+/*you can comment one or both of these out*/
+#define SHOW_PLANETS 
+#define SHOW_COMETS
+
+
 typedef enum
 {
   SPRITE_TYPE_STATIC,
   SPRITE_TYPE_FLARE,
+  SPRITE_TYPE_PROGRESS,
 } sprite_type_t;
 
 typedef struct
@@ -79,7 +86,6 @@ typedef struct
   int oldz;
   int refresh_me;
   float opacity;
-  float brightness;
   ply_image_t *image;
   sprite_type_t type;
   void* data;
@@ -100,6 +106,26 @@ typedef struct
   int frame_count;
 } flare_t;
 
+typedef enum
+{
+  PROGRESS_TYPE_PLANET,
+  PROGRESS_TYPE_COMET,
+} progress_type_t;
+
+typedef struct
+{
+  progress_type_t type;
+  int start_x;
+  int start_y;
+  int end_x;
+  int end_y;
+  int distance;
+  double theta;
+  ply_image_t *image;
+  ply_image_t *image_altered;
+} progress_t;
+
+
 
 struct _ply_boot_splash_plugin
 {
@@ -111,6 +137,13 @@ struct _ply_boot_splash_plugin
   ply_image_t *box_image;
   ply_image_t *background_image;
   ply_image_t *star_image;
+  
+#ifdef  SHOW_PLANETS
+  ply_image_t *planet_image[5];
+#endif
+#ifdef  SHOW_COMETS
+  ply_image_t *comet_image[1];
+#endif
 
   ply_image_t *scaled_background_image;
 
@@ -125,6 +158,9 @@ struct _ply_boot_splash_plugin
   ply_list_t *sprites;
 
   double now;
+  
+  double progress;
+  double progress_target;
 
   uint32_t root_is_mounted : 1;
   uint32_t is_visible : 1;
@@ -146,10 +182,22 @@ create_plugin (void)
   plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/lock.png");
   plugin->box_image = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/box.png");
   plugin->background_image = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/background.png"); 
-  plugin->star_image = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/star.png"); 
+  plugin->star_image = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/star.png");
+#ifdef  SHOW_PLANETS
+  plugin->planet_image[0] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/planet1.png");
+  plugin->planet_image[1] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/planet2.png");
+  plugin->planet_image[2] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/planet3.png");
+  plugin->planet_image[3] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/planet4.png");
+  plugin->planet_image[4] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/planet5.png");
+#endif
+#ifdef  SHOW_COMETS
+  plugin->comet_image[0] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/comet1.png");
+#endif
   plugin->entry = ply_entry_new (PLYMOUTH_IMAGE_DIR "solar");
   plugin->label = ply_label_new ();
   plugin->sprites = ply_list_new();
+  plugin->progress = 0;
+  plugin->progress_target = 0;
   return plugin;
 }
 
@@ -185,6 +233,16 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 
   ply_image_free (plugin->background_image);
   ply_image_free (plugin->star_image);
+#ifdef  SHOW_PLANETS
+  ply_image_free (plugin->planet_image[0]);
+  ply_image_free (plugin->planet_image[1]);
+  ply_image_free (plugin->planet_image[2]);
+  ply_image_free (plugin->planet_image[3]);
+  ply_image_free (plugin->planet_image[4]);
+#endif
+#ifdef  SHOW_COMETS
+  ply_image_free (plugin->comet_image[0]);
+#endif
 
   ply_entry_free (plugin->entry);
   ply_label_free (plugin->label);
@@ -206,6 +264,8 @@ free_sprite (sprite_t* sprite)
     {
       switch (sprite->type){
           case SPRITE_TYPE_STATIC:
+              break;
+          case SPRITE_TYPE_PROGRESS:
               break;
           case SPRITE_TYPE_FLARE:
             {
@@ -236,7 +296,6 @@ add_sprite (ply_boot_splash_plugin_t *plugin, ply_image_t *image, int type, void
  new_sprite->oldz = 0;
  new_sprite->opacity = 1;
  new_sprite->refresh_me = 1;
- new_sprite->brightness = 1;
  new_sprite->image = image;
  new_sprite->type = type;
  new_sprite->data = data;
@@ -265,17 +324,23 @@ static void
 flare_update (sprite_t* sprite, double time);
 
 static void
+progress_move (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time);
+
+static void
 sprite_move (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
 {
   sprite->oldx = sprite->x;
   sprite->oldy = sprite->y;
   sprite->oldz = sprite->z;
   switch (sprite->type){
-    case SPRITE_TYPE_STATIC:
-        break;
-    case SPRITE_TYPE_FLARE:
-        flare_update (sprite, time);
-        break;
+      case SPRITE_TYPE_STATIC:
+          break;
+      case SPRITE_TYPE_FLARE:
+          flare_update (sprite, time);
+          break;
+      case SPRITE_TYPE_PROGRESS:
+          progress_move (plugin, sprite, time);
+          break;
     }
 }
 int sprite_compare_z(void *data_a, void *data_b)
@@ -284,6 +349,111 @@ int sprite_compare_z(void *data_a, void *data_b)
  sprite_t *sprite_b = data_b;
  return sprite_a->z - sprite_b->z;
 }
+
+
+
+static void
+progress_move (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
+{
+  progress_t *progress = sprite->data;
+  ply_frame_buffer_area_t screen_area;
+  
+  ply_frame_buffer_get_size (plugin->frame_buffer, &screen_area);
+
+  int width = ply_image_get_width (sprite->image);
+  int height = ply_image_get_height (sprite->image);
+
+  sprite->x=cos(progress->theta+(1-plugin->progress)*5000/(progress->distance))*progress->distance;
+  sprite->y=sin(progress->theta+(1-plugin->progress)*5000/(progress->distance))*progress->distance;
+  sprite->z=0;
+
+  float distance = sqrt(sprite->z*sprite->z+sprite->y*sprite->y);
+  float angle_zy = atan2 (sprite->y, sprite->z)-M_PI*0.4;
+  sprite->z = distance* cos(angle_zy);
+  sprite->y = distance* sin(angle_zy);
+
+  float angle_offset = atan2 (sprite->x, sprite->y);
+  float cresent_angle = atan2 (sqrt(sprite->x*sprite->x+sprite->y*sprite->y), sprite->z);
+  
+  sprite->x+=(float)progress->end_x*plugin->progress+(float)progress->start_x*(1-plugin->progress)-width/2;
+  sprite->y+=(float)progress->end_y*plugin->progress+(float)progress->start_y*(1-plugin->progress)-height/2;
+  
+  if (sprite->x > (signed int)screen_area.width) return;
+  if (sprite->y > (signed int)screen_area.height) return;
+  
+  if (progress->type == PROGRESS_TYPE_PLANET)
+    {
+      int x, y, z;
+
+      uint32_t *image_data = ply_image_get_data (progress->image);
+      uint32_t *cresent_data = ply_image_get_data (progress->image_altered);
+
+      for (y=0; y<height; y++) for (x=0; x<width; x++)
+        {
+      
+          float fx = x-(float)width/2;
+          float fy = y-(float)height/2;
+          float angle = atan2 (fy, fx)+angle_offset;
+          float distance = sqrt(fy*fy+fx*fx);
+          fx = cos(angle)*(distance/(width/2));
+          fy = sin(angle)*(distance/(height/2));
+          float want_y = sqrt(1-fx*fx);
+          want_y *= -cos(cresent_angle);
+          if (fy<want_y)
+            {
+              cresent_data[x+y*width] = image_data[x+y*width];
+            }
+          else
+            {
+              int strength =(fy-want_y)*16+2;
+              uint32_t val =0;
+              int alpha = ((image_data[x+y*width]>>24) & 0xFF);
+              if (strength<=0)strength=1;
+              if (strength>=8)strength=8;
+              val |= (((image_data[x+y*width]>>24) & 0xFF)/1)<<24;
+              val |= (((image_data[x+y*width]>>16) & 0xFF)/strength)<<16;
+              val |= (((image_data[x+y*width]>>8 ) & 0xFF)/strength)<<8;
+              val |= (((image_data[x+y*width]>>0 ) & 0xFF)/strength+(alpha-alpha/(strength))/8)<<0;
+              cresent_data[x+y*width] =val;
+            }
+        }
+    }
+  
+  if (progress->type == PROGRESS_TYPE_COMET)
+    {
+      int x, y, z;
+
+      uint32_t *image_data = ply_image_get_data (progress->image);
+      uint32_t *comet_data = ply_image_get_data (progress->image_altered);
+
+      for (y=0; y<height; y++) for (x=0; x<width; x++)
+        {
+          float scale= cos(M_PI*0.4);
+          float fx=x;
+          float fy=y;
+          fx -= (float) width/2;
+          fy -= (float) height/2;
+          fy /= scale;
+          float angle = atan2 (fy, fx)-(progress->theta+(1-plugin->progress)*5000/(progress->distance));
+          float distance = sqrt(fy*fy+fx*fx);
+          fx = cos(angle)*distance;
+          fy = sin(angle)*distance;
+          fx += (float) width/2;
+          fy += (float) height/2;
+          int ix=fx;
+          int iy=fy;
+          if (ix<0 || iy<0 || ix>=width || iy>=height){
+          comet_data[x+y*width] = 0;
+            }
+          else
+            {
+              comet_data[x+y*width] = image_data[ix+iy*width];
+            }
+        }
+    }
+  return;
+}
+
 
 
 static void
@@ -385,11 +555,11 @@ flare_update (sprite_t* sprite, double time)
               z = distance* sin(angle);
 
 
-              x*=34.1;
-              y*=34.1;
+              x*=32.3;
+              y*=32.3;
 
-              x+=574-640+width;
-              y+=328-512+height;
+              x+=579-640+width;
+              y+=306-480+height;
 
               ix=x;
               iy=y;
@@ -441,6 +611,7 @@ animate_attime (ply_boot_splash_plugin_t *plugin, double time)
   ply_list_node_t *node;
   long width, height;
 
+  plugin->progress = (plugin->progress*10 + plugin->progress_target) /11;
   node = ply_list_get_first_node (plugin->sprites);
   while(node)
     {
@@ -502,6 +673,14 @@ on_timeout (ply_boot_splash_plugin_t *plugin)
                                     sleep_time,
                                     (ply_event_loop_timeout_handler_t)
                                     on_timeout, plugin);
+}
+
+void
+on_boot_progress (ply_boot_splash_plugin_t *plugin,
+                  double                    duration,
+                  double                    percent_done)
+{
+  plugin->progress_target = percent_done;
 }
 
 void 
@@ -681,41 +860,72 @@ setup_solar (ply_boot_splash_plugin_t *plugin)
   ply_frame_buffer_area_t screen_area;
   sprite_t *sprite;
   int i;
-  float scalar;
-  int sword_width;
-  int star_size;
-  int offset_x;
   int x, y;
   int width = 290;
   int height = 410;
 
-   ply_frame_buffer_get_size (plugin->frame_buffer, &screen_area);
-   plugin->scaled_background_image = ply_image_resize (plugin->background_image, screen_area.width, screen_area.height);
-   sprite = add_sprite (plugin, plugin->scaled_background_image, SPRITE_TYPE_STATIC, NULL);
-   sprite->z=-2000;
+  ply_frame_buffer_get_size (plugin->frame_buffer, &screen_area);
+  plugin->scaled_background_image = ply_image_resize (plugin->background_image, screen_area.width, screen_area.height);
+  sprite = add_sprite (plugin, plugin->scaled_background_image, SPRITE_TYPE_STATIC, NULL);
+  sprite->z=-10000;
 
-   sprite = add_sprite (plugin, plugin->logo_image, SPRITE_TYPE_STATIC, NULL);
-   sprite->z=-900;
+  sprite = add_sprite (plugin, plugin->logo_image, SPRITE_TYPE_STATIC, NULL);
+  sprite->x=10;
+  sprite->y=10;
+  sprite->z=-900;
 
-   sprite = add_sprite (plugin, plugin->star_image, SPRITE_TYPE_STATIC, NULL);
-   sprite->x=screen_area.width-ply_image_get_width(plugin->star_image);
-   sprite->y=screen_area.height-ply_image_get_height(plugin->star_image);
-   sprite->z=-1001;
+  sprite = add_sprite (plugin, plugin->star_image, SPRITE_TYPE_STATIC, NULL);
+  sprite->x=screen_area.width-ply_image_get_width(plugin->star_image);
+  sprite->y=screen_area.height-ply_image_get_height(plugin->star_image);
+  sprite->z=0;
+#ifdef  SHOW_PLANETS
+  for (i=0; i<5; i++)
+    {
+       progress_t* progress = malloc(sizeof(progress_t));
+       progress->type=PROGRESS_TYPE_PLANET;
+       progress->end_x=progress->start_x=579-640+screen_area.width;
+       progress->end_y=progress->start_y=306-480+screen_area.height;
 
-   flare_t *flare = malloc(sizeof(flare_t));
+       progress->distance=i*100+280;
+       progress->theta=M_PI*0.8;
+       progress->image=plugin->planet_image[i];
+       progress->image_altered=ply_image_resize (progress->image, ply_image_get_width(progress->image), ply_image_get_height(progress->image));
+       sprite = add_sprite (plugin, progress->image_altered, SPRITE_TYPE_PROGRESS, progress);
+       progress_move (plugin, sprite, 0);
 
-   flare->image_a = ply_image_resize (plugin->star_image, width, height);
-   flare->image_b = ply_image_resize (plugin->star_image, width, height);
+    }
+#endif
+#ifdef  SHOW_COMETS
+  for (i=0; i<1; i++)
+    {
+       progress_t* progress = malloc(sizeof(progress_t));
+       progress->type=PROGRESS_TYPE_COMET;
+       progress->end_x=progress->start_x=579-640+screen_area.width;
+       progress->end_y=progress->start_y=306-480+screen_area.height;
 
-   sprite = add_sprite (plugin, flare->image_a, SPRITE_TYPE_FLARE, flare);
-   sprite->x=screen_area.width-width;
-   sprite->y=screen_area.height-height;
-   sprite->z=-1000;
+       progress->distance=800;
+       progress->theta=M_PI*0.8;
+       progress->image=plugin->comet_image[i];
+       progress->image_altered=ply_image_resize (progress->image, ply_image_get_width(progress->image), ply_image_get_height(progress->image));
+       sprite = add_sprite (plugin, progress->image_altered, SPRITE_TYPE_PROGRESS, progress);
+       progress_move (plugin, sprite, 0);
+     }
+#endif
 
-   sprite_list_sort (plugin);
+  flare_t *flare = malloc(sizeof(flare_t));
 
-   uint32_t * old_image_data = ply_image_get_data (flare->image_a);
-   uint32_t * new_image_data = ply_image_get_data (flare->image_b);
+  flare->image_a = ply_image_resize (plugin->star_image, width, height);
+  flare->image_b = ply_image_resize (plugin->star_image, width, height);
+
+  sprite = add_sprite (plugin, flare->image_a, SPRITE_TYPE_FLARE, flare);
+  sprite->x=screen_area.width-width;
+  sprite->y=screen_area.height-height;
+  sprite->z=1;
+
+  sprite_list_sort (plugin);
+
+  uint32_t * old_image_data = ply_image_get_data (flare->image_a);
+  uint32_t * new_image_data = ply_image_get_data (flare->image_b);
 
 
   for (y = 0; y < height; y++)
@@ -774,6 +984,24 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   ply_trace ("loading star image");
   if (!ply_image_load (plugin->star_image))
     return false;
+
+  ply_trace ("loading planet images");
+#ifdef  SHOW_PLANETS
+  if (!ply_image_load (plugin->planet_image[0]))
+    return false;
+  if (!ply_image_load (plugin->planet_image[1]))
+    return false;
+  if (!ply_image_load (plugin->planet_image[2]))
+    return false;
+  if (!ply_image_load (plugin->planet_image[3]))
+    return false;
+  if (!ply_image_load (plugin->planet_image[4]))
+    return false;
+#endif
+#ifdef  SHOW_COMETS
+  if (!ply_image_load (plugin->comet_image[0]))
+    return false;
+#endif
 
   ply_trace ("loading lock image");
   if (!ply_image_load (plugin->lock_image))
@@ -955,6 +1183,7 @@ ply_boot_splash_plugin_get_interface (void)
       .remove_window = remove_window,
       .show_splash_screen = show_splash_screen,
       .update_status = update_status,
+      .on_boot_progress = on_boot_progress,
       .hide_splash_screen = hide_splash_screen,
       .ask_for_password = ask_for_password,
       .on_root_mounted = on_root_mounted,

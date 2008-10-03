@@ -70,7 +70,7 @@ static ply_boot_splash_t *start_boot_splash (state_t    *state,
                                              const char *module_path);
 
 static ply_window_t *create_window (state_t    *state,
-	                            const char *tty_name);
+                                    const char *tty_name);
 
 static void
 on_session_output (state_t    *state,
@@ -435,12 +435,14 @@ on_escape_pressed (state_t *state)
 
 static ply_window_t *
 create_window (state_t    *state,
-	       const char *tty_name)
+               const char *tty_name)
 {
   ply_window_t *window;
 
   ply_trace ("creating window on %s", tty_name != NULL? tty_name : "active vt");
   window = ply_window_new (tty_name);
+
+  ply_window_attach_to_event_loop (window, state->loop);
 
   return window;
 }
@@ -617,7 +619,7 @@ check_for_consoles (state_t *state)
     }
 
     if (ply_list_get_length (state->windows) == 0)
-      ply_list_append_data (state->windows, ply_window_new ("tty1"));
+      ply_list_append_data (state->windows, create_window (state, "tty1"));
 }
 
 static bool

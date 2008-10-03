@@ -59,6 +59,14 @@
 #define CLEAR_SCREEN_SEQUENCE "\033[2J"
 #endif
 
+#ifndef CLEAR_LINE_SEQUENCE
+#define CLEAR_LINE_SEQUENCE "\033[2K\r\n"
+#endif
+
+#ifndef BACKSPACE
+#define BACKSPACE "\b\033[0K"
+#endif
+
 #ifndef MOVE_CURSOR_SEQUENCE
 #define MOVE_CURSOR_SEQUENCE "\033[%d;%df"
 #endif
@@ -573,6 +581,12 @@ ply_window_set_mode (ply_window_t      *window,
 }
 
 int
+ply_window_get_tty_fd (ply_window_t *window)
+{
+  return window->tty_fd;
+}
+
+int
 ply_window_get_number_of_text_rows (ply_window_t *window)
 {
   return window->number_of_text_rows;
@@ -606,6 +620,18 @@ ply_window_clear_screen (ply_window_t *window)
   write (window->tty_fd, CLEAR_SCREEN_SEQUENCE, strlen (CLEAR_SCREEN_SEQUENCE));
 
   ply_window_set_text_cursor_position (window, 0, 0);
+}
+
+void
+ply_window_clear_text_line (ply_window_t *window)
+{
+  write (window->tty_fd, CLEAR_LINE_SEQUENCE, strlen (CLEAR_LINE_SEQUENCE));
+}
+
+void
+ply_window_clear_text_character (ply_window_t *window)
+{
+  write (window->tty_fd, BACKSPACE, strlen (BACKSPACE));
 }
 
 void

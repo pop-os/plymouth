@@ -37,6 +37,7 @@
 #include "ply-boot-server.h"
 #include "ply-boot-splash.h"
 #include "ply-event-loop.h"
+#include "ply-list.h"
 #include "ply-logger.h"
 #include "ply-terminal-session.h"
 #include "ply-trigger.h"
@@ -50,7 +51,7 @@ typedef struct
 {
   ply_event_loop_t *loop;
   ply_boot_server_t *boot_server;
-  ply_window_t *window;
+  ply_list_t *windows;
   ply_boot_splash_t *boot_splash;
   ply_terminal_session_t *session;
   ply_buffer_t *boot_buffer;
@@ -201,6 +202,30 @@ on_error (state_t *state)
 }
 
 static bool
+has_open_window (state_t *state)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (state->windows);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_window_t *window;
+
+      next_node = ply_list_get_next_node (state->windows, node);
+
+      window = ply_list_node_get_data (node);
+
+      if (ply_window_is_open (window))
+        return true;
+
+      node = next_node;
+    }
+
+  return false;
+}
+
+static bool
 plymouth_should_show_default_splash (state_t *state)
 {
   ply_trace ("checking if plymouth should be running");
@@ -216,7 +241,7 @@ plymouth_should_show_default_splash (state_t *state)
   if (state->console != NULL)
     return false;
 
-  if (state->window == NULL)
+  if (!has_open_window (state))
     return false;
 
   for (i = 0; strings[i] != NULL; i++)
@@ -239,11 +264,57 @@ plymouth_should_show_default_splash (state_t *state)
 }
 
 static void
+open_windows (state_t *state)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (state->windows);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_window_t *window;
+
+      next_node = ply_list_get_next_node (state->windows, node);
+
+      window = ply_list_node_get_data (node);
+
+      if (!ply_window_is_open (window))
+        ply_window_open (window);
+
+      node = next_node;
+    }
+}
+
+static void
+close_windows (state_t *state)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (state->windows);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_window_t *window;
+
+      next_node = ply_list_get_next_node (state->windows, node);
+
+      window = ply_list_node_get_data (node);
+
+      if (ply_window_is_open (window))
+        ply_window_close (window);
+
+      ply_window_free (window);
+
+      node = next_node;
+    }
+
+  ply_list_free (state->windows);
+}
+
+static void
 on_show_splash (state_t *state)
 {
-
-  if (state->window == NULL)
-    state->window = create_window (state, state->console);
+  open_windows (state);
 
   if (plymouth_should_show_default_splash (state))
     show_default_splash (state);
@@ -263,13 +334,7 @@ on_hide_splash (state_t *state)
       state->boot_splash = NULL;
     }
 
-  ply_trace ("closing splash window");
-  if (state->window != NULL)
-    {
-      ply_window_close (state->window);
-      ply_window_free (state->window);
-      state->window = NULL;
-    }
+  close_windows (state);
 
   if (state->session != NULL)
     {
@@ -377,24 +442,36 @@ create_window (state_t    *state,
   ply_trace ("creating window on %s", tty_name != NULL? tty_name : "active vt");
   window = ply_window_new (tty_name);
 
-  ply_trace ("attaching window to event loop");
-  ply_window_attach_to_event_loop (window, state->loop);
-
-  ply_trace ("opening window");
-  if (state->console == NULL && !ply_window_open (window))
-    {
-      ply_save_errno ();
-      ply_trace ("could not open window: %m");
-      ply_window_free (window);
-      ply_restore_errno ();
-      return NULL;
-    }
-
-  ply_trace ("listening for escape key");
-  ply_window_set_escape_handler (window, (ply_window_escape_handler_t)
-                                 on_escape_pressed, state);
-
   return window;
+}
+
+static void
+add_windows_to_boot_splash (state_t           *state,
+                            ply_boot_splash_t *splash)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (state->windows);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_window_t *window;
+
+      next_node = ply_list_get_next_node (state->windows, node);
+
+      window = ply_list_node_get_data (node);
+
+      if (ply_window_is_open (window))
+        {
+          ply_trace ("adding window to boot splash");
+          ply_boot_splash_add_window (splash, window);
+        }
+
+      ply_trace ("listening for escape key");
+      ply_window_set_escape_handler (window, (ply_window_escape_handler_t)
+                                     on_escape_pressed, state);
+      node = next_node;
+    }
 }
 
 static ply_boot_splash_t *
@@ -405,10 +482,22 @@ start_boot_splash (state_t    *state,
 
   ply_trace ("Loading boot splash plugin '%s'",
              module_path);
-  splash = ply_boot_splash_new (module_path, state->window, state->boot_buffer);
+
+  splash = ply_boot_splash_new (module_path, state->boot_buffer);
+
+  if (!ply_boot_splash_load (splash))
+    {
+      ply_save_errno ();
+      ply_boot_splash_free (splash);
+      ply_restore_errno ();
+      return NULL;
+    }
 
   ply_trace ("attaching plugin to event loop");
   ply_boot_splash_attach_to_event_loop (splash, state->loop);
+
+  ply_trace ("adding windows to boot splash");
+  add_windows_to_boot_splash (state, splash);
 
   ply_trace ("showing plugin");
   if (!ply_boot_splash_show (splash))
@@ -498,7 +587,7 @@ check_verbosity (state_t *state)
 }
 
 static void
-check_for_serial_console (state_t *state)
+check_for_consoles (state_t *state)
 {
   char *console_key;
   char *remaining_command_line;
@@ -523,7 +612,12 @@ check_for_serial_console (state_t *state)
           *end = '\0';
           remaining_command_line += end - state->console;
         }
+
+      ply_list_append_data (state->windows, create_window (state, state->console));
     }
+
+    if (ply_list_get_length (state->windows) == 0)
+      ply_list_append_data (state->windows, ply_window_new ("tty1"));
 }
 
 static bool
@@ -562,7 +656,9 @@ initialize_environment (state_t *state)
     return false;
 
   check_verbosity (state);
-  check_for_serial_console (state);
+
+  state->windows = ply_list_new ();
+  check_for_consoles (state);
 
   if (state->console != NULL)
     redirect_standard_io_to_device (state->console);
@@ -691,8 +787,7 @@ main (int    argc,
   ply_boot_splash_free (state.boot_splash);
   state.boot_splash = NULL;
 
-  ply_window_free (state.window);
-  state.window = NULL;
+  ply_list_free (state.windows);
 
   ply_boot_server_free (state.boot_server);
   state.boot_server = NULL;

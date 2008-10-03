@@ -37,8 +37,13 @@ typedef void (* ply_boot_splash_on_idle_handler_t) (void *user_data);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_boot_splash_t *ply_boot_splash_new (const char *module_name,
-                                        ply_window_t *window,
                                         ply_buffer_t *boot_buffer);
+bool ply_boot_splash_load (ply_boot_splash_t *splash);
+void ply_boot_splash_unload (ply_boot_splash_t *splash);
+void ply_boot_splash_add_window (ply_boot_splash_t *splash,
+                                 ply_window_t      *window);
+void ply_boot_splash_remove_window (ply_boot_splash_t *splash,
+                                    ply_window_t      *window);
 void ply_boot_splash_free (ply_boot_splash_t *splash);
 bool ply_boot_splash_show (ply_boot_splash_t *splash);
 void ply_boot_splash_update_status (ply_boot_splash_t *splash,

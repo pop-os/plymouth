@@ -56,7 +56,6 @@ struct _ply_boot_splash
   ply_module_handle_t *module_handle;
   const ply_boot_splash_plugin_interface_t *plugin_interface;
   ply_boot_splash_plugin_t *plugin;
-  ply_window_t *window;
   ply_buffer_t *boot_buffer;
   ply_trigger_t *idle_trigger;
 
@@ -67,6 +66,7 @@ struct _ply_boot_splash
   double start_time;
   double wait_time;
 
+  uint32_t is_loaded : 1;
   uint32_t is_shown : 1;
 };
 
@@ -75,7 +75,6 @@ typedef const ply_boot_splash_plugin_interface_t *
 
 ply_boot_splash_t *
 ply_boot_splash_new (const char   *module_name,
-                     ply_window_t *window,
                      ply_buffer_t *boot_buffer)
 {
   ply_boot_splash_t *splash;
@@ -88,14 +87,27 @@ ply_boot_splash_new (const char   *module_name,
   splash->module_handle = NULL;
   splash->is_shown = false;
 
-  splash->window = window;
   splash->boot_buffer = boot_buffer;
 
   return splash;
 }
 
-static bool
-ply_boot_splash_load_plugin (ply_boot_splash_t *splash)
+void
+ply_boot_splash_add_window (ply_boot_splash_t *splash,
+                            ply_window_t      *window)
+{
+  splash->plugin_interface->add_window (splash->plugin, window);
+}
+
+void
+ply_boot_splash_remove_window (ply_boot_splash_t *splash,
+                               ply_window_t      *window)
+{
+  splash->plugin_interface->remove_window (splash->plugin, window);
+}
+
+bool
+ply_boot_splash_load (ply_boot_splash_t *splash)
 {
   assert (splash != NULL);
   assert (splash->module_name != NULL);
@@ -135,6 +147,8 @@ ply_boot_splash_load_plugin (ply_boot_splash_t *splash)
 
   assert (splash->plugin != NULL);
 
+  splash->is_loaded = true;
+
   return true;
 }
 
@@ -171,8 +185,8 @@ save_boot_duration (ply_boot_splash_t *splash)
     }
 }
 
-static void
-ply_boot_splash_unload_plugin (ply_boot_splash_t *splash)
+void
+ply_boot_splash_unload (ply_boot_splash_t *splash)
 {
   assert (splash != NULL);
   assert (splash->plugin != NULL);
@@ -187,6 +201,8 @@ ply_boot_splash_unload_plugin (ply_boot_splash_t *splash)
   splash->module_handle = NULL;
 
   save_boot_duration (splash);
+
+  splash->is_loaded = false;
 }
 
 void
@@ -196,7 +212,7 @@ ply_boot_splash_free (ply_boot_splash_t *splash)
     return;
 
   if (splash->module_handle != NULL)
-    ply_boot_splash_unload_plugin (splash);
+    ply_boot_splash_unload (splash);
 
   free (splash->module_name);
   free (splash);
@@ -251,20 +267,9 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
   splash->start_time = ply_get_timestamp ();
   splash->boot_duration = DEFAULT_BOOT_DURATION;
 
-  ply_trace ("trying to load %s", splash->module_name);
-  if (!ply_boot_splash_load_plugin (splash))
-    {
-      ply_save_errno ();
-      ply_trace ("can't load plugin: %m");
-      ply_restore_errno ();
-      return false;
-    }
-
   assert (splash->plugin_interface != NULL);
   assert (splash->plugin != NULL);
   assert (splash->plugin_interface->show_splash_screen != NULL);
-
-  splash->plugin_interface->add_window (splash->plugin, splash->window);
 
   ply_trace ("showing splash screen\n");
   if (!splash->plugin_interface->show_splash_screen (splash->plugin,
@@ -378,8 +383,6 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
 
   splash->plugin_interface->hide_splash_screen (splash->plugin,
                                                 splash->loop);
-
-  splash->plugin_interface->remove_window (splash->plugin, splash->window);
 
   splash->is_shown = false;
 
@@ -497,7 +500,14 @@ main (int    argc,
                                  (ply_window_escape_handler_t) on_quit, &state);
 
   state.buffer = ply_buffer_new ();
-  state.splash = ply_boot_splash_new (module_name, state.window, state.buffer);
+  state.splash = ply_boot_splash_new (module_name, state.buffer);
+  if (!ply_boot_splash_load_plugin (state.spalsh))
+    {
+      perror ("could not load splash screen");
+      return errno;
+    }
+
+  ply_boot_splash_add_window (state.window);
   ply_boot_splash_attach_to_event_loop (state.splash, state.loop);
 
   if (!ply_boot_splash_show (state.splash))

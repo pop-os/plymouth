@@ -690,7 +690,7 @@ ply_frame_buffer_area_intersect (ply_frame_buffer_area_t *area1,
                                  ply_frame_buffer_area_t *area2,
                                  ply_frame_buffer_area_t *result)
 {
-  unsigned long x1, y1, x2, y2;
+  long x1, y1, x2, y2;
   long width, height;
 
   if (area1->width == 0)

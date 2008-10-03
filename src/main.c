@@ -288,6 +288,17 @@ on_hide_splash (state_t *state)
     }
 }
 
+#ifdef PLY_ENABLE_GDM_TRANSITION
+static void
+tell_gdm_to_transition (void)
+{
+  int fd;
+
+  fd = creat ("/var/spool/gdm/force-display-on-active-vt", 0644);
+  close (fd);
+}
+#endif
+
 static void
 on_quit (state_t *state,
          bool     retain_splash)
@@ -305,6 +316,8 @@ on_quit (state_t *state,
     }
   ply_trace ("exiting event loop");
   ply_event_loop_exit (state->loop, 0);
+
+  tell_gdm_to_transition ();
 }
 
 static ply_boot_server_t *

@@ -13,7 +13,6 @@ libply_HEADERS = \
 		    ply-array.h                                               \
 		    ply-list.h                                                \
 		    ply-logger.h                                              \
-		    ply-image.h                                               \
 		    ply-terminal.h                                            \
 		    ply-terminal-session.h                                    \
 		    ply-trigger.h                                             \
@@ -32,7 +31,6 @@ libply_la_SOURCES = ply-event-loop.c                                          \
 		    ply-array.c                                               \
 		    ply-list.c                                                \
 		    ply-logger.c                                              \
-		    ply-image.c                                               \
 		    ply-terminal.c                                            \
 		    ply-terminal-session.c                                    \
 		    ply-trigger.c                                             \

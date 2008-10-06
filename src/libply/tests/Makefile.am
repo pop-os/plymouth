@@ -6,7 +6,6 @@ TESTS =
 
 if ENABLE_TESTS
 include $(srcdir)/ply-frame-buffer-test.am
-include $(srcdir)/ply-image-test.am
 include $(srcdir)/ply-terminal-test.am
 include $(srcdir)/ply-terminal-session-test.am
 include $(srcdir)/ply-logger-test.am

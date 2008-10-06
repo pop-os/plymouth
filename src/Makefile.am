@@ -8,7 +8,7 @@ INCLUDES = -I$(top_srcdir)                                                    \
            -DPLYMOUTH_SPOOL_DIRECTORY=\"$(localstatedir)/spool/plymouth\"     \
            -DPLYMOUTH_LOGO_FILE=\"$(logofile)\"
 
-plymouthdbindir = $(libexecdir)/plymouth
+plymouthdbindir = $(plymouthdaemondir)
 plymouthdbin_PROGRAMS = plymouthd
 
 plymouthd_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLYMOUTH_PLUGIN_PATH=\"$(libdir)/plymouth/\"

@@ -71,9 +71,21 @@ if test x$enable_gdm_transition = xyes; then
   AC_DEFINE(PLY_ENABLE_GDM_TRANSITION, 1, [Enable smooth transition to GDM])
 fi
 
-AC_ARG_WITH(boot-entry, AS_HELP_STRING([--with-boot-entry],[create initrd and grub entry]),with_boot_entry=$withval,with_boot_entry=yes)
+AC_ARG_WITH(system-root-install, AC_HELP_STRING([--with-system-root-install], [Install client in /bin and daemon in /sbin]),with_system_root_install=${withval},with_system_root_install=yes)
+AM_CONDITIONAL(WITH_SYSTEM_ROOT_INSTALL,  [test "$with_system_root_install" = yes])
 
-AM_CONDITIONAL(ADD_BOOT_ENTRY,  [test "$with_boot_entry" = yes])
+if test x$with_system_root_install = xyes; then
+  plymouthclientdir=/bin
+  plymouthdaemondir=/sbin
+else
+  plymouthclientdir=$bindir
+  plymouthdaemondir=$sbindir
+fi
+AC_SUBST(plymouthclientdir)
+AC_SUBST(plymouthdaemondir)
+
+AC_ARG_WITH(rhgb-compat-link, AC_HELP_STRING([--with-rhgb-compat-link], [Install /usr/bin/rhgb-client compatability symlink]),with_rhgb_compat_link=${withval},with_rhgb_compat_link=yes)
+AM_CONDITIONAL(WITH_RHGB_COMPAT_LINK,  [test "$with_rhgb_compat_link" = yes])
 
 AC_ARG_WITH(gdm-autostart-file, AS_HELP_STRING([--with-gdm-autostart-file],[start log viewer from gdm on boot errors]),with_gdm_autostart_file=$withval,with_gdm_autostart_file=yes)
 

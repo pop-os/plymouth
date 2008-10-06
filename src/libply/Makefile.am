@@ -2,7 +2,12 @@ SUBDIRS = tests
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)
 
-lib_LTLIBRARIES = libply.la
+if WITH_SYSTEM_ROOT_INSTALL
+librarydir = $(libdir:/usr%=%)
+else
+librarydir = $(libdir)
+endif
+library_LTLIBRARIES = libply.la
 
 libplydir = $(includedir)/plymouth-1/ply
 libply_HEADERS = \

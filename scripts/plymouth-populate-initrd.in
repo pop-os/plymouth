@@ -55,8 +55,8 @@ set_verbose $verbose
 
 [ -z "$INITRDDIR" ] && usage error
 
-inst ${LIBEXECDIR}/plymouth/plymouthd $INITRDDIR /bin/plymouthd
-inst ${BINDIR}/plymouth $INITRDDIR
+inst @plymouthdaemondir@/plymouthd $INITRDDIR /bin/plymouthd
+inst @plymouthclientdir@/plymouth $INITRDDIR
 inst ${LIBDIR}/plymouth/text.so $INITRDDIR
 inst ${LIBDIR}/plymouth/details.so $INITRDDIR
 inst ${PLYMOUTH_LOGO_FILE} $INITRDDIR

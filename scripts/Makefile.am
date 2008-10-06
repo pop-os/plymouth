@@ -10,12 +10,10 @@ plymouth-update-initrd: $(srcdir)/plymouth-update-initrd.in
 	sed -e 's,[@]logofile[@],$(logofile),g' $(srcdir)/plymouth-update-initrd.in > plymouth-update-initrd
 
 plymouth-populate-initrd: $(srcdir)/plymouth-populate-initrd.in
-	sed -e 's,[@]logofile[@],$(logofile),g' $(srcdir)/plymouth-populate-initrd.in > plymouth-populate-initrd
-
-if ADD_BOOT_ENTRY
-install-data-hook: plymouth-update-initrd plymouth-populate-initrd
-	PLYMOUTH_LOGO_FILE=$(DESTDIR)/$(logofile) $(DESTDIR)/$(initrdscriptdir)/plymouth-update-initrd
-endif
+	sed -e 's,[@]logofile[@],$(logofile),g'                                \
+	    -e 's,[@]plymouthclientdir[@],$(plymouthclientdir),g'              \
+	    -e 's,[@]plymouthdaemondir[@],$(plymouthdaemondir),g'              \
+	    $(srcdir)/plymouth-populate-initrd.in > plymouth-populate-initrd
 
 EXTRA_DIST= plymouth-update-initrd.in                                          \
 	    plymouth-populate-initrd.in                                        \

@@ -5,7 +5,7 @@
 [ -z "$LIBEXECDIR" ] && LIBEXECDIR="/usr/libexec"
 [ -z "$DATADIR" ] && DATADIR="/usr/share"
 [ -z "$SYSTEMMAP" ] && SYSTEM_MAP="/boot/System.map-$(/bin/uname -r)"
-[ -z "$LIB" ] && $(echo nash-showelfinterp /usr/bin/plymouth | /sbin/nash --forcequiet | grep -q lib64) && LIB="lib64" || LIB="lib"
+[ -z "$LIB" ] && $(echo nash-showelfinterp @plymouthclientdir@/plymouth | /sbin/nash --forcequiet | grep -q lib64) && LIB="lib64" || LIB="lib"
 [ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
 [ -z "$BINDIR" ] && BINDIR="/usr/bin"
 [ -z "$GRUB_MENU_TITLE" ] && GRUB_MENU_TITLE="Graphical Bootup"

@@ -317,7 +317,9 @@ on_quit (state_t *state,
   ply_trace ("exiting event loop");
   ply_event_loop_exit (state->loop, 0);
 
+#ifdef PLY_ENABLE_GDM_TRANSITION
   tell_gdm_to_transition ();
+#endif
 }
 
 static ply_boot_server_t *

@@ -58,6 +58,7 @@ typedef struct
   long ptmx;
 
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
+  uint32_t no_boot_log : 1;
   uint32_t showing_details : 1;
   uint32_t system_initialized : 1;
 
@@ -520,7 +521,9 @@ attach_to_running_session (state_t *state)
   ply_terminal_session_flags_t flags;
 
   flags = 0;
-  flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
+
+  if (!state->no_boot_log)
+    flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
 
   ply_trace ("creating terminal session for current terminal");
   session = ply_terminal_session_new (NULL);
@@ -531,7 +534,7 @@ attach_to_running_session (state_t *state)
                                  (ply_terminal_session_output_handler_t)
                                  on_session_output,
                                  (ply_terminal_session_done_handler_t)
-                                 on_session_finished,
+                                 (state->no_boot_log? NULL: on_session_finished),
                                  state->ptmx,
                                  state))
     {
@@ -586,6 +589,22 @@ check_verbosity (state_t *state)
     }
   else
     ply_trace ("tracing shouldn't be enabled!");
+}
+
+static void
+check_logging (state_t *state)
+{
+  ply_trace ("checking if console messages should be redirected and logged");
+
+  if ((strstr (state->kernel_command_line, " plymouth:nolog ") != NULL)
+     || (strstr (state->kernel_command_line, "plymouth:nolog ") != NULL)
+     || (strstr (state->kernel_command_line, " plymouth:nolog") != NULL))
+    {
+      ply_trace ("logging should be enabled!");
+      state->no_boot_log = true;
+    }
+  else
+    ply_trace ("logging shouldn't be enabled!");
 }
 
 static void
@@ -658,6 +677,7 @@ initialize_environment (state_t *state)
     return false;
 
   check_verbosity (state);
+  check_logging (state);
 
   state->windows = ply_list_new ();
   check_for_consoles (state);

@@ -633,6 +633,12 @@ check_for_consoles (state_t *state)
           remaining_command_line += end - state->console;
         }
 
+      if (strcmp (state->console, "tty0") == 0 || strcmp (state->console, "/dev/tty0") == 0)
+        {
+          free (state->console);
+          state->console = strdup ("tty1");
+        }
+
       ply_list_append_data (state->windows, create_window (state, state->console));
     }
 

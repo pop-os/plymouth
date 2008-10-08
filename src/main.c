@@ -468,11 +468,10 @@ add_windows_to_boot_splash (state_t           *state,
         {
           ply_trace ("adding window to boot splash");
           ply_boot_splash_add_window (splash, window);
+          ply_trace ("listening for escape key");
+          ply_window_set_escape_handler (window, (ply_window_escape_handler_t)
+                                         on_escape_pressed, state);
         }
-
-      ply_trace ("listening for escape key");
-      ply_window_set_escape_handler (window, (ply_window_escape_handler_t)
-                                     on_escape_pressed, state);
       node = next_node;
     }
 }

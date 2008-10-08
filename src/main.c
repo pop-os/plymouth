@@ -454,6 +454,8 @@ add_windows_to_boot_splash (state_t           *state,
 {
   ply_list_node_t *node;
 
+  ply_trace ("There are %d windows in list",
+             ply_list_get_length (state->windows));
   node = ply_list_get_first_node (state->windows);
   while (node != NULL)
     {

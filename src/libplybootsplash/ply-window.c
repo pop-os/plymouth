@@ -442,6 +442,8 @@ ply_window_look_up_geometry (ply_window_t *window)
     if (ioctl (window->tty_fd, TIOCGWINSZ, &window_size) < 0)
       {
         ply_trace ("could not read window text geometry: %m");
+        window->number_of_text_columns = 80;
+        window->number_of_text_rows = 24;
         return false;
       }
 
@@ -474,19 +476,19 @@ ply_window_open (ply_window_t *window)
       window->tty_name = strdup (tty_name);
     }
 
+  ply_trace ("trying to open window '%s'", window->tty_name);
+
   window->tty_fd = open (window->tty_name, O_RDWR | O_NOCTTY);
 
   if (window->tty_fd < 0)
     return false;
 
   if (!ply_window_set_unbuffered_input (window))
-    return false;
+    ply_trace ("window '%s' will be line buffered", window->tty_name);
 
-  if (!ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT))
-    return false;
+  ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
 
-  if (!ply_window_look_up_geometry (window))
-    return false;
+  ply_window_look_up_geometry (window);
 
   ply_window_look_up_color_palette (window);
   ply_window_save_color_palette (window);

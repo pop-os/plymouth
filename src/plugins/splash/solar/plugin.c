@@ -63,11 +63,13 @@
 #define FLARE_FRAMES_PER_SECOND 10
 #define FLARE_COUNT 60
 #define FLARE_LINE_COUNT 4
+#define HALO_BLUR 6
 
 /*you can comment one or both of these out*/
 /*#define SHOW_PLANETS */
 #define SHOW_COMETS
 #define SHOW_PROGRESS_BAR
+/*#define SHOW_PROGRESS_BAR_HALO */
 
 
 typedef enum
@@ -159,9 +161,13 @@ struct _ply_boot_splash_plugin
   ply_image_t *progress_box_image;
   ply_image_t *progress_barimage;
   ply_image_t *scaled_progress_box_image;
+#ifdef  SHOW_PROGRESS_BAR_HALO
+  ply_image_t *highlight_scaled_progress_box_image;
+#endif
 #endif
 
   ply_image_t *scaled_background_image;
+  ply_image_t *highlight_logo_image;
 
   ply_window_t *window;
 
@@ -255,6 +261,9 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 #ifdef  SHOW_PROGRESS_BAR
   ply_image_free (plugin->progress_box_image);
   ply_image_free (plugin->progress_barimage);
+#ifdef SHOW_PROGRESS_BAR_HALO  
+  ply_image_free (plugin->highlight_scaled_progress_box_image);
+#endif
 #endif
 
   ply_entry_free (plugin->entry);
@@ -775,8 +784,13 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
     }
 
   ply_image_free(plugin->scaled_background_image);
+  ply_image_free(plugin->highlight_logo_image);
 #ifdef  SHOW_PROGRESS_BAR
   ply_image_free(plugin->scaled_progress_box_image);
+  
+#ifdef SHOW_PROGRESS_BAR_HALO
+  ply_image_free(plugin->highlight_scaled_progress_box_image);
+#endif
 #endif
   
   for(node = ply_list_get_first_node (plugin->sprites); node; node = ply_list_get_next_node (plugin->sprites, node))
@@ -907,6 +921,43 @@ remove_window (ply_boot_splash_plugin_t *plugin,
   plugin->window = NULL;
 }
 
+void highlight_image (ply_image_t *highlighted_image, ply_image_t *orig_image, int distance)
+{
+ int x, y;
+ int orig_width = ply_image_get_width(orig_image);
+ int orig_height = ply_image_get_height(orig_image);
+ int width = ply_image_get_width(highlighted_image);
+ int height = ply_image_get_height(highlighted_image);
+ 
+ int x_offset = (orig_width- width)/2;
+ int y_offset = (orig_height-height)/2;
+ uint32_t *highlighted_image_data = ply_image_get_data (highlighted_image);
+ uint32_t *orig_image_data = ply_image_get_data (orig_image);
+ 
+ for (x=0; x<width; x++)
+ for (y=0; y<height; y++){
+    int best=0;
+    int subx, suby;
+    int min_x= MAX(-distance, -x-x_offset);
+    int max_x= MIN(distance, orig_width-x-x_offset);
+    int min_y= MAX(-distance, -y-y_offset);
+    int max_y= MIN(distance, orig_height-y-y_offset);
+    for (subx=min_x; subx<max_x; subx++){
+    for (suby=min_y; suby<max_y; suby++){
+        uint32_t pixel = orig_image_data[x+subx+x_offset + (y+suby+y_offset) * orig_width];
+        float current = 1-(sqrt((subx*subx)+(suby*suby))+1)/(distance+3);
+        current*=pixel>>24;
+        if (current>best) best=current;
+        }
+        if (best >=255) break;
+    }
+    uint32_t val = best<<24|best<<16|best<<8|best;
+    highlighted_image_data[x + y * width] = val;
+    }
+ 
+ 
+}
+
 void 
 setup_solar (ply_boot_splash_plugin_t *plugin)
 {
@@ -926,6 +977,12 @@ setup_solar (ply_boot_splash_plugin_t *plugin)
   sprite->x=10;
   sprite->y=10;
   sprite->z=-900;
+  plugin->highlight_logo_image = ply_image_resize (plugin->logo_image, ply_image_get_width(plugin->logo_image)+HALO_BLUR*2, ply_image_get_height(plugin->logo_image)+HALO_BLUR*2);
+  highlight_image (plugin->highlight_logo_image, plugin->logo_image, HALO_BLUR);
+  sprite = add_sprite (plugin, plugin->highlight_logo_image, SPRITE_TYPE_STATIC, NULL);
+  sprite->x=10-HALO_BLUR;
+  sprite->y=10-HALO_BLUR;
+  sprite->z=-910;
 
   sprite = add_sprite (plugin, plugin->star_image, SPRITE_TYPE_STATIC, NULL);
   sprite->x=screen_area.width-ply_image_get_width(plugin->star_image);
@@ -975,8 +1032,18 @@ setup_solar (ply_boot_splash_plugin_t *plugin)
   sprite = add_sprite (plugin, plugin->scaled_progress_box_image, SPRITE_TYPE_STATIC, NULL);
   sprite->x=x;
   sprite->y=y;
+  sprite->z=10010;
+  
+#ifdef SHOW_PROGRESS_BAR_HALO  
+  plugin->highlight_scaled_progress_box_image = ply_image_resize (plugin->scaled_progress_box_image, ply_image_get_width(plugin->scaled_progress_box_image)+HALO_BLUR*2, ply_image_get_height(plugin->scaled_progress_box_image)+HALO_BLUR*2);
+  highlight_image (plugin->highlight_scaled_progress_box_image, plugin->scaled_progress_box_image, HALO_BLUR);
+  
+  sprite = add_sprite (plugin, plugin->highlight_scaled_progress_box_image, SPRITE_TYPE_STATIC, NULL);
+  sprite->x=x-HALO_BLUR;
+  sprite->y=y-HALO_BLUR;
   sprite->z=10000;
   
+#endif
   
   progress_t* progress = malloc(sizeof(progress_t));
   

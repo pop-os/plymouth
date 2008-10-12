@@ -893,7 +893,9 @@ ply_event_loop_stop_watching_for_timeout (ply_event_loop_t *loop,
                                           void             *user_data)
 {
   ply_list_node_t *node;
-
+  
+  loop->wakeup_time = PLY_EVENT_LOOP_NO_TIMED_WAKEUP;
+  
   node = ply_list_get_first_node (loop->timeout_watches);
   while (node != NULL)
     {
@@ -907,6 +909,12 @@ ply_event_loop_stop_watching_for_timeout (ply_event_loop_t *loop,
           timeout_watch->user_data == user_data) {
               ply_list_remove_node (loop->timeout_watches, node);
               free (timeout_watch);
+      }
+      else {
+        if (fabs (loop->wakeup_time - PLY_EVENT_LOOP_NO_TIMED_WAKEUP) <= 0)
+          loop->wakeup_time = timeout_watch->timeout;
+        else
+          loop->wakeup_time = MIN (loop->wakeup_time, timeout_watch->timeout);
       }
 
       node = next_node;
@@ -1122,6 +1130,7 @@ ply_event_loop_handle_timeouts (ply_event_loop_t *loop)
 
   now = ply_get_timestamp ();
   node = ply_list_get_first_node (loop->timeout_watches);
+  loop->wakeup_time=PLY_EVENT_LOOP_NO_TIMED_WAKEUP;
   while (node != NULL)
     {
       ply_list_node_t *next_node;
@@ -1137,12 +1146,16 @@ ply_event_loop_handle_timeouts (ply_event_loop_t *loop)
           free (watch);
           ply_list_remove_node (loop->timeout_watches, node);
         }
+      else {
+          if (fabs (loop->wakeup_time - PLY_EVENT_LOOP_NO_TIMED_WAKEUP) <= 0)
+            loop->wakeup_time = watch->timeout;
+          else
+            loop->wakeup_time = MIN (loop->wakeup_time, watch->timeout);
+        }
 
       node = next_node;
     }
 
-  if (ply_list_get_length (loop->timeout_watches) == 0)
-    loop->wakeup_time = PLY_EVENT_LOOP_NO_TIMED_WAKEUP;
 }
 
 static void

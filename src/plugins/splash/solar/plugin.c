@@ -57,13 +57,13 @@
 #include <linux/kd.h>
 
 #ifndef FRAMES_PER_SECOND
-#define FRAMES_PER_SECOND 20
+#define FRAMES_PER_SECOND 50
 #endif
 
-#define FLARE_FRAMES_PER_SECOND 10
+#define FLARE_FRAMES_PER_SECOND 25
 #define FLARE_COUNT 60
 #define FLARE_LINE_COUNT 4
-#define HALO_BLUR 6
+#define HALO_BLUR 4
 
 /*you can comment one or both of these out*/
 /*#define SHOW_PLANETS */
@@ -755,11 +755,6 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   ply_frame_buffer_get_size (plugin->frame_buffer, &area);
 
   plugin->now = ply_get_timestamp ();
-  ply_event_loop_watch_for_timeout (plugin->loop, 
-                                    1.0 / FRAMES_PER_SECOND,
-                                    (ply_event_loop_timeout_handler_t)
-                                    on_timeout, plugin);
-
   setup_solar (plugin);
   on_timeout (plugin);
   ply_window_draw_area (plugin->window, area.x, area.y, area.width, area.height);
@@ -945,7 +940,7 @@ void highlight_image (ply_image_t *highlighted_image, ply_image_t *orig_image, i
     for (subx=min_x; subx<max_x; subx++){
     for (suby=min_y; suby<max_y; suby++){
         uint32_t pixel = orig_image_data[x+subx+x_offset + (y+suby+y_offset) * orig_width];
-        float current = 1-(sqrt((subx*subx)+(suby*suby))+1)/(distance+3);
+        float current = 1-(sqrt((subx*subx)+(suby*suby))+1)/(distance+2);
         current*=pixel>>24;
         if (current>best) best=current;
         }

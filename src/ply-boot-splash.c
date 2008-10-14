@@ -516,7 +516,7 @@ main (int    argc,
       return errno;
     }
 
-  ply_boot_splash_add_window (state.window);
+  ply_boot_splash_add_window (state.splash, state.window);
   ply_boot_splash_attach_to_event_loop (state.splash, state.loop);
 
   if (!ply_boot_splash_show (state.splash))

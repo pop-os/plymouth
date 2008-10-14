@@ -510,7 +510,7 @@ main (int    argc,
 
   state.buffer = ply_buffer_new ();
   state.splash = ply_boot_splash_new (module_name, state.buffer);
-  if (!ply_boot_splash_load_plugin (state.splash))
+  if (!ply_boot_splash_load (state.splash))
     {
       perror ("could not load splash screen");
       return errno;

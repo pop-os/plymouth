@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.  
+ * 02111-1307, USA.
  *
  * Written by: Ray Strode <rstrode@redhat.com>
  */
@@ -38,19 +38,19 @@
 
 #include "ply-utils.h"
 
-#ifndef PLY_LOGGER_OPEN_FLAGS 
+#ifndef PLY_LOGGER_OPEN_FLAGS
 #define PLY_LOGGER_OPEN_FLAGS (O_WRONLY | O_TRUNC | O_CREAT | O_NOFOLLOW)
 #endif
 
 #ifndef PLY_LOGGER_MAX_INJECTION_SIZE
 #define PLY_LOGGER_MAX_INJECTION_SIZE 4096
-#endif 
+#endif
 
 #ifndef PLY_LOGGER_MAX_BUFFER_CAPACITY
 #define PLY_LOGGER_MAX_BUFFER_CAPACITY (8 * 4096)
 #endif
 
-struct _ply_logger 
+struct _ply_logger
 {
   int output_fd;
   char *filename;
@@ -101,7 +101,7 @@ ply_logger_write_exception (ply_logger_t   *logger,
     return;
 
   message = NULL;
-  asprintf (&message, 
+  asprintf (&message,
             "[couldn't write a log entry: %s]\n%n",
             string, &number_of_bytes);
 
@@ -188,7 +188,7 @@ ply_logger_decapitate_buffer (ply_logger_t *logger,
     }
 }
 
-static bool 
+static bool
 ply_logger_buffer (ply_logger_t *logger,
                    const char   *string,
                    size_t        length)
@@ -200,7 +200,7 @@ ply_logger_buffer (ply_logger_t *logger,
       if (!ply_logger_increase_buffer_size (logger))
         {
           ply_logger_decapitate_buffer (logger, length);
-          
+
           if ((logger->buffer_size + length) >= logger->buffer_capacity)
             if (!ply_logger_increase_buffer_size (logger))
               return false;
@@ -209,7 +209,7 @@ ply_logger_buffer (ply_logger_t *logger,
 
   assert (logger->buffer_size + length < logger->buffer_capacity);
 
-  memcpy (logger->buffer + logger->buffer_size, 
+  memcpy (logger->buffer + logger->buffer_size,
           string, length);
 
   logger->buffer_size += length;
@@ -259,7 +259,7 @@ ply_logger_get_error_default (void)
     {
       logger = ply_logger_new ();
       ply_logger_set_output_fd (logger, STDERR_FILENO);
-      ply_logger_set_flush_policy (logger, 
+      ply_logger_set_flush_policy (logger,
                                    PLY_LOGGER_FLUSH_POLICY_EVERY_TIME);
     }
 
@@ -284,7 +284,7 @@ ply_logger_free (ply_logger_t *logger)
   free (logger);
 }
 
-bool 
+bool
 ply_logger_open_file (ply_logger_t    *logger,
                       const char      *filename,
                       bool             world_readable)
@@ -326,7 +326,7 @@ ply_logger_close_file (ply_logger_t *logger)
   ply_logger_set_output_fd (logger, -1);
 }
 
-void 
+void
 ply_logger_set_output_fd (ply_logger_t *logger,
                           int           fd)
 {
@@ -335,7 +335,7 @@ ply_logger_set_output_fd (ply_logger_t *logger,
   logger->output_fd = fd;
 }
 
-int 
+int
 ply_logger_get_output_fd (ply_logger_t *logger)
 {
   assert (logger != NULL);
@@ -343,11 +343,11 @@ ply_logger_get_output_fd (ply_logger_t *logger)
   return logger->output_fd;
 }
 
-bool 
+bool
 ply_logger_flush (ply_logger_t *logger)
 {
   assert (logger != NULL);
-  
+
   if (!ply_logger_is_logging (logger))
     return false;
 
@@ -364,7 +364,7 @@ ply_logger_flush (ply_logger_t *logger)
   return true;
 }
 
-void 
+void
 ply_logger_set_flush_policy (ply_logger_t              *logger,
                              ply_logger_flush_policy_t  policy)
 {
@@ -381,7 +381,7 @@ ply_logger_get_flush_policy (ply_logger_t *logger)
   return logger->flush_policy;
 }
 
-void 
+void
 ply_logger_toggle_logging (ply_logger_t *logger)
 {
   assert (logger != NULL);
@@ -389,7 +389,7 @@ ply_logger_toggle_logging (ply_logger_t *logger)
   logger->is_enabled = !logger->is_enabled;
 }
 
-bool 
+bool
 ply_logger_is_logging (ply_logger_t *logger)
 {
   assert (logger != NULL);
@@ -446,7 +446,7 @@ ply_logger_inject_with_non_literal_format_string (ply_logger_t   *logger,
   string_size = vsnprintf (write_buffer, 0, format, args) + 1;
   va_end (args);
 
-  if (string_size > PLY_LOGGER_MAX_INJECTION_SIZE)  
+  if (string_size > PLY_LOGGER_MAX_INJECTION_SIZE)
     {
       ply_logger_write_exception (logger, "log text too long");
       return;
@@ -461,10 +461,10 @@ ply_logger_inject_with_non_literal_format_string (ply_logger_t   *logger,
 
 }
 
-void 
-ply_logger_inject_bytes (ply_logger_t *logger, 
-		                 const void   *bytes,
-		                 size_t        number_of_bytes)
+void
+ply_logger_inject_bytes (ply_logger_t *logger,
+                         const void   *bytes,
+                         size_t        number_of_bytes)
 {
   assert (logger != NULL);
   assert (bytes != NULL);
@@ -494,18 +494,18 @@ ply_logger_is_tracing_enabled (ply_logger_t *logger)
   assert (logger != NULL);
 
   return logger->tracing_is_enabled != false;
-} 
-#endif /* PLY_ENABLE_TRACING */ 
+}
+#endif /* PLY_ENABLE_TRACING */
 
 #ifdef PLY_LOGGER_ENABLE_TEST
 
 int
-main (int    argc, 
+main (int    argc,
       char **argv)
 {
   int exit_code;
   ply_logger_t *logger;
-  
+
   exit_code = 0;
   logger = ply_logger_new ();
 

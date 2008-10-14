@@ -476,6 +476,7 @@ main (int    argc,
 {
   int exit_code;
   test_state_t state;
+  char *tty_name;
   const char *module_name;
 
   exit_code = 0;
@@ -487,7 +488,15 @@ main (int    argc,
   else
     module_name = "../splash-plugins/fade-in/.libs/fade-in.so";
 
-  state.window = ply_window_new (argc > 2? atoi (argv[2]) : 0);
+  tty_name = strdup("tty");
+  if (argc > 2) {
+      strncat(tty_name, argv[2], strlen(argv[2]));
+  } else {
+      strncat(tty_name, "0", 1);
+  }
+
+  state.window = ply_window_new (tty_name);
+  free(tty_name);
 
   if (!ply_window_open (state.window))
     {

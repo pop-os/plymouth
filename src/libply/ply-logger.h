@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.  
+ * 02111-1307, USA.
  */
 #ifndef PLY_LOGGER_H
 #define PLY_LOGGER_H
@@ -51,16 +51,16 @@ void ply_logger_set_flush_policy (ply_logger_t              *logger,
 ply_logger_flush_policy_t ply_logger_get_flush_policy (ply_logger_t *logger);
 void ply_logger_toggle_logging (ply_logger_t *logger);
 bool ply_logger_is_logging (ply_logger_t *logger);
-void ply_logger_inject_bytes (ply_logger_t *logger, 
-		                      const void   *bytes,
-		                      size_t number_of_bytes);
+void ply_logger_inject_bytes (ply_logger_t *logger,
+                              const void   *bytes,
+                              size_t number_of_bytes);
 #define ply_logger_inject(logger, format, args...)                             \
         ply_logger_inject_with_non_literal_format_string (logger,              \
-                                                          format "", ##args) 
+                                                          format "", ##args)
 __attribute__((__format__ (__printf__, 2, 3)))
 void ply_logger_inject_with_non_literal_format_string (ply_logger_t   *logger,
 		                                       const char *format, ...);
-                                                       
+
 ply_logger_t *ply_logger_get_default (void);
 ply_logger_t *ply_logger_get_error_default (void);
 

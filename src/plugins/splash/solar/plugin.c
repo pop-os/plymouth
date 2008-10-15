@@ -1186,6 +1186,9 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                                (ply_event_handler_t) 
                                on_interrupt, plugin);
 
+  ply_window_clear_screen (plugin->window);
+  ply_window_hide_text_cursor (plugin->window);
+
   ply_trace ("starting boot animation");
 
   start_animation (plugin);

@@ -493,9 +493,6 @@ ply_window_open (ply_window_t *window)
   ply_window_look_up_color_palette (window);
   ply_window_save_color_palette (window);
 
-  ply_window_hide_text_cursor (window);
-  ply_window_set_text_cursor_position (window, 0, 0);
-
   ply_event_loop_watch_signal (window->loop,
                                SIGWINCH,
                                (ply_event_handler_t)

@@ -248,6 +248,9 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                                 (ply_window_erase_handler_t)
                                 on_erase, plugin);
 
+  ply_window_hide_text_cursor (plugin->window);
+  ply_window_set_text_cursor_position (plugin->window, 0, 0);
+
   plugin->loop = loop;
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
                                  detach_from_event_loop,

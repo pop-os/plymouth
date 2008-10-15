@@ -304,12 +304,8 @@ close_windows (state_t *state)
       if (ply_window_is_open (window))
         ply_window_close (window);
 
-      ply_window_free (window);
-
       node = next_node;
     }
-
-  ply_list_free (state->windows);
 }
 
 static void

@@ -27,7 +27,6 @@ aclocal.m4
 stamp-*
 *.rpm
 plymouth
-plymouth-update-initrd
 plymouth-populate-initrd
 plymouthd
 *.pc

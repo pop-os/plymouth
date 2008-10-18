@@ -39,16 +39,12 @@
 #include "ply-logger.h"
 #include "ply-trigger.h"
 #include "ply-utils.h"
+#include "ply-progress.h"
 
 #ifndef UPDATES_PER_SECOND
 #define UPDATES_PER_SECOND 30
 #endif
 
-#ifndef DEFAULT_BOOT_DURATION
-#define DEFAULT_BOOT_DURATION 60.0
-#endif
-
-#define BOOT_DURATION_FILE PLYMOUTH_TIME_DIRECTORY "/boot-duration"
 
 struct _ply_boot_splash
 {
@@ -62,9 +58,7 @@ struct _ply_boot_splash
   char *module_name;
   char *status;
 
-  double boot_duration;
-  double start_time;
-  double wait_time;
+  ply_progress_t *progress;
 
   uint32_t is_loaded : 1;
   uint32_t is_shown : 1;
@@ -152,39 +146,6 @@ ply_boot_splash_load (ply_boot_splash_t *splash)
   return true;
 }
 
-static void
-load_boot_duration (ply_boot_splash_t *splash)
-{
-  FILE *fp;
-  int items_matched;
-
-  fp = fopen (BOOT_DURATION_FILE,"r"); 
-
-  if (fp == NULL)
-    return;
-
-  items_matched = fscanf (fp, "%lf", &splash->boot_duration);
-
-  fclose (fp);
-
-  if (items_matched != 1)
-    splash->boot_duration = DEFAULT_BOOT_DURATION;
-}
-
-static void
-save_boot_duration (ply_boot_splash_t *splash)
-{
-  FILE *fp;
-
-  fp = fopen (BOOT_DURATION_FILE,"w");
-
-  if (fp != NULL)
-    {
-      fprintf (fp, "%.1lf\n", (ply_get_timestamp () - splash->start_time));
-      fclose (fp);
-    }
-}
-
 void
 ply_boot_splash_unload (ply_boot_splash_t *splash)
 {
@@ -199,8 +160,6 @@ ply_boot_splash_unload (ply_boot_splash_t *splash)
   ply_close_module (splash->module_handle);
   splash->plugin_interface = NULL;
   splash->module_handle = NULL;
-
-  save_boot_duration (splash);
 
   splash->is_loaded = false;
 }
@@ -221,31 +180,20 @@ ply_boot_splash_free (ply_boot_splash_t *splash)
 static void
 ply_boot_splash_update_progress (ply_boot_splash_t *splash)
 {
-  double time_in_seconds;
-  double default_percentage;
-  double percentage;
+  double percentage=0.0;
+  double time=0.0;
 
   assert (splash != NULL);
 
-  time_in_seconds = ply_get_timestamp () - splash->start_time;
-
-  default_percentage = time_in_seconds / DEFAULT_BOOT_DURATION;
-  percentage = time_in_seconds / splash->boot_duration;
-
-  /* We intepolate the percentage between the real percentage (based
-   * on what's stored on disk) with the default percentage (based on
-   * a 60 second boot time)
-   *
-   * This is because we initially assume 60 seconds until / is mounted,
-   * and we don't want any large jumps
-   */
-  percentage = percentage * percentage + default_percentage * (1.0 - percentage);
-
-  percentage = CLAMP (percentage, 0.0, 1.0);
+  if (splash->progress)
+    {
+      percentage = ply_progress_get_percentage(splash->progress);
+      time = ply_progress_get_time(splash->progress);
+    }
 
   if (splash->plugin_interface->on_boot_progress != NULL)
     splash->plugin_interface->on_boot_progress (splash->plugin,
-                                                time_in_seconds,
+                                                time,
                                                 percentage);
 
   ply_event_loop_watch_for_timeout (splash->loop,
@@ -253,6 +201,17 @@ ply_boot_splash_update_progress (ply_boot_splash_t *splash)
                                    (ply_event_loop_timeout_handler_t)
                                    ply_boot_splash_update_progress, splash);
 }
+
+void
+ply_boot_splash_attach_progress (ply_boot_splash_t *splash,
+                                      ply_progress_t    *progress)
+{
+  assert (splash != NULL);
+  assert (progress != NULL);
+  assert (splash->progress == NULL);
+  splash->progress = progress;
+}
+
 
 bool
 ply_boot_splash_show (ply_boot_splash_t *splash)
@@ -263,9 +222,6 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
 
   if (splash->is_shown)
     return true;
-
-  splash->start_time = ply_get_timestamp ();
-  splash->boot_duration = DEFAULT_BOOT_DURATION;
 
   assert (splash->plugin_interface != NULL);
   assert (splash->plugin != NULL);
@@ -328,15 +284,13 @@ ply_boot_splash_root_mounted (ply_boot_splash_t *splash)
 
   if (splash->plugin_interface->on_root_mounted != NULL)
     splash->plugin_interface->on_root_mounted (splash->plugin);
-
-  if (splash->plugin_interface->on_boot_progress != NULL)
-    load_boot_duration (splash);
 }
 
 static void
 on_password_answered (ply_boot_splash_t *splash)
 {
-  splash->start_time += (ply_get_timestamp () - splash->wait_time);
+  if (splash->progress)
+    ply_progress_unpause (splash->progress);
 }
 
 void
@@ -356,7 +310,9 @@ ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
       return;
     }
 
-  splash->wait_time = ply_get_timestamp ();
+  if (splash->progress)
+    ply_progress_pause (splash->progress);
+  
   ply_trigger_add_handler (trigger,
                            (ply_trigger_handler_t)
                            on_password_answered, splash);

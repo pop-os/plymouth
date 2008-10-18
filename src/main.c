@@ -42,6 +42,7 @@
 #include "ply-terminal-session.h"
 #include "ply-trigger.h"
 #include "ply-utils.h"
+#include "ply-progress.h"
 
 #ifndef PLY_MAX_COMMAND_LINE_SIZE
 #define PLY_MAX_COMMAND_LINE_SIZE 512
@@ -55,6 +56,7 @@ typedef struct
   ply_boot_splash_t *boot_splash;
   ply_terminal_session_t *session;
   ply_buffer_t *boot_buffer;
+  ply_progress_t *progress;
   long ptmx;
 
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
@@ -79,6 +81,8 @@ on_session_output (state_t    *state,
                    size_t      size)
 {
   ply_buffer_append_bytes (state->boot_buffer, output, size);
+  ply_progress_session_output (state->progress,
+                               output, size);
 
   if (state->boot_splash != NULL)
     ply_boot_splash_update_output (state->boot_splash,
@@ -162,7 +166,7 @@ on_newroot (state_t    *state,
   chdir(root_dir);
   chroot(".");
   chdir("/");
-
+  ply_progress_load_cache (state->progress);
   ply_boot_splash_root_mounted (state->boot_splash);
 }
 
@@ -496,6 +500,9 @@ start_boot_splash (state_t    *state,
   ply_trace ("attaching plugin to event loop");
   ply_boot_splash_attach_to_event_loop (splash, state->loop);
 
+  ply_trace ("attaching progress to plugin");
+  ply_boot_splash_attach_progress (splash, state->progress);
+
   ply_trace ("adding windows to boot splash");
   add_windows_to_boot_splash (state, splash);
 
@@ -805,10 +812,14 @@ main (int    argc,
       return EX_UNAVAILABLE;
     }
 
+  state.progress = ply_progress_new ();
+  ply_progress_load_cache (state.progress);
   ply_trace ("entering event loop");
   exit_code = ply_event_loop_run (state.loop);
   ply_trace ("exited event loop");
 
+  ply_progress_save_cache (state.progress);
+  
   ply_boot_splash_free (state.boot_splash);
   state.boot_splash = NULL;
 
@@ -821,6 +832,7 @@ main (int    argc,
   ply_terminal_session_free (state.session);
 
   ply_buffer_free (state.boot_buffer);
+  ply_progress_free (state.progress);
 
   ply_trace ("freeing event loop");
   ply_event_loop_free (state.loop);

@@ -1,6 +1,7 @@
 SUBDIRS = tests
 INCLUDES = -I$(top_srcdir)                                                    \
-           -I$(srcdir)
+           -I$(srcdir)                                                        \
+           -DPLYMOUTH_TIME_DIRECTORY=\"$(localstatedir)/lib/plymouth/\"       
 
 if WITH_SYSTEM_ROOT_INSTALL
 librarydir = $(libdir:/usr%=%)
@@ -18,6 +19,7 @@ libply_HEADERS = \
 		    ply-array.h                                               \
 		    ply-list.h                                                \
 		    ply-logger.h                                              \
+		    ply-progress.h                                            \
 		    ply-terminal.h                                            \
 		    ply-terminal-session.h                                    \
 		    ply-trigger.h                                             \
@@ -36,6 +38,7 @@ libply_la_SOURCES = ply-event-loop.c                                          \
 		    ply-array.c                                               \
 		    ply-list.c                                                \
 		    ply-logger.c                                              \
+		    ply-progress.c                                            \
 		    ply-terminal.c                                            \
 		    ply-terminal-session.c                                    \
 		    ply-trigger.c                                             \

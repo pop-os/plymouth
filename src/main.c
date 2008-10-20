@@ -373,7 +373,7 @@ on_quit (state_t *state,
   if (state->boot_splash != NULL)
     {
       if (!retain_splash)
-        ply_boot_splash_hide (state->boot_splash);
+        on_hide_splash (state);
       ply_boot_splash_free (state->boot_splash);
       state->boot_splash = NULL;
     }

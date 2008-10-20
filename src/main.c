@@ -335,6 +335,7 @@ on_hide_splash (state_t *state)
       state->boot_splash = NULL;
     }
 
+  ply_trace ("closing windows");
   close_windows (state);
 
   if (state->session != NULL)

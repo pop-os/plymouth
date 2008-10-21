@@ -1224,7 +1224,6 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
 
       if (is_disconnected)
         {
-          source->is_getting_polled = false;
           ply_event_loop_disconnect_source (loop, source);
         }
       else if (ply_event_loop_source_has_met_status (source, status))

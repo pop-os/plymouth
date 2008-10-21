@@ -1116,11 +1116,8 @@ ply_event_loop_disconnect_source (ply_event_loop_t           *loop,
   ply_event_loop_free_destinations_for_source (loop, source);
   assert (ply_list_get_length (source->destinations) == 0);
 
-  if (ply_list_get_length (source->destinations) == 0)
-    {
-      ply_event_loop_remove_source (loop, source);
-      ply_event_source_free (source);
-    }
+  ply_event_loop_remove_source (loop, source);
+  ply_event_source_free (source);
 }
 
 static void

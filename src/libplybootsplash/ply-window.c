@@ -402,8 +402,30 @@ ply_window_set_unbuffered_input (ply_window_t *window)
 static bool
 ply_window_set_buffered_input (ply_window_t *window)
 {
-  if (!window->original_term_attributes_saved)
-    return false;
+  struct termios term_attributes;
+
+  tcgetattr (window->tty_fd, &term_attributes);
+
+  /* If someone already messed with the terminal settings,
+   * and they seem good enough, bail
+   */
+  if (term_attributes.c_lflag & ICANON)
+    return true;
+
+  /* If we don't know the original term attributes, or they were originally sucky,
+   * then invent some that are probably good enough.
+   */
+  if (!window->original_term_attributes_saved || !(window->original_term_attributes.c_lflag & ICANON))
+    {
+       term_attributes.c_iflag |= IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON;
+       term_attributes.c_oflag |= OPOST;
+       term_attributes.c_lflag |= ECHO | ECHONL | ICANON | ISIG | IEXTEN;
+
+       if (tcsetattr (window->tty_fd, TCSAFLUSH, &window->original_term_attributes) != 0)
+           return false;
+
+       return true;
+    }
 
   if (tcsetattr (window->tty_fd, TCSAFLUSH, &window->original_term_attributes) != 0)
     return false;

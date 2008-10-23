@@ -7,6 +7,8 @@ ply_progress_test_LDADD = $(PLYMOUTH_LIBS)
 ply_progress_test_SOURCES =                                     \
                           $(srcdir)/../ply-progress.h           \
                           $(srcdir)/../ply-progress.c           \
+                          $(srcdir)/../ply-list.h               \
+                          $(srcdir)/../ply-list.c               \
                           $(srcdir)/../ply-logger.h             \
                           $(srcdir)/../ply-logger.c             \
                           $(srcdir)/../ply-utils.h              \

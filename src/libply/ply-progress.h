@@ -34,6 +34,7 @@ void ply_progress_load_cache (ply_progress_t* progress);
 double ply_progress_get_percentage (ply_progress_t* progress);
 double ply_progress_get_time (ply_progress_t* progress);
 void ply_progress_save_cache (ply_progress_t* progress);
+void ply_progress_status_update (ply_progress_t* progress, const char  *status);
 
 #endif /* PLY_PROGRESS_H */
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

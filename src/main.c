@@ -81,9 +81,6 @@ on_session_output (state_t    *state,
                    size_t      size)
 {
   ply_buffer_append_bytes (state->boot_buffer, output, size);
-  ply_progress_session_output (state->progress,
-                               output, size);
-
   if (state->boot_splash != NULL)
     ply_boot_splash_update_output (state->boot_splash,
                                    output, size);
@@ -103,6 +100,8 @@ on_update (state_t     *state,
            const char  *status)
 {
   ply_trace ("updating status to '%s'", status);
+  ply_progress_status_update (state->progress,
+                               status);
   if (state->boot_splash != NULL)
     ply_boot_splash_update_status (state->boot_splash,
                                    status);

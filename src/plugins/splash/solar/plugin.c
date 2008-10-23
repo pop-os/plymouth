@@ -223,7 +223,7 @@ create_plugin (void)
   plugin->label = ply_label_new ();
   plugin->sprites = ply_list_new();
   plugin->progress = 0;
-  plugin->progress_target = 0;
+  plugin->progress_target = -1;
   return plugin;
 }
 
@@ -668,8 +668,10 @@ animate_attime (ply_boot_splash_plugin_t *plugin, double time)
 {
   ply_list_node_t *node;
   long width, height;
-
-  plugin->progress = (plugin->progress*10 + plugin->progress_target) /11;
+  
+  if (plugin->progress_target>=0)
+      plugin->progress = (plugin->progress*10 + plugin->progress_target) /11;
+    
   node = ply_list_get_first_node (plugin->sprites);
   while(node)
     {
@@ -738,6 +740,8 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
                   double                    percent_done)
 {
+  if (plugin->progress_target<0)
+    plugin->progress = percent_done;
   plugin->progress_target = percent_done;
 }
 

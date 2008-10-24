@@ -753,6 +753,7 @@ main (int    argc,
     }
 
   chdir ("/");
+  signal (SIGPIPE, SIG_IGN);
 
   daemon_handle = ply_create_daemon ();
 

@@ -70,6 +70,7 @@
 #define SHOW_COMETS
 #define SHOW_PROGRESS_BAR
 /*#define SHOW_PROGRESS_BAR_HALO */
+/*#define SHOW_LOGO_HALO */
 
 
 typedef enum
@@ -167,7 +168,9 @@ struct _ply_boot_splash_plugin
 #endif
 
   ply_image_t *scaled_background_image;
+#ifdef SHOW_LOGO_HALO
   ply_image_t *highlight_logo_image;
+#endif
 
   ply_window_t *window;
 
@@ -783,7 +786,9 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
     }
 
   ply_image_free(plugin->scaled_background_image);
+#ifdef  SHOW_LOGO_HALO
   ply_image_free(plugin->highlight_logo_image);
+#endif
 #ifdef  SHOW_PROGRESS_BAR
   ply_image_free(plugin->scaled_progress_box_image);
   
@@ -976,12 +981,15 @@ setup_solar (ply_boot_splash_plugin_t *plugin)
   sprite->x=10;
   sprite->y=10;
   sprite->z=-900;
+
+#ifdef SHOW_LOGO_HALO
   plugin->highlight_logo_image = ply_image_resize (plugin->logo_image, ply_image_get_width(plugin->logo_image)+HALO_BLUR*2, ply_image_get_height(plugin->logo_image)+HALO_BLUR*2);
   highlight_image (plugin->highlight_logo_image, plugin->logo_image, HALO_BLUR);
   sprite = add_sprite (plugin, plugin->highlight_logo_image, SPRITE_TYPE_STATIC, NULL);
   sprite->x=10-HALO_BLUR;
   sprite->y=10-HALO_BLUR;
   sprite->z=-910;
+#endif
 
   sprite = add_sprite (plugin, plugin->star_image, SPRITE_TYPE_STATIC, NULL);
   sprite->x=screen_area.width-ply_image_get_width(plugin->star_image);

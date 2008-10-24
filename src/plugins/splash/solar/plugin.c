@@ -159,9 +159,7 @@ struct _ply_boot_splash_plugin
   ply_image_t *comet_image[1];
 #endif
 #ifdef  SHOW_PROGRESS_BAR
-  ply_image_t *progress_box_image;
   ply_image_t *progress_barimage;
-  ply_image_t *scaled_progress_box_image;
 #ifdef  SHOW_PROGRESS_BAR_HALO
   ply_image_t *highlight_scaled_progress_box_image;
 #endif
@@ -219,7 +217,6 @@ create_plugin (void)
   plugin->comet_image[0] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/comet1.png");
 #endif
 #ifdef  SHOW_PROGRESS_BAR
-  plugin->progress_box_image = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/progress_box.png");
   plugin->progress_barimage = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/progress_bar.png");
 #endif
   plugin->entry = ply_entry_new (PLYMOUTH_IMAGE_DIR "solar");
@@ -262,11 +259,7 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_image_free (plugin->comet_image[0]);
 #endif
 #ifdef  SHOW_PROGRESS_BAR
-  ply_image_free (plugin->progress_box_image);
   ply_image_free (plugin->progress_barimage);
-#ifdef SHOW_PROGRESS_BAR_HALO  
-  ply_image_free (plugin->highlight_scaled_progress_box_image);
-#endif
 #endif
 
   ply_entry_free (plugin->entry);
@@ -369,16 +362,21 @@ stretch_image(ply_image_t *scaled_image, ply_image_t *orig_image, int width)
   int orig_height = ply_image_get_height (orig_image);
   uint32_t * scaled_image_data = ply_image_get_data (scaled_image);
   uint32_t * orig_image_data = ply_image_get_data (orig_image);
-
+  
+  
   for (y=0; y<stretched_height; y++)
   for (x=0; x<stretched_width;  x++)
-    {
-      uint32_t value = 0x0;
-      if (x<orig_width/2) value = orig_image_data[x + y * orig_width];
-      else if (x<width-orig_width/2) value = orig_image_data[(orig_width/2) + y * orig_width];
-      else if (x<width) value = orig_image_data[(x-width+orig_width) + y * orig_width];
-      scaled_image_data[x + y * stretched_width] = value;
-    }
+      if(x<width)
+        {
+          uint32_t value = 0x0;
+          int new_x = (x * orig_width) / width;
+          value = orig_image_data[new_x + y * orig_width];
+          scaled_image_data[x + y * stretched_width] = value;
+        }
+    else
+        {
+          scaled_image_data[x + y * stretched_width] = 0;
+        }
 }
 
 static void
@@ -389,7 +387,7 @@ progress_update (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time
   if (progress->current_width >newwidth) return;
   progress->current_width = newwidth;
   stretch_image(progress->image_altered, progress->image, newwidth);
-  
+  sprite->opacity = plugin->progress;
   sprite->refresh_me=1;
 }
 
@@ -789,14 +787,7 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
 #ifdef  SHOW_LOGO_HALO
   ply_image_free(plugin->highlight_logo_image);
 #endif
-#ifdef  SHOW_PROGRESS_BAR
-  ply_image_free(plugin->scaled_progress_box_image);
-  
-#ifdef SHOW_PROGRESS_BAR_HALO
-  ply_image_free(plugin->highlight_scaled_progress_box_image);
-#endif
-#endif
-  
+
   for(node = ply_list_get_first_node (plugin->sprites); node; node = ply_list_get_next_node (plugin->sprites, node))
     {
       sprite_t* sprite = ply_list_node_get_data (node);
@@ -978,9 +969,9 @@ setup_solar (ply_boot_splash_plugin_t *plugin)
   sprite->z=-10000;
 
   sprite = add_sprite (plugin, plugin->logo_image, SPRITE_TYPE_STATIC, NULL);
-  sprite->x=10;
-  sprite->y=10;
-  sprite->z=-900;
+  sprite->x=screen_area.width/2-ply_image_get_width(plugin->logo_image)/2;
+  sprite->y=screen_area.height/2-ply_image_get_height(plugin->logo_image)/2;
+  sprite->z=1000;
 
 #ifdef SHOW_LOGO_HALO
   plugin->highlight_logo_image = ply_image_resize (plugin->logo_image, ply_image_get_width(plugin->logo_image)+HALO_BLUR*2, ply_image_get_height(plugin->logo_image)+HALO_BLUR*2);
@@ -1030,17 +1021,6 @@ setup_solar (ply_boot_splash_plugin_t *plugin)
 #endif
 
 #ifdef  SHOW_PROGRESS_BAR
-  x = screen_area.width/4;
-  y = screen_area.height/2 - ply_image_get_height(plugin->progress_box_image)/2;
-  plugin->scaled_progress_box_image = ply_image_resize (plugin->progress_box_image, screen_area.width/2, ply_image_get_height(plugin->progress_box_image));
-  
-  stretch_image(plugin->scaled_progress_box_image, plugin->progress_box_image, screen_area.width/2);
-  
-  sprite = add_sprite (plugin, plugin->scaled_progress_box_image, SPRITE_TYPE_STATIC, NULL);
-  sprite->x=x;
-  sprite->y=y;
-  sprite->z=10010;
-  
 #ifdef SHOW_PROGRESS_BAR_HALO  
   plugin->highlight_scaled_progress_box_image = ply_image_resize (plugin->scaled_progress_box_image, ply_image_get_width(plugin->scaled_progress_box_image)+HALO_BLUR*2, ply_image_get_height(plugin->scaled_progress_box_image)+HALO_BLUR*2);
   highlight_image (plugin->highlight_scaled_progress_box_image, plugin->scaled_progress_box_image, HALO_BLUR);
@@ -1056,12 +1036,11 @@ setup_solar (ply_boot_splash_plugin_t *plugin)
   
   progress->image = plugin->progress_barimage;
   
-  int x_diff = ply_image_get_width(plugin->progress_box_image) -  ply_image_get_width(plugin->progress_barimage);
-  x = screen_area.width/4+x_diff/2;
-  y = screen_area.height/2 - ply_image_get_height(plugin->progress_barimage)/2;
-  progress->image_altered = ply_image_resize (plugin->progress_barimage, screen_area.width/2-x_diff, ply_image_get_height(plugin->progress_barimage));
-  progress->start_width = ply_image_get_width(plugin->progress_barimage);
-  progress->end_width = screen_area.width/2-x_diff;
+  x = screen_area.width/2-ply_image_get_width(plugin->logo_image)/2;;
+  y = screen_area.height/2+ply_image_get_height(plugin->logo_image)/2+20;
+  progress->image_altered = ply_image_resize (plugin->progress_barimage, ply_image_get_width(plugin->logo_image), ply_image_get_height(plugin->progress_barimage));
+  progress->start_width = 1;
+  progress->end_width = ply_image_get_width(plugin->logo_image);
   progress->current_width = 0;
   
   sprite = add_sprite (plugin, progress->image_altered, SPRITE_TYPE_PROGRESS, progress);
@@ -1165,8 +1144,6 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
     return false;
 #endif
 #ifdef  SHOW_PROGRESS_BAR
-  if (!ply_image_load (plugin->progress_box_image))
-    return false;
   if (!ply_image_load (plugin->progress_barimage))
     return false;
 #endif

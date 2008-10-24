@@ -17,7 +17,7 @@ PKG_PROG_PKG_CONFIG
 AM_PROG_LIBTOOL
 
 ## increment if the interface has additions, changes, removals.
-LT_CURRENT=1
+LT_CURRENT=2
 
 ## increment any time the source changes; set to
 ##  0 if you increment CURRENT

@@ -68,6 +68,10 @@ struct _ply_frame_buffer
   uint32_t bits_for_blue;
   uint32_t bits_for_alpha;
 
+  int32_t dither_red;
+  int32_t dither_green;
+  int32_t dither_blue;
+
   unsigned int bytes_per_pixel;
   unsigned int row_stride;
 
@@ -315,6 +319,10 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
   buffer->bytes_per_pixel = variable_screen_info.bits_per_pixel >> 3;
   buffer->row_stride = fixed_screen_info.line_length / buffer->bytes_per_pixel;
   buffer->size = buffer->area.height * buffer->row_stride * buffer->bytes_per_pixel;
+  
+  buffer->dither_red = 0;
+  buffer->dither_green = 0;
+  buffer->dither_blue = 0;
 
   if (buffer->bytes_per_pixel == 4 &&
       buffer->red_bit_position == 16 && buffer->bits_for_red == 8 &&
@@ -340,24 +348,37 @@ ply_frame_buffer_map_to_device (ply_frame_buffer_t *buffer)
   return buffer->map_address != MAP_FAILED;
 }
 
-__attribute__((__pure__))
 static inline uint_fast32_t 
 ply_frame_buffer_pixel_value_to_device_pixel_value (ply_frame_buffer_t *buffer,
                                                     uint32_t        pixel_value)
 {
   uint8_t r, g, b, a;
+  int orig_r, orig_g, orig_b, orig_a;
+  int i;
+  
+  orig_a = pixel_value >> 24; 
+  a = orig_a >> (8 - buffer->bits_for_alpha);
 
-  a = pixel_value >> 24; 
-  a >>= (8 - buffer->bits_for_alpha);
+  orig_r = ((pixel_value >> 16) & 0xff) - buffer->dither_red; 
+  r = CLAMP(orig_r, 0, 255) >> (8 - buffer->bits_for_red);
 
-  r = (pixel_value >> 16) & 0xff; 
-  r >>= (8 - buffer->bits_for_red);
+  orig_g = ((pixel_value >> 8) & 0xff) - buffer->dither_green;
+  g = CLAMP(orig_g, 0, 255) >> (8 - buffer->bits_for_green);
 
-  g = (pixel_value >> 8) & 0xff; 
-  g >>= (8 - buffer->bits_for_green);
-
-  b = pixel_value & 0xff; 
-  b >>= (8 - buffer->bits_for_blue);
+  orig_b = (pixel_value & 0xff) - buffer->dither_blue;
+  b = CLAMP(orig_b, 0, 255) >> (8 - buffer->bits_for_blue);
+  
+  uint8_t new_r = r << (8 - buffer->bits_for_red);
+  uint8_t new_g = g << (8 - buffer->bits_for_green);
+  uint8_t new_b = b << (8 - buffer->bits_for_blue);
+  for (i=buffer->bits_for_red;   i<8; i*=2) new_r |= new_r >> i;
+  for (i=buffer->bits_for_green; i<8; i*=2) new_g |= new_g >> i;
+  for (i=buffer->bits_for_blue;  i<8; i*=2) new_b |= new_b >> i;
+  
+  buffer->dither_red = new_r - orig_r;
+  buffer->dither_green = new_g - orig_g;
+  buffer->dither_blue = new_b - orig_b;
+  
 
   return ((a << buffer->alpha_bit_position)
           | (r << buffer->red_bit_position)

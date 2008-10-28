@@ -69,7 +69,6 @@
 /*#define SHOW_PLANETS */
 #define SHOW_COMETS
 #define SHOW_PROGRESS_BAR
-/*#define SHOW_PROGRESS_BAR_HALO */
 /*#define SHOW_LOGO_HALO */
 
 
@@ -160,9 +159,6 @@ struct _ply_boot_splash_plugin
 #endif
 #ifdef  SHOW_PROGRESS_BAR
   ply_image_t *progress_barimage;
-#ifdef  SHOW_PROGRESS_BAR_HALO
-  ply_image_t *highlight_scaled_progress_box_image;
-#endif
 #endif
 
   ply_image_t *scaled_background_image;
@@ -1021,17 +1017,6 @@ setup_solar (ply_boot_splash_plugin_t *plugin)
 #endif
 
 #ifdef  SHOW_PROGRESS_BAR
-#ifdef SHOW_PROGRESS_BAR_HALO  
-  plugin->highlight_scaled_progress_box_image = ply_image_resize (plugin->scaled_progress_box_image, ply_image_get_width(plugin->scaled_progress_box_image)+HALO_BLUR*2, ply_image_get_height(plugin->scaled_progress_box_image)+HALO_BLUR*2);
-  highlight_image (plugin->highlight_scaled_progress_box_image, plugin->scaled_progress_box_image, HALO_BLUR);
-  
-  sprite = add_sprite (plugin, plugin->highlight_scaled_progress_box_image, SPRITE_TYPE_STATIC, NULL);
-  sprite->x=x-HALO_BLUR;
-  sprite->y=y-HALO_BLUR;
-  sprite->z=10000;
-  
-#endif
-  
   progress_t* progress = malloc(sizeof(progress_t));
   
   progress->image = plugin->progress_barimage;

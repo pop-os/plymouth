@@ -361,18 +361,31 @@ stretch_image(ply_image_t *scaled_image, ply_image_t *orig_image, int width)
   
   
   for (y=0; y<stretched_height; y++)
-  for (x=0; x<stretched_width;  x++)
-      if(x<width)
+    {
+      float my_width = y+0.5;
+      my_width /= (stretched_height);
+      my_width *= 2;
+      my_width -= 1;
+      my_width *= my_width;
+      my_width = sqrt(1-my_width);
+      my_width *= stretched_height;
+      my_width /= 2;
+      my_width = width-stretched_height+my_width;
+      for (x=0; x<stretched_width;  x++)
         {
-          uint32_t value = 0x0;
-          int new_x = (x * orig_width) / width;
-          value = orig_image_data[new_x + y * orig_width];
-          scaled_image_data[x + y * stretched_width] = value;
+          if(x<my_width)
+            {
+              uint32_t value = 0x0;
+              int new_x = (x * orig_width) / width;
+              value = orig_image_data[new_x + y * orig_width];
+              scaled_image_data[x + y * stretched_width] = value;
+            }
+          else
+            {
+              scaled_image_data[x + y * stretched_width] = 0;
+            }
         }
-    else
-        {
-          scaled_image_data[x + y * stretched_width] = 0;
-        }
+    }
 }
 
 static void

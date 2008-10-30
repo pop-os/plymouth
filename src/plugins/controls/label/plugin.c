@@ -96,7 +96,7 @@ get_width_of_control (ply_label_plugin_control_t *label)
 
   pango_layout_get_size (label->pango_layout, &width, NULL);
 
-  return (long) ((double) width / PANGO_SCALE);
+  return (long) ((double) width / PANGO_SCALE)+1;
 }
 
 long
@@ -106,7 +106,7 @@ get_height_of_control (ply_label_plugin_control_t *label)
 
   pango_layout_get_size (label->pango_layout, NULL, &height);
 
-  return (long) ((double) height / PANGO_SCALE);
+  return (long) ((double) height / PANGO_SCALE)+1;
 }
 
 static void
@@ -127,14 +127,14 @@ draw_control (ply_label_plugin_control_t *label)
   ply_frame_buffer_pause_updates (label->frame_buffer);
   erase_label_area (label);
   cairo_move_to (label->cairo_context,
-                 label->area.x,
-                 label->area.y);
+                 label->area.x + 1,
+                 label->area.y + 1);
   cairo_set_source_rgba (label->cairo_context, 0.0, 0.0, 0.0, 0.7);
   pango_cairo_show_layout (label->cairo_context,
                            label->pango_layout);
   cairo_move_to (label->cairo_context,
-                 label->area.x - 1,
-                 label->area.y - 1);
+                 label->area.x,
+                 label->area.y);
   cairo_set_source_rgb (label->cairo_context, 1.0, 1.0, 1.0);
   pango_cairo_show_layout (label->cairo_context,
                            label->pango_layout);

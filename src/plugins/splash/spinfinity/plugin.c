@@ -86,6 +86,7 @@ struct _ply_boot_splash_plugin
 
   uint32_t root_is_mounted : 1;
   uint32_t is_visible : 1;
+  uint32_t is_animating : 1;
 };
 
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
@@ -183,6 +184,9 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
+  if (plugin->is_animating)
+     return;
+
   draw_background (plugin, NULL);
   draw_logo (plugin);
 
@@ -198,6 +202,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   ply_progress_bar_show (plugin->progress_bar,
                          plugin->window,
                          0, area.height - ply_progress_bar_get_height (plugin->progress_bar));
+
+  plugin->is_animating = true;
 }
 
 static void
@@ -208,6 +214,11 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
 
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
+
+  if (!plugin->is_animating)
+     return;
+
+  plugin->is_animating = false;
 
   ply_progress_bar_hide (plugin->progress_bar);
   ply_throbber_stop (plugin->throbber, trigger);

@@ -183,6 +183,7 @@ struct _ply_boot_splash_plugin
 
   uint32_t root_is_mounted : 1;
   uint32_t is_visible : 1;
+  uint32_t is_animating : 1;
 };
 
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
@@ -768,6 +769,9 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
+  if (plugin->is_animating)
+     return;
+
   ply_frame_buffer_get_size (plugin->frame_buffer, &area);
 
   plugin->now = ply_get_timestamp ();
@@ -775,6 +779,7 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   on_timeout (plugin);
   ply_window_draw_area (plugin->window, area.x, area.y, area.width, area.height);
 
+  plugin->is_animating = true;
 }
 
 static void
@@ -786,6 +791,11 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
 
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
+
+  if (!plugin->is_animating)
+     return;
+
+  plugin->is_animating = false;
 
   if (plugin->loop != NULL)
     {
@@ -805,7 +815,6 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
       free_sprite (sprite);
     }
   ply_list_remove_all_nodes (plugin->sprites);
-
 }
 
 static void

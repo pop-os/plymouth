@@ -68,6 +68,7 @@ struct _ply_boot_splash_plugin
   ply_text_progress_bar_t *progress_bar;
 
   uint32_t keyboard_input_is_hidden : 1;
+  uint32_t is_animating : 1;
 };
 void hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                          ply_event_loop_t         *loop);
@@ -120,6 +121,9 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
+  if (plugin->is_animating)
+     return;
+
   ply_window_set_color_hex_value (plugin->window,
                                   PLY_WINDOW_COLOR_BLACK,
                                   0x000000);
@@ -147,6 +151,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
 
   ply_text_progress_bar_show (plugin->progress_bar,
                               plugin->window);
+
+  plugin->is_animating = true;
 }
 
 static void
@@ -154,6 +160,12 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
 {
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
+
+  if (!plugin->is_animating)
+     return;
+
+  plugin->is_animating = false;
+
 
   ply_text_progress_bar_hide (plugin->progress_bar);
 }

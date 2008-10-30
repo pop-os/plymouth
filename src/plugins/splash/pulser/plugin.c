@@ -67,6 +67,7 @@ struct _ply_boot_splash_plugin
   ply_text_pulser_t *pulser;
 
   uint32_t keyboard_input_is_hidden : 1;
+  uint32_t is_animating : 1;
 };
 void hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                          ply_event_loop_t         *loop);
@@ -119,6 +120,9 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
+  if (plugin->is_animating)
+     return;
+
   ply_window_set_color_hex_value (plugin->window,
                                   PLY_WINDOW_COLOR_BROWN,
                                   PLYMOUTH_BACKGROUND_END_COLOR);
@@ -142,6 +146,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
                          plugin->window,
                          window_width / 2.0 - width / 2.0,
                          window_height / 2.0 - height / 2.0);
+
+  plugin->is_animating = true;
 }
 
 static void
@@ -149,6 +155,11 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
 {
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
+
+  if (!plugin->is_animating)
+     return;
+
+  plugin->is_animating = false;
 
   ply_text_pulser_stop (plugin->pulser);
 }

@@ -81,6 +81,8 @@ struct _ply_boot_splash_plugin
 
   double start_time;
   double now;
+
+  uint32_t is_animating : 1;
 };
 
 ply_boot_splash_plugin_t *
@@ -303,6 +305,9 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
     
+  if (plugin->is_animating)
+     return;
+
   ply_event_loop_watch_for_timeout (plugin->loop, 
                                     1.0 / FRAMES_PER_SECOND,
                                     (ply_event_loop_timeout_handler_t)
@@ -310,6 +315,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
 
   plugin->start_time = ply_get_timestamp ();
   draw_background (plugin, NULL);
+
+  plugin->is_animating = true;
 }
 
 static void
@@ -319,6 +326,11 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
 
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
+
+  if (!plugin->is_animating)
+     return;
+
+  plugin->is_animating = false;
 
   for (i = 0; i < 10; i++)
     {

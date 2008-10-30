@@ -902,15 +902,41 @@ on_erase (ply_boot_splash_plugin_t *plugin,
           int                       height)
 {
   ply_frame_buffer_area_t area;
+  ply_frame_buffer_area_t image_area;
+  ply_image_t *image;
 
   area.x = x;
   area.y = y;
   area.width = width;
   area.height = height;
 
-  ply_frame_buffer_fill_with_gradient (plugin->frame_buffer, &area,
-                                       PLYMOUTH_BACKGROUND_START_COLOR,
-                                       PLYMOUTH_BACKGROUND_END_COLOR);
+  ply_frame_buffer_get_size (plugin->frame_buffer, &image_area);
+  image = ply_image_resize (plugin->background_image, image_area.width, image_area.height);
+
+  ply_frame_buffer_fill_with_argb32_data_with_clip (plugin->frame_buffer,
+                                                     &image_area, &area, 0, 0,
+                                                     ply_image_get_data (image));
+  ply_image_free (image);
+  
+  image_area.x = image_area.width-ply_image_get_width(plugin->star_image);
+  image_area.y = image_area.height-ply_image_get_height(plugin->star_image);
+  image_area.width = ply_image_get_width(plugin->star_image);
+  image_area.height = ply_image_get_height(plugin->star_image);
+  
+  
+  ply_frame_buffer_fill_with_argb32_data_with_clip (plugin->frame_buffer,
+                                                     &image_area, &area, 0, 0,
+                                                     ply_image_get_data (plugin->star_image));
+                                                     
+  image_area.x = 20;
+  image_area.y = 20;
+  image_area.width = ply_image_get_width(plugin->logo_image);
+  image_area.height = ply_image_get_height(plugin->logo_image);
+  
+  
+  ply_frame_buffer_fill_with_argb32_data_with_clip (plugin->frame_buffer,
+                                                     &image_area, &area, 0, 0,
+                                                     ply_image_get_data (plugin->logo_image));
 }
 
 void

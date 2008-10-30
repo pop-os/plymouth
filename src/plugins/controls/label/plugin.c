@@ -129,6 +129,13 @@ draw_control (ply_label_plugin_control_t *label)
   cairo_move_to (label->cairo_context,
                  label->area.x,
                  label->area.y);
+  cairo_set_source_rgba (label->cairo_context, 0.0, 0.0, 0.0, 0.7);
+  pango_cairo_show_layout (label->cairo_context,
+                           label->pango_layout);
+  cairo_move_to (label->cairo_context,
+                 label->area.x - 1,
+                 label->area.y - 1);
+  cairo_set_source_rgb (label->cairo_context, 1.0, 1.0, 1.0);
   pango_cairo_show_layout (label->cairo_context,
                            label->pango_layout);
   cairo_surface_flush (label->cairo_surface);

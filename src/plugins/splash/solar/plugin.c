@@ -678,7 +678,9 @@ animate_attime (ply_boot_splash_plugin_t *plugin, double time)
 {
   ply_list_node_t *node;
   long width, height;
-  
+
+  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_GRAPHICS);
+
   if (plugin->progress_target>=0)
       plugin->progress = (plugin->progress*10 + plugin->progress_target) /11;
     

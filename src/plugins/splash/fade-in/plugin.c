@@ -199,6 +199,8 @@ animate_at_time (ply_boot_splash_plugin_t *plugin,
   static double last_opacity = 0.0;
   double opacity = 0.0;
 
+  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_GRAPHICS);
+
   ply_frame_buffer_pause_updates (plugin->frame_buffer);
 
   width = ply_image_get_width (plugin->logo_image);

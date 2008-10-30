@@ -57,10 +57,10 @@
 #include <linux/kd.h>
 
 #ifndef FRAMES_PER_SECOND
-#define FRAMES_PER_SECOND 50
+#define FRAMES_PER_SECOND 40
 #endif
 
-#define FLARE_FRAMES_PER_SECOND 25
+#define FLARE_FRAMES_PER_SECOND 20
 #define FLARE_COUNT 60
 #define FLARE_LINE_COUNT 4
 #define HALO_BLUR 4
@@ -367,10 +367,10 @@ stretch_image(ply_image_t *scaled_image, ply_image_t *orig_image, int width)
       my_width *= 2;
       my_width -= 1;
       my_width *= my_width;
-      my_width = sqrt(1-my_width);
+      my_width = sqrt(1-my_width)-1;
       my_width *= stretched_height;
       my_width /= 2;
-      my_width = width-stretched_height+my_width;
+      my_width = width+my_width;
       for (x=0; x<stretched_width;  x++)
         {
           if(x<my_width)
@@ -602,11 +602,11 @@ flare_update (sprite_t* sprite, double time)
               z = distance* sin(angle);
 
 
-              x*=32.3;
-              y*=32.3;
+              x*=41;
+              y*=41;
 
-              x+=579-640+width;
-              y+=306-480+height;
+              x+=720-800+width;
+              y+=300-480+height;
 
               ix=x;
               iy=y;
@@ -969,8 +969,8 @@ setup_solar (ply_boot_splash_plugin_t *plugin)
   sprite_t *sprite;
   int i;
   int x, y;
-  int width = 290;
-  int height = 410;
+  int width = 360;
+  int height = 460;
 
   ply_frame_buffer_get_size (plugin->frame_buffer, &screen_area);
   plugin->scaled_background_image = ply_image_resize (plugin->background_image, screen_area.width, screen_area.height);
@@ -1000,8 +1000,8 @@ setup_solar (ply_boot_splash_plugin_t *plugin)
     {
        satellite_t* satellite = malloc(sizeof(satellite_t));
        satellite->type=SATELLITE_TYPE_PLANET;
-       satellite->end_x=satellite->start_x=579-640+screen_area.width;
-       satellite->end_y=satellite->start_y=306-480+screen_area.height;
+       satellite->end_x=satellite->start_x=720-800+screen_area.width;
+       satellite->end_y=satellite->start_y=300-480+screen_area.height;
 
        satellite->distance=i*100+280;
        satellite->theta=M_PI*0.8;
@@ -1017,10 +1017,10 @@ setup_solar (ply_boot_splash_plugin_t *plugin)
     {
        satellite_t* satellite = malloc(sizeof(satellite_t));
        satellite->type=SATELLITE_TYPE_COMET;
-       satellite->end_x=satellite->start_x=579-640+screen_area.width;
-       satellite->end_y=satellite->start_y=306-480+screen_area.height;
+       satellite->end_x=satellite->start_x=720-800+screen_area.width;
+       satellite->end_y=satellite->start_y=300-480+screen_area.height;
 
-       satellite->distance=500;
+       satellite->distance=600;
        satellite->theta=M_PI*0.8;
        satellite->image=plugin->comet_image[i];
        satellite->image_altered=ply_image_resize (satellite->image, ply_image_get_width(satellite->image), ply_image_get_height(satellite->image));

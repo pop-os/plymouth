@@ -323,13 +323,10 @@ on_show_splash (state_t *state)
 }
 
 static void
-on_hide_splash (state_t *state)
+quit_splash (state_t *state)
 {
-
-  ply_trace ("hiding boot splash");
   if (state->boot_splash != NULL)
     {
-      ply_boot_splash_hide (state->boot_splash);
       ply_boot_splash_free (state->boot_splash);
       state->boot_splash = NULL;
     }
@@ -348,6 +345,17 @@ on_hide_splash (state_t *state)
 
       close (fd);
     }
+}
+
+static void
+on_hide_splash (state_t *state)
+{
+
+  ply_trace ("hiding boot splash");
+  if (state->boot_splash != NULL)
+    ply_boot_splash_hide (state->boot_splash);
+
+  quit_splash (state);
 }
 
 #ifdef PLY_ENABLE_GDM_TRANSITION
@@ -373,6 +381,8 @@ on_quit (state_t *state,
     {
       if (!retain_splash)
         on_hide_splash (state);
+      else
+        quit_splash (state);
       ply_boot_splash_free (state->boot_splash);
       state->boot_splash = NULL;
     }

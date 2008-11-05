@@ -228,6 +228,9 @@ void
 remove_window (ply_boot_splash_plugin_t *plugin,
                ply_window_t             *window)
 {
+  ply_window_show_text_cursor (plugin->window);
+  ply_window_reset_colors (plugin->window);
+
   plugin->window = NULL;
 }
 
@@ -308,8 +311,6 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
       ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_DEFAULT);
       ply_window_clear_screen (plugin->window);
-      ply_window_show_text_cursor (plugin->window);
-      ply_window_reset_colors (plugin->window);
     }
 }
 

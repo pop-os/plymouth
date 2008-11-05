@@ -154,9 +154,6 @@ struct _ply_boot_splash_plugin
 #ifdef  SHOW_PLANETS
   ply_image_t *planet_image[5];
 #endif
-#ifdef  SHOW_COMETS
-  ply_image_t *comet_image[1];
-#endif
 #ifdef  SHOW_PROGRESS_BAR
   ply_image_t *progress_barimage;
 #endif
@@ -210,9 +207,6 @@ create_plugin (void)
   plugin->planet_image[3] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/planet4.png");
   plugin->planet_image[4] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/planet5.png");
 #endif
-#ifdef  SHOW_COMETS
-  plugin->comet_image[0] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/comet1.png");
-#endif
 #ifdef  SHOW_PROGRESS_BAR
   plugin->progress_barimage = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/progress_bar.png");
 #endif
@@ -251,9 +245,6 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_image_free (plugin->planet_image[2]);
   ply_image_free (plugin->planet_image[3]);
   ply_image_free (plugin->planet_image[4]);
-#endif
-#ifdef  SHOW_COMETS
-  ply_image_free (plugin->comet_image[0]);
 #endif
 #ifdef  SHOW_PROGRESS_BAR
   ply_image_free (plugin->progress_barimage);
@@ -412,8 +403,8 @@ satellite_move (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
   int width = ply_image_get_width (sprite->image);
   int height = ply_image_get_height (sprite->image);
 
-  sprite->x=cos(satellite->theta+(1-plugin->progress)*5000/(satellite->distance))*satellite->distance;
-  sprite->y=sin(satellite->theta+(1-plugin->progress)*5000/(satellite->distance))*satellite->distance;
+  sprite->x=cos(satellite->theta+(1-plugin->progress)*2000/(satellite->distance))*satellite->distance;
+  sprite->y=sin(satellite->theta+(1-plugin->progress)*2000/(satellite->distance))*satellite->distance;
   sprite->z=0;
 
   float distance = sqrt(sprite->z*sprite->z+sprite->y*sprite->y);
@@ -474,7 +465,27 @@ satellite_move (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
 
       uint32_t *image_data = ply_image_get_data (satellite->image);
       uint32_t *comet_data = ply_image_get_data (satellite->image_altered);
-
+      x = width/2;
+      image_data[x] = 0xFFFFFFFF;
+      x = 2*sin(plugin->progress*62)+width/2;
+      image_data[x] = 0xFFFFFFFF;
+      x = 2*sin(plugin->progress*163)+width/2;
+      image_data[x] = 0xFFFFFFFF;
+      x = 2*sin(plugin->progress*275)+width/2;
+      image_data[x] = 0xFFFFFFFF;
+      for (y=height-1; y>0; y--)
+        {
+          for (x=1; x<width-1; x++)
+            {
+               uint32_t pixel;
+               if (x>0)pixel = (image_data[(x)+(y-1)*width]>>24)*2 + (image_data[(x-1)+(y-1)*width]>>24) + (image_data[(x+1)+(y-1)*width]>>24);
+               pixel /= 4.05;
+               pixel |= pixel<<8;
+               pixel |= pixel<<16;
+               image_data[x+y*width] = pixel;
+            }
+        }
+      for (x=1; x<width-1; x++) image_data[x] = 0x0;
       for (y=0; y<height; y++) for (x=0; x<width; x++)
         {
           float scale= cos(M_PI*0.4);
@@ -483,10 +494,11 @@ satellite_move (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
           fx -= (float) width/2;
           fy -= (float) height/2;
           fy /= scale;
-          float angle = atan2 (fy, fx)-(satellite->theta+(1-plugin->progress)*5000/(satellite->distance));
+          float angle = atan2 (fy, fx)-(satellite->theta+(1-plugin->progress)*2000/(satellite->distance))+M_PI/2*0.0;
           float distance = sqrt(fy*fy+fx*fx);
           fx = cos(angle)*distance;
           fy = sin(angle)*distance;
+          fx += (fy*fy*2)/(satellite->distance);
           fx += (float) width/2;
           fy += (float) height/2;
           int ix=fx;
@@ -1052,17 +1064,26 @@ setup_solar (ply_boot_splash_plugin_t *plugin)
 #ifdef  SHOW_COMETS
   for (i=0; i<1; i++)
     {
-       satellite_t* satellite = malloc(sizeof(satellite_t));
-       satellite->type=SATELLITE_TYPE_COMET;
-       satellite->end_x=satellite->start_x=720-800+screen_area.width;
-       satellite->end_y=satellite->start_y=300-480+screen_area.height;
+      satellite_t* satellite = malloc(sizeof(satellite_t));
+      satellite->type=SATELLITE_TYPE_COMET;
+      satellite->end_x=satellite->start_x=720-800+screen_area.width;
+      satellite->end_y=satellite->start_y=300-480+screen_area.height;
+      satellite->distance=550+i*50;
+      satellite->theta=M_PI*0.8;
+#define COMET_SIZE 64
+      satellite->image=ply_image_resize (plugin->progress_barimage, COMET_SIZE, COMET_SIZE);
+      satellite->image_altered=ply_image_resize (satellite->image, COMET_SIZE, COMET_SIZE);
+      uint32_t * image_data = ply_image_get_data (satellite->image);
+      uint32_t * image_altered_data = ply_image_get_data (satellite->image_altered);
 
-       satellite->distance=600;
-       satellite->theta=M_PI*0.8;
-       satellite->image=plugin->comet_image[i];
-       satellite->image_altered=ply_image_resize (satellite->image, ply_image_get_width(satellite->image), ply_image_get_height(satellite->image));
-       sprite = add_sprite (plugin, satellite->image_altered, SPRITE_TYPE_SATELLITE, satellite);
-       satellite_move (plugin, sprite, 0);
+
+      for (y=0; y<COMET_SIZE; y++)for (x=0; x<COMET_SIZE; x++){
+          image_data[x + y * COMET_SIZE] = 0x0;
+          image_altered_data[x + y * COMET_SIZE] = 0x0;
+        }
+            
+      sprite = add_sprite (plugin, satellite->image_altered, SPRITE_TYPE_SATELLITE, satellite);
+      for (x=0; x<COMET_SIZE; x++) satellite_move (plugin, sprite, 0);
      }
 #endif
 
@@ -1172,10 +1193,6 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   if (!ply_image_load (plugin->planet_image[3]))
     return false;
   if (!ply_image_load (plugin->planet_image[4]))
-    return false;
-#endif
-#ifdef  SHOW_COMETS
-  if (!ply_image_load (plugin->comet_image[0]))
     return false;
 #endif
 #ifdef  SHOW_PROGRESS_BAR

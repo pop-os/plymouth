@@ -24,7 +24,7 @@ solar_la_SOURCES = $(srcdir)/plugin.c
 plymouthdir = $(datadir)/plymouth/solar
 plymouth_DATA = bullet.png entry.png lock.png                                 \
                 background.png star.png box.png                               \
-                comet1.png progress_bar.png
+                progress_bar.png
 #                planet1.png planet2.png planet3.png planet4.png planet5.png
 
 EXTRA_DIST = $(plymouth_DATA)

@@ -63,6 +63,7 @@ typedef struct
   uint32_t no_boot_log : 1;
   uint32_t showing_details : 1;
   uint32_t system_initialized : 1;
+  uint32_t is_redirected : 1;
 
   char *console;
 
@@ -89,6 +90,9 @@ on_session_output (state_t    *state,
 static void
 on_session_finished (state_t *state)
 {
+  if (!state->is_redirected)
+    return;
+
   ply_log ("\nSession finished...exiting logger\n");
   ply_flush_log ();
   ply_free_log ();
@@ -344,6 +348,7 @@ quit_splash (state_t *state)
           ioctl (fd, TIOCCONS);
 
       close (fd);
+      state->is_redirected = false;
     }
 }
 
@@ -533,10 +538,13 @@ attach_to_running_session (state_t *state)
 {
   ply_terminal_session_t *session;
   ply_terminal_session_flags_t flags;
+  bool should_be_redirected;
 
   flags = 0;
 
-  if (!state->no_boot_log)
+  should_be_redirected = !state->no_boot_log;
+
+  if (should_be_redirected)
     flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
 
   ply_trace ("creating terminal session for current terminal");
@@ -548,7 +556,7 @@ attach_to_running_session (state_t *state)
                                  (ply_terminal_session_output_handler_t)
                                  on_session_output,
                                  (ply_terminal_session_done_handler_t)
-                                 (state->no_boot_log? NULL: on_session_finished),
+                                 (should_be_redirected? NULL: on_session_finished),
                                  state->ptmx,
                                  state))
     {
@@ -557,8 +565,12 @@ attach_to_running_session (state_t *state)
       ply_buffer_free (state->boot_buffer);
       state->boot_buffer = NULL;
       ply_restore_errno ();
+
+      state->is_redirected = false;
       return NULL;
     }
+
+  state->is_redirected = should_be_redirected;
 
   return session;
 }

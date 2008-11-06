@@ -76,6 +76,8 @@ static ply_boot_splash_t *start_boot_splash (state_t    *state,
 static ply_window_t *create_window (state_t    *state,
                                     const char *tty_name);
 
+static bool attach_to_running_session (state_t *state);
+
 static void
 on_session_output (state_t    *state,
                    const char *output,
@@ -320,6 +322,9 @@ on_show_splash (state_t *state)
 {
   open_windows (state);
 
+  if (!state->is_redirected && state->ptmx >= 0)
+    state->is_redirected = attach_to_running_session (state);
+
   if (plymouth_should_show_default_splash (state))
     show_default_splash (state);
   else
@@ -340,14 +345,8 @@ quit_splash (state_t *state)
 
   if (state->session != NULL)
     {
-      ply_trace ("unredirecting console");
-      int fd;
-
-      fd = open ("/dev/console", O_RDWR | O_NOCTTY);
-      if (fd >= 0)
-          ioctl (fd, TIOCCONS);
-
-      close (fd);
+      ply_trace ("detaching session");
+      ply_terminal_session_detach (state->session);
       state->is_redirected = false;
     }
 }
@@ -533,7 +532,7 @@ start_boot_splash (state_t    *state,
   return splash;
 }
 
-static ply_terminal_session_t *
+static bool
 attach_to_running_session (state_t *state)
 {
   ply_terminal_session_t *session;
@@ -547,10 +546,18 @@ attach_to_running_session (state_t *state)
   if (should_be_redirected)
     flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
 
-  ply_trace ("creating terminal session for current terminal");
-  session = ply_terminal_session_new (NULL);
-  ply_trace ("attaching terminal session to event loop");
-  ply_terminal_session_attach_to_event_loop (session, state->loop);
+  if (state->session == NULL)
+    {
+      ply_trace ("creating new terminal session");
+      session = ply_terminal_session_new (NULL);
+
+      ply_terminal_session_attach_to_event_loop (session, state->loop);
+    }
+  else
+    {
+      session = state->session;
+      ply_trace ("session already created");
+    }
 
   if (!ply_terminal_session_attach (session, flags,
                                  (ply_terminal_session_output_handler_t)
@@ -567,12 +574,13 @@ attach_to_running_session (state_t *state)
       ply_restore_errno ();
 
       state->is_redirected = false;
-      return NULL;
+      return false;
     }
 
   state->is_redirected = should_be_redirected;
+  state->session = session;
 
-  return session;
+  return true;
 }
 
 static bool
@@ -815,9 +823,7 @@ main (int    argc,
 
   if (attach_to_session)
     {
-      state.session = attach_to_running_session (&state);
-
-      if (state.session == NULL)
+      if (!attach_to_running_session (&state))
         {
           ply_error ("could not create session: %m");
           ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);

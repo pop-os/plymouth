@@ -66,8 +66,6 @@ bool ply_terminal_session_attach (ply_terminal_session_t       *session,
                                   int                                  ptmx,
                                   void                                *user_data);
 
-void ply_terminal_session_detach (ply_terminal_session_t       *session);
-
 int ply_terminal_session_get_fd (ply_terminal_session_t *session);
 bool ply_terminal_session_open_log (ply_terminal_session_t *session,
                                     const char             *filename);

@@ -48,7 +48,6 @@ struct _ply_terminal_session
   ply_logger_t *logger;
   ply_event_loop_t *loop;
   char **argv;
-  ply_fd_watch_t   *fd_watch;
 
   ply_terminal_session_output_handler_t output_handler;
   ply_terminal_session_done_handler_t   done_handler;
@@ -338,28 +337,6 @@ ply_terminal_session_attach (ply_terminal_session_t               *session,
   return true;
 }
 
-void
-ply_terminal_session_detach (ply_terminal_session_t       *session)
-{
-  assert (session != NULL);
-
-  ply_trace ("stopping terminal logger");
-
-  ply_terminal_session_stop_logging (session);
-
-  if (session->console_is_redirected)
-    {
-      ply_trace ("unredirecting console messages");
-      ply_terminal_session_unredirect_console (session);
-    }
-
-  session->output_handler = NULL;
-  session->done_handler = NULL;
-  session->user_data = NULL;
-
-  session->is_running = false;
-}
-
 int
 ply_terminal_session_get_fd (ply_terminal_session_t *session)
 {
@@ -406,22 +383,16 @@ ply_terminal_session_on_new_data (ply_terminal_session_t *session,
 static void
 ply_terminal_session_on_hangup (ply_terminal_session_t *session)
 {
-  ply_terminal_session_done_handler_t done_handler;
-
   assert (session != NULL);
-
-  done_handler = session->done_handler;
 
   ply_logger_flush (session->logger);
 
   session->is_running = false;
+
+  if (session->done_handler != NULL)
+    session->done_handler (session->user_data, session);
+
   ply_terminal_session_stop_logging (session);
-  session->done_handler = NULL;
-
-  if (done_handler != NULL)
-    done_handler (session->user_data, session);
-
-  ply_terminal_session_detach (session);
 }
 
 static void 
@@ -439,14 +410,12 @@ ply_terminal_session_start_logging (ply_terminal_session_t *session)
 
   assert (session_fd >= 0);
 
-  session->fd_watch = ply_event_loop_watch_fd (session->loop,
-                                               session_fd,
-                                               PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
-                                               (ply_event_handler_t)
-                                               ply_terminal_session_on_new_data, 
-                                               (ply_event_handler_t)
-                                               ply_terminal_session_on_hangup,
-                                               session);
+  ply_event_loop_watch_fd (session->loop, session_fd,
+                           PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
+                           (ply_event_handler_t)
+                           ply_terminal_session_on_new_data, 
+                           (ply_event_handler_t)
+                           ply_terminal_session_on_hangup, session);
 }
 
 static void
@@ -457,12 +426,6 @@ ply_terminal_session_stop_logging (ply_terminal_session_t *session)
 
   if (ply_logger_is_logging (session->logger))
     ply_logger_toggle_logging (session->logger);
-
-  if (session->loop != NULL &&
-      session->fd_watch != NULL)
-    ply_event_loop_stop_watching_fd (session->loop,
-                                     session->fd_watch);
-  session->fd_watch = NULL;
 }
 
 bool 

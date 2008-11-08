@@ -228,9 +228,6 @@ void
 remove_window (ply_boot_splash_plugin_t *plugin,
                ply_window_t             *window)
 {
-  ply_window_show_text_cursor (plugin->window);
-  ply_window_reset_colors (plugin->window);
-
   plugin->window = NULL;
 }
 

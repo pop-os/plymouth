@@ -207,8 +207,6 @@ ply_text_progress_bar_show (ply_text_progress_bar_t  *progress_bar,
 void
 ply_text_progress_bar_hide (ply_text_progress_bar_t *progress_bar)
 {
-  ply_window_clear_text_line (progress_bar->window);
-
   progress_bar->window = NULL;
   progress_bar->is_hidden = true;
 }

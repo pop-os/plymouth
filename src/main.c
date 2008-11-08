@@ -63,7 +63,6 @@ typedef struct
   uint32_t no_boot_log : 1;
   uint32_t showing_details : 1;
   uint32_t system_initialized : 1;
-  uint32_t is_redirected : 1;
 
   char *console;
 
@@ -75,8 +74,6 @@ static ply_boot_splash_t *start_boot_splash (state_t    *state,
 
 static ply_window_t *create_window (state_t    *state,
                                     const char *tty_name);
-
-static bool attach_to_running_session (state_t *state);
 
 static void
 on_session_output (state_t    *state,
@@ -92,9 +89,6 @@ on_session_output (state_t    *state,
 static void
 on_session_finished (state_t *state)
 {
-  if (!state->is_redirected)
-    return;
-
   ply_log ("\nSession finished...exiting logger\n");
   ply_flush_log ();
   ply_free_log ();
@@ -322,9 +316,6 @@ on_show_splash (state_t *state)
 {
   open_windows (state);
 
-  if (!state->is_redirected && state->ptmx >= 0)
-    state->is_redirected = attach_to_running_session (state);
-
   if (plymouth_should_show_default_splash (state))
     show_default_splash (state);
   else
@@ -345,9 +336,14 @@ quit_splash (state_t *state)
 
   if (state->session != NULL)
     {
-      ply_trace ("detaching session");
-      ply_terminal_session_detach (state->session);
-      state->is_redirected = false;
+      ply_trace ("unredirecting console");
+      int fd;
+
+      fd = open ("/dev/console", O_RDWR | O_NOCTTY);
+      if (fd >= 0)
+          ioctl (fd, TIOCCONS);
+
+      close (fd);
     }
 }
 
@@ -532,38 +528,27 @@ start_boot_splash (state_t    *state,
   return splash;
 }
 
-static bool
+static ply_terminal_session_t *
 attach_to_running_session (state_t *state)
 {
   ply_terminal_session_t *session;
   ply_terminal_session_flags_t flags;
-  bool should_be_redirected;
 
   flags = 0;
 
-  should_be_redirected = !state->no_boot_log;
-
-  if (should_be_redirected)
+  if (!state->no_boot_log)
     flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
 
-  if (state->session == NULL)
-    {
-      ply_trace ("creating new terminal session");
-      session = ply_terminal_session_new (NULL);
-
-      ply_terminal_session_attach_to_event_loop (session, state->loop);
-    }
-  else
-    {
-      session = state->session;
-      ply_trace ("session already created");
-    }
+  ply_trace ("creating terminal session for current terminal");
+  session = ply_terminal_session_new (NULL);
+  ply_trace ("attaching terminal session to event loop");
+  ply_terminal_session_attach_to_event_loop (session, state->loop);
 
   if (!ply_terminal_session_attach (session, flags,
                                  (ply_terminal_session_output_handler_t)
                                  on_session_output,
                                  (ply_terminal_session_done_handler_t)
-                                 (should_be_redirected? NULL: on_session_finished),
+                                 (state->no_boot_log? NULL: on_session_finished),
                                  state->ptmx,
                                  state))
     {
@@ -572,15 +557,10 @@ attach_to_running_session (state_t *state)
       ply_buffer_free (state->boot_buffer);
       state->boot_buffer = NULL;
       ply_restore_errno ();
-
-      state->is_redirected = false;
-      return false;
+      return NULL;
     }
 
-  state->is_redirected = should_be_redirected;
-  state->session = session;
-
-  return true;
+  return session;
 }
 
 static bool
@@ -823,7 +803,9 @@ main (int    argc,
 
   if (attach_to_session)
     {
-      if (!attach_to_running_session (&state))
+      state.session = attach_to_running_session (&state);
+
+      if (state.session == NULL)
         {
           ply_error ("could not create session: %m");
           ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);

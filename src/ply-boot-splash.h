@@ -29,6 +29,7 @@
 #include "ply-event-loop.h"
 #include "ply-window.h"
 #include "ply-buffer.h"
+#include "ply-progress.h"
 #include "ply-boot-splash-plugin.h"
 
 typedef struct _ply_boot_splash ply_boot_splash_t;
@@ -59,6 +60,8 @@ void ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
 void ply_boot_splash_hide (ply_boot_splash_t *splash);
 void ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
                                            ply_event_loop_t  *loop);
+void ply_boot_splash_attach_progress (ply_boot_splash_t *splash,
+                                      ply_progress_t    *progress);
 void ply_boot_splash_become_idle (ply_boot_splash_t               *splash,
                                   ply_boot_splash_on_idle_handler_t  idle_handler,
                                   void                            *user_data);

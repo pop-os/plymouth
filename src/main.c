@@ -77,6 +77,9 @@ static ply_boot_splash_t *start_boot_splash (state_t    *state,
 static ply_window_t *create_window (state_t    *state,
                                     const char *tty_name);
 
+static bool attach_to_running_session (state_t *state);
+static void on_escape_pressed (state_t *state);
+
 static void
 on_session_output (state_t    *state,
                    const char *output,

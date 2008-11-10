@@ -493,7 +493,10 @@ ply_window_open (ply_window_t *window)
       window->vt_number = get_active_vt ();
 
       if (readlink ("/proc/self/fd/0", tty_name, sizeof (tty_name) - 1) < 0)
-        return false;
+        {
+          ply_trace ("could not read tty name of fd 0");
+          return false;
+        }
 
       window->tty_name = strdup (tty_name);
     }
@@ -503,7 +506,10 @@ ply_window_open (ply_window_t *window)
   window->tty_fd = open (window->tty_name, O_RDWR | O_NOCTTY);
 
   if (window->tty_fd < 0)
-    return false;
+    {
+      ply_trace ("could not open %s : %m", window->tty_name);
+      return false;
+    }
 
   if (!ply_window_set_unbuffered_input (window))
     ply_trace ("window '%s' will be line buffered", window->tty_name);
@@ -548,20 +554,29 @@ ply_window_close (ply_window_t *window)
 {
   window->is_open = false;
 
+  ply_trace ("restoring color palette");
   ply_window_restore_color_palette (window);
 
   if (ply_frame_buffer_device_is_open (window->frame_buffer))
-    ply_frame_buffer_close (window->frame_buffer);
+    {
+      ply_trace ("closing frame buffer");
+      ply_frame_buffer_close (window->frame_buffer);
+    }
 
   if (window->tty_fd_watch != NULL)
     {
+      ply_trace ("stop watching tty fd");
       ply_event_loop_stop_watching_fd (window->loop, window->tty_fd_watch);
       window->tty_fd_watch = NULL;
     }
 
   if (window->loop != NULL)
-    ply_event_loop_stop_watching_signal (window->loop, SIGWINCH);
+    {
+      ply_trace ("stop watching SIGWINCH signal");
+      ply_event_loop_stop_watching_signal (window->loop, SIGWINCH);
+    }
 
+  ply_trace ("setting buffered input");
   ply_window_set_buffered_input (window);
 
   close (window->tty_fd);

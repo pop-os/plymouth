@@ -209,6 +209,8 @@ has_open_window (state_t *state)
 {
   ply_list_node_t *node;
 
+  ply_trace ("checking for open windows");
+
   node = ply_list_get_first_node (state->windows);
   while (node != NULL)
     {
@@ -220,7 +222,22 @@ has_open_window (state_t *state)
       window = ply_list_node_get_data (node);
 
       if (ply_window_is_open (window))
-        return true;
+        {
+          int fd;
+          const char *name;
+
+          fd = ply_window_get_tty_fd (window);
+
+          if (fd >= 0)
+            name = ttyname (fd);
+          else
+            name = NULL;
+
+          ply_trace ("window %s%sis open",
+                     name != NULL? name : "",
+                     name != NULL? " " : "");
+          return true;
+        }
 
       node = next_node;
     }
@@ -338,8 +355,10 @@ on_show_splash (state_t *state)
 static void
 quit_splash (state_t *state)
 {
+  ply_trace ("quiting splash");
   if (state->boot_splash != NULL)
     {
+      ply_trace ("freeing splash");
       ply_boot_splash_free (state->boot_splash);
       state->boot_splash = NULL;
     }

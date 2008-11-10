@@ -165,7 +165,8 @@ on_newroot (state_t    *state,
   chroot(".");
   chdir("/");
   ply_progress_load_cache (state->progress);
-  ply_boot_splash_root_mounted (state->boot_splash);
+  if (state->boot_splash != NULL)
+    ply_boot_splash_root_mounted (state->boot_splash);
 }
 
 static void

@@ -67,7 +67,7 @@
 
 /*you can comment one or both of these out*/
 /*#define SHOW_PLANETS */
-#define SHOW_COMETS
+/*#define SHOW_COMETS */
 #define SHOW_PROGRESS_BAR
 /*#define SHOW_LOGO_HALO */
 

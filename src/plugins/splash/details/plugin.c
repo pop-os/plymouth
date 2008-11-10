@@ -231,8 +231,6 @@ static void
 uninitialize_window (ply_window_t             *window,
                      ply_boot_splash_plugin_t *plugin)
 {
-  ply_window_clear_screen (window);
-
   ply_window_set_keyboard_input_handler (window, NULL, NULL);
   ply_window_set_backspace_handler (window, NULL, NULL);
   ply_window_set_enter_handler (window, NULL, NULL);

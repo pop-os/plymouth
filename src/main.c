@@ -636,14 +636,18 @@ check_verbosity (state_t *state)
      || (strstr (state->kernel_command_line, "plymouth:debug ") != NULL)
      || (strstr (state->kernel_command_line, " plymouth:debug") != NULL))
     {
+#ifdef LOG_TO_DEBUG_FILE
       int fd;
+#endif
 
       ply_trace ("tracing should be enabled!");
       if (!ply_is_tracing ())
         ply_toggle_tracing ();
 
+#ifdef LOG_TO_DEBUG_FILE
       fd = open ("/dev/console", O_RDWR);
       ply_logger_set_output_fd (ply_logger_get_error_default (), fd);
+#endif
     }
   else
     ply_trace ("tracing shouldn't be enabled!");

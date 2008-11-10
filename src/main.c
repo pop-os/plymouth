@@ -63,6 +63,8 @@ typedef struct
   uint32_t no_boot_log : 1;
   uint32_t showing_details : 1;
   uint32_t system_initialized : 1;
+  uint32_t is_redirected : 1;
+  uint32_t is_attached : 1;
 
   char *console;
 
@@ -311,7 +313,21 @@ close_windows (state_t *state)
 static void
 on_show_splash (state_t *state)
 {
+  bool has_window;
+
   open_windows (state);
+
+  has_window = has_open_window (state);
+
+  if (!state->is_attached && state->ptmx >= 0 && has_window)
+    state->is_attached = attach_to_running_session (state);
+
+  if (!has_window && state->is_attached)
+    {
+      ply_trace ("no open windows, detaching session");
+      ply_terminal_session_detach (state->session);
+      state->is_attached = false;
+    }
 
   if (plymouth_should_show_default_splash (state))
     show_default_splash (state);
@@ -554,10 +570,17 @@ attach_to_running_session (state_t *state)
       ply_buffer_free (state->boot_buffer);
       state->boot_buffer = NULL;
       ply_restore_errno ();
-      return NULL;
+
+      state->is_redirected = false;
+      state->is_attached = false;
+      return false;
     }
 
-  return session;
+  state->is_redirected = should_be_redirected;
+  state->is_attached = true;
+  state->session = session;
+
+  return true;
 }
 
 static bool

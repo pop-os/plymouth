@@ -369,14 +369,9 @@ quit_splash (state_t *state)
 
   if (state->session != NULL)
     {
-      ply_trace ("unredirecting console");
-      int fd;
-
-      fd = open ("/dev/console", O_RDWR | O_NOCTTY);
-      if (fd >= 0)
-          ioctl (fd, TIOCCONS);
-
-      close (fd);
+      ply_trace ("detaching session");
+      ply_terminal_session_detach (state->session);
+      state->is_redirected = false;
     }
 }
 
@@ -385,6 +380,8 @@ on_hide_splash (state_t *state)
 {
 
   ply_trace ("hiding boot splash");
+  state->showing_details = false;
+  on_escape_pressed (state);
   if (state->boot_splash != NULL)
     ply_boot_splash_hide (state->boot_splash);
 
@@ -413,11 +410,12 @@ on_quit (state_t *state,
   if (state->boot_splash != NULL)
     {
       if (!retain_splash)
-        on_hide_splash (state);
-      else
-        quit_splash (state);
-      ply_boot_splash_free (state->boot_splash);
-      state->boot_splash = NULL;
+        {
+          if (state->boot_splash != NULL)
+              ply_boot_splash_hide (state->boot_splash);
+        }
+
+      quit_splash (state);
     }
   ply_trace ("exiting event loop");
   ply_event_loop_exit (state->loop, 0);
@@ -561,27 +559,38 @@ start_boot_splash (state_t    *state,
   return splash;
 }
 
-static ply_terminal_session_t *
+static bool
 attach_to_running_session (state_t *state)
 {
   ply_terminal_session_t *session;
   ply_terminal_session_flags_t flags;
+  bool should_be_redirected;
 
   flags = 0;
 
-  if (!state->no_boot_log)
+  should_be_redirected = !state->no_boot_log;
+
+  if (should_be_redirected)
     flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
 
-  ply_trace ("creating terminal session for current terminal");
-  session = ply_terminal_session_new (NULL);
-  ply_trace ("attaching terminal session to event loop");
-  ply_terminal_session_attach_to_event_loop (session, state->loop);
+ if (state->session == NULL)
+   {
+     ply_trace ("creating new terminal session");
+     session = ply_terminal_session_new (NULL);
+
+     ply_terminal_session_attach_to_event_loop (session, state->loop);
+   }
+ else
+   {
+     session = state->session;
+     ply_trace ("session already created");
+   }
 
   if (!ply_terminal_session_attach (session, flags,
                                  (ply_terminal_session_output_handler_t)
                                  on_session_output,
                                  (ply_terminal_session_done_handler_t)
-                                 (state->no_boot_log? NULL: on_session_finished),
+                                 (should_be_redirected? on_session_finished: NULL),
                                  state->ptmx,
                                  state))
     {
@@ -847,9 +856,7 @@ main (int    argc,
 
   if (attach_to_session)
     {
-      state.session = attach_to_running_session (&state);
-
-      if (state.session == NULL)
+      if (!attach_to_running_session (&state))
         {
           ply_error ("could not create session: %m");
           ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);

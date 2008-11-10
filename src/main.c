@@ -89,10 +89,7 @@ on_session_output (state_t    *state,
 static void
 on_session_finished (state_t *state)
 {
-  ply_log ("\nSession finished...exiting logger\n");
-  ply_flush_log ();
-  ply_free_log ();
-  ply_event_loop_exit (state->loop, 1);
+  ply_trace ("got hang up on terminal session fd");
 }
 
 static void

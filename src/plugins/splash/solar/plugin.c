@@ -61,8 +61,8 @@
 #endif
 
 #define FLARE_FRAMES_PER_SECOND 20
-#define FLARE_COUNT 60
-#define FLARE_LINE_COUNT 4
+#define FLARE_COUNT 30
+#define FLARE_LINE_COUNT 20
 #define HALO_BLUR 4
 
 /*you can comment one or both of these out*/
@@ -530,7 +530,7 @@ flare_reset (flare_t *flare, int index)
   flare->rotate_xz[index]=((float)(rand()%1000)/1000)*2*M_PI;
   flare->y_size[index]=((float)(rand()%1000)/1000)*0.8+0.2;
   flare->increase_speed[index] = ((float)(rand()%1000)/1000)*0.08+0.08;
-  flare->stretch[index]=((float)(rand()%1000)/1000)*0.1+0.3;
+  flare->stretch[index]=(((float)(rand()%1000)/1000)*0.1+0.3)*flare->y_size[index];
   flare->z_offset_strength[index]=0.1;
 }
 
@@ -568,7 +568,7 @@ flare_update (sprite_t* sprite, double time)
       int flare_line;
       flare->stretch[b] += (flare->stretch[b] * flare->increase_speed[b]) * (1-(1/(3.01-flare->stretch[b])));
       flare->increase_speed[b]-=0.003;
-      flare->z_offset_strength[b]+=0.02;
+      flare->z_offset_strength[b]+=0.01;
 
       if (flare->stretch[b]>2 || flare->stretch[b]<0.2)
         {
@@ -579,38 +579,38 @@ flare_update (sprite_t* sprite, double time)
           double x, y, z;
           double angle, distance;
           float theta;
-          float lift = (flare->stretch[b]-0.5)/flare->stretch[b];
-          if (lift<0) continue;
-          lift = 1-lift;
-          lift *= lift;
-          lift = sqrt(1-lift);
-          for (theta =-M_PI_2; theta < M_PI_2; theta+=0.02)
+          for (theta = -M_PI+(0.05*cos(flare->increase_speed[b]*1000+flare_line)); theta < M_PI; theta+=0.05)
             {
               int ix;
               int iy;
 
-              x=(cos(theta))*flare->stretch[b];
-              y=(sin(theta)+lift)*flare->y_size[b];
-              z=x*((float)flare_line/FLARE_LINE_COUNT-0.5)*0.2;
+              x=(cos(theta)+0.5)*flare->stretch[b]*0.8;
+              y=(sin(theta))*flare->y_size[b];
+              z=x*(sin(b+flare_line*flare_line))*flare->z_offset_strength[b];
+              
               float strength = 1.1-(x/2)+flare->increase_speed[b]*3;
               x+=4.5;
               if ((x*x+y*y+z*z)<25) continue;
 
               strength = CLAMP(strength, 0, 1);
-              strength*=255;
+              strength*=32;
+
+              x+=0.05*sin(4*theta*(sin(b+flare_line*5)));
+              y+=0.05*cos(4*theta*(sin(b+flare_line*5)));
+              z+=0.05*sin(4*theta*(sin(b+flare_line*5)));
 
               distance = sqrt(x*x+y*y);
-              angle = atan2 (y, x) + flare->rotate_xy[b];
+              angle = atan2 (y, x) + flare->rotate_xy[b]+0.02*sin(b*flare_line) ;
               x = distance* cos(angle);
               y = distance* sin(angle);
 
               distance = sqrt(z*z+y*y);
-              angle = atan2 (y, z) + flare->rotate_yz[b];
+              angle = atan2 (y, z) + flare->rotate_yz[b]+0.02*sin(3*b*flare_line);
               z = distance* cos(angle);
               y = distance* sin(angle);
 
               distance = sqrt(x*x+z*z);
-              angle = atan2 (z, x) + flare->rotate_xz[b];
+              angle = atan2 (z, x) + flare->rotate_xz[b]+0.02*sin(8*b*flare_line);
               x = distance* cos(angle);
               z = distance* sin(angle);
 
@@ -625,7 +625,7 @@ flare_update (sprite_t* sprite, double time)
               iy=y;
               if (ix>=(width-1) || iy>=(height-1) || ix<=0 || iy<=0) continue;
 
-              uint32_t colour = strength;
+              uint32_t colour = MIN (strength + (old_image_data[ix + iy * width]>>24), 255);
               colour <<= 24;
               old_image_data[ix + iy * width] = colour;
 
@@ -649,7 +649,7 @@ flare_update (sprite_t* sprite, double time)
           value += (old_image_data[(x-1) + (y+1) * width]>>24)*1;
           value += (old_image_data[ x +    (y+1) * width]>>24)*2;
           value += (old_image_data[(x+1) + (y+1) * width]>>24)*1;
-          value /=20.5;
+          value /=21;
           value = (value<<24) | ((int)(value*0.7)<<16) | (value<<8) | (value<<0);
           new_image_data[x +y * width] = value;
         }

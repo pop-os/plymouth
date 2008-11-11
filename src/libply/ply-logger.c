@@ -357,9 +357,11 @@ ply_logger_flush (ply_logger_t *logger)
   if (!ply_logger_flush_buffer (logger))
     return false;
 
+#ifdef SYNC_ON_FLUSH
   if ((fdatasync (logger->output_fd) < 0) &&
       ((errno != EROFS) && (errno != EINVAL)))
     return false;
+#endif
 
   return true;
 }

@@ -79,7 +79,7 @@ static ply_window_t *create_window (state_t    *state,
 
 static bool attach_to_running_session (state_t *state);
 static void on_escape_pressed (state_t *state);
-static void on_hide_splash (state_t *state);
+static void dump_details_and_quit_splash (state_t *state);
 
 static void
 on_session_output (state_t    *state,
@@ -346,7 +346,7 @@ on_show_splash (state_t *state)
 
   if (plymouth_should_ignore_show_splash_calls (state))
     {
-      on_hide_splash (state);
+      dump_details_and_quit_splash (state);
       return;
     }
 
@@ -395,17 +395,25 @@ quit_splash (state_t *state)
 }
 
 static void
-on_hide_splash (state_t *state)
+dump_details_and_quit_splash (state_t *state)
 {
-  if (state->boot_splash != NULL)
-    ply_trace ("hiding boot splash");
-
   state->showing_details = false;
   on_escape_pressed (state);
+
   if (state->boot_splash != NULL)
     ply_boot_splash_hide (state->boot_splash);
 
   quit_splash (state);
+}
+
+static void
+on_hide_splash (state_t *state)
+{
+  if (state->boot_splash == NULL)
+    return;
+
+  ply_trace ("hiding boot splash");
+  dump_details_and_quit_splash (state);
 }
 
 #ifdef PLY_ENABLE_GDM_TRANSITION

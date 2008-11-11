@@ -79,6 +79,7 @@ static ply_window_t *create_window (state_t    *state,
 
 static bool attach_to_running_session (state_t *state);
 static void on_escape_pressed (state_t *state);
+static void on_hide_splash (state_t *state);
 
 static void
 on_session_output (state_t    *state,
@@ -250,14 +251,20 @@ has_open_window (state_t *state)
 }
 
 static bool
-plymouth_should_show_default_splash (state_t *state)
+plymouth_should_ignore_show_splash_calls (state_t *state)
 {
   ply_trace ("checking if plymouth should be running");
+  return ply_string_has_prefix (state->kernel_command_line, "init=") || strstr (state->kernel_command_line, " init=") != NULL;
+}
+
+static bool
+plymouth_should_show_default_splash (state_t *state)
+{
+  ply_trace ("checking if plymouth should show default splash");
 
   const char const *strings[] = {
       " single ", " single", "^single ",
       " 1 ", " 1", "^1 ",
-      " init=", "^init=",
       NULL
   };
   int i;
@@ -335,6 +342,13 @@ static void
 on_show_splash (state_t *state)
 {
   bool has_window;
+  bool should_ignore_show_splash;
+
+  if (plymouth_should_ignore_show_splash_calls (state))
+    {
+      on_hide_splash (state);
+      return;
+    }
 
   open_windows (state);
 
@@ -381,8 +395,9 @@ quit_splash (state_t *state)
 static void
 on_hide_splash (state_t *state)
 {
+  if (state->boot_splash != NULL)
+    ply_trace ("hiding boot splash");
 
-  ply_trace ("hiding boot splash");
   state->showing_details = false;
   on_escape_pressed (state);
   if (state->boot_splash != NULL)

@@ -361,6 +361,7 @@ on_show_splash (state_t *state)
     {
       ply_trace ("no open windows, detaching session");
       ply_terminal_session_detach (state->session);
+      state->is_redirected = false;
       state->is_attached = false;
     }
 
@@ -389,6 +390,7 @@ quit_splash (state_t *state)
       ply_trace ("detaching session");
       ply_terminal_session_detach (state->session);
       state->is_redirected = false;
+      state->is_attached = false;
     }
 }
 

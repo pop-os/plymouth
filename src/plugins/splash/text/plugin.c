@@ -268,6 +268,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                                  detach_from_event_loop,
                                  plugin);
 
+  ply_show_new_kernel_messages (false);
   start_animation (plugin);
 
   return true;
@@ -336,6 +337,8 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
       ply_window_show_text_cursor (plugin->window);
       ply_window_reset_colors (plugin->window);
     }
+
+  ply_show_new_kernel_messages (true);
 }
 
 void

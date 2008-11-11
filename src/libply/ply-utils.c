@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/klog.h>
 #include <sys/mount.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
@@ -60,6 +61,14 @@
 
 #ifndef PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG
 #define PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG 2
+#endif
+
+#ifndef PLY_DISABLE_CONSOLE_PRINTK
+#define PLY_DISABLE_CONSOLE_PRINTK 6
+#endif
+
+#ifndef PLY_ENABLE_CONSOLE_PRINTK
+#define PLY_ENABLE_CONSOLE_PRINTK 7
 #endif
 
 static int errno_stack[PLY_ERRNO_STACK_SIZE];
@@ -776,6 +785,20 @@ ply_create_file_link (const char *source,
     return false;
 
   return true;
+}
+
+void
+ply_show_new_kernel_messages (bool should_show)
+{
+  int type;
+
+  if (should_show)
+    type = PLY_ENABLE_CONSOLE_PRINTK;
+  else
+    type = PLY_DISABLE_CONSOLE_PRINTK;
+
+  if (klogctl (type, NULL, 0) < 0)
+    ply_trace ("could not toggle printk visibility: %m");
 }
 
 ply_daemon_handle_t *

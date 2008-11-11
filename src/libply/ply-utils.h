@@ -87,6 +87,7 @@ void ply_close_module (ply_module_handle_t *handle);
 bool ply_create_directory (const char *directory);
 bool ply_create_file_link (const char *source,
                            const char *destination);
+void ply_show_new_kernel_messages (bool should_show);
 
 ply_daemon_handle_t *ply_create_daemon (void);
 bool ply_detach_daemon (ply_daemon_handle_t *handle,

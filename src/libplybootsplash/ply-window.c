@@ -650,6 +650,9 @@ ply_window_set_text_cursor_position (ply_window_t *window,
 void
 ply_window_clear_screen (ply_window_t *window)
 {
+  if (ply_is_tracing ())
+    return;
+
   if (ply_frame_buffer_device_is_open (window->frame_buffer))
     ply_frame_buffer_fill_with_color (window->frame_buffer, NULL, 0.0, 0.0, 0.0, 1.0);
 

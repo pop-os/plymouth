@@ -4,7 +4,13 @@ set -e
 
 [ -z "$LIBEXECDIR" ] && LIBEXECDIR="/usr/libexec"
 [ -z "$DATADIR" ] && DATADIR="/usr/share"
-[ -z "$LIB" ] && $(echo nash-showelfinterp /proc/$$/exe | /sbin/nash --forcequiet | grep -q lib64) && LIB="lib64" || LIB="lib"
+if [ -z "$LIB" ]; then
+  if $(echo nash-showelfinterp /proc/$$/exe | /sbin/nash --forcequiet | grep -q lib64); then
+    LIB="lib64"
+  else
+    LIB="lib"
+  fi
+fi
 [ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
 [ -z "$BINDIR" ] && BINDIR="/usr/bin"
 

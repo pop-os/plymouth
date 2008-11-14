@@ -61,9 +61,11 @@
 #endif
 
 #define FLARE_FRAMES_PER_SECOND 20
+#define BG_STARS_FRAMES_PER_SECOND 10
 #define FLARE_COUNT 30
 #define FLARE_LINE_COUNT 20
 #define HALO_BLUR 4
+#define STAR_HZ 0.08
 
 /*you can comment one or both of these out*/
 /*#define SHOW_PLANETS */
@@ -78,6 +80,7 @@ typedef enum
   SPRITE_TYPE_FLARE,
   SPRITE_TYPE_SATELLITE,
   SPRITE_TYPE_PROGRESS,
+  SPRITE_TYPE_STAR_BG,
 } sprite_type_t;
 
 typedef struct
@@ -140,6 +143,16 @@ typedef struct
   ply_image_t *image_altered;
 } progress_t;
 
+
+typedef struct
+{
+  int star_count;
+  int *star_x;
+  int *star_y;
+  int *star_refresh;
+  int frame_count;
+} star_bg_t;
+
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
@@ -148,7 +161,6 @@ struct _ply_boot_splash_plugin
   ply_image_t *logo_image;
   ply_image_t *lock_image;
   ply_image_t *box_image;
-  ply_image_t *background_image;
   ply_image_t *star_image;
   
 #ifdef  SHOW_PLANETS
@@ -198,7 +210,7 @@ create_plugin (void)
   plugin->logo_image = ply_image_new (PLYMOUTH_LOGO_FILE);
   plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/lock.png");
   plugin->box_image = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/box.png");
-  plugin->background_image = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/background.png"); 
+  plugin->scaled_background_image = NULL;
   plugin->star_image = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/star.png");
 #ifdef  SHOW_PLANETS
   plugin->planet_image[0] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/planet1.png");
@@ -237,7 +249,7 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   ply_image_free (plugin->lock_image);
   ply_image_free (plugin->box_image);
 
-  ply_image_free (plugin->background_image);
+  ply_image_free (plugin->scaled_background_image);
   ply_image_free (plugin->star_image);
 #ifdef  SHOW_PLANETS
   ply_image_free (plugin->planet_image[0]);
@@ -287,6 +299,14 @@ free_sprite (sprite_t* sprite)
               ply_image_free (flare->image_b);
               break;
             }
+          case SPRITE_TYPE_STAR_BG:
+            {
+              star_bg_t *star_bg = sprite->data;
+              free (star_bg->star_x);
+              free (star_bg->star_y);
+              free (star_bg->star_refresh);
+              break;
+            }
         }
 
       if (sprite->data) free(sprite->data);
@@ -308,7 +328,7 @@ add_sprite (ply_boot_splash_plugin_t *plugin, ply_image_t *image, int type, void
  new_sprite->oldy = 0;
  new_sprite->oldz = 0;
  new_sprite->opacity = 1;
- new_sprite->refresh_me = 1;
+ new_sprite->refresh_me = 0;
  new_sprite->image = image;
  new_sprite->type = type;
  new_sprite->data = data;
@@ -389,6 +409,86 @@ progress_update (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time
   progress->current_width = newwidth;
   stretch_image(progress->image_altered, progress->image, newwidth);
   sprite->opacity = plugin->progress;
+  sprite->refresh_me=1;
+}
+
+
+inline uint32_t 
+star_bg_gradient_colour (int x, int y, int width, int height, bool star, float time)
+{
+  int full_dist =  sqrt(width*width+height*height);
+  int my_dist = sqrt(x*x+y*y);
+  float val;
+  
+  uint16_t r0 = 0x0000;  /* start colour:033c73 */
+  uint16_t g0 = 0x3c00;
+  uint16_t b0 = 0x7300;
+  
+  uint16_t r1 = 0x0000;  /* end colour:00193a */
+  uint16_t g1 = 0x1900;
+  uint16_t b1 = 0x3a00;
+  
+  uint16_t r = r0+((r1-r0)*my_dist)/full_dist;
+  uint16_t g = g0+((g1-g0)*my_dist)/full_dist;
+  uint16_t b = b0+((b1-b0)*my_dist)/full_dist;
+
+  static uint16_t r_err = 0; 
+  static uint16_t g_err = 0; 
+  static uint16_t b_err = 0; 
+  
+  r += r_err;
+  g += g_err;
+  b += b_err;
+  r_err = ((r>>8) | ((r>>8)<<8)) - r;
+  g_err = ((g>>8) | ((g>>8)<<8)) - g;
+  b_err = ((b>>8) | ((b>>8)<<8)) - b;
+  r >>= 8;
+  g >>= 8;
+  b >>= 8;
+  
+  if (!star) {
+    
+    return 0xff000000 | r<<16 | g<<8 | b;
+    }
+  
+  x -= width+720-800;
+  y -= height+300-480;
+  val = sqrt(x*x+y*y)/100;
+  val = (sin(val-time*(2*M_PI)*STAR_HZ+atan2(y, x)*2)+1)/2;
+  
+  val= val*0.3;
+  
+  r = r*(1-val) + val*0xff;
+  g = g*(1-val) + val*0xff;
+  b = b*(1-val) + val*0xff;
+  
+  return 0xff000000 | r<<16 | g<<8 | b;
+}
+
+
+
+static void
+star_bg_update (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
+{
+  star_bg_t *star_bg = sprite->data;
+  int width = ply_image_get_width (sprite->image);
+  int height = ply_image_get_height (sprite->image);
+  uint32_t* image_data = ply_image_get_data (sprite->image);
+  int i, x, y;
+  star_bg->frame_count++;
+  star_bg->frame_count%=FRAMES_PER_SECOND/BG_STARS_FRAMES_PER_SECOND;
+
+  for (i = star_bg->frame_count; i < star_bg->star_count; i+=FRAMES_PER_SECOND/BG_STARS_FRAMES_PER_SECOND){
+    x = star_bg->star_x[i];
+    y = star_bg->star_y[i];
+    uint32_t pixel_colour = star_bg_gradient_colour (x, y, width, height, true, time);
+    if (abs(((image_data[x + y * width]>>16)&0xff) - ((pixel_colour>>16)&0xff))>8){
+        image_data[x + y * width] = pixel_colour;
+        star_bg->star_refresh[i]=1;
+        }
+    }
+  
+  
   sprite->refresh_me=1;
 }
 
@@ -683,8 +783,18 @@ sprite_move (ply_boot_splash_plugin_t *plugin, sprite_t* sprite, double time)
       case SPRITE_TYPE_SATELLITE:
           satellite_move (plugin, sprite, time);
           break;
+      case SPRITE_TYPE_STAR_BG:
+          star_bg_update (plugin, sprite, time);
+          break;
     }
 }
+
+void
+on_draw (ply_boot_splash_plugin_t *plugin,
+         int                       x,
+         int                       y,
+         int                       width,
+         int                       height);
 
 static void
 animate_attime (ply_boot_splash_plugin_t *plugin, double time)
@@ -720,6 +830,21 @@ animate_attime (ply_boot_splash_plugin_t *plugin, double time)
 
           int width = ply_image_get_width (sprite->image);
           int height= ply_image_get_height (sprite->image);
+          
+          if (sprite->type == SPRITE_TYPE_STAR_BG){
+            star_bg_t *star_bg = sprite->data;
+            int i;
+            for (i=0; i<star_bg->star_count; i++){
+                if (star_bg->star_refresh[i]){
+                    ply_window_draw_area (plugin->window, sprite->x+star_bg->star_x[i], sprite->y+star_bg->star_y[i], 1, 1);
+                    star_bg->star_refresh[i]=0;
+                    }
+              }
+            continue;
+            }
+          
+          
+          
           int x = sprite->x - sprite->oldx;
           int y = sprite->y - sprite->oldy;
 
@@ -788,8 +913,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
 
   plugin->now = ply_get_timestamp ();
   setup_solar (plugin);
-  on_timeout (plugin);
   ply_window_draw_area (plugin->window, area.x, area.y, area.width, area.height);
+  on_timeout (plugin);
 
   plugin->is_animating = true;
 }
@@ -816,7 +941,6 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
                                                 on_timeout, plugin);
     }
 
-  ply_image_free(plugin->scaled_background_image);
 #ifdef  SHOW_LOGO_HALO
   ply_image_free(plugin->highlight_logo_image);
 #endif
@@ -875,6 +999,7 @@ on_enter (ply_boot_splash_plugin_t *plugin,
   start_animation (plugin);
 }
 
+
 void
 on_draw (ply_boot_splash_plugin_t *plugin,
          int                       x,
@@ -888,7 +1013,14 @@ on_draw (ply_boot_splash_plugin_t *plugin,
   clip_area.width = width;
   clip_area.height = height;
 
-  ply_frame_buffer_pause_updates (plugin->frame_buffer);
+  bool single_pixel = 0;
+  float pixel_r=0;
+  float pixel_g=0;
+  float pixel_b=0;
+  if (width==1 && height==1)
+      single_pixel = true;
+  else 
+      ply_frame_buffer_pause_updates (plugin->frame_buffer);
 
   if (plugin->pending_password_answer != NULL)
     {
@@ -896,23 +1028,53 @@ on_draw (ply_boot_splash_plugin_t *plugin,
       ply_entry_draw (plugin->entry);
       ply_label_draw (plugin->label);
     }
-  else {
-    ply_list_node_t *node;
-    for(node = ply_list_get_first_node (plugin->sprites); node; node = ply_list_get_next_node (plugin->sprites, node)){
-        sprite_t* sprite = ply_list_node_get_data (node);
-        ply_frame_buffer_area_t sprite_area;
+  else
+    {
+      ply_list_node_t *node;
+      for(node = ply_list_get_first_node (plugin->sprites); node; node = ply_list_get_next_node (plugin->sprites, node))
+        {
+          sprite_t* sprite = ply_list_node_get_data (node);
+          ply_frame_buffer_area_t sprite_area;
 
-        sprite_area.x = sprite->x;
-        sprite_area.y = sprite->y;
-        sprite_area.width =  ply_image_get_width (sprite->image);
-        sprite_area.height = ply_image_get_height (sprite->image);
 
-        ply_frame_buffer_fill_with_argb32_data_at_opacity_with_clip (plugin->frame_buffer,
+          sprite_area.x = sprite->x;
+          sprite_area.y = sprite->y;
+
+          if (sprite_area.x>=(x+width)) continue;
+          if (sprite_area.y>=(y+height)) continue;
+
+          sprite_area.width =  ply_image_get_width (sprite->image);
+          sprite_area.height = ply_image_get_height (sprite->image);
+
+          if ((sprite_area.x+sprite_area.width)<=x) continue;
+          if ((sprite_area.y+sprite_area.height)<=y) continue;
+
+          if (single_pixel)
+            {
+              uint32_t* image_data = ply_image_get_data (sprite->image);
+              uint32_t overlay_pixel = image_data[(x-sprite_area.x)+(y-sprite_area.y)*sprite_area.width];
+              float  alpha = (float)((overlay_pixel>>24)&0xff)/255 * sprite->opacity;
+              float  red =   (float)((overlay_pixel>>16)&0xff)/255 * sprite->opacity;
+              float  green = (float)((overlay_pixel>>8) &0xff)/255 * sprite->opacity;
+              float  blue =  (float)((overlay_pixel>>0) &0xff)/255 * sprite->opacity;
+              pixel_r = pixel_r*(1-alpha) + red;
+              pixel_g = pixel_g*(1-alpha) + green;
+              pixel_b = pixel_b*(1-alpha) + blue;
+            }
+          else
+            {
+              ply_frame_buffer_fill_with_argb32_data_at_opacity_with_clip (plugin->frame_buffer,
                                                      &sprite_area, &clip_area, 0, 0,
                                                      ply_image_get_data (sprite->image), sprite->opacity);
+            }
         }
     }
-  ply_frame_buffer_unpause_updates (plugin->frame_buffer);
+  if (single_pixel){
+      ply_frame_buffer_fill_with_color (plugin->frame_buffer, &clip_area, pixel_r, pixel_g, pixel_b, 1.0);
+      }
+  else {
+      ply_frame_buffer_unpause_updates (plugin->frame_buffer);
+      }
 }
 
 void
@@ -924,20 +1086,20 @@ on_erase (ply_boot_splash_plugin_t *plugin,
 {
   ply_frame_buffer_area_t area;
   ply_frame_buffer_area_t image_area;
-  ply_image_t *image;
 
   area.x = x;
   area.y = y;
   area.width = width;
   area.height = height;
 
-  ply_frame_buffer_get_size (plugin->frame_buffer, &image_area);
-  image = ply_image_resize (plugin->background_image, image_area.width, image_area.height);
+  image_area.x = 0;
+  image_area.y = 0;
+  image_area.width = ply_image_get_width(plugin->scaled_background_image);
+  image_area.height = ply_image_get_height(plugin->scaled_background_image);
 
   ply_frame_buffer_fill_with_argb32_data_with_clip (plugin->frame_buffer,
                                                      &image_area, &area, 0, 0,
-                                                     ply_image_get_data (image));
-  ply_image_free (image);
+                                                     ply_image_get_data (plugin->scaled_background_image));
   
   image_area.x = image_area.width-ply_image_get_width(plugin->star_image);
   image_area.y = image_area.height-ply_image_get_height(plugin->star_image);
@@ -1010,7 +1172,6 @@ void highlight_image (ply_image_t *highlighted_image, ply_image_t *orig_image, i
  
  
 }
-
 void 
 setup_solar (ply_boot_splash_plugin_t *plugin)
 {
@@ -1022,9 +1183,50 @@ setup_solar (ply_boot_splash_plugin_t *plugin)
   int height = 460;
 
   ply_frame_buffer_get_size (plugin->frame_buffer, &screen_area);
-  plugin->scaled_background_image = ply_image_resize (plugin->background_image, screen_area.width, screen_area.height);
-  sprite = add_sprite (plugin, plugin->scaled_background_image, SPRITE_TYPE_STATIC, NULL);
-  sprite->z=-10000;
+  
+    {
+      star_bg_t* star_bg;
+      if (plugin->scaled_background_image)
+          ply_image_free(plugin->scaled_background_image);
+      
+      plugin->scaled_background_image = ply_image_resize (plugin->logo_image, screen_area.width, screen_area.height);
+      star_bg = malloc(sizeof(star_bg_t));
+      star_bg->star_count = (screen_area.width * screen_area.height)/400;
+      star_bg->star_x = malloc(sizeof(int)*star_bg->star_count);
+      star_bg->star_y = malloc(sizeof(int)*star_bg->star_count);
+      star_bg->star_refresh = malloc(sizeof(int)*star_bg->star_count);
+      star_bg->frame_count=0;
+      sprite = add_sprite (plugin, plugin->scaled_background_image, SPRITE_TYPE_STAR_BG, star_bg);
+      sprite->z = -10000;
+      
+      uint32_t* image_data = ply_image_get_data (plugin->scaled_background_image);
+      for (y=0; y<screen_area.height; y++) for (x=0; x<screen_area.width; x++){
+          image_data[x + y * screen_area.width] = star_bg_gradient_colour(x, y, screen_area.width, screen_area.height, false, 0);
+        }
+      
+      for (i=0; i<star_bg->star_count; i++){
+          do
+            {
+              x = rand()%screen_area.width;
+              y = rand()%screen_area.height;
+            }
+          while (image_data[x + y * screen_area.width] == 0xFFFFFFFF);
+          star_bg->star_refresh[i] = 0;
+          star_bg->star_x[i] = x;
+          star_bg->star_y[i] = y;
+          image_data[x + y * screen_area.width] = 0xFFFFFFFF;
+        }
+      for (i=0; i<(screen_area.width * screen_area.height)/400; i++){
+        x = rand()%screen_area.width;
+        y = rand()%screen_area.height;
+        image_data[x + y * screen_area.width] = star_bg_gradient_colour(x, y, screen_area.width, screen_area.height, true, ((float)x*y*13/10000));
+        }
+      
+      for (i=0; i<star_bg->star_count; i++){
+        image_data[star_bg->star_x[i]  + star_bg->star_y[i] * screen_area.width] = 
+            star_bg_gradient_colour(star_bg->star_x[i], star_bg->star_y[i], screen_area.width, screen_area.height, true, 0.0);
+        }
+    }
 
   sprite = add_sprite (plugin, plugin->logo_image, SPRITE_TYPE_STATIC, NULL);
   sprite->x=screen_area.width/2-ply_image_get_width(plugin->logo_image)/2;
@@ -1172,10 +1374,6 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   ply_trace ("loading logo image");
   if (!ply_image_load (plugin->logo_image))
-    return false;
-
-  ply_trace ("loading background image");
-  if (!ply_image_load (plugin->background_image))
     return false;
 
   ply_trace ("loading star image");

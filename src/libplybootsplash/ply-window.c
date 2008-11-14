@@ -354,6 +354,14 @@ check_buffer_for_key_events (ply_window_t *window)
       if (character_size < 0)
         break;
 
+      /* If we're at a NUL character walk through it
+       */
+      if (character_size == 0)
+        {
+          i++;
+          continue;
+        }
+
       keyboard_input = strndup (bytes + i, character_size);
 
       process_keyboard_input (window, keyboard_input, character_size);

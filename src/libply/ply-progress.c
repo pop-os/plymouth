@@ -24,6 +24,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,6 +56,8 @@ struct _ply_progress
   double scalar;
   double last_percentage;
   double last_percentage_time;
+  double dead_time;
+  double next_message_percentage;
   ply_list_t *current_message_list;
   ply_list_t *previous_message_list;
   uint32_t paused : 1;
@@ -78,6 +81,8 @@ ply_progress_new (void)
   progress->pause_time=0.0;
   progress->last_percentage=0.0;
   progress->last_percentage_time=0.0;
+  progress->dead_time=0.0;
+  progress->next_message_percentage=1.0;
   progress->current_message_list = ply_list_new ();
   progress->previous_message_list = ply_list_new ();
   progress->paused = false;
@@ -106,6 +111,23 @@ ply_progress_message_search (ply_list_t *message_list, const char* string)
       node = ply_list_get_next_node (message_list, node);
     }
   return NULL;
+}
+
+
+static ply_progress_message_t*
+ply_progress_message_search_next (ply_list_t *message_list, double time)
+{
+  ply_list_node_t *node;
+  node = ply_list_get_first_node (message_list);
+  ply_progress_message_t *best=NULL;
+  while (node)
+    {
+      ply_progress_message_t *message = ply_list_node_get_data (node);
+      if (message->time > time && (!best || message->time < best->time))
+          best = message;
+      node = ply_list_get_next_node (message_list, node);
+    }
+  return best;
 }
 
 void
@@ -171,8 +193,11 @@ ply_progress_save_cache (ply_progress_t* progress)
   while (node)
     {
       ply_progress_message_t *message = ply_list_node_get_data (node);
+      ply_progress_message_t *message_prev = ply_progress_message_search(progress->previous_message_list, message->string);
+      double percentage = message->time / cur_time;
+      if (message_prev) percentage = (percentage + message_prev->time)/2;
       if (!message->disabled)
-          fprintf (fp, "%.3lf:%s\n", message->time/cur_time, message->string);
+          fprintf (fp, "%.3lf:%s\n", percentage, message->string);
       node = ply_list_get_next_node (progress->current_message_list, node);
     }
   fclose (fp);
@@ -186,14 +211,22 @@ ply_progress_get_percentage (ply_progress_t* progress)
   double percentage;
   double cur_time = ply_progress_get_time (progress);
   
-  if (progress->last_percentage_time*progress->scalar<0.999)
-    percentage = progress->last_percentage
+  if ((progress->last_percentage_time-progress->dead_time)*progress->scalar<0.999)
+    {
+      percentage = progress->last_percentage
                 + (((cur_time - progress->last_percentage_time)*progress->scalar)
-                / (1 - progress->last_percentage_time*progress->scalar))
+                / (1 - (progress->last_percentage_time-progress->dead_time)*progress->scalar))
                 * (1 - progress->last_percentage);
+      
+      if ((percentage - progress->next_message_percentage)/progress->scalar > 1){
+          percentage = progress->last_percentage
+                     + (cur_time - progress->last_percentage_time) / (DEFAULT_BOOT_DURATION * 10);
+          progress->dead_time += cur_time - progress->last_percentage_time;
+        }
+      percentage = CLAMP(percentage, 0.0, 1.0);
+    }
   else 
     percentage = 1.0;
-  percentage = CLAMP(percentage, 0.0, 1.0);
   
   progress->last_percentage_time = cur_time;
   progress->last_percentage = percentage;
@@ -232,7 +265,7 @@ void
 ply_progress_status_update (ply_progress_t* progress,
                              const char  *status)
 {
-  ply_progress_message_t* message;
+  ply_progress_message_t *message, *message_next;
   message = ply_progress_message_search(progress->current_message_list, status);
   if (message)
     {
@@ -243,7 +276,13 @@ ply_progress_status_update (ply_progress_t* progress,
       message = ply_progress_message_search(progress->previous_message_list, status);
       if (message)
         {
-          progress->scalar += message->time / ply_progress_get_time(progress);
+          message_next = ply_progress_message_search_next(progress->previous_message_list, message->time);
+          if (message_next)
+              progress->next_message_percentage = message_next->time;
+          else
+              progress->next_message_percentage = 1;
+              
+          progress->scalar += message->time / (ply_progress_get_time(progress)-progress->dead_time);
           progress->scalar /= 2;
         }
       message = malloc(sizeof(ply_progress_message_t));

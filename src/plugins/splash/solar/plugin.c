@@ -865,7 +865,6 @@ animate_attime (ply_boot_splash_plugin_t *plugin, double time)
     }
 }
 
-static void draw_password_entry (ply_boot_splash_plugin_t *plugin);
 static void
 on_timeout (ply_boot_splash_plugin_t *plugin)
 {

@@ -16,7 +16,19 @@ fi
 
 function usage ()
 {
-  echo "usage: plymouth-set-default-plugin { --reset | <plugin-name> [ --rebuild-initrd ] }"
+  echo "usage: plymouth-set-default-plugin { --list | --reset | <plugin-name> [ --rebuild-initrd ] }"
+}
+
+function list_plugins ()
+{
+        for plugin in ${LIBDIR}/plymouth/*.so; do
+                [ -f $plugin ] || continue;
+                [ -L $plugin ] && continue;
+
+                if $(nm -D $plugin | grep -q ply_boot_splash_plugin_get_interface); then
+                        echo "$(basename $plugin .so)"
+                fi
+        done
 }
 
 function get_default_plugin ()
@@ -31,9 +43,26 @@ function get_default_plugin ()
 
 DO_RESET=0
 DO_INITRD_REBUILD=0
+DO_LIST=0
 PLUGIN_NAME=""
 while [ $# -gt 0 ]; do
         case "$1" in
+
+        --list)
+                if [ -n "$PLUGIN_NAME" ]; then
+                        echo "You can only specify --list or a plugin name, not both" > /dev/stderr
+                        echo $(usage) > /dev/stderr
+                        exit 1
+                fi
+
+                if [ $DO_RESET -ne 0 ]; then
+                        echo "You can only specify --reset or --list, not both" > /dev/stderr
+                        echo $(usage) > /dev/stderr
+                        exit 1
+                fi
+
+                DO_LIST=1
+        ;;
 
         --rebuild-initrd)
                 DO_INITRD_REBUILD=1
@@ -42,6 +71,12 @@ while [ $# -gt 0 ]; do
         --reset|default)
                 if [ -n "$PLUGIN_NAME" ]; then
                         echo "You can only specify --reset or a plugin name, not both" > /dev/stderr
+                        echo $(usage) > /dev/stderr
+                        exit 1
+                fi
+
+                if [ $DO_LIST -ne 0 ]; then
+                        echo "You can only specify --reset or --list, not both" > /dev/stderr
                         echo $(usage) > /dev/stderr
                         exit 1
                 fi
@@ -62,11 +97,22 @@ while [ $# -gt 0 ]; do
                         exit 1
                 fi
 
+                if [ $DO_LIST -ne 0 ]; then
+                        echo "You can only specify --list or a plugin name, not both" > /dev/stderr
+                        echo $(usage) > /dev/stderr
+                        exit 1
+                fi
+
                 PLUGIN_NAME="$1"
         ;;
   esac
   shift
 done
+
+if [ $DO_LIST -ne 0 ]; then
+        list_plugins
+        exit $?
+fi
 
 if [ $DO_RESET -eq 0 ] && [ $DO_INITRD_REBUILD -eq 0 ] && [ -z $PLUGIN_NAME ]; then
         get_default_plugin

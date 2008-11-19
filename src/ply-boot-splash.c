@@ -241,7 +241,7 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
 
   if (splash->plugin_interface->on_boot_progress != NULL)
     {
-      ply_boot_splash_update_progress (splash)
+      ply_boot_splash_update_progress (splash);
     }
 
   splash->is_shown = true;

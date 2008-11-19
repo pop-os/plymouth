@@ -16,16 +16,60 @@ fi
 
 function usage ()
 {
-  echo "usage: plymouth-set-default-plugin { --reset | <plugin-name> }"
+  echo "usage: plymouth-set-default-plugin { --reset | <plugin-name> [ --rebuild-initrd ] }"
 }
 
-if [ $# -lt 1 ]; then
+function get_default_plugin ()
+{
         PLUGIN_NAME=$(basename $(readlink ${LIBDIR}/plymouth/default.so) .so)
         if [ -z "$PLUGIN_NAME" ]; then
                 $0 --reset
                 PLUGIN_NAME=$(basename $(readlink ${LIBDIR}/plymouth/default.so) .so)
         fi
         [ -n "$PLUGIN_NAME" ] && echo $PLUGIN_NAME || exit 1
+}
+
+DO_RESET=0
+DO_INITRD_REBUILD=0
+PLUGIN_NAME=""
+while [ $# -gt 0 ]; do
+        case "$1" in
+
+        --rebuild-initrd)
+                DO_INITRD_REBUILD=1
+        ;;
+
+        --reset|default)
+                if [ -n "$PLUGIN_NAME" ]; then
+                        echo "You can only specify --reset or a plugin name, not both" > /dev/stderr
+                        echo $(usage) > /dev/stderr
+                        exit 1
+                fi
+
+                DO_RESET=1
+        ;;
+
+        *)
+                if [ -n "$PLUGIN_NAME" ]; then
+                        echo "You can only specify one plugin at a time" > /dev/stderr
+                        echo $(usage) > /dev/stderr
+                        exit 1
+                fi
+
+                if [ $DO_RESET -ne 0 ]; then
+                        echo "You can only specify --reset or a plugin name, not both" > /dev/stderr
+                        echo $(usage) > /dev/stderr
+                        exit 1
+                fi
+
+                PLUGIN_NAME="$1"
+        ;;
+  esac
+  shift
+done
+
+if [ $DO_RESET -eq 0 ] && [ $DO_INITRD_REBUILD -eq 0 ] && [ -z $PLUGIN_NAME ]; then
+        get_default_plugin
         exit $?
 fi
 
@@ -34,13 +78,7 @@ if [ `id -u` -ne 0 ]; then
         exit 1
 fi
 
-if [ $# -ne 1 ]; then
-        echo $(usage) > /dev/stderr
-        exit 1
-fi
-
-PLUGIN_NAME=$1
-if [ $1 = '--reset' ]; then
+if [ $DO_RESET -ne 0 ]; then
         PLUGIN_NAME=$(basename $(ls -1 -t ${LIBDIR}/plymouth/*.so 2> /dev/null | grep -v default.so | tail -n 1) .so)
         if [ $PLUGIN_NAME = .so ]; then
                 rm -f ${LIBDIR}/plymouth/default.so
@@ -53,5 +91,8 @@ if [ ! -e ${LIBDIR}/plymouth/${PLUGIN_NAME}.so ]; then
         exit 1
 fi
 
-(cd ${LIBDIR}/plymouth; ln -sf ${PLUGIN_NAME}.so default.so)
+(cd ${LIBDIR}/plymouth;
+        ln -sf ${PLUGIN_NAME}.so default.so && \
+        [ $DO_INITRD_REBUILD -ne 0 ] && \
+        $LIBEXECDIR/plymouth/plymouth-update-initrd)
 

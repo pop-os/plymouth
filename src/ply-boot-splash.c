@@ -241,10 +241,7 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
 
   if (splash->plugin_interface->on_boot_progress != NULL)
     {
-      ply_event_loop_watch_for_timeout (splash->loop,
-                                        1.0 / UPDATES_PER_SECOND,
-                                        (ply_event_loop_timeout_handler_t)
-                                        ply_boot_splash_update_progress, splash);
+      ply_boot_splash_update_progress (splash)
     }
 
   splash->is_shown = true;

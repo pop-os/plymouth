@@ -14,6 +14,11 @@ fi
 [ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
 [ -z "$BINDIR" ] && BINDIR="/usr/bin"
 
+function usage ()
+{
+  echo "usage: plymouth-set-default-plugin { --reset | <plugin-name> }"
+}
+
 if [ $# -lt 1 ]; then
         PLUGIN_NAME=$(basename $(readlink ${LIBDIR}/plymouth/default.so) .so)
         if [ -z "$PLUGIN_NAME" ]; then
@@ -26,6 +31,11 @@ fi
 
 if [ `id -u` -ne 0 ]; then
         echo "This program must be run as root" > /dev/stderr
+        exit 1
+fi
+
+if [ $# -ne 1 ]; then
+        echo $(usage) > /dev/stderr
         exit 1
 fi
 

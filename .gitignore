@@ -6,7 +6,7 @@ core.*
 .libs
 .deps
 *.lo
-*.swp
+.*.sw*
 *.orig
 *.rej
 *~
@@ -28,5 +28,8 @@ stamp-*
 *.rpm
 plymouth
 plymouth-populate-initrd
+plymouth-set-default-plugin
+plymouth-log-viewer
 plymouthd
 *.pc
+tags

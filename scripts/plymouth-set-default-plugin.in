@@ -34,11 +34,11 @@ function list_plugins ()
 function get_default_plugin ()
 {
         PLUGIN_NAME=$(basename $(readlink ${LIBDIR}/plymouth/default.so) .so)
-        if [ -z "$PLUGIN_NAME" ]; then
+        if [ "$PLUGIN_NAME" = ".so" ]; then
                 $0 --reset
                 PLUGIN_NAME=$(basename $(readlink ${LIBDIR}/plymouth/default.so) .so)
         fi
-        [ -n "$PLUGIN_NAME" ] && echo $PLUGIN_NAME || exit 1
+        [ "$PLUGIN_NAME" = ".so" ] || echo $PLUGIN_NAME && exit 1
 }
 
 DO_RESET=0

@@ -427,12 +427,12 @@ ply_command_parser_get_command (ply_command_parser_t *parser,
       next_node = ply_list_get_next_node (parser->available_subcommands, node);
 
       if (strcmp (command_name, command->name) == 0)
-        break;
+        return command;
 
       node = next_node;
     }
 
-  return command;
+  return NULL;
 }
 
 static void
@@ -858,7 +858,7 @@ on_show_splash (ply_command_parser_t *parser,
   plugin_name = NULL;
   ply_command_parser_get_command_options (parser, command, "plugin-name", &plugin_name, NULL);
 
-  printf ("show splash plugin '%s'", plugin_name);
+  printf ("show splash plugin '%s'\n", plugin_name);
   free (plugin_name);
 }
 

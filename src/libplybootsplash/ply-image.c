@@ -115,7 +115,9 @@ ply_image_new (const char *filename)
 void
 ply_image_free (ply_image_t *image)
 {
-  assert (image != NULL);
+  if (image == NULL)
+    return;
+
   assert (image->filename != NULL);
 
   if (image->layout.address != NULL)

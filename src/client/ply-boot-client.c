@@ -570,6 +570,48 @@ ply_boot_client_ask_daemon_for_cached_passwords (ply_boot_client_t              
 }
 
 void
+ply_boot_client_ask_daemon_question     (ply_boot_client_t                    *client,
+                                         const char                            *prompt,
+                                         ply_boot_client_answer_handler_t       handler,
+                                         ply_boot_client_response_handler_t     failed_handler,
+                                         void                                  *user_data)
+{
+  assert (client != NULL);
+
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_QUESTION,
+                                 prompt, (ply_boot_client_response_handler_t)
+                                 handler, failed_handler, user_data);
+}
+
+void
+ply_boot_client_ask_daemon_to_watch_for_keystroke (ply_boot_client_t           *client,
+                                         const char                            *keys,
+                                         ply_boot_client_answer_handler_t       handler,
+                                         ply_boot_client_response_handler_t     failed_handler,
+                                         void                                  *user_data)
+{
+  assert (client != NULL);
+
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_KEYSTROKE,
+                                 keys, (ply_boot_client_response_handler_t)
+                                 handler, failed_handler, user_data);
+}
+
+void
+ply_boot_client_ask_daemon_to_ignore_keystroke (ply_boot_client_t                  *client,
+                                         const char                                *keys,
+                                         ply_boot_client_answer_handler_t           handler,
+                                         ply_boot_client_response_handler_t         failed_handler,
+                                         void                                      *user_data)
+{
+  assert (client != NULL);
+
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_KEYSTROKE_REMOVE,
+                                 keys, (ply_boot_client_response_handler_t)
+                                 handler, failed_handler, user_data);
+}
+
+void
 ply_boot_client_tell_daemon_to_show_splash (ply_boot_client_t                  *client,
                                             ply_boot_client_response_handler_t  handler,
                                             ply_boot_client_response_handler_t  failed_handler,

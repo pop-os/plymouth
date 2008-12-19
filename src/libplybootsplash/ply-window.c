@@ -42,6 +42,7 @@
 #include "ply-buffer.h"
 #include "ply-event-loop.h"
 #include "ply-frame-buffer.h"
+#include "ply-list.h"
 #include "ply-logger.h"
 #include "ply-utils.h"
 
@@ -95,6 +96,14 @@
 #define TEXT_PALETTE_SIZE 48
 #endif
 
+typedef void (* ply_window_handler_t) (void *);
+
+typedef struct
+{
+  ply_window_handler_t *function;
+  void *user_data;
+} ply_window_closure_t;
+
 struct _ply_window
 {
   ply_event_loop_t *loop;
@@ -125,17 +134,10 @@ struct _ply_window
   uint32_t supports_text_color : 1;
   uint32_t is_open : 1;
 
-  ply_window_keyboard_input_handler_t keyboard_input_handler;
-  void *keyboard_input_handler_user_data;
-
-  ply_window_backspace_handler_t backspace_handler;
-  void *backspace_handler_user_data;
-
-  ply_window_escape_handler_t escape_handler;
-  void *escape_handler_user_data;
-
-  ply_window_enter_handler_t enter_handler;
-  void *enter_handler_user_data;
+  ply_list_t *keyboard_input_handler_list;
+  ply_list_t *backspace_handler_list;
+  ply_list_t *escape_handler_list;
+  ply_list_t *enter_handler_list;
 
   ply_window_draw_handler_t draw_handler;
   void *draw_handler_user_data;
@@ -153,6 +155,11 @@ ply_window_new (const char *tty_name)
   window->keyboard_input_buffer = ply_buffer_new ();
   window->line_buffer = ply_buffer_new ();
   window->frame_buffer = ply_frame_buffer_new (NULL);
+  window->keyboard_input_handler_list = ply_list_new();
+  window->backspace_handler_list = ply_list_new();
+  window->escape_handler_list = ply_list_new();
+  window->enter_handler_list = ply_list_new();
+  
   window->loop = NULL;
   if (tty_name != NULL)
     {
@@ -224,11 +231,12 @@ process_backspace (ply_window_t *window)
   ssize_t previous_character_size;
   const char *bytes;
   size_t size;
+  ply_list_node_t *node;
 
   bytes = ply_buffer_get_bytes (window->line_buffer);
   size = ply_buffer_get_size (window->line_buffer);
 
-  bytes_to_remove = MB_CUR_MAX;
+  bytes_to_remove = MIN(size, MB_CUR_MAX);
   while ((previous_character_size = mbrlen (bytes + size - bytes_to_remove, bytes_to_remove, NULL)) < bytes_to_remove &&
          previous_character_size > 0)
     bytes_to_remove -= previous_character_size;
@@ -236,9 +244,15 @@ process_backspace (ply_window_t *window)
   if (bytes_to_remove <= size)
     {
       ply_buffer_remove_bytes_at_end (window->line_buffer, bytes_to_remove);
+    }
 
-      if (window->backspace_handler != NULL)
-        window->backspace_handler (window->backspace_handler_user_data);
+  for (node = ply_list_get_first_node(window->backspace_handler_list);
+       node; node = ply_list_get_next_node(window->backspace_handler_list, node))
+    {
+      ply_window_closure_t *closure = ply_list_node_get_data (node);
+      ply_window_backspace_handler_t backspace_handler = 
+                            (ply_window_backspace_handler_t) closure->function;
+      backspace_handler (closure->user_data);
     }
 }
 
@@ -257,8 +271,9 @@ process_keyboard_input (ply_window_t *window,
                         size_t        character_size)
 {
   wchar_t key;
+  ply_list_node_t *node;
 
-  if (mbrtowc (&key, keyboard_input, 1, NULL) > 0)
+  if ((ssize_t) mbrtowc (&key, keyboard_input, character_size, NULL) > 0)
     {
       switch (key)
         {
@@ -302,8 +317,14 @@ process_keyboard_input (ply_window_t *window,
 
           case KEY_ESCAPE:
             ply_trace ("escape key!");
-            if (window->escape_handler != NULL)
-              window->escape_handler (window->escape_handler_user_data);
+            for (node = ply_list_get_first_node(window->escape_handler_list);
+                 node; node = ply_list_get_next_node(window->escape_handler_list, node))
+              {
+                ply_window_closure_t *closure = ply_list_node_get_data (node);
+                ply_window_escape_handler_t escape_handler = (ply_window_escape_handler_t) closure->function;
+                escape_handler (closure->user_data);
+              }
+            
             ply_trace ("end escape key handler");
           return;
 
@@ -315,10 +336,13 @@ process_keyboard_input (ply_window_t *window,
           case KEY_RETURN:
             ply_trace ("return key!");
 
-            if (window->enter_handler != NULL)
-              window->enter_handler (window->enter_handler_user_data,
-                                     ply_buffer_get_bytes (window->line_buffer));
-
+            for (node = ply_list_get_first_node(window->enter_handler_list);
+                 node; node = ply_list_get_next_node(window->enter_handler_list, node))
+              {
+                ply_window_closure_t *closure = ply_list_node_get_data (node);
+                ply_window_enter_handler_t enter_handler = (ply_window_enter_handler_t)  closure->function;
+                enter_handler (closure->user_data, ply_buffer_get_bytes (window->line_buffer));
+              }
             ply_buffer_clear (window->line_buffer);
           return;
 
@@ -328,10 +352,16 @@ process_keyboard_input (ply_window_t *window,
           break;
         }
     }
-
-  if (window->keyboard_input_handler != NULL)
-    window->keyboard_input_handler (window->keyboard_input_handler_user_data,
-                                    keyboard_input, character_size);
+  for (node = ply_list_get_first_node(window->keyboard_input_handler_list);
+       node; node = ply_list_get_next_node(window->keyboard_input_handler_list, node))
+    {
+      ply_window_closure_t *closure = ply_list_node_get_data (node);
+      ply_window_keyboard_input_handler_t keyboard_input_handler =
+                        (ply_window_keyboard_input_handler_t) closure->function;
+      
+      keyboard_input_handler (closure->user_data,
+                              keyboard_input, character_size);
+    }
 }
 
 static void
@@ -648,7 +678,8 @@ ply_window_set_text_cursor_position (ply_window_t *window,
                                      int           row)
 {
   char *sequence;
-
+  column = MAX(column, 0);
+  row = MAX(row, 0);
   sequence = NULL;
   asprintf (&sequence, MOVE_CURSOR_SEQUENCE, row, column);
   write (window->tty_fd, sequence, strlen (sequence));
@@ -836,48 +867,142 @@ ply_window_free (ply_window_t *window)
   free (window);
 }
 
+static ply_window_closure_t *
+ply_window_closure_new(void* function, void* user_data)
+{
+  ply_window_closure_t *closure = calloc (1, sizeof (ply_window_closure_t));
+  closure->function = function;
+  closure->user_data = user_data;
+  return closure;
+}
+
+
+static void
+ply_window_closure_free(ply_window_closure_t* closure)
+{
+  free(closure);
+}
+
 void
-ply_window_set_keyboard_input_handler (ply_window_t *window,
+ply_window_add_keyboard_input_handler (ply_window_t *window,
                                        ply_window_keyboard_input_handler_t input_handler,
                                        void       *user_data)
 {
   assert (window != NULL);
+  ply_window_closure_t *closure = ply_window_closure_new(input_handler, user_data);
+  ply_list_append_data (window->keyboard_input_handler_list, closure);
+}
 
-  window->keyboard_input_handler = input_handler;
-  window->keyboard_input_handler_user_data = user_data;
+
+void
+ply_window_remove_keyboard_input_handler (ply_window_t *window,
+                                       ply_window_keyboard_input_handler_t input_handler)
+{
+  ply_list_node_t *node;
+  assert (window != NULL);
+  for (node = ply_list_get_first_node(window->keyboard_input_handler_list);
+       node; node = ply_list_get_next_node(window->keyboard_input_handler_list, node))
+    {
+      ply_window_closure_t *closure = ply_list_node_get_data (node);
+      if ((ply_window_keyboard_input_handler_t) closure->function == input_handler)
+        {
+          ply_window_closure_free(closure);
+          ply_list_remove_node (window->keyboard_input_handler_list, node);
+          return;
+        }
+    }
 }
 
 void
-ply_window_set_backspace_handler (ply_window_t *window,
+ply_window_add_backspace_handler (ply_window_t *window,
                                   ply_window_backspace_handler_t backspace_handler,
                                   void         *user_data)
 {
   assert (window != NULL);
+  ply_window_closure_t *closure = ply_window_closure_new(backspace_handler, user_data);
+  ply_list_append_data (window->backspace_handler_list, closure);
+}
 
-  window->backspace_handler = backspace_handler;
-  window->backspace_handler_user_data = user_data;
+
+void
+ply_window_remove_backspace_handler (ply_window_t *window,
+                                  ply_window_backspace_handler_t backspace_handler)
+{
+  ply_list_node_t *node;
+  assert (window != NULL);
+  for (node = ply_list_get_first_node(window->backspace_handler_list);
+       node; node = ply_list_get_next_node(window->backspace_handler_list, node))
+    {
+      ply_window_closure_t *closure = ply_list_node_get_data (node);
+      if ((ply_window_backspace_handler_t) closure->function == backspace_handler)
+        {
+          ply_window_closure_free(closure);
+          ply_list_remove_node (window->backspace_handler_list, node);
+          return;
+        }
+    }
 }
 
 void
-ply_window_set_escape_handler (ply_window_t *window,
+ply_window_add_escape_handler (ply_window_t *window,
                                ply_window_escape_handler_t escape_handler,
                                void       *user_data)
 {
   assert (window != NULL);
+  ply_window_closure_t *closure = ply_window_closure_new(escape_handler, user_data);
+  ply_list_append_data (window->escape_handler_list, closure);
+}
 
-  window->escape_handler = escape_handler;
-  window->escape_handler_user_data = user_data;
+
+void
+ply_window_remove_escape_handler (ply_window_t *window,
+                               ply_window_escape_handler_t escape_handler)
+{
+  assert (window != NULL);
+  ply_list_node_t *node;
+  assert (window != NULL);
+  for (node = ply_list_get_first_node(window->escape_handler_list);
+       node; node = ply_list_get_next_node(window->escape_handler_list, node))
+    {
+      ply_window_closure_t *closure = ply_list_node_get_data (node);
+      if ((ply_window_escape_handler_t) closure->function == escape_handler)
+        {
+          ply_window_closure_free(closure);
+          ply_list_remove_node (window->escape_handler_list, node);
+          return;
+        }
+    }
 }
 
 void
-ply_window_set_enter_handler (ply_window_t *window,
+ply_window_add_enter_handler (ply_window_t *window,
                               ply_window_enter_handler_t enter_handler,
                               void         *user_data)
 {
   assert (window != NULL);
+  ply_window_closure_t *closure = ply_window_closure_new(enter_handler, user_data);
+  ply_list_append_data (window->enter_handler_list, closure);
+}
 
-  window->enter_handler = enter_handler;
-  window->enter_handler_user_data = user_data;
+
+void
+ply_window_remove_enter_handler (ply_window_t *window,
+                              ply_window_enter_handler_t enter_handler)
+{
+  assert (window != NULL);
+  ply_list_node_t *node;
+  assert (window != NULL);
+  for (node = ply_list_get_first_node(window->enter_handler_list);
+       node; node = ply_list_get_next_node(window->enter_handler_list, node))
+    {
+      ply_window_closure_t *closure = ply_list_node_get_data (node);
+      if ((ply_window_enter_handler_t) closure->function == enter_handler)
+        {
+          ply_window_closure_free(closure);
+          ply_list_remove_node (window->enter_handler_list, node);
+          return;
+        }
+    }
 }
 
 void
@@ -965,7 +1090,7 @@ main (int    argc,
 
   window = ply_window_new (tty_name);
   ply_window_attach_to_event_loop (window, loop);
-  ply_window_set_keyboard_input_handler (window,
+  ply_window_add_keyboard_input_handler (window,
                                          (ply_window_keyboard_input_handler_t)
                                          on_keypress, window);
 

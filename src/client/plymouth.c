@@ -50,7 +50,21 @@ typedef struct
   char    *command;
   char    *prompt;
   int      number_of_tries_left;
-} answer_state_t;
+} password_answer_state_t;
+
+typedef struct
+{
+  state_t *state;
+  char    *command;
+  char    *prompt;
+} question_answer_state_t;
+
+typedef struct
+{
+  state_t *state;
+  char    *command;
+  char    *keys;
+} key_answer_state_t;
 
 static char **
 split_string (const char *command,
@@ -96,7 +110,7 @@ split_string (const char *command,
 }
 
 static bool
-answer_via_command (answer_state_t *answer_state,
+answer_via_command (char           *command,
                     const char     *answer,
                     int            *exit_status)
 {
@@ -123,7 +137,7 @@ answer_via_command (answer_state_t *answer_state,
   if (pid == 0)
     {
       char **args;
-      args = split_string (answer_state->command, ' ');
+      args = split_string (command, ' ');
       if (answer != NULL)
         {
           close (command_input_sender_fd);
@@ -153,14 +167,14 @@ out:
 }
 
 static void
-on_answer_failure (answer_state_t *answer_state)
+on_password_answer_failure (password_answer_state_t *answer_state, ply_boot_client_t *client)
 {
   ply_event_loop_exit (answer_state->state->loop, 1);
 }
 
 static void
-on_answer (answer_state_t   *answer_state,
-           const char       *answer)
+on_password_answer (password_answer_state_t   *answer_state,
+                    const char                *answer)
 {
   int exit_status;
 
@@ -170,7 +184,7 @@ on_answer (answer_state_t   *answer_state,
       bool command_started = false;
 
       exit_status = 127;
-      command_started = answer_via_command (answer_state, answer,
+      command_started = answer_via_command (answer_state->command, answer,
                                             &exit_status);
 
       if (command_started && (!WIFEXITED (exit_status) ||
@@ -183,9 +197,9 @@ on_answer (answer_state_t   *answer_state,
               ply_boot_client_ask_daemon_for_password (answer_state->state->client,
                                                        answer_state->prompt,
                                                        (ply_boot_client_answer_handler_t)
-                                                       on_answer,
+                                                       on_password_answer,
                                                        (ply_boot_client_response_handler_t)
-                                                       on_answer_failure, answer_state);
+                                                       on_password_answer_failure, answer_state);
               return;
             }
         }
@@ -200,8 +214,47 @@ on_answer (answer_state_t   *answer_state,
 }
 
 static void
-on_multiple_answers (answer_state_t     *answer_state,
-                     const char * const *answers)
+on_question_answer (question_answer_state_t   *answer_state,
+                   const char                 *answer,
+                   ply_boot_client_t          *client)
+{
+  if (answer_state->command != NULL)
+    {
+      answer_via_command (answer_state->command, answer, NULL);
+    }
+  else
+    {
+      if (answer)
+        write (STDOUT_FILENO, answer, strlen (answer));
+    }
+
+  if (answer)
+    ply_event_loop_exit (answer_state->state->loop, 0);
+  ply_event_loop_exit (answer_state->state->loop, 1);
+}
+
+static void
+on_key_answer (key_answer_state_t   *answer_state,
+           const char       *answer,
+           ply_boot_client_t *client)
+{
+  if (answer_state->command != NULL)
+    {
+      answer_via_command (answer_state->command, answer, NULL);
+    }
+  else
+    {
+      if (answer)
+        write (STDOUT_FILENO, answer, strlen (answer));
+    }
+
+  if (answer) ply_event_loop_exit (answer_state->state->loop, 0);
+  ply_event_loop_exit (answer_state->state->loop, 1);
+}
+
+static void
+on_multiple_answers (password_answer_state_t     *answer_state,
+                     const char * const          *answers)
 {
   bool need_to_ask_user;
   int i;
@@ -216,7 +269,7 @@ on_multiple_answers (answer_state_t     *answer_state,
       {
         bool command_started;
         exit_status = 127;
-        command_started = answer_via_command (answer_state, answers[i],
+        command_started = answer_via_command (answer_state->command, answers[i],
                                               &exit_status);
         if (command_started && WIFEXITED (exit_status) &&
             WEXITSTATUS (exit_status) == 0)
@@ -231,9 +284,9 @@ on_multiple_answers (answer_state_t     *answer_state,
       ply_boot_client_ask_daemon_for_password (answer_state->state->client,
                                                answer_state->prompt,
                                                (ply_boot_client_answer_handler_t)
-                                               on_answer,
+                                               on_password_answer,
                                                (ply_boot_client_response_handler_t)
-                                               on_answer_failure, answer_state);
+                                               on_password_answer_failure, answer_state);
       return;
     }
 
@@ -279,7 +332,7 @@ on_password_request (state_t    *state,
   char *prompt;
   char *program;
   int number_of_tries;
-  answer_state_t *answer_state;
+  password_answer_state_t *password_answer_state;
 
   prompt = NULL;
   program = NULL;
@@ -294,30 +347,90 @@ on_password_request (state_t    *state,
   if (number_of_tries <= 0)
     number_of_tries = 3;
 
-  answer_state = calloc (1, sizeof (answer_state_t));
-  answer_state->state = state;
-  answer_state->command = program;
-  answer_state->prompt = prompt;
-  answer_state->number_of_tries_left = number_of_tries;
+  password_answer_state = calloc (1, sizeof (password_answer_state_t));
+  password_answer_state->state = state;
+  password_answer_state->command = program;
+  password_answer_state->prompt = prompt;
+  password_answer_state->number_of_tries_left = number_of_tries;
 
-  if (answer_state->command != NULL)
+  if (password_answer_state->command != NULL)
     {
       ply_boot_client_ask_daemon_for_cached_passwords (state->client,
                                                        (ply_boot_client_multiple_answers_handler_t)
                                                        on_multiple_answers,
                                                        (ply_boot_client_response_handler_t)
-                                                       on_answer_failure, answer_state);
-
+                                                       on_password_answer_failure, password_answer_state);
     }
   else
     {
       ply_boot_client_ask_daemon_for_password (state->client,
-                                               answer_state->prompt,
+                                               password_answer_state->prompt,
                                                (ply_boot_client_answer_handler_t)
-                                               on_answer,
+                                               on_password_answer,
                                                (ply_boot_client_response_handler_t)
-                                               on_answer_failure, answer_state);
+                                               on_password_answer_failure, password_answer_state);
     }
+}
+
+static void
+on_question_request (state_t    *state,
+                     const char *command)
+{
+  char *prompt;
+  char *program;
+  int number_of_tries;
+  question_answer_state_t *question_answer_state;
+
+  prompt = NULL;
+  program = NULL;
+  number_of_tries = 0;
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "command", &program,
+                                          "prompt", &prompt,
+                                          NULL);
+
+  question_answer_state = calloc (1, sizeof (question_answer_state_t));
+  question_answer_state->state = state;
+  question_answer_state->command = program;
+  question_answer_state->prompt = prompt;
+
+  ply_boot_client_ask_daemon_question (state->client,
+                                       question_answer_state->prompt,
+                                       (ply_boot_client_answer_handler_t)
+                                       on_question_answer,
+                                       (ply_boot_client_response_handler_t)
+                                       on_failure, question_answer_state);
+}
+
+static void
+on_keystroke_request (state_t    *state,
+                     const char *command)
+{
+  char *keys;
+  char *program;
+  bool remove;
+
+  keys = NULL;
+  program = NULL;
+  remove = false;
+  
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "command", &program,
+                                          "keys", &keys,
+                                          NULL);
+  key_answer_state_t *key_answer_state;
+  key_answer_state = calloc (1, sizeof (key_answer_state_t));
+  key_answer_state->state = state;
+  key_answer_state->keys = keys;
+  key_answer_state->command = program;
+  ply_boot_client_ask_daemon_to_watch_for_keystroke (state->client,
+                                       keys,
+                                       (ply_boot_client_answer_handler_t)
+                                       on_key_answer,
+                                       (ply_boot_client_response_handler_t)
+                                       on_failure, key_answer_state);
 }
 
 static void
@@ -358,7 +471,7 @@ main (int    argc,
 {
   state_t state = { 0 };
   bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash, should_wait, should_be_verbose, report_error;
-  char *status, *chroot_dir;
+  char *status, *chroot_dir, *ignore_keystroke;
   int exit_code;
 
   exit_code = 0;
@@ -379,6 +492,7 @@ main (int    argc,
                                   "show-splash", "Show splash screen", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "hide-splash", "Hide splash screen", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "ask-for-password", "Ask user for password", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "ignore-keystroke", "Remove sensitivity to a keystroke", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "update", "Tell boot daemon an update about boot progress", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "details", "Tell boot daemon there were errors during boot", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "wait", "Wait for boot daemon to quit", PLY_COMMAND_OPTION_TYPE_FLAG,
@@ -394,6 +508,27 @@ main (int    argc,
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   "number-of-tries", "Number of times to ask before giving up (requires --command)",
                                   PLY_COMMAND_OPTION_TYPE_INTEGER,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "ask-question", "Ask user a question",
+                                  (ply_command_handler_t)
+                                  on_question_request, &state,
+                                  "command", "Command to send the answer to via standard input",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
+                                  "prompt", "Message to display when asking the question",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
+                                  NULL);
+
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "watch-keystroke", "Become sensitive to a keystroke",
+                                  (ply_command_handler_t)
+                                  on_keystroke_request, &state,
+                                  "command", "Command to send keystroke to via standard input",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
+                                  "keys", "Keys to become sensitive to",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,
@@ -431,6 +566,7 @@ main (int    argc,
                                   "show-splash", &should_show_splash,
                                   "hide-splash", &should_hide_splash,
                                   "ask-for-password", &should_ask_for_password,
+                                  "ignore-keystroke", &ignore_keystroke,
                                   "update", &status,
                                   "wait", &should_wait,
                                   "details", &report_error,
@@ -509,16 +645,25 @@ main (int    argc,
                                    on_failure, &state);
   else if (should_ask_for_password)
     {
-      answer_state_t answer_state = { 0 };
+      password_answer_state_t answer_state = { 0 };
 
       answer_state.state = &state;
       answer_state.number_of_tries_left = 1;
       ply_boot_client_ask_daemon_for_password (state.client,
                                                NULL,
                                                (ply_boot_client_answer_handler_t)
-                                                on_answer,
+                                               on_password_answer,
                                                (ply_boot_client_response_handler_t)
-                                               on_answer_failure, &answer_state);
+                                               on_password_answer_failure, &answer_state);
+    }
+  else if (ignore_keystroke)
+    {
+      ply_boot_client_ask_daemon_to_ignore_keystroke (state.client,
+                                           ignore_keystroke,
+                                           (ply_boot_client_answer_handler_t)
+                                           on_success,
+                                           (ply_boot_client_response_handler_t)
+                                           on_failure, &state);
     }
   else if (should_sysinit)
     ply_boot_client_tell_daemon_system_is_initialized (state.client,

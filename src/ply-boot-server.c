@@ -59,6 +59,9 @@ struct _ply_boot_server
   ply_boot_server_show_splash_handler_t show_splash_handler;
   ply_boot_server_hide_splash_handler_t hide_splash_handler;
   ply_boot_server_ask_for_password_handler_t ask_for_password_handler;
+  ply_boot_server_ask_question_handler_t ask_question_handler;
+  ply_boot_server_watch_for_keystroke_handler_t watch_for_keystroke_handler;
+  ply_boot_server_ignore_keystroke_handler_t ignore_keystroke_handler;
   ply_boot_server_quit_handler_t quit_handler;
   void *user_data;
 
@@ -68,6 +71,9 @@ struct _ply_boot_server
 ply_boot_server_t *
 ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
                      ply_boot_server_ask_for_password_handler_t ask_for_password_handler,
+                     ply_boot_server_ask_question_handler_t ask_question_handler,
+                     ply_boot_server_watch_for_keystroke_handler_t watch_for_keystroke_handler,
+                     ply_boot_server_ignore_keystroke_handler_t ignore_keystroke_handler,
                      ply_boot_server_show_splash_handler_t show_splash_handler,
                      ply_boot_server_hide_splash_handler_t hide_splash_handler,
                      ply_boot_server_newroot_handler_t newroot_handler,
@@ -85,6 +91,9 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
   server->is_listening = false;
   server->update_handler = update_handler;
   server->ask_for_password_handler = ask_for_password_handler;
+  server->ask_question_handler = ask_question_handler;
+  server->watch_for_keystroke_handler = watch_for_keystroke_handler;
+  server->ignore_keystroke_handler = ignore_keystroke_handler;
   server->newroot_handler = newroot_handler;
   server->error_handler = error_handler;
   server->system_initialized_handler = initialized_handler;
@@ -104,7 +113,7 @@ ply_boot_server_free (ply_boot_server_t *server)
   ply_list_node_t *node;
   if (server == NULL)
     return;
-  while (node = ply_list_get_first_node(server->connections))
+  while ((node = ply_list_get_first_node(server->connections)))
     {
       ply_boot_connection_t *connection = ply_list_node_get_data (node);
       ply_boot_connection_on_hangup (connection);
@@ -207,17 +216,17 @@ ply_boot_connection_is_from_root (ply_boot_connection_t *connection)
   return uid == 0;
 }
 
-static void
-ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
-                                        const char            *password)
-{
 
+static void
+ply_boot_connection_send_answer (ply_boot_connection_t *connection,
+                                 const char            *answer)
+{
   uint8_t size;
 
   /* splash plugin isn't able to ask for password,
    * punt to client
    */
-  if (password == NULL)
+  if (answer == NULL)
     {
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER,
@@ -228,10 +237,10 @@ ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
     {
       /* FIXME: support up to 4 billion
       */
-      if (strlen (password) > 255)
-          ply_error ("password to long to fit in buffer");
+      if (strlen (answer) > 255)
+          ply_error ("answer to long to fit in buffer");
 
-      size = (uint8_t) strlen (password);
+      size = (uint8_t) strlen (answer);
 
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER,
@@ -239,13 +248,37 @@ ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
           !ply_write (connection->fd,
                       &size, sizeof (uint8_t)) ||
           !ply_write (connection->fd,
-                      password, size))
+                      answer, size))
           ply_error ("could not write bytes: %m");
 
-      ply_list_append_data (connection->server->cached_passwords,
-                            strdup (password));
     }
 
+}
+
+static void
+ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
+                                        const char            *password)
+{
+  ply_boot_connection_send_answer (connection, password);
+  if (password != NULL)
+    ply_list_append_data (connection->server->cached_passwords,
+                          strdup (password));
+
+}
+
+
+static void
+ply_boot_connection_on_question_answer (ply_boot_connection_t *connection,
+                                        const char             *answer)
+{
+  ply_boot_connection_send_answer (connection, answer);
+}
+
+static void
+ply_boot_connection_on_keystroke_answer (ply_boot_connection_t *connection,
+                                        const char            *key)
+{
+  ply_boot_connection_send_answer (connection, key);
 }
 
 static void
@@ -396,6 +429,53 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       ply_buffer_free (buffer);
       free(command);
       return;
+    }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_QUESTION) == 0)
+    {
+      ply_trigger_t *answer;
+
+      answer = ply_trigger_new (NULL);
+      ply_trigger_add_handler (answer,
+                               (ply_trigger_handler_t)
+                               ply_boot_connection_on_question_answer,
+                               connection);
+
+      if (server->ask_question_handler != NULL)
+        server->ask_question_handler (server->user_data,
+                                          argument,
+                                          answer,
+                                          server);
+      /* will reply later
+       */
+      free(command);
+      return;
+    }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_KEYSTROKE) == 0)
+    {
+      ply_trigger_t *answer;
+
+      answer = ply_trigger_new (NULL);
+      ply_trigger_add_handler (answer,
+                               (ply_trigger_handler_t)
+                               ply_boot_connection_on_keystroke_answer,
+                               connection);
+
+      if (server->watch_for_keystroke_handler != NULL)
+        server->watch_for_keystroke_handler (server->user_data,
+                                          argument,
+                                          answer,
+                                          server);
+      /* will reply later
+       */
+      free(command);
+      return;
+    }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_KEYSTROKE_REMOVE) == 0)
+    {
+      if (server->ignore_keystroke_handler != NULL)
+        server->ignore_keystroke_handler (server->user_data,
+                                          argument,
+                                          server);
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_NEWROOT) == 0)
     {
@@ -565,6 +645,30 @@ on_ask_for_password (ply_event_loop_t *loop)
   return strdup ("password");
 }
 
+static void
+on_ask_question (ply_event_loop_t *loop)
+{
+  printf ("got question request\n");
+  return;
+}
+
+static void
+on_watch_for_keystroke (ply_event_loop_t *loop)
+{
+  printf ("got keystroke request\n");
+
+  return;
+}
+
+
+static void
+on_ignore_keystroke (ply_event_loop_t *loop)
+{
+  printf ("got keystroke ignore request\n");
+
+  return;
+}
+
 int
 main (int    argc,
       char **argv)
@@ -579,6 +683,9 @@ main (int    argc,
 
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
+                                (ply_boot_server_ask_question_handler_t) on_ask_question,
+                                (ply_boot_server_watch_for_keystroke_handler_t) on_watch_for_keystroke,
+                                (ply_boot_server_ignore_keystroke_handler_t) on_ignore_keystroke,
                                 (ply_boot_server_show_splash_handler_t) on_show_splash,
                                 (ply_boot_server_hide_splash_handler_t) on_hide_splash,
                                 (ply_boot_server_newroot_handler_t) on_newroot,

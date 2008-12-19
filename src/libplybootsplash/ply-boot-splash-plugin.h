@@ -33,8 +33,6 @@
 
 typedef struct _ply_boot_splash_plugin ply_boot_splash_plugin_t;
 
-typedef void (* ply_boot_splash_password_answer_handler_t) (void *answer_data, const char *password);
-
 typedef struct
 {
   ply_boot_splash_plugin_t * (* create_plugin) (void);
@@ -59,10 +57,13 @@ typedef struct
   void (* on_root_mounted) (ply_boot_splash_plugin_t *plugin);
   void (* hide_splash_screen) (ply_boot_splash_plugin_t *plugin,
                                ply_event_loop_t         *loop);
-
-  void (* ask_for_password) (ply_boot_splash_plugin_t *plugin,
+  void (* display_normal) (ply_boot_splash_plugin_t *plugin);
+  void (* display_password) (ply_boot_splash_plugin_t *plugin,
                              const char               *prompt,
-                             ply_trigger_t            *answer);
+                             int                       bullets);
+  void (* display_question) (ply_boot_splash_plugin_t *plugin,
+                             const char               *prompt,
+                             const char               *entry_text);
   void (* become_idle) (ply_boot_splash_plugin_t       *plugin,
                         ply_trigger_t                  *idle_trigger);
 } ply_boot_splash_plugin_interface_t;

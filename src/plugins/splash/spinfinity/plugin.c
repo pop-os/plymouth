@@ -66,6 +66,12 @@
 #define BAR_HEIGHT 16
 #endif
 
+typedef enum {
+   PLY_BOOT_SPLASH_DISPLAY_NORMAL,
+   PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY,
+   PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY
+} ply_boot_splash_display_type_t;
+
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
@@ -80,8 +86,8 @@ struct _ply_boot_splash_plugin
   ply_throbber_t *throbber;
   ply_label_t *label;
   ply_progress_bar_t *progress_bar;
+  ply_boot_splash_display_type_t state;
 
-  ply_trigger_t *pending_password_answer;
   ply_trigger_t *idle_trigger;
 
   uint32_t root_is_mounted : 1;
@@ -210,8 +216,6 @@ static void
 stop_animation (ply_boot_splash_plugin_t *plugin,
                 ply_trigger_t            *trigger)
 {
-  int i;
-
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
@@ -264,10 +268,6 @@ on_keyboard_input (ply_boot_splash_plugin_t *plugin,
                    const char               *keyboard_input,
                    size_t                    character_size)
 {
-  if (plugin->pending_password_answer == NULL)
-    return;
-
-  ply_entry_add_bullet (plugin->entry);
 }
 
 void
@@ -280,15 +280,6 @@ void
 on_enter (ply_boot_splash_plugin_t *plugin,
           const char               *text)
 {
-  if (plugin->pending_password_answer == NULL)
-    return;
-
-  ply_trigger_pull (plugin->pending_password_answer, text);
-  plugin->pending_password_answer = NULL;
-
-  ply_entry_hide (plugin->entry);
-  ply_entry_remove_all_bullets (plugin->entry);
-  start_animation (plugin);
 }
 
 void
@@ -308,7 +299,8 @@ on_draw (ply_boot_splash_plugin_t *plugin,
   ply_frame_buffer_pause_updates (plugin->frame_buffer);
   draw_background (plugin, &area);
 
-  if (plugin->pending_password_answer != NULL)
+  if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY || 
+      plugin->state == PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY  )
     {
       ply_entry_draw (plugin->entry);
       ply_label_draw (plugin->label);
@@ -362,13 +354,13 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   assert (plugin != NULL);
   assert (plugin->logo_image != NULL);
 
-  ply_window_set_keyboard_input_handler (plugin->window,
+  ply_window_add_keyboard_input_handler (plugin->window,
                                          (ply_window_keyboard_input_handler_t)
                                          on_keyboard_input, plugin);
-  ply_window_set_backspace_handler (plugin->window,
+  ply_window_add_backspace_handler (plugin->window,
                                     (ply_window_backspace_handler_t)
                                     on_backspace, plugin);
-  ply_window_set_enter_handler (plugin->window,
+  ply_window_add_enter_handler (plugin->window,
                                 (ply_window_enter_handler_t)
                                 on_enter, plugin);
 
@@ -458,15 +450,10 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 {
   assert (plugin != NULL);
 
-  if (plugin->pending_password_answer != NULL)
-    {
-      ply_trigger_pull (plugin->pending_password_answer, "");
-      plugin->pending_password_answer = NULL;
-    }
 
-  ply_window_set_keyboard_input_handler (plugin->window, NULL, NULL);
-  ply_window_set_backspace_handler (plugin->window, NULL, NULL);
-  ply_window_set_enter_handler (plugin->window, NULL, NULL);
+  ply_window_remove_keyboard_input_handler (plugin->window, (ply_window_keyboard_input_handler_t) on_keyboard_input);
+  ply_window_remove_backspace_handler (plugin->window, (ply_window_backspace_handler_t) on_backspace);
+  ply_window_remove_enter_handler (plugin->window, (ply_window_enter_handler_t) on_enter);
   ply_window_set_draw_handler (plugin->window, NULL, NULL);
   ply_window_set_erase_handler (plugin->window, NULL, NULL);
 
@@ -498,38 +485,44 @@ show_password_prompt (ply_boot_splash_plugin_t *plugin,
 
   assert (plugin != NULL);
 
-  draw_background (plugin, NULL);
+  if (ply_entry_is_hidden (plugin->entry))
+    {
+      draw_background (plugin, NULL);
 
-  ply_frame_buffer_get_size (plugin->frame_buffer, &area);
-  plugin->box_area.width = ply_image_get_width (plugin->box_image);
-  plugin->box_area.height = ply_image_get_height (plugin->box_image);
-  plugin->box_area.x = area.width / 2.0 - plugin->box_area.width / 2.0;
-  plugin->box_area.y = area.height / 2.0 - plugin->box_area.height / 2.0;
+      ply_frame_buffer_get_size (plugin->frame_buffer, &area);
+      plugin->box_area.width = ply_image_get_width (plugin->box_image);
+      plugin->box_area.height = ply_image_get_height (plugin->box_image);
+      plugin->box_area.x = area.width / 2.0 - plugin->box_area.width / 2.0;
+      plugin->box_area.y = area.height / 2.0 - plugin->box_area.height / 2.0;
 
-  plugin->lock_area.width = ply_image_get_width (plugin->lock_image);
-  plugin->lock_area.height = ply_image_get_height (plugin->lock_image);
+      plugin->lock_area.width = ply_image_get_width (plugin->lock_image);
+      plugin->lock_area.height = ply_image_get_height (plugin->lock_image);
 
-  entry_width = ply_entry_get_width (plugin->entry);
-  entry_height = ply_entry_get_height (plugin->entry);
+      entry_width = ply_entry_get_width (plugin->entry);
+      entry_height = ply_entry_get_height (plugin->entry);
 
-  x = area.width / 2.0 - (plugin->lock_area.width + entry_width) / 2.0 + plugin->lock_area.width;
-  y = area.height / 2.0 - entry_height / 2.0;
+      x = area.width / 2.0 - (plugin->lock_area.width + entry_width) / 2.0 + plugin->lock_area.width;
+      y = area.height / 2.0 - entry_height / 2.0;
 
-  plugin->lock_area.x = area.width / 2.0 - (plugin->lock_area.width + entry_width) / 2.0;
-  plugin->lock_area.y = area.height / 2.0 - plugin->lock_area.height / 2.0;
+      plugin->lock_area.x = area.width / 2.0 - (plugin->lock_area.width + entry_width) / 2.0;
+      plugin->lock_area.y = area.height / 2.0 - plugin->lock_area.height / 2.0;
 
-  box_data = ply_image_get_data (plugin->box_image);
-  ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
-                                          &plugin->box_area, 0, 0,
-                                          box_data);
+      box_data = ply_image_get_data (plugin->box_image);
+      ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
+                                              &plugin->box_area, 0, 0,
+                                              box_data);
 
-  ply_entry_show (plugin->entry, plugin->loop, plugin->window, x, y);
+      ply_entry_show (plugin->entry, plugin->loop, plugin->window, x, y);
 
-  lock_data = ply_image_get_data (plugin->lock_image);
-  ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
-                                          &plugin->lock_area, 0, 0,
-                                          lock_data);
-
+      lock_data = ply_image_get_data (plugin->lock_image);
+      ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
+                                              &plugin->lock_area, 0, 0,
+                                              lock_data);
+    }
+  else
+    {
+      ply_entry_draw (plugin->entry);
+    }
   if (prompt != NULL)
     {
       int label_width, label_height;
@@ -539,30 +532,11 @@ show_password_prompt (ply_boot_splash_plugin_t *plugin,
       label_height = ply_label_get_height (plugin->label);
 
       x = plugin->box_area.x + plugin->lock_area.width / 2;
-      y = plugin->box_area.y + plugin->box_area.height + label_height;
+      y = plugin->box_area.y + plugin->box_area.height;
 
       ply_label_show (plugin->label, plugin->window, x, y);
     }
 
-}
-
-void
-ask_for_password (ply_boot_splash_plugin_t *plugin,
-                  const char               *prompt,
-                  ply_trigger_t            *answer)
-{
-  plugin->pending_password_answer = answer;
-
-  if (ply_entry_is_hidden (plugin->entry))
-    {
-      stop_animation (plugin, NULL);
-      show_password_prompt (plugin, prompt);
-    }
-  else
-    {
-      ply_entry_draw (plugin->entry);
-      ply_label_draw (plugin->label);
-    }
 }
 
 void
@@ -578,6 +552,45 @@ become_idle (ply_boot_splash_plugin_t *plugin,
   stop_animation (plugin, idle_trigger);
 }
 
+void display_normal (ply_boot_splash_plugin_t *plugin)
+{
+  if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_NORMAL)
+    {
+      plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
+      ply_entry_hide (plugin->entry);
+      start_animation(plugin);
+    }
+}
+
+void
+display_password (ply_boot_splash_plugin_t *plugin,
+                  const char               *prompt,
+                  int                       bullets)
+{
+  if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_NORMAL)
+    {
+      stop_animation (plugin, NULL);
+    }
+  plugin->state = PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY;
+  show_password_prompt (plugin, prompt);
+  ply_entry_set_bullet_count (plugin->entry, bullets);
+}
+
+void
+display_question (ply_boot_splash_plugin_t *plugin,
+                  const char               *prompt,
+                  const char               *entry_text)
+{
+  if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_NORMAL)
+    {
+      stop_animation (plugin, NULL);
+    }
+
+  plugin->state = PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY;
+  show_password_prompt (plugin, prompt);
+  ply_entry_set_text (plugin->entry, entry_text);
+}
+
 ply_boot_splash_plugin_interface_t *
 ply_boot_splash_plugin_get_interface (void)
 {
@@ -591,9 +604,11 @@ ply_boot_splash_plugin_get_interface (void)
       .update_status = update_status,
       .on_boot_progress = on_boot_progress,
       .hide_splash_screen = hide_splash_screen,
-      .ask_for_password = ask_for_password,
       .on_root_mounted = on_root_mounted,
       .become_idle = become_idle,
+      .display_normal = display_normal,
+      .display_password = display_password,
+      .display_question = display_question,      
     };
 
   return &plugin_interface;

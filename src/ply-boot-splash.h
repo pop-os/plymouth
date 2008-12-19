@@ -53,11 +53,14 @@ void ply_boot_splash_update_output (ply_boot_splash_t *splash,
                                     const char        *output,
                                     size_t             size);
 void ply_boot_splash_root_mounted (ply_boot_splash_t *splash);
-
-void ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
-                                       const char        *prompt,
-                                       ply_trigger_t     *answer);
 void ply_boot_splash_hide (ply_boot_splash_t *splash);
+void ply_boot_splash_display_normal  (ply_boot_splash_t              *splash);
+void ply_boot_splash_display_password (ply_boot_splash_t             *splash,
+                                       const char                    *prompt,
+                                       int                            bullets);
+void ply_boot_splash_display_question (ply_boot_splash_t             *splash,
+                                       const char                    *prompt,
+                                       const char                    *entry_text);
 void ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
                                            ply_event_loop_t  *loop);
 void ply_boot_splash_attach_progress (ply_boot_splash_t *splash,

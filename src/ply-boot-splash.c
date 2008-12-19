@@ -284,42 +284,6 @@ ply_boot_splash_root_mounted (ply_boot_splash_t *splash)
 }
 
 static void
-on_password_answered (ply_boot_splash_t *splash)
-{
-  if (splash->progress)
-    ply_progress_unpause (splash->progress);
-}
-
-void
-ply_boot_splash_ask_for_password (ply_boot_splash_t *splash,
-                                  const char        *prompt,
-                                  ply_trigger_t     *trigger)
-{
-
-  assert (splash != NULL);
-  assert (splash->plugin_interface != NULL);
-  assert (splash->plugin != NULL);
-  assert (splash->is_shown);
-
-  if (splash->plugin_interface->ask_for_password == NULL)
-    {
-      ply_trigger_pull (trigger, NULL);
-      return;
-    }
-
-  if (splash->progress)
-    ply_progress_pause (splash->progress);
-  
-  ply_trigger_add_handler (trigger,
-                           (ply_trigger_handler_t)
-                           on_password_answered, splash);
-
-  splash->plugin_interface->ask_for_password (splash->plugin,
-                                              prompt,
-                                              trigger);
-}
-
-static void
 ply_boot_splash_detach_from_event_loop (ply_boot_splash_t *splash)
 {
   assert (splash != NULL);
@@ -353,6 +317,37 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
                                              splash);
     }
 }
+
+void ply_boot_splash_display_normal  (ply_boot_splash_t              *splash)
+{
+  assert (splash != NULL);
+  assert (splash->plugin_interface != NULL);
+  assert (splash->plugin != NULL);
+  if (splash->plugin_interface->display_normal != NULL)
+      splash->plugin_interface->display_normal (splash->plugin);
+}
+void ply_boot_splash_display_password (ply_boot_splash_t             *splash,
+                                       const char                    *prompt,
+                                       int                            bullets)
+{
+  assert (splash != NULL);
+  assert (splash->plugin_interface != NULL);
+  assert (splash->plugin != NULL);
+  if (splash->plugin_interface->display_password != NULL)
+      splash->plugin_interface->display_password (splash->plugin, prompt, bullets);
+}
+void ply_boot_splash_display_question (ply_boot_splash_t             *splash,
+                                       const char                    *prompt,
+                                       const char                    *entry_text)
+{
+  assert (splash != NULL);
+  assert (splash->plugin_interface != NULL);
+  assert (splash->plugin != NULL);
+  if (splash->plugin_interface->display_question != NULL)
+      splash->plugin_interface->display_question (splash->plugin, prompt, entry_text);
+}
+
+
 
 void
 ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
@@ -458,7 +453,7 @@ main (int    argc,
     }
 
   ply_window_attach_to_event_loop (state.window, state.loop);
-  ply_window_set_escape_handler (state.window,
+  ply_window_add_escape_handler (state.window,
                                  (ply_window_escape_handler_t) on_quit, &state);
 
   state.buffer = ply_buffer_new ();

@@ -434,6 +434,29 @@ on_keystroke_request (state_t    *state,
 }
 
 static void
+on_progress_pause_request (state_t    *state,
+                           const char *command)
+{
+  ply_boot_client_tell_daemon_to_progress_pause (state->client,
+                                                (ply_boot_client_response_handler_t)
+                                                on_success,
+                                                (ply_boot_client_response_handler_t)
+                                                on_failure, state);
+}
+
+
+static void
+on_progress_unpause_request (state_t    *state,
+                             const char *command)
+{
+  ply_boot_client_tell_daemon_to_progress_unpause (state->client,
+                                                  (ply_boot_client_response_handler_t)
+                                                  on_success,
+                                                  (ply_boot_client_response_handler_t)
+                                                  on_failure, state);
+}
+
+static void
 on_report_error_request (state_t    *state,
                          const char *command)
 {
@@ -529,6 +552,18 @@ main (int    argc,
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   "keys", "Keys to become sensitive to",
                                   PLY_COMMAND_OPTION_TYPE_STRING,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "progress-pause", "Pause boot progress bar",
+                                  (ply_command_handler_t)
+                                  on_progress_pause_request, &state,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "progress-unpause", "Unpause boot progress bar",
+                                  (ply_command_handler_t)
+                                  on_progress_unpause_request, &state,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,

@@ -62,6 +62,8 @@ struct _ply_boot_server
   ply_boot_server_ask_question_handler_t ask_question_handler;
   ply_boot_server_watch_for_keystroke_handler_t watch_for_keystroke_handler;
   ply_boot_server_ignore_keystroke_handler_t ignore_keystroke_handler;
+  ply_boot_server_progress_pause_handler_t progress_pause_handler;
+  ply_boot_server_progress_unpause_handler_t progress_unpause_handler;
   ply_boot_server_quit_handler_t quit_handler;
   void *user_data;
 
@@ -74,6 +76,8 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
                      ply_boot_server_ask_question_handler_t ask_question_handler,
                      ply_boot_server_watch_for_keystroke_handler_t watch_for_keystroke_handler,
                      ply_boot_server_ignore_keystroke_handler_t ignore_keystroke_handler,
+                     ply_boot_server_progress_pause_handler_t progress_pause_handler,
+                     ply_boot_server_progress_unpause_handler_t progress_unpause_handler,
                      ply_boot_server_show_splash_handler_t show_splash_handler,
                      ply_boot_server_hide_splash_handler_t hide_splash_handler,
                      ply_boot_server_newroot_handler_t newroot_handler,
@@ -94,6 +98,8 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
   server->ask_question_handler = ask_question_handler;
   server->watch_for_keystroke_handler = watch_for_keystroke_handler;
   server->ignore_keystroke_handler = ignore_keystroke_handler;
+  server->progress_pause_handler = progress_pause_handler;
+  server->progress_unpause_handler = progress_unpause_handler;
   server->newroot_handler = newroot_handler;
   server->error_handler = error_handler;
   server->system_initialized_handler = initialized_handler;
@@ -477,6 +483,18 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                                           argument,
                                           server);
     }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PROGRESS_PAUSE) == 0)
+    {
+      if (server->progress_pause_handler != NULL)
+        server->progress_pause_handler (server->user_data,
+                                        server);
+    }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PROGRESS_UNPAUSE) == 0)
+    {
+      if (server->progress_unpause_handler != NULL)
+        server->progress_unpause_handler (server->user_data,
+                                          server);
+    }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_NEWROOT) == 0)
     {
       if (server->newroot_handler != NULL)
@@ -660,6 +678,21 @@ on_watch_for_keystroke (ply_event_loop_t *loop)
   return;
 }
 
+static void
+on_progress_pause (ply_event_loop_t *loop)
+{
+  printf ("got progress pause request\n");
+
+  return;
+}
+
+static void
+on_progress_unpause (ply_event_loop_t *loop)
+{
+  printf ("got progress unpause request\n");
+
+  return;
+}
 
 static void
 on_ignore_keystroke (ply_event_loop_t *loop)
@@ -686,6 +719,8 @@ main (int    argc,
                                 (ply_boot_server_ask_question_handler_t) on_ask_question,
                                 (ply_boot_server_watch_for_keystroke_handler_t) on_watch_for_keystroke,
                                 (ply_boot_server_ignore_keystroke_handler_t) on_ignore_keystroke,
+                                (ply_boot_server_progress_pause_handler_t) on_progress_pause,
+                                (ply_boot_server_progress_unpause_handler_t) on_progress_unpause,
                                 (ply_boot_server_show_splash_handler_t) on_show_splash,
                                 (ply_boot_server_hide_splash_handler_t) on_hide_splash,
                                 (ply_boot_server_newroot_handler_t) on_newroot,

@@ -37,8 +37,8 @@ typedef void (* ply_boot_server_update_handler_t) (void              *user_data,
                                                    ply_boot_server_t *server);
 
 typedef void (* ply_boot_server_newroot_handler_t) (void              *user_data,
-                                                   const char        *root_dir,
-                                                   ply_boot_server_t *server);
+                                                    const char        *root_dir,
+                                                    ply_boot_server_t *server);
 
 typedef void (* ply_boot_server_show_splash_handler_t) (void              *user_data,
                                                         ply_boot_server_t *server);
@@ -53,20 +53,23 @@ typedef void (* ply_boot_server_ask_for_password_handler_t) (void              *
                                                              const char        *prompt,
                                                              ply_trigger_t     *answer,
                                                              ply_boot_server_t *server);
-typedef void (* ply_boot_server_question_answer_handler_t) (void              *answer_data,
+typedef void (* ply_boot_server_question_answer_handler_t) (void               *answer_data,
                                                             const char         *answer,
                                                             ply_boot_server_t  *server);
 typedef void (* ply_boot_server_ask_question_handler_t)      (void              *user_data,
                                                               const char        *prompt,
                                                               ply_trigger_t     *answer,
                                                               ply_boot_server_t *server);
-typedef void (* ply_boot_server_watch_for_keystroke_handler_t) (void             *user_data,
+typedef void (* ply_boot_server_watch_for_keystroke_handler_t) (void              *user_data,
+                                                                const char        *keys,
+                                                                ply_trigger_t     *answer,
+                                                                ply_boot_server_t *server);
+typedef void (* ply_boot_server_ignore_keystroke_handler_t) (void              *user_data,
                                                              const char        *keys,
-                                                             ply_trigger_t     *answer,
                                                              ply_boot_server_t *server);
-
-typedef void (* ply_boot_server_ignore_keystroke_handler_t) (void             *user_data,
-                                                             const char        *keys,
+typedef void (* ply_boot_server_progress_pause_handler_t) (void              *user_data,
+                                                           ply_boot_server_t *server);
+typedef void (* ply_boot_server_progress_unpause_handler_t) (void              *user_data,
                                                              ply_boot_server_t *server);
 
 typedef void (* ply_boot_server_system_initialized_handler_t) (void              *user_data,
@@ -74,7 +77,6 @@ typedef void (* ply_boot_server_system_initialized_handler_t) (void             
 
 typedef void (* ply_boot_server_error_handler_t) (void              *user_data,
                                                   ply_boot_server_t *server);
-
 typedef void (* ply_boot_server_quit_handler_t) (void              *user_data,
                                                  bool               retain_splash,
                                                  ply_boot_server_t *server);
@@ -85,6 +87,8 @@ ply_boot_server_t *ply_boot_server_new (ply_boot_server_update_handler_t update_
                                         ply_boot_server_ask_question_handler_t ask_question_handler,
                                         ply_boot_server_watch_for_keystroke_handler_t watch_for_keystroke_handler,
                                         ply_boot_server_ignore_keystroke_handler_t ignore_keystroke_handler,
+                                        ply_boot_server_progress_pause_handler_t on_progress_pause,
+                                        ply_boot_server_progress_unpause_handler_t on_progress_unpause,
                                         ply_boot_server_show_splash_handler_t show_splash_handler,
                                         ply_boot_server_hide_splash_handler_t hide_splash_handler,
                                         ply_boot_server_newroot_handler_t newroot_handler,

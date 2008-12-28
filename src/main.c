@@ -203,7 +203,6 @@ on_watch_for_keystroke (state_t      *state,
   ply_list_append_data (state->keystroke_triggers, keystroke_trigger);
 }
 
-
 static void
 on_ignore_keystroke (state_t      *state,
                      const char    *keys)
@@ -224,6 +223,17 @@ on_ignore_keystroke (state_t      *state,
     }
 }
 
+static void
+on_progress_pause (state_t *state)
+{
+  ply_progress_pause (state->progress);
+}
+
+static void
+on_progress_unpause (state_t *state)
+{
+  ply_progress_unpause (state->progress);
+}
 
 static void
 on_newroot (state_t    *state,
@@ -530,6 +540,8 @@ start_boot_server (state_t *state)
                                 (ply_boot_server_ask_question_handler_t) on_ask_question,
                                 (ply_boot_server_watch_for_keystroke_handler_t) on_watch_for_keystroke,
                                 (ply_boot_server_ignore_keystroke_handler_t) on_ignore_keystroke,
+                                (ply_boot_server_progress_pause_handler_t) on_progress_pause,
+                                (ply_boot_server_progress_unpause_handler_t) on_progress_unpause,
                                 (ply_boot_server_show_splash_handler_t) on_show_splash,
                                 (ply_boot_server_hide_splash_handler_t) on_hide_splash,
                                 (ply_boot_server_newroot_handler_t) on_newroot,

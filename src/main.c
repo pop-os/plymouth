@@ -630,8 +630,19 @@ on_keyboard_input (state_t                  *state,
   ply_list_node_t *node;
   node = ply_list_get_first_node (state->entry_triggers);
   if (node)
-    {
-      ply_buffer_append_bytes (state->entry_buffer, keyboard_input, character_size);
+    {               /* \x3 (ETX) is Ctrl+C and \x4 (EOT) is Ctrl+D */
+      if (character_size == 1 && ( keyboard_input[0] == '\x3' || keyboard_input[0] == '\x4' ))
+        {
+          ply_entry_trigger_t* entry_trigger = ply_list_node_get_data (node);
+          ply_trigger_pull (entry_trigger->trigger, NULL);
+          ply_buffer_clear (state->entry_buffer);
+          ply_list_remove_node (state->entry_triggers, node);
+          free (entry_trigger);
+        }
+      else
+        {
+          ply_buffer_append_bytes (state->entry_buffer, keyboard_input, character_size);
+        }
       update_display (state);
     }
   else
@@ -651,6 +662,7 @@ on_keyboard_input (state_t                  *state,
       return;
     }
 }
+
 void
 on_backspace (state_t                  *state)
 {
@@ -686,11 +698,10 @@ on_enter (state_t                  *state,
       ply_trigger_pull (entry_trigger->trigger, reply_text);
       ply_buffer_clear (state->entry_buffer);
       ply_list_remove_node (state->entry_triggers, node);
-      free(entry_trigger);
+      free (entry_trigger);
       update_display (state);
     }
 }
-
 
 static ply_window_t *
 create_window (state_t    *state,

@@ -178,34 +178,39 @@ on_password_answer (password_answer_state_t   *answer_state,
 {
   int exit_status;
 
-  exit_status = 0;
-  if (answer_state->command != NULL)
+  exit_status = 127;
+  if (answer != NULL)  /* a NULL answer means the user quit */
     {
-      bool command_started = false;
-
-      exit_status = 127;
-      command_started = answer_via_command (answer_state->command, answer,
-                                            &exit_status);
-
-      if (command_started && (!WIFEXITED (exit_status) ||
-          WEXITSTATUS (exit_status) != 0))
+      if (answer_state->command != NULL)
         {
-          answer_state->number_of_tries_left--;
+          bool command_started = false;
 
-          if (answer_state->number_of_tries_left > 0)
+          command_started = answer_via_command (answer_state->command, answer,
+                                                &exit_status);
+
+          if (command_started && (!WIFEXITED (exit_status) ||
+              WEXITSTATUS (exit_status) != 0))
             {
-              ply_boot_client_ask_daemon_for_password (answer_state->state->client,
-                                                       answer_state->prompt,
-                                                       (ply_boot_client_answer_handler_t)
-                                                       on_password_answer,
-                                                       (ply_boot_client_response_handler_t)
-                                                       on_password_answer_failure, answer_state);
-              return;
+              answer_state->number_of_tries_left--;
+
+              if (answer_state->number_of_tries_left > 0)
+                {
+                  ply_boot_client_ask_daemon_for_password (answer_state->state->client,
+                                                           answer_state->prompt,
+                                                           (ply_boot_client_answer_handler_t)
+                                                           on_password_answer,
+                                                           (ply_boot_client_response_handler_t)
+                                                           on_password_answer_failure, answer_state);
+                  return;
+                }
             }
         }
+      else
+        {
+          write (STDOUT_FILENO, answer, strlen (answer));
+          exit_status = 0;
+        }
     }
-  else
-    write (STDOUT_FILENO, answer, strlen (answer));
 
   if (WIFSIGNALED (exit_status))
     raise (WTERMSIG (exit_status));
@@ -218,19 +223,20 @@ on_question_answer (question_answer_state_t   *answer_state,
                    const char                 *answer,
                    ply_boot_client_t          *client)
 {
-  if (answer_state->command != NULL)
+  if (answer != NULL)
     {
-      answer_via_command (answer_state->command, answer, NULL);
+      if (answer_state->command != NULL)
+        {
+          answer_via_command (answer_state->command, answer, NULL);
+        }
+      else
+        {
+          write (STDOUT_FILENO, answer, strlen (answer));
+        }
+      ply_event_loop_exit (answer_state->state->loop, 0);
     }
   else
-    {
-      if (answer)
-        write (STDOUT_FILENO, answer, strlen (answer));
-    }
-
-  if (answer)
-    ply_event_loop_exit (answer_state->state->loop, 0);
-  ply_event_loop_exit (answer_state->state->loop, 1);
+    ply_event_loop_exit (answer_state->state->loop, 1);
 }
 
 static void

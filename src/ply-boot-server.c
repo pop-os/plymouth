@@ -227,7 +227,7 @@ static void
 ply_boot_connection_send_answer (ply_boot_connection_t *connection,
                                  const char            *answer)
 {
-  uint8_t size;
+  uint32_t size;
 
   /* splash plugin isn't able to ask for password,
    * punt to client
@@ -241,18 +241,13 @@ ply_boot_connection_send_answer (ply_boot_connection_t *connection,
     }
   else
     {
-      /* FIXME: support up to 4 billion
-      */
-      if (strlen (answer) > 255)
-          ply_error ("answer to long to fit in buffer");
-
-      size = (uint8_t) strlen (answer);
+      size = strlen (answer);
 
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER,
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER)) ||
-          !ply_write (connection->fd,
-                      &size, sizeof (uint8_t)) ||
+          !ply_write_uint32 (connection->fd,
+                             size) ||
           !ply_write (connection->fd,
                       answer, size))
           ply_error ("could not write bytes: %m");
@@ -377,7 +372,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       ply_list_node_t *node;
       ply_buffer_t *buffer;
       size_t buffer_size;
-      uint8_t size;
+      uint32_t size;
 
       buffer = ply_buffer_new ();
 
@@ -413,20 +408,13 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
         }
       else
         {
-          /* FIXME: This is likely too small, we need to add another
-           * layer of indirection that says how many bytes the size
-           * is.
-           */
-          if (buffer_size > 255)
-            ply_error ("passwords too long to fit in buffer");
-
           size = buffer_size;
 
           if (!ply_write (connection->fd,
                           PLY_BOOT_PROTOCOL_RESPONSE_TYPE_MULTIPLE_ANSWERS,
                           strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_MULTIPLE_ANSWERS)) ||
-              !ply_write (connection->fd,
-                          &size, sizeof (uint8_t)) ||
+              !ply_write_uint32 (connection->fd,
+                                 size) ||
               !ply_write (connection->fd,
                           ply_buffer_get_bytes (buffer), size))
               ply_error ("could not write bytes: %m");

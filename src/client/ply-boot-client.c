@@ -244,7 +244,7 @@ ply_boot_client_process_incoming_replies (ply_boot_client_t *client)
   ply_boot_client_request_t *request;
   bool processed_reply;
   uint8_t byte[2] = "";
-  uint8_t size;
+  uint32_t size;
 
   assert (client != NULL);
 
@@ -268,20 +268,21 @@ ply_boot_client_process_incoming_replies (ply_boot_client_t *client)
       request->handler (request->user_data, client);
   else if (memcmp (byte, PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ANSWER, sizeof (uint8_t)) == 0)
     {
-      char answer[257] = "";
+      char *answer;
 
-      /* FIXME: should make this 4 bytes instead of 1
-       */
-      if (!ply_read (client->socket_fd, &size, sizeof (uint8_t)))
+      if (!ply_read_uint32 (client->socket_fd, &size))
         goto out;
-
+      
+      answer = malloc ((size+1) * sizeof(char));
       if (size > 0)
         {
           if (!ply_read (client->socket_fd, answer, size))
             goto out;
         }
 
+      answer[size] = '\0';
       ((ply_boot_client_answer_handler_t) request->handler) (request->user_data, answer, client);
+      free(answer);
     }
   else if (memcmp (byte, PLY_BOOT_PROTOCOL_RESPONSE_TYPE_MULTIPLE_ANSWERS, sizeof (uint8_t)) == 0)
     {
@@ -295,7 +296,7 @@ ply_boot_client_process_incoming_replies (ply_boot_client_t *client)
       array = NULL;
       answers = NULL;
 
-      if (!ply_read (client->socket_fd, &size, sizeof (uint8_t)))
+      if (!ply_read_uint32 (client->socket_fd, &size))
         goto out;
 
       assert (size > 0);

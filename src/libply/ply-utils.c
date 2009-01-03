@@ -359,6 +359,20 @@ ply_write (int         fd,
   return bytes_left_to_write == 0;
 }
 
+bool 
+ply_write_uint32 (int      fd,
+                  uint32_t value)
+{
+  uint8_t buffer[4];
+  
+  buffer[0] = (value >> 0) & 0xFF;
+  buffer[1] = (value >> 8) & 0xFF;
+  buffer[2] = (value >> 16) & 0xFF;
+  buffer[3] = (value >> 24) & 0xFF;
+  
+  return ply_write (fd, buffer, 4 * sizeof (uint8_t));
+}
+
 static ssize_t
 ply_read_some_bytes (int     fd,
                      void   *buffer,
@@ -412,6 +426,22 @@ ply_read (int     fd,
   read_was_successful = total_bytes_read == number_of_bytes;
 
   return read_was_successful;
+}
+
+bool 
+ply_read_uint32 (int       fd,
+                 uint32_t *value)
+{
+  uint8_t buffer[4];
+  
+  if (!ply_read (fd, buffer, 4 * sizeof (uint8_t)))
+    return false;
+  
+  *value = (buffer[0] << 0) | 
+           (buffer[1] << 8) | 
+           (buffer[2] << 16) | 
+           (buffer[3] << 24);
+  return true;
 }
 
 bool 

@@ -50,6 +50,7 @@ typedef struct
   char    *command;
   char    *prompt;
   int      number_of_tries_left;
+  uint32_t pause : 1;
 } password_answer_state_t;
 
 typedef struct
@@ -57,6 +58,7 @@ typedef struct
   state_t *state;
   char    *command;
   char    *prompt;
+  uint32_t pause : 1;
 } question_answer_state_t;
 
 typedef struct
@@ -167,6 +169,18 @@ out:
 }
 
 static void
+on_failure (state_t *state)
+{
+  ply_event_loop_exit (state->loop, 1);
+}
+
+static void
+on_success (state_t *state)
+{
+  ply_event_loop_exit (state->loop, 0);
+}
+
+static void
 on_password_answer_failure (password_answer_state_t *answer_state, ply_boot_client_t *client)
 {
   ply_event_loop_exit (answer_state->state->loop, 1);
@@ -174,7 +188,8 @@ on_password_answer_failure (password_answer_state_t *answer_state, ply_boot_clie
 
 static void
 on_password_answer (password_answer_state_t   *answer_state,
-                    const char                *answer)
+                    const char                *answer,
+                    ply_boot_client_t         *client)
 {
   int exit_status;
 
@@ -200,7 +215,8 @@ on_password_answer (password_answer_state_t   *answer_state,
                                                            (ply_boot_client_answer_handler_t)
                                                            on_password_answer,
                                                            (ply_boot_client_response_handler_t)
-                                                           on_password_answer_failure, answer_state);
+                                                           on_password_answer_failure,
+                                                           answer_state);
                   return;
                 }
             }
@@ -214,8 +230,25 @@ on_password_answer (password_answer_state_t   *answer_state,
 
   if (WIFSIGNALED (exit_status))
     raise (WTERMSIG (exit_status));
+  
+  if (answer_state->pause)
+    {
+      ply_boot_client_tell_daemon_to_progress_unpause (client,
+                                                       (ply_boot_client_response_handler_t)
+                                                       (WEXITSTATUS (exit_status) ? on_failure : on_success),
+                                                       (ply_boot_client_response_handler_t)
+                                                       on_failure,
+                                                       answer_state->state);
+    }
+  else
+    ply_event_loop_exit (answer_state->state->loop, WEXITSTATUS (exit_status));
+}
 
-  ply_event_loop_exit (answer_state->state->loop, WEXITSTATUS (exit_status));
+static void
+on_question_answer_failure (question_answer_state_t *answer_state,
+                            ply_boot_client_t       *client)
+{
+  ply_event_loop_exit (answer_state->state->loop, 1);
 }
 
 static void
@@ -233,16 +266,41 @@ on_question_answer (question_answer_state_t   *answer_state,
         {
           write (STDOUT_FILENO, answer, strlen (answer));
         }
-      ply_event_loop_exit (answer_state->state->loop, 0);
+      if (answer_state->pause)
+        ply_boot_client_tell_daemon_to_progress_unpause (client,
+                                                         (ply_boot_client_response_handler_t)
+                                                         on_success,
+                                                         (ply_boot_client_response_handler_t)
+                                                         on_failure,
+                                                         answer_state->state);
+      else
+        ply_event_loop_exit (answer_state->state->loop, 0);
     }
   else
-    ply_event_loop_exit (answer_state->state->loop, 1);
+    {
+      if (answer_state->pause)
+        ply_boot_client_tell_daemon_to_progress_unpause (client,
+                                                         (ply_boot_client_response_handler_t)
+                                                         on_failure,
+                                                         (ply_boot_client_response_handler_t)
+                                                         on_failure,
+                                                         answer_state->state);
+      else
+        ply_event_loop_exit (answer_state->state->loop, 1);
+    }
 }
 
 static void
-on_key_answer (key_answer_state_t   *answer_state,
-           const char       *answer,
-           ply_boot_client_t *client)
+on_key_answer_failure (key_answer_state_t *answer_state,
+                       ply_boot_client_t  *client)
+{
+  ply_event_loop_exit (answer_state->state->loop, 1);
+}
+
+static void
+on_key_answer (key_answer_state_t *answer_state,
+               const char         *answer,
+               ply_boot_client_t  *client)
 {
   if (answer_state->command != NULL)
     {
@@ -250,17 +308,18 @@ on_key_answer (key_answer_state_t   *answer_state,
     }
   else
     {
-      if (answer)
+      if (answer != NULL)
         write (STDOUT_FILENO, answer, strlen (answer));
     }
 
-  if (answer) ply_event_loop_exit (answer_state->state->loop, 0);
+  if (answer != NULL)
+    ply_event_loop_exit (answer_state->state->loop, 0);
   ply_event_loop_exit (answer_state->state->loop, 1);
 }
 
 static void
-on_multiple_answers (password_answer_state_t     *answer_state,
-                     const char * const          *answers)
+on_multiple_password_answers (password_answer_state_t     *answer_state,
+                              const char * const          *answers)
 {
   bool need_to_ask_user;
   int i;
@@ -300,18 +359,6 @@ on_multiple_answers (password_answer_state_t     *answer_state,
 }
 
 static void
-on_failure (state_t *state)
-{
-  ply_event_loop_exit (state->loop, 1);
-}
-
-static void
-on_success (state_t *state)
-{
-  ply_event_loop_exit (state->loop, 0);
-}
-
-static void
 on_disconnect (state_t *state)
 {
   bool wait;
@@ -332,22 +379,49 @@ on_disconnect (state_t *state)
 }
 
 static void
+on_password_request_execute (password_answer_state_t *password_answer_state,
+                             ply_boot_client_t       *client)
+{
+  if (password_answer_state->command != NULL)
+    {
+      ply_boot_client_ask_daemon_for_cached_passwords (client,
+                                                       (ply_boot_client_multiple_answers_handler_t)
+                                                       on_multiple_password_answers,
+                                                       (ply_boot_client_response_handler_t)
+                                                       on_password_answer_failure, password_answer_state);
+    }
+  else
+    {
+      ply_boot_client_ask_daemon_for_password (client,
+                                               password_answer_state->prompt,
+                                               (ply_boot_client_answer_handler_t)
+                                               on_password_answer,
+                                               (ply_boot_client_response_handler_t)
+                                               on_password_answer_failure, password_answer_state);
+    }
+}
+
+static void
 on_password_request (state_t    *state,
                      const char *command)
 {
   char *prompt;
   char *program;
   int number_of_tries;
+  bool pause;
   password_answer_state_t *password_answer_state;
 
   prompt = NULL;
   program = NULL;
   number_of_tries = 0;
+  pause = false;
+  
   ply_command_parser_get_command_options (state->command_parser,
                                           command,
                                           "command", &program,
                                           "prompt", &prompt,
                                           "number-of-tries", &number_of_tries,
+                                          "pause-progress", &pause,
                                           NULL);
 
   if (number_of_tries <= 0)
@@ -358,25 +432,35 @@ on_password_request (state_t    *state,
   password_answer_state->command = program;
   password_answer_state->prompt = prompt;
   password_answer_state->number_of_tries_left = number_of_tries;
-
-  if (password_answer_state->command != NULL)
+  password_answer_state->pause = pause;
+  if (pause)
     {
-      ply_boot_client_ask_daemon_for_cached_passwords (state->client,
-                                                       (ply_boot_client_multiple_answers_handler_t)
-                                                       on_multiple_answers,
-                                                       (ply_boot_client_response_handler_t)
-                                                       on_password_answer_failure, password_answer_state);
+      ply_boot_client_tell_daemon_to_progress_pause (state->client,
+                                                     (ply_boot_client_response_handler_t)
+                                                     on_password_request_execute,
+                                                     (ply_boot_client_response_handler_t)
+                                                     on_password_answer_failure,
+                                                     password_answer_state);
     }
   else
     {
-      ply_boot_client_ask_daemon_for_password (state->client,
-                                               password_answer_state->prompt,
-                                               (ply_boot_client_answer_handler_t)
-                                               on_password_answer,
-                                               (ply_boot_client_response_handler_t)
-                                               on_password_answer_failure, password_answer_state);
+      on_password_request_execute (password_answer_state, state->client);
     }
 }
+
+static void
+on_question_request_execute (question_answer_state_t *question_answer_state,
+                             ply_boot_client_t       *client)
+{
+  ply_boot_client_ask_daemon_question (client,
+                                       question_answer_state->prompt,
+                                       (ply_boot_client_answer_handler_t)
+                                       on_question_answer,
+                                       (ply_boot_client_response_handler_t)
+                                       on_question_answer_failure,
+                                       question_answer_state);
+}
+
 
 static void
 on_question_request (state_t    *state,
@@ -385,28 +469,39 @@ on_question_request (state_t    *state,
   char *prompt;
   char *program;
   int number_of_tries;
+  bool pause;
   question_answer_state_t *question_answer_state;
 
   prompt = NULL;
   program = NULL;
   number_of_tries = 0;
+  pause = false;
+  
   ply_command_parser_get_command_options (state->command_parser,
                                           command,
                                           "command", &program,
                                           "prompt", &prompt,
+                                          "pause-progress", &pause,
                                           NULL);
 
   question_answer_state = calloc (1, sizeof (question_answer_state_t));
   question_answer_state->state = state;
   question_answer_state->command = program;
   question_answer_state->prompt = prompt;
-
-  ply_boot_client_ask_daemon_question (state->client,
-                                       question_answer_state->prompt,
-                                       (ply_boot_client_answer_handler_t)
-                                       on_question_answer,
-                                       (ply_boot_client_response_handler_t)
-                                       on_failure, question_answer_state);
+  question_answer_state->pause = pause;
+  if (pause)
+    {
+      ply_boot_client_tell_daemon_to_progress_pause (state->client,
+                                                     (ply_boot_client_response_handler_t)
+                                                     on_question_request_execute,
+                                                     (ply_boot_client_response_handler_t)
+                                                     on_question_answer_failure,
+                                                     question_answer_state);
+    }
+  else
+    {
+      on_question_request_execute (question_answer_state, state->client);
+    }
 }
 
 static void
@@ -432,11 +527,12 @@ on_keystroke_request (state_t    *state,
   key_answer_state->keys = keys;
   key_answer_state->command = program;
   ply_boot_client_ask_daemon_to_watch_for_keystroke (state->client,
-                                       keys,
-                                       (ply_boot_client_answer_handler_t)
-                                       on_key_answer,
-                                       (ply_boot_client_response_handler_t)
-                                       on_failure, key_answer_state);
+                                                     keys,
+                                                     (ply_boot_client_answer_handler_t)
+                                                     on_key_answer,
+                                                     (ply_boot_client_response_handler_t)
+                                                     on_key_answer_failure,
+                                                     key_answer_state);
 }
 
 static void
@@ -537,6 +633,8 @@ main (int    argc,
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   "number-of-tries", "Number of times to ask before giving up (requires --command)",
                                   PLY_COMMAND_OPTION_TYPE_INTEGER,
+                                  "pause-progress", "Pause boot progress bar while asking",
+                                  PLY_COMMAND_OPTION_TYPE_FLAG,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,
@@ -547,6 +645,8 @@ main (int    argc,
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   "prompt", "Message to display when asking the question",
                                   PLY_COMMAND_OPTION_TYPE_STRING,
+                                  "pause-progress", "Pause boot progress bar while asking",
+                                  PLY_COMMAND_OPTION_TYPE_FLAG,
                                   NULL);
 
 
@@ -561,13 +661,13 @@ main (int    argc,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,
-                                  "progress-pause", "Pause boot progress bar",
+                                  "pause-progress", "Pause boot progress bar",
                                   (ply_command_handler_t)
                                   on_progress_pause_request, &state,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,
-                                  "progress-unpause", "Unpause boot progress bar",
+                                  "unpause-progress", "Unpause boot progress bar",
                                   (ply_command_handler_t)
                                   on_progress_unpause_request, &state,
                                   NULL);

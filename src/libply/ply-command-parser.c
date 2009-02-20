@@ -139,26 +139,37 @@ append_usage_line_to_buffer (ply_command_parser_t *parser,
 
   ply_buffer_append (buffer, "%s\n",
                      parser->main_command->description);
-  ply_buffer_append (buffer, "USAGE: %s", parser->main_command->name);
-
-  option_node = ply_list_get_first_node (parser->main_command->options);
-  while (option_node != NULL)
-    {
-      ply_command_option_t *option;
-
-      option = (ply_command_option_t *) ply_list_node_get_data (option_node);
-      ply_buffer_append (buffer, " [--%s%s] ", option->name,
-                         option->type == PLY_COMMAND_OPTION_TYPE_BOOLEAN?
-                         "={true|false}":
-                         option->type == PLY_COMMAND_OPTION_TYPE_STRING?
-                         "=<string>":
-                         option->type == PLY_COMMAND_OPTION_TYPE_INTEGER?
-                         "=<integer>": "");
-      option_node = ply_list_get_next_node (parser->main_command->options, option_node);
-    }
+  ply_buffer_append (buffer, "USAGE: %s [OPTION...]", parser->main_command->name);
 
   if (ply_list_get_length (parser->available_subcommands) > 0)
-    ply_buffer_append (buffer, "[subcommand [options]...]\n");
+    ply_buffer_append (buffer, " [COMMAND [OPTION...]...]\n");
+}
+
+static const char *
+get_type_string (int type)
+{
+  const char *option_type_string;
+
+  switch (type)
+    {
+    case PLY_COMMAND_OPTION_TYPE_FLAG:
+      option_type_string = "";
+      break;
+    case PLY_COMMAND_OPTION_TYPE_BOOLEAN:
+      option_type_string = "={true|false}";
+      break;
+    case PLY_COMMAND_OPTION_TYPE_STRING:
+      option_type_string = "=<string>";
+      break;
+    case PLY_COMMAND_OPTION_TYPE_INTEGER:
+      option_type_string = "=<integer>";
+      break;
+    default:
+      option_type_string = "";
+      break;
+    }
+
+  return option_type_string;
 }
 
 static void
@@ -179,35 +190,21 @@ append_command_options_to_buffer (ply_command_parser_t *parser,
 
       option = (ply_command_option_t *) ply_list_node_get_data (option_node);
 
-      switch (option->type)
-        {
-          case PLY_COMMAND_OPTION_TYPE_FLAG:
-              option_type_string = "";
-              break;
-          case PLY_COMMAND_OPTION_TYPE_BOOLEAN:
-              option_type_string = "={true|false}";
-              break;
-          case PLY_COMMAND_OPTION_TYPE_STRING:
-              option_type_string = "=<string>";
-              break;
-          case PLY_COMMAND_OPTION_TYPE_INTEGER:
-              option_type_string = "=<integer>";
-              break;
-          default:
-              option_type_string = "";
-              break;
-        }
+      option_type_string = get_type_string (option->type);
 
-      option_width = command->longest_option_length - strlen (option->name) +
-                     strlen ("={true|false}");
-      description_width = MAX (80 - 10 - command->longest_option_length -
-                               strlen ("--") - strlen ("={true|false}"), 0);
+      option_width = command->longest_option_length + 2 -
+        (strlen(option->name) + strlen(option_type_string));
+
       ply_buffer_append (buffer,
-                         "%-10.10s--%s%-*.*s%*s\n",
-                         "", option->name, option_width, option_width,
-                         option_type_string,
-                         description_width,
-                         option->description);
+                         "  --%s%s",
+                         option->name,
+                         option_type_string);
+
+      ply_buffer_append (buffer, "%*s %s\n",
+                         option_width,
+                         "",
+                         option->description ? option->description : "");
+
       option_node = ply_list_get_next_node (command->options, option_node);
     }
 }
@@ -218,16 +215,30 @@ ply_command_parser_get_help_string (ply_command_parser_t *parser)
   ply_buffer_t *buffer;
   ply_list_node_t *command_node;
   char *help_string;
+  int longest_subcommand;
 
   buffer = ply_buffer_new ();
 
   append_usage_line_to_buffer (parser, buffer);
   ply_buffer_append (buffer, "\n");
+  ply_buffer_append (buffer, "Options:\n");
   append_command_options_to_buffer (parser, parser->main_command, buffer);
   ply_buffer_append (buffer, "\n");
 
   if (ply_list_get_length (parser->available_subcommands) > 0)
-    ply_buffer_append (buffer, "Available subcommands:\n");
+    ply_buffer_append (buffer, "Available commands:\n");
+
+  /* get longest subcommand */
+  longest_subcommand = -1;
+  command_node = ply_list_get_first_node (parser->available_subcommands);
+  while (command_node != NULL)
+    {
+      ply_command_t *command;
+      command = (ply_command_t *) ply_list_node_get_data (command_node);
+      longest_subcommand = MAX (longest_subcommand, (int)strlen (command->name));
+      command_node = ply_list_get_next_node (parser->available_subcommands,
+                                             command_node);
+    }
   command_node = ply_list_get_first_node (parser->available_subcommands);
   while (command_node != NULL)
     {
@@ -235,14 +246,29 @@ ply_command_parser_get_help_string (ply_command_parser_t *parser)
 
       command = (ply_command_t *) ply_list_node_get_data (command_node);
 
-      ply_buffer_append (buffer, "\n%s%*s%-*s\n\n",
+      ply_buffer_append (buffer, "  %s%*s %s\n",
                          command->name,
-                         (int)(80 - strlen (command->name) - strlen (command->description)),
+                         longest_subcommand + 2 - strlen (command->name),
                          "",
-                         (int) strlen (command->name),
                          command->description);
 
-      append_command_options_to_buffer (parser, command, buffer);
+      command_node = ply_list_get_next_node (parser->available_subcommands,
+                                             command_node);
+    }
+
+  command_node = ply_list_get_first_node (parser->available_subcommands);
+  while (command_node != NULL)
+    {
+      ply_command_t *command;
+
+      command = (ply_command_t *) ply_list_node_get_data (command_node);
+
+      if (ply_list_get_first_node (command->options) != NULL)
+        {
+          ply_buffer_append (buffer, "\nOptions for %s command:\n", command->name);
+
+          append_command_options_to_buffer (parser, command, buffer);
+        }
 
       command_node = ply_list_get_next_node (parser->available_subcommands,
                                              command_node);
@@ -267,7 +293,9 @@ ply_command_add_option (ply_command_t *command,
   ply_list_append_data (command->options, option);
 
   command->longest_option_length = MAX (command->longest_option_length,
-                                        strlen (name));
+                                        strlen (name)
+                                        + 1
+                                        + strlen (get_type_string (type)));
 }
 
 static ply_command_option_t *

@@ -46,8 +46,6 @@
 #define DEFAULT_BOOT_DURATION 60.0
 #endif
 
-#define BOOT_DURATION_FILE PLYMOUTH_TIME_DIRECTORY "/boot-duration"
-
 
 struct _ply_progress
 {
@@ -131,11 +129,12 @@ ply_progress_message_search_next (ply_list_t *message_list, double time)
 }
 
 void
-ply_progress_load_cache (ply_progress_t* progress)
+ply_progress_load_cache (ply_progress_t* progress,
+                         const char *filename)
 {
   FILE *fp;
-  
-  fp = fopen (BOOT_DURATION_FILE,"r"); 
+
+  fp = fopen (filename,"r");
   if (fp == NULL)
     return;
 
@@ -178,13 +177,14 @@ ply_progress_load_cache (ply_progress_t* progress)
 }
 
 void
-ply_progress_save_cache (ply_progress_t* progress)
+ply_progress_save_cache (ply_progress_t* progress,
+                         const char *filename)
 {
   FILE *fp;
   ply_list_node_t *node;
   double cur_time = ply_progress_get_time(progress);
-  
-  fp = fopen (BOOT_DURATION_FILE,"w");
+
+  fp = fopen (filename,"w");
   if (fp == NULL)
     return;
 
@@ -325,7 +325,7 @@ main (int    argc,
       printf("Time:%f   \t Percentage: %f%%\n", time, percent*100);
     }
   printf("Load cache\n");
-  ply_progress_load_cache (progress);
+  ply_progress_load_cache (progress, PLYMOUTH_TIME_DIRECTORY "/boot-duration");
 
   for (i=0; i<10; i++)
     {
@@ -336,7 +336,7 @@ main (int    argc,
       printf("Time:%f   \t Percentage: %f%% \tScalar:%f\n", time, percent*100, progress->scalar);
     }
   printf("Save and free cache\n");
-  ply_progress_save_cache (progress);
+  ply_progress_save_cache (progress, PLYMOUTH_TIME_DIRECTORY "/boot-duration");
   ply_progress_free(progress);
   return 0;
 }

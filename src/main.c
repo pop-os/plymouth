@@ -49,6 +49,8 @@
 #define PLY_MAX_COMMAND_LINE_SIZE 512
 #endif
 
+#define BOOT_DURATION_FILE PLYMOUTH_TIME_DIRECTORY "/boot-duration"
+
 typedef struct 
 {
   const char    *keys;
@@ -243,7 +245,7 @@ on_newroot (state_t    *state,
   chdir(root_dir);
   chroot(".");
   chdir("/");
-  ply_progress_load_cache (state->progress);
+  ply_progress_load_cache (state->progress, BOOT_DURATION_FILE);
   if (state->boot_splash != NULL)
     ply_boot_splash_root_mounted (state->boot_splash);
 }
@@ -1130,13 +1132,13 @@ main (int    argc,
     }
 
   state.progress = ply_progress_new ();
-  ply_progress_load_cache (state.progress);
+  ply_progress_load_cache (state.progress, BOOT_DURATION_FILE);
   ply_trace ("entering event loop");
   exit_code = ply_event_loop_run (state.loop);
   ply_trace ("exited event loop");
 
-  ply_progress_save_cache (state.progress);
-  
+  ply_progress_save_cache (state.progress, BOOT_DURATION_FILE);
+
   ply_boot_splash_free (state.boot_splash);
   state.boot_splash = NULL;
 

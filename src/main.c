@@ -35,6 +35,7 @@
 
 #include <linux/kd.h>
 
+#include "ply-command-parser.h"
 #include "ply-boot-server.h"
 #include "ply-boot-splash.h"
 #include "ply-event-loop.h"
@@ -78,7 +79,8 @@ typedef struct
   ply_list_t *keystroke_triggers;
   ply_list_t *entry_triggers;
   ply_buffer_t *entry_buffer;
-  long ptmx;
+  ply_command_parser_t *command_parser;
+  int ptmx;
 
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
   uint32_t no_boot_log : 1;
@@ -1044,26 +1046,47 @@ main (int    argc,
       .ptmx = -1,
   };
   int exit_code;
-  bool attach_to_session = false;
+  bool should_help = false;
   ply_daemon_handle_t *daemon_handle;
 
-  if (argc >= 2 && !strcmp(argv[1], "--attach-to-session"))
-      attach_to_session = true;
+  state.command_parser = ply_command_parser_new ("plymouthd", "Boot splash control server");
 
-  if (attach_to_session && argc == 3)
+  state.loop = ply_event_loop_new ();
+
+  ply_command_parser_add_options (state.command_parser,
+                                  "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "attach-to-session", "pty_master_fd", PLY_COMMAND_OPTION_TYPE_INTEGER,
+                                  NULL);
+
+  if (!ply_command_parser_parse_arguments (state.command_parser, state.loop, argv, argc))
     {
-      state.ptmx = strtol(argv[2], NULL, 0);
-      if ((state.ptmx == LONG_MIN || state.ptmx == LONG_MAX) && errno != 0)
-        {
-          ply_error ("%s: could not parse ptmx string \"%s\": %m", argv[0], argv[2]);
-          return EX_OSERR;
-        }
+      char *help_string;
+
+      help_string = ply_command_parser_get_help_string (state.command_parser);
+
+      ply_error ("%s", help_string);
+
+      free (help_string);
+      return EX_USAGE;
     }
 
-  if ((attach_to_session && argc != 3) || (attach_to_session && state.ptmx == -1))
+  ply_command_parser_get_options (state.command_parser,
+                                  "help", &should_help,
+                                  "attach-to-session", &state.ptmx,
+                                  NULL);
+  if (should_help)
     {
-      ply_error ("%s [--attach-to-session <pty_master_fd>]", argv[0]);
-      return EX_USAGE;
+      char *help_string;
+
+      help_string = ply_command_parser_get_help_string (state.command_parser);
+
+      if (argc < 2)
+        fprintf (stderr, "%s", help_string);
+      else
+        printf ("%s", help_string);
+
+      free (help_string);
+      return 0;
     }
 
   if (geteuid () != 0)
@@ -1086,8 +1109,6 @@ main (int    argc,
   signal (SIGABRT, on_crash);
   signal (SIGSEGV, on_crash);
 
-  state.loop = ply_event_loop_new ();
-
   /* before do anything we need to make sure we have a working
    * environment.
    */
@@ -1106,7 +1127,7 @@ main (int    argc,
 
   state.boot_buffer = ply_buffer_new ();
 
-  if (attach_to_session)
+  if (state.ptmx != 0)
     {
       if (!attach_to_running_session (&state))
         {

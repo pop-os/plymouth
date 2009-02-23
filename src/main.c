@@ -32,6 +32,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <wchar.h>
+#include <paths.h>
 
 #include <linux/kd.h>
 
@@ -50,7 +51,13 @@
 #define PLY_MAX_COMMAND_LINE_SIZE 512
 #endif
 
-#define BOOT_DURATION_FILE PLYMOUTH_TIME_DIRECTORY "/boot-duration"
+#define BOOT_DURATION_FILE     PLYMOUTH_TIME_DIRECTORY "/boot-duration"
+#define SHUTDOWN_DURATION_FILE PLYMOUTH_TIME_DIRECTORY "/shutdown-duration"
+
+typedef enum {
+  PLY_MODE_BOOT,
+  PLY_MODE_SHUTDOWN
+} ply_mode_t;
 
 typedef struct 
 {
@@ -81,6 +88,7 @@ typedef struct
   ply_buffer_t *entry_buffer;
   ply_command_parser_t *command_parser;
   int ptmx;
+  ply_mode_t mode;
 
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
   uint32_t no_boot_log : 1;
@@ -101,9 +109,17 @@ static ply_window_t *create_window (state_t    *state,
                                     const char *tty_name);
 
 static bool attach_to_running_session (state_t *state);
+static bool run_session (state_t *state);
 static void on_escape_pressed (state_t *state);
 static void dump_details_and_quit_splash (state_t *state);
 static void update_display (state_t *state);
+
+static void
+on_session_begin (state_t                *state,
+                  ply_terminal_session_t *session)
+{
+  ply_trace ("got begin on terminal session fd");
+}
 
 static void
 on_session_output (state_t    *state,
@@ -241,8 +257,14 @@ on_progress_unpause (state_t *state)
 
 static void
 on_newroot (state_t    *state,
-             const char *root_dir)
+            const char *root_dir)
 {
+  if (state->mode != PLY_MODE_BOOT)
+    {
+      ply_trace ("new root is only supported in boot mode ");
+      return;
+    }
+
   ply_trace ("new root mounted at \"%s\", switching to it", root_dir);
   chdir(root_dir);
   chroot(".");
@@ -252,27 +274,119 @@ on_newroot (state_t    *state,
     ply_boot_splash_root_mounted (state->boot_splash);
 }
 
+static const char *
+get_cache_file_for_mode (ply_mode_t mode)
+{
+  const char *filename;
+
+  switch ((int)mode)
+    {
+    case PLY_MODE_BOOT:
+      filename = BOOT_DURATION_FILE;
+      break;
+    case PLY_MODE_SHUTDOWN:
+      filename = SHUTDOWN_DURATION_FILE;
+      break;
+    default:
+      fprintf (stderr, "Unhandled case in %s line %d\n", __FILE__, __LINE__);
+      abort ();
+      break;
+    }
+
+  return filename;
+}
+
+static const char *
+get_log_file_for_mode (ply_mode_t mode)
+{
+  const char *filename;
+
+  switch ((int)mode)
+    {
+    case PLY_MODE_BOOT:
+      filename = PLYMOUTH_LOG_DIRECTORY "/boot.log";
+      break;
+    case PLY_MODE_SHUTDOWN:
+      filename = _PATH_DEVNULL;
+      break;
+    default:
+      fprintf (stderr, "Unhandled case in %s line %d\n", __FILE__, __LINE__);
+      abort ();
+      break;
+    }
+
+  return filename;
+}
+
+static const char *
+get_log_spool_file_for_mode (ply_mode_t mode)
+{
+  const char *filename;
+
+  switch ((int)mode)
+    {
+    case PLY_MODE_BOOT:
+      filename = PLYMOUTH_SPOOL_DIRECTORY "/boot.log";
+      break;
+    case PLY_MODE_SHUTDOWN:
+      filename = _PATH_DEVNULL;
+      break;
+    default:
+      fprintf (stderr, "Unhandled case in %s line %d\n", __FILE__, __LINE__);
+      abort ();
+      break;
+    }
+
+  return filename;
+}
+
 static void
 spool_error (state_t *state)
 {
+  const char *logfile;
+  const char *logspool;
+
   ply_trace ("spooling error for viewer");
 
-  unlink (PLYMOUTH_SPOOL_DIRECTORY "/boot.log");
+  logfile = get_log_file_for_mode (state->mode);
+  logspool = get_log_spool_file_for_mode (state->mode);
 
-  ply_create_file_link (PLYMOUTH_LOG_DIRECTORY "/boot.log",
-                        PLYMOUTH_SPOOL_DIRECTORY "/boot.log");
+  if (logfile != NULL && logspool != NULL)
+    {
+      unlink (logspool);
+
+      ply_create_file_link (logfile, logspool);
+    }
+}
+
+static void
+prepare_logging (state_t *state)
+{
+  const char *logfile;
+
+  if (!state->system_initialized)
+    return;
+
+  if (state->session == NULL)
+    return;
+
+  logfile = get_log_file_for_mode (state->mode);
+  if (logfile != NULL)
+    {
+      ply_terminal_session_open_log (state->session, logfile);
+
+      if (state->number_of_errors > 0)
+        spool_error (state);
+    }
 }
 
 static void
 on_system_initialized (state_t *state)
 {
-  ply_trace ("system now initialized, opening boot.log");
+  ply_trace ("system now initialized, opening log");
   state->system_initialized = true;
-  ply_terminal_session_open_log (state->session,
-                                 PLYMOUTH_LOG_DIRECTORY "/boot.log");
 
-  if (state->number_of_errors > 0)
-    spool_error (state);
+  prepare_logging (state);
 }
 
 static void
@@ -432,8 +546,13 @@ on_show_splash (state_t *state)
 
   has_window = has_open_window (state);
 
-  if (!state->is_attached && state->ptmx >= 0 && has_window)
-    state->is_attached = attach_to_running_session (state);
+  if (!state->is_attached && has_window)
+    {
+      if (state->ptmx >= 0)
+        state->is_attached = attach_to_running_session (state);
+      else
+        state->is_attached = run_session (state);
+    }
 
   if (!has_window && state->is_attached)
     {
@@ -509,7 +628,7 @@ static void
 on_quit (state_t *state,
          bool     retain_splash)
 {
-  ply_trace ("time to quit, closing boot.log");
+  ply_trace ("time to quit, closing log");
   if (state->session != NULL)
     ply_terminal_session_close_log (state->session);
   ply_trace ("unloading splash");
@@ -842,6 +961,60 @@ attach_to_running_session (state_t *state)
 }
 
 static bool
+run_session (state_t *state)
+{
+  ply_terminal_session_t *session;
+  ply_terminal_session_flags_t flags;
+  bool should_be_redirected;
+
+  flags = 0;
+
+  should_be_redirected = !state->no_boot_log;
+
+  if (should_be_redirected)
+    flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
+
+ if (state->session == NULL)
+   {
+     ply_trace ("creating new terminal session");
+     session = ply_terminal_session_new (NULL);
+
+     ply_terminal_session_attach_to_event_loop (session, state->loop);
+   }
+ else
+   {
+     session = state->session;
+     ply_trace ("session already created");
+   }
+
+  if (!ply_terminal_session_run (session, flags,
+                                 (ply_terminal_session_begin_handler_t)
+                                 on_session_begin,
+                                 (ply_terminal_session_output_handler_t)
+                                 on_session_output,
+                                 (ply_terminal_session_done_handler_t)
+                                 (should_be_redirected? on_session_finished: NULL),
+                                 state))
+    {
+      ply_save_errno ();
+      ply_terminal_session_free (session);
+      ply_buffer_free (state->boot_buffer);
+      state->boot_buffer = NULL;
+      ply_restore_errno ();
+
+      state->is_redirected = false;
+      state->is_attached = false;
+      return false;
+    }
+
+  state->is_redirected = should_be_redirected;
+  state->is_attached = true;
+  state->session = session;
+
+  return true;
+}
+
+static bool
 get_kernel_command_line (state_t *state)
 {
   int fd;
@@ -1048,6 +1221,7 @@ main (int    argc,
   int exit_code;
   bool should_help = false;
   ply_daemon_handle_t *daemon_handle;
+  char *mode_string = NULL;
 
   state.command_parser = ply_command_parser_new ("plymouthd", "Boot splash control server");
 
@@ -1056,6 +1230,7 @@ main (int    argc,
   ply_command_parser_add_options (state.command_parser,
                                   "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "attach-to-session", "pty_master_fd", PLY_COMMAND_OPTION_TYPE_INTEGER,
+                                  "mode", "Mode is one of: boot, shutdown", PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
   if (!ply_command_parser_parse_arguments (state.command_parser, state.loop, argv, argc))
@@ -1072,6 +1247,7 @@ main (int    argc,
 
   ply_command_parser_get_options (state.command_parser,
                                   "help", &should_help,
+                                  "mode", &mode_string,
                                   "attach-to-session", &state.ptmx,
                                   NULL);
   if (should_help)
@@ -1087,6 +1263,16 @@ main (int    argc,
 
       free (help_string);
       return 0;
+    }
+
+  if (mode_string != NULL)
+    {
+      if (strcmp (mode_string, "shutdown") == 0)
+        state.mode = PLY_MODE_SHUTDOWN;
+      else
+        state.mode = PLY_MODE_BOOT;
+
+      free (mode_string);
     }
 
   if (geteuid () != 0)
@@ -1153,12 +1339,16 @@ main (int    argc,
     }
 
   state.progress = ply_progress_new ();
-  ply_progress_load_cache (state.progress, BOOT_DURATION_FILE);
+
+  ply_progress_load_cache (state.progress,
+                           get_cache_file_for_mode (state.mode));
+
   ply_trace ("entering event loop");
   exit_code = ply_event_loop_run (state.loop);
   ply_trace ("exited event loop");
 
-  ply_progress_save_cache (state.progress, BOOT_DURATION_FILE);
+  ply_progress_save_cache (state.progress,
+                           get_cache_file_for_mode (state.mode));
 
   ply_boot_splash_free (state.boot_splash);
   state.boot_splash = NULL;

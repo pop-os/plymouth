@@ -505,6 +505,29 @@ on_question_request (state_t    *state,
 }
 
 static void
+on_message_request (state_t    *state,
+                    const char *command)
+{
+  char *text;
+
+  text = NULL;
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "text", &text,
+                                          NULL);
+  if (text != NULL)
+    {
+      ply_boot_client_tell_daemon_to_display_message (state->client,
+                                                      text,
+                                                      (ply_boot_client_response_handler_t)
+                                                      on_success,
+                                                      (ply_boot_client_response_handler_t)
+                                                      on_failure, state);
+      free (text);
+    }
+}
+
+static void
 on_keystroke_request (state_t    *state,
                      const char *command)
 {
@@ -596,7 +619,7 @@ main (int    argc,
 {
   state_t state = { 0 };
   bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash, should_wait, should_be_verbose, report_error;
-  char *status, *chroot_dir, *ignore_keystroke;
+  char *status, *chroot_dir, *ignore_keystroke, *message;
   int exit_code;
 
   exit_code = 0;
@@ -649,6 +672,13 @@ main (int    argc,
                                   PLY_COMMAND_OPTION_TYPE_FLAG,
                                   NULL);
 
+  ply_command_parser_add_command (state.command_parser,
+                                  "message", "Display a message",
+                                  (ply_command_handler_t)
+                                  on_message_request, &state,
+                                  "text", "The message text",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
+                                  NULL);
 
   ply_command_parser_add_command (state.command_parser,
                                   "watch-keystroke", "Become sensitive to a keystroke",

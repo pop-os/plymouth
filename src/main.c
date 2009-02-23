@@ -212,6 +212,14 @@ on_ask_question (state_t      *state,
 }
 
 static void
+on_display_message (state_t       *state,
+                    const char    *message)
+{
+  if (state->boot_splash != NULL)
+    ply_boot_splash_display_message (state->boot_splash, message);
+}
+
+static void
 on_watch_for_keystroke (state_t      *state,
                      const char    *keys,
                      ply_trigger_t *trigger)
@@ -661,6 +669,7 @@ start_boot_server (state_t *state)
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
                                 (ply_boot_server_ask_question_handler_t) on_ask_question,
+                                (ply_boot_server_display_message_handler_t) on_display_message,
                                 (ply_boot_server_watch_for_keystroke_handler_t) on_watch_for_keystroke,
                                 (ply_boot_server_ignore_keystroke_handler_t) on_ignore_keystroke,
                                 (ply_boot_server_progress_pause_handler_t) on_progress_pause,
@@ -1364,6 +1373,7 @@ main (int    argc,
   ply_boot_splash_free (state.boot_splash);
   state.boot_splash = NULL;
 
+  ply_command_parser_free (state.command_parser);
   ply_list_free (state.windows);
 
   ply_boot_server_free (state.boot_server);

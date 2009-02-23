@@ -58,6 +58,8 @@ typedef struct
   void (* hide_splash_screen) (ply_boot_splash_plugin_t *plugin,
                                ply_event_loop_t         *loop);
   void (* display_normal) (ply_boot_splash_plugin_t *plugin);
+  void (* display_message) (ply_boot_splash_plugin_t *plugin,
+                            const char               *message);
   void (* display_password) (ply_boot_splash_plugin_t *plugin,
                              const char               *prompt,
                              int                       bullets);

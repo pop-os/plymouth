@@ -55,6 +55,8 @@ void ply_boot_splash_update_output (ply_boot_splash_t *splash,
 void ply_boot_splash_root_mounted (ply_boot_splash_t *splash);
 void ply_boot_splash_hide (ply_boot_splash_t *splash);
 void ply_boot_splash_display_normal  (ply_boot_splash_t              *splash);
+void ply_boot_splash_display_message (ply_boot_splash_t              *splash,
+                                      const char                     *message);
 void ply_boot_splash_display_password (ply_boot_splash_t             *splash,
                                        const char                    *prompt,
                                        int                            bullets);

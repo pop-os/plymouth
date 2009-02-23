@@ -67,6 +67,8 @@ struct _ply_boot_splash_plugin
 
   ply_text_progress_bar_t *progress_bar;
 
+  char *message;
+
   uint32_t is_animating : 1;
 };
 void hide_splash_screen (ply_boot_splash_plugin_t *plugin,
@@ -81,6 +83,7 @@ create_plugin (void)
 
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
   plugin->progress_bar = ply_text_progress_bar_new ();
+  plugin->message = NULL;
 
   return plugin;
 }
@@ -107,8 +110,29 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   hide_splash_screen (plugin, plugin->loop);
 
   ply_text_progress_bar_free (plugin->progress_bar);
+  if (plugin->message != NULL)
+    free (plugin->message);
 
   free (plugin);
+}
+
+static void
+show_message (ply_boot_splash_plugin_t *plugin)
+{
+      int window_width, window_height;
+      int i;
+
+      window_width = ply_window_get_number_of_text_columns (plugin->window);
+      window_height = ply_window_get_number_of_text_rows (plugin->window);
+
+      ply_window_set_text_cursor_position (plugin->window,
+                                           0, window_height / 2);
+      ply_window_clear_text_line (plugin->window);
+      ply_window_set_text_cursor_position (plugin->window,
+                                           (window_width - strlen (plugin->message)) / 2,
+                                           window_height / 2);
+
+      write (STDOUT_FILENO, plugin->message, strlen (plugin->message));
 }
 
 static void
@@ -117,6 +141,9 @@ start_animation (ply_boot_splash_plugin_t *plugin)
 
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
+
+  if (plugin->message != NULL)
+    show_message (plugin);
 
   if (plugin->is_animating)
      return;
@@ -324,6 +351,16 @@ void display_normal (ply_boot_splash_plugin_t *plugin)
   start_animation(plugin);
 }
 
+void display_message (ply_boot_splash_plugin_t *plugin,
+                      const char               *message)
+{
+  if (plugin->message != NULL)
+    free (plugin->message);
+
+  plugin->message = strdup (message);
+  start_animation (plugin);
+}
+
 void
 display_password (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
@@ -409,6 +446,7 @@ ply_boot_splash_plugin_get_interface (void)
       .on_boot_progress = on_boot_progress,
       .hide_splash_screen = hide_splash_screen,
       .display_normal = display_normal,
+      .display_message = display_message,
       .display_password = display_password,
       .display_question = display_question,      
     };

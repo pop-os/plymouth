@@ -1220,6 +1220,7 @@ main (int    argc,
   };
   int exit_code;
   bool should_help = false;
+  bool no_daemon = false;
   ply_daemon_handle_t *daemon_handle;
   char *mode_string = NULL;
 
@@ -1230,6 +1231,7 @@ main (int    argc,
   ply_command_parser_add_options (state.command_parser,
                                   "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "attach-to-session", "pty_master_fd", PLY_COMMAND_OPTION_TYPE_INTEGER,
+                                  "no-daemon", "Do not daemonize", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "mode", "Mode is one of: boot, shutdown", PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
@@ -1248,6 +1250,7 @@ main (int    argc,
   ply_command_parser_get_options (state.command_parser,
                                   "help", &should_help,
                                   "mode", &mode_string,
+                                  "no-daemon", &no_daemon,
                                   "attach-to-session", &state.ptmx,
                                   NULL);
   if (should_help)
@@ -1284,12 +1287,15 @@ main (int    argc,
   chdir ("/");
   signal (SIGPIPE, SIG_IGN);
 
-  daemon_handle = ply_create_daemon ();
-
-  if (daemon_handle == NULL)
+  if (! no_daemon)
     {
-      ply_error ("cannot daemonize: %m");
-      return EX_UNAVAILABLE;
+      daemon_handle = ply_create_daemon ();
+
+      if (daemon_handle == NULL)
+        {
+          ply_error ("cannot daemonize: %m");
+          return EX_UNAVAILABLE;
+        }
     }
 
   signal (SIGABRT, on_crash);
@@ -1302,12 +1308,14 @@ main (int    argc,
     {
       if (errno == 0)
         {
-          ply_detach_daemon (daemon_handle, 0);
+          if (! no_daemon)
+            ply_detach_daemon (daemon_handle, 0);
           return 0;
         }
 
       ply_error ("could not setup basic operating environment: %m");
-      ply_detach_daemon (daemon_handle, EX_OSERR);
+      if (! no_daemon)
+        ply_detach_daemon (daemon_handle, EX_OSERR);
       return EX_OSERR;
     }
 
@@ -1318,7 +1326,8 @@ main (int    argc,
       if (!attach_to_running_session (&state))
         {
           ply_error ("could not create session: %m");
-          ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
+          if (! no_daemon)
+            ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
           return EX_UNAVAILABLE;
         }
     }
@@ -1328,15 +1337,17 @@ main (int    argc,
   if (state.boot_server == NULL)
     {
       ply_error ("could not log bootup: %m");
-      ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
+      if (! no_daemon)
+        ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
       return EX_UNAVAILABLE;
     }
 
-  if (!ply_detach_daemon (daemon_handle, 0))
-    {
-      ply_error ("could not tell parent to exit: %m");
-      return EX_UNAVAILABLE;
-    }
+  if (! no_daemon)
+    if (!ply_detach_daemon (daemon_handle, 0))
+      {
+        ply_error ("could not tell parent to exit: %m");
+        return EX_UNAVAILABLE;
+      }
 
   state.progress = ply_progress_new ();
 

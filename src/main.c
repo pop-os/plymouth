@@ -1179,8 +1179,7 @@ initialize_environment (state_t *state)
     redirect_standard_io_to_device (state->console);
   else
     redirect_standard_io_to_device ("tty1");
-  
-  
+
   for (node = ply_list_get_first_node (state->windows); node;
                     node = ply_list_get_next_node (state->windows, node))
     {
@@ -1230,6 +1229,7 @@ main (int    argc,
   int exit_code;
   bool should_help = false;
   bool no_daemon = false;
+  bool debug = false;
   ply_daemon_handle_t *daemon_handle;
   char *mode_string = NULL;
 
@@ -1241,6 +1241,7 @@ main (int    argc,
                                   "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "attach-to-session", "pty_master_fd", PLY_COMMAND_OPTION_TYPE_INTEGER,
                                   "no-daemon", "Do not daemonize", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "debug", "Output debugging information", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "mode", "Mode is one of: boot, shutdown", PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
@@ -1260,6 +1261,7 @@ main (int    argc,
                                   "help", &should_help,
                                   "mode", &mode_string,
                                   "no-daemon", &no_daemon,
+                                  "debug", &debug,
                                   "attach-to-session", &state.ptmx,
                                   NULL);
   if (should_help)
@@ -1276,6 +1278,9 @@ main (int    argc,
       free (help_string);
       return 0;
     }
+
+  if (debug && !ply_is_tracing ())
+    ply_toggle_tracing ();
 
   if (mode_string != NULL)
     {

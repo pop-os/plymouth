@@ -1230,6 +1230,8 @@ main (int    argc,
   bool should_help = false;
   bool no_daemon = false;
   bool debug = false;
+  bool was_set = false;
+  int attach_to_session;
   ply_daemon_handle_t *daemon_handle;
   char *mode_string = NULL;
 
@@ -1262,8 +1264,11 @@ main (int    argc,
                                   "mode", &mode_string,
                                   "no-daemon", &no_daemon,
                                   "debug", &debug,
-                                  "attach-to-session", &state.ptmx,
                                   NULL);
+  ply_command_parser_get_option (state.command_parser,
+                                 "attach-to-session",
+                                 &attach_to_session,
+                                 &was_set);
   if (should_help)
     {
       char *help_string;
@@ -1291,6 +1296,9 @@ main (int    argc,
 
       free (mode_string);
     }
+
+  if (was_set)
+    state.ptmx = attach_to_session;
 
   if (geteuid () != 0)
     {
@@ -1335,7 +1343,7 @@ main (int    argc,
 
   state.boot_buffer = ply_buffer_new ();
 
-  if (state.ptmx != 0)
+  if (state.ptmx != -1)
     {
       if (!attach_to_running_session (&state))
         {

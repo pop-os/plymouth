@@ -45,7 +45,7 @@ typedef struct
   char *name;
   char *description;
   ply_command_option_type_t type;
-
+  uint32_t was_set : 1;
   ply_command_option_result_t result;
 } ply_command_option_t;
 
@@ -464,6 +464,52 @@ ply_command_parser_get_command (ply_command_parser_t *parser,
 }
 
 static void
+ply_command_parser_get_option_for_command (ply_command_parser_t *parser,
+                                           ply_command_t        *command,
+                                           const char           *option_name,
+                                           void                 *option_result,
+                                           bool                 *option_is_set)
+{
+  ply_command_option_t *option;
+
+  option = ply_command_get_option (command, option_name);
+
+  if (option == NULL)
+    return;
+
+  if (option_result != NULL)
+    {
+      switch (option->type)
+        {
+        case PLY_COMMAND_OPTION_TYPE_FLAG:
+        case PLY_COMMAND_OPTION_TYPE_BOOLEAN:
+          {
+            *(bool *)option_result = option->result.as_boolean;
+          }
+          break;
+
+        case PLY_COMMAND_OPTION_TYPE_STRING:
+          {
+            if (option->result.as_string != NULL)
+              *(char **)option_result = strdup (option->result.as_string);
+            else
+              *(char **)option_result = NULL;
+          }
+          break;
+
+        case PLY_COMMAND_OPTION_TYPE_INTEGER:
+          {
+            *(int *)option_result = option->result.as_integer;
+          }
+          break;
+        }
+    }
+
+  if (option_is_set != NULL)
+    *option_is_set = option->was_set;
+}
+
+static void
 ply_command_parser_get_options_for_command (ply_command_parser_t *parser,
                                             ply_command_t *command,
                                             const char *option_name,
@@ -476,57 +522,41 @@ ply_command_parser_get_options_for_command (ply_command_parser_t *parser,
 
   while (option_name != NULL)
     {
-      ply_command_option_t *option;
+      void *option_result;
 
-      option = ply_command_get_option (command, option_name);
+      option_result = va_arg (args, void *);
 
-      if (option != NULL)
-        {
-          switch (option->type)
-            {
-              case PLY_COMMAND_OPTION_TYPE_FLAG:
-              case PLY_COMMAND_OPTION_TYPE_BOOLEAN:
-                {
-                  bool *option_result;
-
-                  option_result = va_arg (args, bool *);
-
-                  *option_result = option->result.as_boolean;
-                }
-              break;
-
-              case PLY_COMMAND_OPTION_TYPE_STRING:
-                {
-                  char **option_result;
-
-                  option_result = va_arg (args, char **);
-                  if (option->result.as_string != NULL)
-                    *option_result = strdup (option->result.as_string);
-                  else
-                    *option_result = NULL;
-                }
-              break;
-
-              case PLY_COMMAND_OPTION_TYPE_INTEGER:
-                {
-                  int *option_result;
-
-                  option_result = va_arg (args, int *);
-
-                  *option_result = option->result.as_integer;
-                }
-              break;
-            }
-        }
+      ply_command_parser_get_option_for_command (parser,
+                                                 command,
+                                                 option_name,
+                                                 option_result,
+                                                 NULL);
 
       option_name = va_arg (args, const char *);
     }
 }
 
 void
+ply_command_parser_get_option (ply_command_parser_t *parser,
+                               const char           *option_name,
+                               void                 *option_result,
+                               bool                 *option_is_set)
+{
+  assert (parser != NULL);
+  assert (option_name != NULL);
+
+  ply_command_parser_get_option_for_command (parser,
+                                             parser->main_command,
+                                             option_name,
+                                             option_result,
+                                             option_is_set);
+}
+
+void
 ply_command_parser_get_options (ply_command_parser_t *parser,
                                 const char *option_name, /*
-                                void *      option_result */
+                                void *      option_result,
+                                bool *      option_was_set */
                                 ...)
 {
   va_list args;
@@ -540,10 +570,37 @@ ply_command_parser_get_options (ply_command_parser_t *parser,
 }
 
 void
+ply_command_parser_get_command_option (ply_command_parser_t *parser,
+                                       const char           *command_name,
+                                       const char           *option_name,
+                                       void                 *option_result,
+                                       bool                 *option_is_set)
+{
+  ply_command_t *command;
+
+  assert (parser != NULL);
+  assert (command_name != NULL);
+  assert (option_name != NULL);
+
+  command = ply_command_parser_get_command (parser, command_name);
+
+  if (command == NULL)
+    return;
+
+  ply_command_parser_get_option_for_command (parser,
+                                             parser->main_command,
+                                             option_name,
+                                             option_result,
+                                             option_is_set);
+}
+
+
+void
 ply_command_parser_get_command_options (ply_command_parser_t *parser,
                                         const char *command_name,
                                         const char *option_name, /*
-                                        void *      option_result */
+                                        void *      option_result,
+                                        bool *      option_was_set */
                                         ...)
 {
   ply_command_t *command;
@@ -726,7 +783,8 @@ ply_command_read_option (ply_command_t *command,
 
   ply_list_remove_node (arguments, node);
 
-  ply_command_option_read_arguments (option, arguments);
+  if (ply_command_option_read_arguments (option, arguments))
+    option->was_set = true;
 
   return option;
 }

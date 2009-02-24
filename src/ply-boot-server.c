@@ -196,7 +196,7 @@ ply_boot_connection_read_request (ply_boot_connection_t  *connection,
 
       if (!ply_read (connection->fd, &argument_size, sizeof (uint8_t)))
         {
-          free(command);
+          free (*command);
           return false;
         }
 
@@ -204,7 +204,7 @@ ply_boot_connection_read_request (ply_boot_connection_t  *connection,
 
       if (!ply_read (connection->fd, *argument, argument_size))
         {
-          free(command);
+          free (*command);
           return false;
         }
     }
@@ -307,7 +307,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
         ply_error ("could not write bytes: %m");
 
-      free(command);
+      free (command);
       return;
     }
 

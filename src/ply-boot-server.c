@@ -204,6 +204,7 @@ ply_boot_connection_read_request (ply_boot_connection_t  *connection,
 
       if (!ply_read (connection->fd, *argument, argument_size))
         {
+          free (*argument);
           free (*command);
           return false;
         }

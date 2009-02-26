@@ -237,7 +237,6 @@ ply_terminal_session_run (ply_terminal_session_t              *session,
   look_in_path = (flags & PLY_TERMINAL_SESSION_FLAGS_LOOK_IN_PATH) != 0;
   should_redirect_console = 
     (flags & PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE) != 0;
-  should_redirect_console = 0;
 
   ply_trace ("creating terminal device");
   if (!ply_terminal_create_device (session->terminal))

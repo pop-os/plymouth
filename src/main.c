@@ -1083,11 +1083,14 @@ check_logging (state_t *state)
      || (strstr (state->kernel_command_line, "plymouth:nolog ") != NULL)
      || (strstr (state->kernel_command_line, " plymouth:nolog") != NULL))
     {
-      ply_trace ("logging should be enabled!");
+      ply_trace ("logging won't be enabled!");
       state->no_boot_log = true;
     }
   else
-    ply_trace ("logging shouldn't be enabled!");
+    {
+      ply_trace ("logging will be enabled!");
+      state->no_boot_log = false;
+    }
 }
 
 static void

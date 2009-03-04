@@ -23,6 +23,10 @@ glow_la_SOURCES = $(srcdir)/plugin.c
 
 plymouthdir = $(datadir)/plymouth/glow
 plymouth_DATA = \
+	images/box.png			\
+	images/bullet.png		\
+	images/entry.png		\
+	images/lock.png			\
 	images/progress-00.png		\
 	images/progress-01.png		\
 	images/progress-02.png		\

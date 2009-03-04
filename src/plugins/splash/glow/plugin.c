@@ -103,10 +103,10 @@ create_plugin (void)
   srand ((int) ply_get_timestamp ());
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
 
-  plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/lock.png");
-  plugin->box_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/box.png");
+  plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "glow/lock.png");
+  plugin->box_image = ply_image_new (PLYMOUTH_IMAGE_DIR "glow/box.png");
 
-  plugin->entry = ply_entry_new (PLYMOUTH_IMAGE_DIR "spinfinity");
+  plugin->entry = ply_entry_new (PLYMOUTH_IMAGE_DIR "glow");
   plugin->animation = ply_animation_new (PLYMOUTH_IMAGE_DIR "glow",
                                          "throbber-");
   plugin->progress_animation = ply_progress_animation_new (PLYMOUTH_IMAGE_DIR "glow",

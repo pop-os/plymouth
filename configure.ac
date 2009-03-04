@@ -99,10 +99,10 @@ AM_CONDITIONAL(INSTALL_FALLBACK_LOGO,  [test "$logofile" = $datadir/plymouth/biz
 AC_ARG_WITH(background-color, AC_HELP_STRING([--with-background-color], [background color used by boot splash plugins]),background_color=${withval},background_color=0x5d5950)
 AC_SUBST(background_color)
 
-AC_ARG_WITH(background-start-color-stop, AC_HELP_STRING([--with-background-start-color], [first color stop in background gradients used by boot splash plugins]),background_start_color=${withval},background_start_color=0x807c71)
+AC_ARG_WITH(background-start-color-stop, AC_HELP_STRING([--with-background-start-color-stop], [first color stop in background gradients used by boot splash plugins]),background_start_color=${withval},background_start_color=0x807c71)
 AC_SUBST(background_start_color)
 
-AC_ARG_WITH(background-end-color-stop, AC_HELP_STRING([--with-background-end-color], [first color end in background gradients used by boot splash plugins]),background_end_color=${withval},background_end_color=0x3a362f)
+AC_ARG_WITH(background-end-color-stop, AC_HELP_STRING([--with-background-end-color-stop], [first color end in background gradients used by boot splash plugins]),background_end_color=${withval},background_end_color=0x3a362f)
 AC_SUBST(background_end_color)
 
 AC_ARG_WITH(default-plugin, AC_HELP_STRING([--with-default-plugin=fade-in], [Plugin to use by default]),default_plugin_name=${withval},default_plugin_name=fade-in)

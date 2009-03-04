@@ -237,7 +237,7 @@ ply_throbber_add_frame (ply_throbber_t *throbber,
   ply_array_add_element (throbber->frames, image);
 
   throbber->width = MAX (throbber->width, ply_image_get_width (image));
-  throbber->height = MAX (throbber->width, ply_image_get_height (image));
+  throbber->height = MAX (throbber->height, ply_image_get_height (image));
 
   return true;
 }

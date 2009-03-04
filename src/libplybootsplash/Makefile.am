@@ -6,7 +6,7 @@ INCLUDES = -I$(top_srcdir)                                                    \
 lib_LTLIBRARIES = libplybootsplash.la
 
 libplybootsplashdir = $(includedir)/plymouth-1/plybootsplash
-libplybootsplash_HEADERS = ply-entry.h ply-image.h ply-progress-bar.h ply-text-progress-bar.h ply-text-pulser.h ply-throbber.h ply-animation.h ply-window.h ply-label.h ply-boot-splash-plugin.h ply-label-plugin.h
+libplybootsplash_HEADERS = ply-entry.h ply-image.h ply-progress-bar.h ply-text-progress-bar.h ply-text-pulser.h ply-throbber.h ply-animation.h ply-progress-animation.h ply-window.h ply-label.h ply-boot-splash-plugin.h ply-label-plugin.h
 
 libplybootsplash_la_CFLAGS = $(PLYMOUTH_CFLAGS)                               \
 			     $(IMAGE_CFLAGS)                                  \
@@ -26,6 +26,7 @@ libplybootsplash_la_SOURCES = \
 		    ply-progress-bar.c                                       \
 		    ply-throbber.c                                           \
 		    ply-animation.c                                          \
+		    ply-progress-animation.c                                 \
 		    ply-text-progress-bar.c                                  \
 		    ply-text-pulser.c                                        \
 		    ply-window.c

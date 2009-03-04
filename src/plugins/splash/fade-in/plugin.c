@@ -436,7 +436,8 @@ on_erase (ply_boot_splash_plugin_t *plugin,
   area.height = height;
 
   ply_frame_buffer_fill_with_gradient (plugin->frame_buffer, &area,
-                                       0x807c71, 0x3a362f);
+                                       PLYMOUTH_BACKGROUND_START_COLOR,
+                                       PLYMOUTH_BACKGROUND_END_COLOR);
 }
 
 void

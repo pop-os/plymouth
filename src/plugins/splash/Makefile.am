@@ -1,4 +1,4 @@
-SUBDIRS = spinfinity fade-in text details solar pulser
+SUBDIRS = spinfinity fade-in text details solar pulser glow
 MAINTAINERCLEANFILES = Makefile.in
 
 if ADD_DEFAULT_PLUGIN_LINK

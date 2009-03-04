@@ -70,6 +70,7 @@ struct _ply_throbber
   long x, y;
   long width, height;
   double start_time, previous_time, now;
+  uint32_t is_stopped : 1;
 };
 
 ply_throbber_t *
@@ -86,6 +87,7 @@ ply_throbber_new (const char *image_dir,
   throbber->frames = ply_array_new ();
   throbber->frames_prefix = strdup (frames_prefix);
   throbber->image_dir = strdup (image_dir);
+  throbber->is_stopped = true;
   throbber->width = 0;
   throbber->height = 0;
   throbber->frame_area.width = 0;
@@ -323,6 +325,7 @@ ply_throbber_start (ply_throbber_t         *throbber,
   throbber->loop = loop;
   throbber->window = window;
   throbber->frame_buffer = ply_window_get_frame_buffer (window);;
+  throbber->is_stopped = false;
 
   throbber->x = x;
   throbber->y = y;
@@ -345,6 +348,7 @@ ply_throbber_stop_now (ply_throbber_t *throbber)
 
   throbber->frame_buffer = NULL;
   throbber->window = NULL;
+  throbber->is_stopped = true;
 
   if (throbber->loop != NULL)
     {
@@ -367,6 +371,12 @@ ply_throbber_stop (ply_throbber_t *throbber,
     }
 
   throbber->stop_trigger = stop_trigger;
+}
+
+bool
+ply_throbber_is_stopped (ply_throbber_t *throbber)
+{
+  return throbber->is_stopped;
 }
 
 long

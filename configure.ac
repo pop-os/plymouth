@@ -111,6 +111,8 @@ AM_CONDITIONAL(ADD_DEFAULT_PLUGIN_LINK,
                   -o "$default_plugin_name" = "fade-in"    \
                   -o "$default_plugin_name" = "pulser"     \
                   -o "$default_plugin_name" = "text"       \
+                  -o "$default_plugin_name" = "glow"       \
+                  -o "$default_plugin_name" = "solar"      \
                   -o "$default_plugin_name" = "details"])
 AC_SUBST(default_plugin_name)
 
@@ -203,6 +205,7 @@ AC_OUTPUT([Makefile
            src/plugins/splash/pulser/Makefile
            src/plugins/splash/details/Makefile
            src/plugins/splash/solar/Makefile
+           src/plugins/splash/glow/Makefile
            src/plugins/controls/Makefile
            src/plugins/controls/label/Makefile
            src/Makefile

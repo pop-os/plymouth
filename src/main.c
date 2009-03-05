@@ -87,7 +87,6 @@ typedef struct
   ply_list_t *entry_triggers;
   ply_buffer_t *entry_buffer;
   ply_command_parser_t *command_parser;
-  int ptmx;
   ply_mode_t mode;
 
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
@@ -96,6 +95,7 @@ typedef struct
   uint32_t system_initialized : 1;
   uint32_t is_redirected : 1;
   uint32_t is_attached : 1;
+  uint32_t should_be_attached : 1;
 
   char *console;
 
@@ -109,7 +109,6 @@ static ply_window_t *create_window (state_t    *state,
                                     const char *tty_name);
 
 static bool attach_to_running_session (state_t *state);
-static bool run_session (state_t *state);
 static void on_escape_pressed (state_t *state);
 static void dump_details_and_quit_splash (state_t *state);
 static void update_display (state_t *state);
@@ -554,13 +553,8 @@ on_show_splash (state_t *state)
 
   has_window = has_open_window (state);
 
-  if (!state->is_attached && has_window)
-    {
-      if (state->ptmx >= 0)
-        state->is_attached = attach_to_running_session (state);
-      else
-        state->is_attached = run_session (state);
-    }
+  if (!state->is_attached && state->should_be_attached && has_window)
+    attach_to_running_session (state);
 
   if (!has_window && state->is_attached)
     {
@@ -948,62 +942,7 @@ attach_to_running_session (state_t *state)
                                  on_session_output,
                                  (ply_terminal_session_done_handler_t)
                                  (should_be_redirected? on_session_finished: NULL),
-                                 state->ptmx,
-                                 state))
-    {
-      ply_save_errno ();
-      ply_terminal_session_free (session);
-      ply_buffer_free (state->boot_buffer);
-      state->boot_buffer = NULL;
-      ply_restore_errno ();
-
-      state->is_redirected = false;
-      state->is_attached = false;
-      return false;
-    }
-
-  state->is_redirected = should_be_redirected;
-  state->is_attached = true;
-  state->session = session;
-
-  return true;
-}
-
-static bool
-run_session (state_t *state)
-{
-  ply_terminal_session_t *session;
-  ply_terminal_session_flags_t flags;
-  bool should_be_redirected;
-
-  flags = 0;
-
-  should_be_redirected = !state->no_boot_log;
-
-  if (should_be_redirected)
-    flags |= PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE;
-
- if (state->session == NULL)
-   {
-     ply_trace ("creating new terminal session");
-     session = ply_terminal_session_new (NULL);
-
-     ply_terminal_session_attach_to_event_loop (session, state->loop);
-   }
- else
-   {
-     session = state->session;
-     ply_trace ("session already created");
-   }
-
-  if (!ply_terminal_session_run (session, flags,
-                                 (ply_terminal_session_begin_handler_t)
-                                 on_session_begin,
-                                 (ply_terminal_session_output_handler_t)
-                                 on_session_output,
-                                 (ply_terminal_session_done_handler_t)
-                                 (should_be_redirected? on_session_finished: NULL),
-                                 state))
+                                 -1, state))
     {
       ply_save_errno ();
       ply_terminal_session_free (session);
@@ -1226,15 +1165,12 @@ int
 main (int    argc,
       char **argv)
 {
-  state_t state = {
-      .ptmx = -1,
-  };
+  state_t state = { 0 };
   int exit_code;
   bool should_help = false;
   bool no_daemon = false;
   bool debug = false;
-  bool was_set = false;
-  int attach_to_session;
+  bool attach_to_session;
   ply_daemon_handle_t *daemon_handle;
   char *mode_string = NULL;
 
@@ -1244,7 +1180,7 @@ main (int    argc,
 
   ply_command_parser_add_options (state.command_parser,
                                   "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
-                                  "attach-to-session", "pty_master_fd", PLY_COMMAND_OPTION_TYPE_INTEGER,
+                                  "attach-to-session", "Redirect console messages from screen to log", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "no-daemon", "Do not daemonize", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "debug", "Output debugging information", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "mode", "Mode is one of: boot, shutdown", PLY_COMMAND_OPTION_TYPE_STRING,
@@ -1264,14 +1200,12 @@ main (int    argc,
 
   ply_command_parser_get_options (state.command_parser,
                                   "help", &should_help,
+                                  "attach-to-session", &attach_to_session,
                                   "mode", &mode_string,
                                   "no-daemon", &no_daemon,
                                   "debug", &debug,
                                   NULL);
-  ply_command_parser_get_option (state.command_parser,
-                                 "attach-to-session",
-                                 &attach_to_session,
-                                 &was_set);
+
   if (should_help)
     {
       char *help_string;
@@ -1299,9 +1233,6 @@ main (int    argc,
 
       free (mode_string);
     }
-
-  if (was_set)
-    state.ptmx = attach_to_session;
 
   if (geteuid () != 0)
     {
@@ -1346,8 +1277,9 @@ main (int    argc,
 
   state.boot_buffer = ply_buffer_new ();
 
-  if (state.ptmx != -1)
+  if (attach_to_session)
     {
+      state.should_be_attached = attach_to_session;
       if (!attach_to_running_session (&state))
         {
           ply_error ("could not create session: %m");

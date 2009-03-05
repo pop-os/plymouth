@@ -308,12 +308,24 @@ ply_terminal_session_attach (ply_terminal_session_t               *session,
   assert (session->loop != NULL);
   assert (!session->is_running);
   assert (session->done_handler == NULL);
-  assert (ptmx >= 0);
 
   should_redirect_console = 
     (flags & PLY_TERMINAL_SESSION_FLAGS_REDIRECT_CONSOLE) != 0;
 
-  ply_terminal_set_fd(session->terminal, ptmx);
+  if (ptmx >= 0)
+    {
+      ply_trace ("ptmx passed in, using it");
+      ply_terminal_set_fd(session->terminal, ptmx);
+    }
+  else
+    {
+      ply_trace ("ptmx not passed in, creating one");
+      if (!ply_terminal_create_device (session->terminal))
+        {
+          ply_trace ("could not create pseudo-terminal: %m");
+          return false;
+        }
+    }
 
   if (should_redirect_console)
     ply_trace ("redirecting system console to terminal device");

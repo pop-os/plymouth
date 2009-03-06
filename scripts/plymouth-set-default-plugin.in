@@ -139,6 +139,6 @@ fi
 
 (cd ${LIBDIR}/plymouth;
         ln -sf ${PLUGIN_NAME}.so default.so && \
-        [ $DO_INITRD_REBUILD -ne 0 ] && \
-        $LIBEXECDIR/plymouth/plymouth-update-initrd)
+        ([ $DO_INITRD_REBUILD -ne 0 ] && \
+           $LIBEXECDIR/plymouth/plymouth-update-initrd) || :)
 

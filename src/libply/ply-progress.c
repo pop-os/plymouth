@@ -193,9 +193,7 @@ ply_progress_save_cache (ply_progress_t* progress,
   while (node)
     {
       ply_progress_message_t *message = ply_list_node_get_data (node);
-      ply_progress_message_t *message_prev = ply_progress_message_search(progress->previous_message_list, message->string);
       double percentage = message->time / cur_time;
-      if (message_prev) percentage = (percentage + message_prev->time)/2;
       if (!message->disabled)
           fprintf (fp, "%.3lf:%s\n", percentage, message->string);
       node = ply_list_get_next_node (progress->current_message_list, node);

@@ -70,6 +70,8 @@ struct _ply_boot_splash_plugin
 };
 void hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                          ply_event_loop_t         *loop);
+static void add_handlers (ply_boot_splash_plugin_t *plugin);
+static void remove_handlers (ply_boot_splash_plugin_t *plugin);
 
 ply_boot_splash_plugin_t *
 create_plugin (void)
@@ -203,6 +205,37 @@ on_erase (ply_boot_splash_plugin_t *plugin,
   ply_window_clear_screen (plugin->window);
 }
 
+static void
+add_handlers (ply_boot_splash_plugin_t *plugin)
+{
+  ply_window_add_keyboard_input_handler (plugin->window,
+                                         (ply_window_keyboard_input_handler_t)
+                                         on_keyboard_input, plugin);
+  ply_window_add_backspace_handler (plugin->window,
+                                    (ply_window_backspace_handler_t)
+                                    on_backspace, plugin);
+  ply_window_add_enter_handler (plugin->window,
+                                (ply_window_enter_handler_t)
+                                on_enter, plugin);
+  ply_window_set_draw_handler (plugin->window,
+                               (ply_window_draw_handler_t)
+                                on_draw, plugin);
+  ply_window_set_erase_handler (plugin->window,
+                                (ply_window_erase_handler_t)
+                                on_erase, plugin);
+}
+
+static void
+remove_handlers (ply_boot_splash_plugin_t *plugin)
+{
+
+  ply_window_remove_keyboard_input_handler (plugin->window, (ply_window_keyboard_input_handler_t) on_keyboard_input);
+  ply_window_remove_backspace_handler (plugin->window, (ply_window_backspace_handler_t) on_backspace);
+  ply_window_remove_enter_handler (plugin->window, (ply_window_enter_handler_t) on_enter);
+  ply_window_set_draw_handler (plugin->window, NULL, NULL);
+  ply_window_set_erase_handler (plugin->window, NULL, NULL);
+}
+
 void
 add_window (ply_boot_splash_plugin_t *plugin,
             ply_window_t             *window)
@@ -224,23 +257,8 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 {
   assert (plugin != NULL);
 
+  add_handlers (plugin);
   ply_show_new_kernel_messages (false);
-
-  ply_window_add_keyboard_input_handler (plugin->window,
-                                         (ply_window_keyboard_input_handler_t)
-                                         on_keyboard_input, plugin);
-  ply_window_add_backspace_handler (plugin->window,
-                                    (ply_window_backspace_handler_t)
-                                    on_backspace, plugin);
-  ply_window_add_enter_handler (plugin->window,
-                                (ply_window_enter_handler_t)
-                                on_enter, plugin);
-  ply_window_set_draw_handler (plugin->window,
-                               (ply_window_draw_handler_t)
-                                on_draw, plugin);
-  ply_window_set_erase_handler (plugin->window,
-                                (ply_window_erase_handler_t)
-                                on_erase, plugin);
 
   plugin->loop = loop;
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
@@ -282,11 +300,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   if (plugin->window != NULL)
     {
-      ply_window_remove_keyboard_input_handler (plugin->window, (ply_window_keyboard_input_handler_t) on_keyboard_input);
-      ply_window_remove_backspace_handler (plugin->window, (ply_window_backspace_handler_t) on_backspace);
-      ply_window_remove_enter_handler (plugin->window, (ply_window_enter_handler_t) on_enter);
-      ply_window_set_draw_handler (plugin->window, NULL, NULL);
-      ply_window_set_erase_handler (plugin->window, NULL, NULL);
+      remove_handlers (plugin);
 
       ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_DEFAULT);
       ply_window_clear_screen (plugin->window);

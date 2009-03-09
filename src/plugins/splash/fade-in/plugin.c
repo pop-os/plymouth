@@ -630,25 +630,41 @@ static void
 show_password_entry (ply_boot_splash_plugin_t *plugin)
 {
   ply_frame_buffer_area_t area;
+  ply_frame_buffer_area_t lock_area;
   int x, y;
-  int lock_width, lock_height;
   int entry_width, entry_height;
+  uint32_t *lock_data;
 
   assert (plugin != NULL);
 
-  draw_background (plugin, NULL);
+  if (ply_entry_is_hidden (plugin->entry))
+    {
+      draw_background (plugin, NULL);
 
-  ply_frame_buffer_get_size (plugin->frame_buffer, &area);
-  lock_width = ply_image_get_width (plugin->lock_image);
-  lock_height = ply_image_get_height (plugin->lock_image);
+      ply_frame_buffer_get_size (plugin->frame_buffer, &area);
 
-  entry_width = ply_entry_get_width (plugin->entry);
-  entry_height = ply_entry_get_height (plugin->entry);
+      entry_width = ply_entry_get_width (plugin->entry);
+      entry_height = ply_entry_get_height (plugin->entry);
 
-  x = area.width / 2.0 - (lock_width + entry_width) / 2.0 + lock_width;
-  y = area.height / 2.0 - entry_height / 2.0;
+      lock_area.width = ply_image_get_width (plugin->lock_image);
+      lock_area.height = ply_image_get_height (plugin->lock_image);
+      lock_area.x = area.width / 2.0 - (lock_area.width + entry_width) / 2.0;
+      lock_area.y = area.height / 2.0 - lock_area.height / 2.0;
 
-  ply_entry_show (plugin->entry, plugin->loop, plugin->window, x, y);
+      x = area.width / 2.0 - (lock_area.width + entry_width) / 2.0 + lock_area.width;
+      y = area.height / 2.0 - entry_height / 2.0;
+
+      ply_entry_show (plugin->entry, plugin->loop, plugin->window, x, y);
+      
+      lock_data = ply_image_get_data (plugin->lock_image);
+      ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer,
+                                              &lock_area, 0, 0,
+                                              lock_data);
+    }
+  else
+    {
+      ply_entry_draw (plugin->entry);
+    }
 }
 
 void display_normal (ply_boot_splash_plugin_t *plugin)
@@ -684,7 +700,6 @@ display_question (ply_boot_splash_plugin_t *plugin,
   if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_NORMAL)
     {
       stop_animation (plugin);
-      show_password_entry (plugin);
     }
 
   plugin->state = PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY;

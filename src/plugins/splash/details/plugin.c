@@ -64,6 +64,14 @@ typedef enum {
 
 typedef void (* ply_boot_splash_plugin_window_handler_t) (ply_window_t *window, ply_boot_splash_plugin_t *, void *user_data, void *other_user_data);
 
+static void uninitialize_window (ply_window_t             *window,
+                                 ply_boot_splash_plugin_t *plugin);
+
+static void for_each_window (ply_boot_splash_plugin_t *plugin,
+                             ply_boot_splash_plugin_window_handler_t handler,
+                             void *user_data,
+                             void *other_user_data);
+
 ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
 struct _ply_boot_splash_plugin
 {
@@ -93,6 +101,10 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 
   if (plugin == NULL)
     return;
+
+  for_each_window (plugin,
+                   (ply_boot_splash_plugin_window_handler_t)
+                   uninitialize_window, NULL, NULL);
 
   ply_list_free (plugin->windows);
 

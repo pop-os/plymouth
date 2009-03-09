@@ -125,6 +125,8 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   if (plugin == NULL)
     return;
 
+  remove_handlers (plugin);
+
   if (plugin->loop != NULL)
     {
       ply_event_loop_stop_watching_for_exit (plugin->loop, (ply_event_loop_exit_handler_t)

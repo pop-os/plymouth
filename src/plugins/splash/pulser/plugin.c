@@ -102,6 +102,8 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   if (plugin == NULL)
     return;
 
+  remove_handlers (plugin);
+
   /* It doesn't ever make sense to keep this plugin on screen
    * after exit
    */

@@ -245,6 +245,7 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   if (plugin == NULL)
     return;
 
+  remove_handlers (plugin);
 
   if (plugin->loop != NULL)
     {

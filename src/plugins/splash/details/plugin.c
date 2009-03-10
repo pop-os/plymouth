@@ -152,6 +152,8 @@ write_text_on_window (ply_window_t             *window,
   int fd;
   size_t size;
 
+  ply_window_set_mode (window, PLY_WINDOW_MODE_TEXT);
+
   size = (size_t) user_data;
 
   fd = ply_window_get_tty_fd (window);

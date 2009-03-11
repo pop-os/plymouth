@@ -455,14 +455,14 @@ ply_window_set_buffered_input (ply_window_t *window)
    */
   if (!window->original_term_attributes_saved || !(window->original_term_attributes.c_lflag & ICANON))
     {
-       term_attributes.c_iflag |= IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON;
-       term_attributes.c_oflag |= OPOST;
-       term_attributes.c_lflag |= ECHO | ECHONL | ICANON | ISIG | IEXTEN;
+      term_attributes.c_iflag |= IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON;
+      term_attributes.c_oflag |= OPOST;
+      term_attributes.c_lflag |= ECHO | ECHONL | ICANON | ISIG | IEXTEN;
 
-       if (tcsetattr (window->tty_fd, TCSAFLUSH, &window->original_term_attributes) != 0)
-           return false;
+      if (tcsetattr (window->tty_fd, TCSAFLUSH, &term_attributes) != 0)
+        return false;
 
-       return true;
+      return true;
     }
 
   if (tcsetattr (window->tty_fd, TCSAFLUSH, &window->original_term_attributes) != 0)

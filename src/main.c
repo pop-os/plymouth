@@ -565,9 +565,15 @@ on_show_splash (state_t *state)
     }
 
   if (plymouth_should_show_default_splash (state))
-    show_default_splash (state);
+    {
+      show_default_splash (state);
+      state->showing_details = false;
+    }
   else
-    show_detailed_splash (state);
+    {
+      show_detailed_splash (state);
+      state->showing_details = true;
+    }
 }
 
 static void

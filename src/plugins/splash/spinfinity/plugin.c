@@ -233,6 +233,7 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
   ply_throbber_stop (plugin->throbber, trigger);
 
 #ifdef ENABLE_FADE_OUT
+  int i;
   for (i = 0; i < 10; i++)
     {
       ply_frame_buffer_fill_with_hex_color_at_opacity (plugin->frame_buffer, NULL,

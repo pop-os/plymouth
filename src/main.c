@@ -152,6 +152,9 @@ on_update (state_t     *state,
 static void
 show_detailed_splash (state_t *state)
 {
+  if (state->boot_splash != NULL)
+    return;
+
   ply_trace ("Showing detailed splash screen");
   state->boot_splash = start_boot_splash (state,
                                           PLYMOUTH_PLUGIN_PATH "details.so");
@@ -166,6 +169,9 @@ show_detailed_splash (state_t *state)
 static void
 show_default_splash (state_t *state)
 {
+  if (state->boot_splash != NULL)
+    return;
+
   ply_trace ("Showing splash screen");
   state->boot_splash = start_boot_splash (state,
                                           PLYMOUTH_PLUGIN_PATH "default.so");

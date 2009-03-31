@@ -408,20 +408,20 @@ on_password_request (state_t    *state,
   char *prompt;
   char *program;
   int number_of_tries;
-  bool pause;
+  bool dont_pause;
   password_answer_state_t *password_answer_state;
 
   prompt = NULL;
   program = NULL;
   number_of_tries = 0;
-  pause = false;
+  dont_pause = false;
   
   ply_command_parser_get_command_options (state->command_parser,
                                           command,
                                           "command", &program,
                                           "prompt", &prompt,
                                           "number-of-tries", &number_of_tries,
-                                          "pause-progress", &pause,
+                                          "dont-pause-progress", &dont_pause,
                                           NULL);
 
   if (number_of_tries <= 0)
@@ -432,8 +432,8 @@ on_password_request (state_t    *state,
   password_answer_state->command = program;
   password_answer_state->prompt = prompt;
   password_answer_state->number_of_tries_left = number_of_tries;
-  password_answer_state->pause = pause;
-  if (pause)
+  password_answer_state->pause = !dont_pause;
+  if (password_answer_state->pause)
     {
       ply_boot_client_tell_daemon_to_progress_pause (state->client,
                                                      (ply_boot_client_response_handler_t)
@@ -469,27 +469,27 @@ on_question_request (state_t    *state,
   char *prompt;
   char *program;
   int number_of_tries;
-  bool pause;
+  bool dont_pause;
   question_answer_state_t *question_answer_state;
 
   prompt = NULL;
   program = NULL;
   number_of_tries = 0;
-  pause = false;
+  dont_pause = false;
   
   ply_command_parser_get_command_options (state->command_parser,
                                           command,
                                           "command", &program,
                                           "prompt", &prompt,
-                                          "pause-progress", &pause,
+                                          "dont-pause-progress", &dont_pause,
                                           NULL);
 
   question_answer_state = calloc (1, sizeof (question_answer_state_t));
   question_answer_state->state = state;
   question_answer_state->command = program;
   question_answer_state->prompt = prompt;
-  question_answer_state->pause = pause;
-  if (pause)
+  question_answer_state->pause = !dont_pause;
+  if (question_answer_state->pause)
     {
       ply_boot_client_tell_daemon_to_progress_pause (state->client,
                                                      (ply_boot_client_response_handler_t)
@@ -656,7 +656,7 @@ main (int    argc,
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   "number-of-tries", "Number of times to ask before giving up (requires --command)",
                                   PLY_COMMAND_OPTION_TYPE_INTEGER,
-                                  "pause-progress", "Pause boot progress bar while asking",
+                                  "dont-pause-progress", "Don't pause boot progress bar while asking",
                                   PLY_COMMAND_OPTION_TYPE_FLAG,
                                   NULL);
 
@@ -668,7 +668,7 @@ main (int    argc,
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   "prompt", "Message to display when asking the question",
                                   PLY_COMMAND_OPTION_TYPE_STRING,
-                                  "pause-progress", "Pause boot progress bar while asking",
+                                  "dont-pause-progress", "Don't pause boot progress bar while asking",
                                   PLY_COMMAND_OPTION_TYPE_FLAG,
                                   NULL);
 

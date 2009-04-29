@@ -47,6 +47,7 @@
 #include "ply-logger.h"
 #include "ply-frame-buffer.h"
 #include "ply-image.h"
+#include "ply-key-file.h"
 #include "ply-trigger.h"
 #include "ply-utils.h"
 #include "ply-window.h"
@@ -92,18 +93,29 @@ struct _ply_boot_splash_plugin
 };
 
 ply_boot_splash_plugin_t *
-create_plugin (void)
+create_plugin (ply_key_file_t *key_file)
 {
   ply_boot_splash_plugin_t *plugin;
+  char *image_dir, *image_path;
 
   srand ((int) ply_get_timestamp ());
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
   plugin->start_time = 0.0;
 
   plugin->logo_image = ply_image_new (PLYMOUTH_LOGO_FILE);
-  plugin->star_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/star.png");
-  plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "fade-in/lock.png");
-  plugin->entry = ply_entry_new (PLYMOUTH_IMAGE_DIR "fade-in");
+  image_dir = ply_key_file_get_value (key_file, "fade-in", "ImageDir");
+
+  asprintf (&image_path, "%s/star.png", image_dir);
+  plugin->star_image = ply_image_new (image_path);
+  free (image_path);
+
+  asprintf (&image_path, "%s/lock.png", image_dir);
+  plugin->lock_image = ply_image_new (image_path);
+  free (image_path);
+
+  plugin->entry = ply_entry_new (image_dir);
+  free (image_dir);
+
   plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
   plugin->stars = ply_list_new ();
 

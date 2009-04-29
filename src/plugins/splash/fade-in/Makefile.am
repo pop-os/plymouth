@@ -21,8 +21,4 @@ fade_in_la_LIBADD = $(PLYMOUTH_LIBS)                                          \
                     ../../../libplybootsplash/libplybootsplash.la
 fade_in_la_SOURCES = $(srcdir)/plugin.c
 
-plymouthdir = $(datadir)/plymouth/fade-in
-plymouth_DATA = star.png bullet.png entry.png lock.png
-
-EXTRA_DIST = $(plymouth_DATA)
 MAINTAINERCLEANFILES = Makefile.in

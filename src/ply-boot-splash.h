@@ -37,7 +37,8 @@ typedef struct _ply_boot_splash ply_boot_splash_t;
 typedef void (* ply_boot_splash_on_idle_handler_t) (void *user_data);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-ply_boot_splash_t *ply_boot_splash_new (const char *module_name,
+ply_boot_splash_t *ply_boot_splash_new (const char   *theme_path,
+                                        const char   *plugin_dir,
                                         ply_buffer_t *boot_buffer);
 bool ply_boot_splash_load (ply_boot_splash_t *splash);
 void ply_boot_splash_unload (ply_boot_splash_t *splash);

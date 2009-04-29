@@ -40,6 +40,7 @@
 #include "ply-trigger.h"
 #include "ply-utils.h"
 #include "ply-progress.h"
+#include "ply-key-file.h"
 
 #ifndef UPDATES_PER_SECOND
 #define UPDATES_PER_SECOND 30
@@ -55,7 +56,8 @@ struct _ply_boot_splash
   ply_buffer_t *boot_buffer;
   ply_trigger_t *idle_trigger;
 
-  char *module_name;
+  char *theme_path;
+  char *plugin_dir;
   char *status;
 
   ply_progress_t *progress;
@@ -68,16 +70,18 @@ typedef const ply_boot_splash_plugin_interface_t *
         (* get_plugin_interface_function_t) (void);
 
 ply_boot_splash_t *
-ply_boot_splash_new (const char   *module_name,
+ply_boot_splash_new (const char   *theme_path,
+                     const char   *plugin_dir,
                      ply_buffer_t *boot_buffer)
 {
   ply_boot_splash_t *splash;
 
-  assert (module_name != NULL);
+  assert (theme_path != NULL);
 
   splash = calloc (1, sizeof (ply_boot_splash_t));
   splash->loop = NULL;
-  splash->module_name = strdup (module_name);
+  splash->theme_path = strdup (theme_path);
+  splash->plugin_dir = strdup (plugin_dir);
   splash->module_handle = NULL;
   splash->is_shown = false;
 
@@ -103,15 +107,34 @@ ply_boot_splash_remove_window (ply_boot_splash_t *splash,
 bool
 ply_boot_splash_load (ply_boot_splash_t *splash)
 {
+  ply_key_file_t *key_file;
+  char *module_name;
+  char *module_path;
+
   assert (splash != NULL);
-  assert (splash->module_name != NULL);
 
   get_plugin_interface_function_t get_boot_splash_plugin_interface;
 
-  splash->module_handle = ply_open_module (splash->module_name);
+  key_file = ply_key_file_new (splash->theme_path);
+
+  if (!ply_key_file_load (key_file))
+    return false;
+
+  module_name = ply_key_file_get_value (key_file, "Plymouth Theme", "ModuleName");
+
+  asprintf (&module_path, "%s%s.so",
+            splash->plugin_dir, module_name);
+  free (module_name);
+
+  splash->module_handle = ply_open_module (module_path);
+
+  free (module_path);
 
   if (splash->module_handle == NULL)
-    return false;
+    {
+      ply_key_file_free (key_file);
+      return false;
+    }
 
   get_boot_splash_plugin_interface = (get_plugin_interface_function_t)
       ply_module_look_up_function (splash->module_handle,
@@ -122,6 +145,7 @@ ply_boot_splash_load (ply_boot_splash_t *splash)
       ply_save_errno ();
       ply_close_module (splash->module_handle);
       splash->module_handle = NULL;
+      ply_key_file_free (key_file);
       ply_restore_errno ();
       return false;
     }
@@ -133,11 +157,14 @@ ply_boot_splash_load (ply_boot_splash_t *splash)
       ply_save_errno ();
       ply_close_module (splash->module_handle);
       splash->module_handle = NULL;
+      ply_key_file_free (key_file);
       ply_restore_errno ();
       return false;
     }
 
-  splash->plugin = splash->plugin_interface->create_plugin ();
+  splash->plugin = splash->plugin_interface->create_plugin (key_file);
+
+  ply_key_file_free (key_file);
 
   assert (splash->plugin != NULL);
 
@@ -173,7 +200,8 @@ ply_boot_splash_free (ply_boot_splash_t *splash)
   if (splash->module_handle != NULL)
     ply_boot_splash_unload (splash);
 
-  free (splash->module_name);
+  free (splash->theme_path);
+  free (splash->plugin_dir);
   free (splash);
 }
 
@@ -218,7 +246,7 @@ ply_boot_splash_show (ply_boot_splash_t *splash,
                       ply_boot_splash_mode_t mode)
 {
   assert (splash != NULL);
-  assert (splash->module_name != NULL);
+  assert (splash->module_handle != NULL);
   assert (splash->loop != NULL);
 
   if (splash->is_shown)
@@ -436,16 +464,16 @@ main (int    argc,
   int exit_code;
   test_state_t state;
   char *tty_name;
-  const char *module_name;
+  const char *theme_path;
 
   exit_code = 0;
 
   state.loop = ply_event_loop_new ();
 
   if (argc > 1)
-    module_name = argv[1];
+    theme_path = argv[1];
   else
-    module_name = "../splash-plugins/fade-in/.libs/fade-in.so";
+    theme_path = PLYMOUTH_THEME_PATH "/fade-in/fade-in.plymouth";
 
   tty_name = strdup("tty");
   if (argc > 2) {
@@ -468,7 +496,7 @@ main (int    argc,
                                  (ply_window_escape_handler_t) on_quit, &state);
 
   state.buffer = ply_buffer_new ();
-  state.splash = ply_boot_splash_new (module_name, state.buffer);
+  state.splash = ply_boot_splash_new (theme_path, PLYMOUTH_PLUGIN_PATH, state.buffer);
   if (!ply_boot_splash_load (state.splash))
     {
       perror ("could not load splash screen");

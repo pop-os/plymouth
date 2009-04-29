@@ -44,6 +44,7 @@
 #include "ply-buffer.h"
 #include "ply-entry.h"
 #include "ply-event-loop.h"
+#include "ply-key-file.h"
 #include "ply-label.h"
 #include "ply-list.h"
 #include "ply-progress-bar.h"
@@ -101,20 +102,27 @@ static void remove_handlers (ply_boot_splash_plugin_t *plugin);
 
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 ply_boot_splash_plugin_t *
-create_plugin (void)
+create_plugin (ply_key_file_t *key_file)
 {
   ply_boot_splash_plugin_t *plugin;
+  char *image_dir, *image_path;
 
   srand ((int) ply_get_timestamp ());
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
 
   plugin->logo_image = ply_image_new (PLYMOUTH_LOGO_FILE);
-  plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/lock.png");
-  plugin->box_image = ply_image_new (PLYMOUTH_IMAGE_DIR "spinfinity/box.png");
+  image_dir = ply_key_file_get_value (key_file, "spinfinity", "ImageDir");
 
-  plugin->entry = ply_entry_new (PLYMOUTH_IMAGE_DIR "spinfinity");
-  plugin->throbber = ply_throbber_new (PLYMOUTH_IMAGE_DIR "spinfinity",
-                                   "throbber-");
+  asprintf (&image_path, "%s/lock.png", image_dir);
+  plugin->lock_image = ply_image_new (image_path);
+  free (image_path);
+
+  asprintf (&image_path, "%s/box.png", image_dir);
+  plugin->box_image = ply_image_new (image_path);
+  free (image_path);
+
+  plugin->entry = ply_entry_new (image_dir);
+  plugin->throbber = ply_throbber_new (image_dir, "throbber-");
   plugin->label = ply_label_new ();
   plugin->progress_bar = ply_progress_bar_new ();
 

@@ -193,6 +193,9 @@ AC_CACHE_CHECK([for supported warning flags], plymouth_cv_warn_cflags, [
 WARN_CFLAGS="$plymouth_cv_warn_cflags"
 PLYMOUTH_CFLAGS="$PLYMOUTH_CFLAGS $WARN_CFLAGS"
 
+PLYMOUTH_THEME_PATH=$datadir/plymouth/themes
+AC_SUBST(PLYMOUTH_THEME_PATH)
+
 AC_OUTPUT([Makefile
            src/libply/Makefile
            src/libplybootsplash/Makefile
@@ -214,6 +217,14 @@ AC_OUTPUT([Makefile
            src/tests/Makefile
            src/libply/tests/Makefile
            src/client/tests/Makefile
+           themes/Makefile
+           themes/spinfinity/Makefile
+           themes/fade-in/Makefile
+           themes/text/Makefile
+           themes/pulser/Makefile
+           themes/details/Makefile
+           themes/solar/Makefile
+           themes/glow/Makefile
            images/Makefile
            scripts/Makefile
 ])

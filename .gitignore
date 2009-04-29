@@ -28,7 +28,7 @@ stamp-*
 *.rpm
 plymouth
 plymouth-populate-initrd
-plymouth-set-default-plugin
+plymouth-set-default-theme
 plymouth-log-viewer
 plymouthd
 *.pc

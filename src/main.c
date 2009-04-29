@@ -105,7 +105,7 @@ typedef struct
 } state_t;
 
 static ply_boot_splash_t *start_boot_splash (state_t    *state,
-                                             const char *module_path);
+                                             const char *theme_path);
 
 static ply_window_t *create_window (state_t    *state,
                                     const char *tty_name);
@@ -181,7 +181,7 @@ show_detailed_splash (state_t *state)
 
   ply_trace ("Showing detailed splash screen");
   state->boot_splash = start_boot_splash (state,
-                                          PLYMOUTH_PLUGIN_PATH "details.so");
+                                          PLYMOUTH_THEME_PATH "details/details.plymouth");
 
   if (state->boot_splash == NULL)
     {
@@ -198,14 +198,14 @@ show_default_splash (state_t *state)
 
   ply_trace ("Showing splash screen");
   state->boot_splash = start_boot_splash (state,
-                                          PLYMOUTH_PLUGIN_PATH "default.so");
+                                          PLYMOUTH_THEME_PATH "default.plymouth");
 
   if (state->boot_splash == NULL)
     {
       ply_trace ("Could not start graphical splash screen,"
                  "showing text splash screen");
       state->boot_splash = start_boot_splash (state,
-                                              PLYMOUTH_PLUGIN_PATH "text.so");
+                                              PLYMOUTH_THEME_PATH "text/text.plymouth");
     }
 
   if (state->boot_splash == NULL)
@@ -908,15 +908,15 @@ add_windows_to_boot_splash (state_t           *state,
 
 static ply_boot_splash_t *
 start_boot_splash (state_t    *state,
-                   const char *module_path)
+                   const char *theme_path)
 {
   ply_boot_splash_t *splash;
   ply_boot_splash_mode_t splash_mode;
 
-  ply_trace ("Loading boot splash plugin '%s'",
-             module_path);
+  ply_trace ("Loading boot splash theme '%s'",
+             theme_path);
 
-  splash = ply_boot_splash_new (module_path, state->boot_buffer);
+  splash = ply_boot_splash_new (theme_path, PLYMOUTH_PLUGIN_PATH, state->boot_buffer);
 
   if (!ply_boot_splash_load (splash))
     {

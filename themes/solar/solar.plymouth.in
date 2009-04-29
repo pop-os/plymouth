@@ -1,0 +1,7 @@
+[Plymouth Theme]
+Name=Solar
+Description=Space theme with violent flaring blue star
+ModuleName=solar
+
+[solar]
+ImageDir=@PLYMOUTH_THEME_PATH@/solar

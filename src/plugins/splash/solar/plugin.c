@@ -45,6 +45,7 @@
 #include "ply-buffer.h"
 #include "ply-entry.h"
 #include "ply-event-loop.h"
+#include "ply-key-file.h"
 #include "ply-label.h"
 #include "ply-list.h"
 #include "ply-logger.h"
@@ -209,29 +210,62 @@ static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 
 
 ply_boot_splash_plugin_t *
-create_plugin (void)
+create_plugin (ply_key_file_t *key_file)
 {
   ply_boot_splash_plugin_t *plugin;
+  char *image_dir, *image_path;
 
   srand ((int) ply_get_timestamp ());
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
 
   plugin->logo_image = ply_image_new (PLYMOUTH_LOGO_FILE);
-  plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/lock.png");
-  plugin->box_image = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/box.png");
+
+  image_dir = ply_key_file_get_value (key_file, "solar", "ImageDir");
+
+  asprintf (&image_path, "%s/lock.png", image_dir);
+  plugin->lock_image = ply_image_new (image_path);
+  free (image_path);
+
+  asprintf (&image_path, "%s/box.png", image_dir);
+  plugin->box_image = ply_image_new (image_path);
+  free (image_path);
+
   plugin->scaled_background_image = NULL;
-  plugin->star_image = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/star.png");
+
+  asprintf (&image_path, "%s/star.png", image_dir);
+  plugin->star_image = ply_image_new (image_path);
+  free (image_path);
+
 #ifdef  SHOW_PLANETS
-  plugin->planet_image[0] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/planet1.png");
-  plugin->planet_image[1] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/planet2.png");
-  plugin->planet_image[2] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/planet3.png");
-  plugin->planet_image[3] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/planet4.png");
-  plugin->planet_image[4] = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/planet5.png");
+
+  asprintf (&image_path, "%s/plant1.png", image_dir);
+  plugin->planet_image[0] = ply_image_new (image_path);
+  free (image_path);
+
+  asprintf (&image_path, "%s/plant2.png", image_dir);
+  plugin->planet_image[1] = ply_image_new (image_path);
+  free (image_path);
+
+  asprintf (&image_path, "%s/plant3.png", image_dir);
+  plugin->planet_image[2] = ply_image_new (image_path);
+  free (image_path);
+
+  asprintf (&image_path, "%s/plant4.png", image_dir);
+  plugin->planet_image[3] = ply_image_new (image_path);
+  free (image_path);
+
+  asprintf (&image_path, "%s/plant5.png", image_dir);
+  plugin->planet_image[4] = ply_image_new (image_path);
+  free (image_path);
+
 #endif
 #ifdef  SHOW_PROGRESS_BAR
-  plugin->progress_barimage = ply_image_new (PLYMOUTH_IMAGE_DIR "solar/progress_bar.png");
+
+  asprintf (&image_path, "%s/progress_bar.png", image_dir);
+  plugin->progress_barimage = ply_image_new (image_path);
+  free (image_path);
 #endif
-  plugin->entry = ply_entry_new (PLYMOUTH_IMAGE_DIR "solar");
+  plugin->entry = ply_entry_new (image_dir);
   plugin->label = ply_label_new ();
   plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
   plugin->sprites = ply_list_new();

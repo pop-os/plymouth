@@ -49,6 +49,7 @@
 #include "ply-logger.h"
 #include "ply-frame-buffer.h"
 #include "ply-image.h"
+#include "ply-key-file.h"
 #include "ply-trigger.h"
 #include "ply-utils.h"
 #include "ply-window.h"
@@ -88,6 +89,10 @@ struct _ply_boot_splash_plugin
   ply_label_t *label;
   ply_boot_splash_display_type_t state;
 
+  double animation_horizontal_alignment;
+  double animation_vertical_alignment;
+  char *animation_dir;
+
   ply_trigger_t *idle_trigger;
 
   uint32_t root_is_mounted : 1;
@@ -100,22 +105,42 @@ static void remove_handlers (ply_boot_splash_plugin_t *plugin);
 
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 ply_boot_splash_plugin_t *
-create_plugin (void)
+create_plugin (ply_key_file_t *key_file)
 {
   ply_boot_splash_plugin_t *plugin;
+  char *image_dir, *image_path;
+  char *alignment;
 
   srand ((int) ply_get_timestamp ());
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
 
-  plugin->lock_image = ply_image_new (PLYMOUTH_IMAGE_DIR "glow/lock.png");
-  plugin->box_image = ply_image_new (PLYMOUTH_IMAGE_DIR "glow/box.png");
+  image_dir = ply_key_file_get_value (key_file, "glow", "ImageDir");
 
-  plugin->entry = ply_entry_new (PLYMOUTH_IMAGE_DIR "glow");
-  plugin->animation = ply_animation_new (PLYMOUTH_IMAGE_DIR "glow",
-                                         "throbber-");
-  plugin->progress_animation = ply_progress_animation_new (PLYMOUTH_IMAGE_DIR "glow",
-                                                           "progress-");
+  asprintf (&image_path, "%s/lock.png", image_dir);
+  plugin->lock_image = ply_image_new (image_path);
+  free (image_path);
+
+  asprintf (&image_path, "%s/box.png", image_dir);
+  plugin->box_image = ply_image_new (image_path);
+  free (image_path);
+
+  plugin->entry = ply_entry_new (image_dir);
   plugin->label = ply_label_new ();
+  plugin->animation_dir = image_dir;
+
+  alignment = ply_key_file_get_value (key_file, "glow", "HorizontalAlignment");
+  if (alignment != NULL)
+    plugin->animation_horizontal_alignment = strtod (alignment, NULL);
+  else
+    plugin->animation_horizontal_alignment = .5;
+  free (alignment);
+
+  alignment = ply_key_file_get_value (key_file, "glow", "VerticalAlignment");
+  if (alignment != NULL)
+    plugin->animation_vertical_alignment = strtod (alignment, NULL);
+  else
+    plugin->animation_vertical_alignment = .5;
+  free (alignment);
 
   return plugin;
 }
@@ -175,8 +200,8 @@ begin_animation (ply_boot_splash_plugin_t *plugin,
                        plugin->loop,
                        plugin->window,
                        trigger,
-                       area.width / 4.0 - width / 2.0,
-                       area.height / 2 - height / 2.0);
+                       plugin->animation_horizontal_alignment * area.width - width / 2.0,
+                       plugin->animation_vertical_alignment * area.height - height / 2.0);
 }
 
 static void
@@ -205,8 +230,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   height = ply_progress_animation_get_height (plugin->progress_animation);
   ply_progress_animation_show (plugin->progress_animation,
                                plugin->window,
-                               area.width / 4.0 - width / 2.0,
-                               area.height / 2 - height / 2.0);
+                               plugin->animation_horizontal_alignment * area.width - width / 2.0,
+                               plugin->animation_vertical_alignment * area.height - height / 2.0);
 
   plugin->is_animating = true;
 }
@@ -389,6 +414,11 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   plugin->loop = loop;
   plugin->mode = mode;
 
+  plugin->animation = ply_animation_new (plugin->animation_dir,
+                                         "throbber-");
+  plugin->progress_animation = ply_progress_animation_new (plugin->animation_dir,
+                                                           "progress-");
+
   ply_trace ("loading lock image");
   if (!ply_image_load (plugin->lock_image))
     return false;
@@ -563,7 +593,6 @@ show_password_prompt (ply_boot_splash_plugin_t *plugin,
 
       ply_label_show (plugin->label, plugin->window, x, y);
     }
-
 }
 
 void

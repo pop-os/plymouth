@@ -3,6 +3,7 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 pluginsdir=@libdir@/plymouth-1
+themesdir=@PLYMOUTH_PLUGIN_PATH@
 
 Name: Plymouth
 Description: Utility Library for Boot Splash Plugins

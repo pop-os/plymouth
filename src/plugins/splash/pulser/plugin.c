@@ -44,6 +44,7 @@
 #include "ply-boot-splash-plugin.h"
 #include "ply-buffer.h"
 #include "ply-event-loop.h"
+#include "ply-key-file.h"
 #include "ply-list.h"
 #include "ply-logger.h"
 #include "ply-frame-buffer.h"
@@ -75,7 +76,7 @@ static void add_handlers (ply_boot_splash_plugin_t *plugin);
 static void remove_handlers (ply_boot_splash_plugin_t *plugin);
 
 ply_boot_splash_plugin_t *
-create_plugin (void)
+create_plugin (ply_key_file_t *key_file)
 {
   ply_boot_splash_plugin_t *plugin;
 

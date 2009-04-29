@@ -21,11 +21,4 @@ solar_la_LIBADD =    $(PLYMOUTH_LIBS)                                         \
                     ../../../libplybootsplash/libplybootsplash.la
 solar_la_SOURCES = $(srcdir)/plugin.c
 
-plymouthdir = $(datadir)/plymouth/solar
-plymouth_DATA = bullet.png entry.png lock.png                                 \
-                star.png box.png                                              \
-                progress_bar.png
-#                planet1.png planet2.png planet3.png planet4.png planet5.png
-
-EXTRA_DIST = $(plymouth_DATA)
 MAINTAINERCLEANFILES = Makefile.in

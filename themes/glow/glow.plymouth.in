@@ -1,9 +1,9 @@
 [Plymouth Theme]
 Name=Bizcom Glow
 Description=Corporate theme with pie chart boot progress followed by a glowing emerging logo
-ModuleName=glow
+ModuleName=two-step
 
-[glow]
+[two-step]
 ImageDir=@PLYMOUTH_THEME_PATH@/glow
 HorizontalAlignment=.25
 VerticalAlignment=.5

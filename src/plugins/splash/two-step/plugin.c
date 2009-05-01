@@ -114,7 +114,7 @@ create_plugin (ply_key_file_t *key_file)
   srand ((int) ply_get_timestamp ());
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
 
-  image_dir = ply_key_file_get_value (key_file, "glow", "ImageDir");
+  image_dir = ply_key_file_get_value (key_file, "two-step", "ImageDir");
 
   asprintf (&image_path, "%s/lock.png", image_dir);
   plugin->lock_image = ply_image_new (image_path);
@@ -128,14 +128,14 @@ create_plugin (ply_key_file_t *key_file)
   plugin->label = ply_label_new ();
   plugin->animation_dir = image_dir;
 
-  alignment = ply_key_file_get_value (key_file, "glow", "HorizontalAlignment");
+  alignment = ply_key_file_get_value (key_file, "two-step", "HorizontalAlignment");
   if (alignment != NULL)
     plugin->animation_horizontal_alignment = strtod (alignment, NULL);
   else
     plugin->animation_horizontal_alignment = .5;
   free (alignment);
 
-  alignment = ply_key_file_get_value (key_file, "glow", "VerticalAlignment");
+  alignment = ply_key_file_get_value (key_file, "two-step", "VerticalAlignment");
   if (alignment != NULL)
     plugin->animation_vertical_alignment = strtod (alignment, NULL);
   else

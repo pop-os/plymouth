@@ -7,18 +7,18 @@ INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)
 
 plugindir = $(libdir)/plymouth
-plugin_LTLIBRARIES = glow.la
+plugin_LTLIBRARIES = two-step.la
 
-glow_la_CFLAGS =    $(PLYMOUTH_CFLAGS)                                       \
+two_step_la_CFLAGS =    $(PLYMOUTH_CFLAGS)                                    \
                     -DPLYMOUTH_IMAGE_DIR=\"$(datadir)/plymouth/\"             \
                     -DPLYMOUTH_LOGO_FILE=\"$(logofile)\"                      \
                     -DPLYMOUTH_BACKGROUND_COLOR=$(background_color)           \
                     -DPLYMOUTH_BACKGROUND_END_COLOR=$(background_end_color)   \
                     -DPLYMOUTH_BACKGROUND_START_COLOR=$(background_start_color)
-glow_la_LDFLAGS =   -module -avoid-version -export-dynamic
-glow_la_LIBADD =    $(PLYMOUTH_LIBS)                                         \
+two_step_la_LDFLAGS =   -module -avoid-version -export-dynamic
+two_step_la_LIBADD =    $(PLYMOUTH_LIBS)                                      \
                     ../../../libply/libply.la                                 \
                     ../../../libplybootsplash/libplybootsplash.la
-glow_la_SOURCES = $(srcdir)/plugin.c
+two_step_la_SOURCES = $(srcdir)/plugin.c
 
 MAINTAINERCLEANFILES = Makefile.in

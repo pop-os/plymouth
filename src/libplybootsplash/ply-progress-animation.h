@@ -31,12 +31,22 @@
 
 typedef struct _ply_progress_animation ply_progress_animation_t;
 
+typedef enum
+{
+  PLY_PROGRESS_ANIMATION_TRANSITION_NONE,
+  PLY_PROGRESS_ANIMATION_TRANSITION_FADE_OVER,
+  PLY_PROGRESS_ANIMATION_TRANSITION_CROSS_FADE,
+} ply_progress_animation_transition_t;
+
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_progress_animation_t *ply_progress_animation_new (const char *image_dir,
                                                       const char *frames_prefix);
 void ply_progress_animation_free (ply_progress_animation_t *progress_animation);
 
 bool ply_progress_animation_load (ply_progress_animation_t *progress_animation);
+void ply_progress_animation_set_transition (ply_progress_animation_t *progress_animation,
+                                            ply_progress_animation_transition_t transition,
+                                            double                    duration);
 void ply_progress_animation_show (ply_progress_animation_t *progress_animation,
                                   ply_window_t             *window,
                                   long                      x,

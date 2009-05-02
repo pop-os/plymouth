@@ -94,6 +94,9 @@ struct _ply_boot_splash_plugin
   double animation_vertical_alignment;
   char *animation_dir;
 
+  ply_progress_animation_transition_t transition;
+  double transition_duration;
+
   uint32_t background_start_color;
   uint32_t background_end_color;
 
@@ -114,6 +117,8 @@ create_plugin (ply_key_file_t *key_file)
   ply_boot_splash_plugin_t *plugin;
   char *image_dir, *image_path;
   char *alignment;
+  char *transition;
+  char *transition_duration;
   char *color;
 
   srand ((int) ply_get_timestamp ());
@@ -150,6 +155,25 @@ create_plugin (ply_key_file_t *key_file)
   else
     plugin->animation_vertical_alignment = .5;
   free (alignment);
+
+
+  plugin->transition = PLY_PROGRESS_ANIMATION_TRANSITION_NONE;
+  transition = ply_key_file_get_value (key_file, "two-step", "Transition");
+  if (transition != NULL)
+    {
+      if (strcmp (transition, "fade-over") == 0)
+        plugin->transition = PLY_PROGRESS_ANIMATION_TRANSITION_FADE_OVER;
+      else if (strcmp (transition, "cross-fade") == 0)
+        plugin->transition = PLY_PROGRESS_ANIMATION_TRANSITION_CROSS_FADE;
+    }
+  free (transition);
+
+  transition_duration = ply_key_file_get_value (key_file, "two-step", "TransitionDuration");
+  if (transition_duration != NULL)
+    plugin->transition_duration = strtod (transition_duration, NULL);
+  else
+    plugin->transition_duration = 0.0;
+  free (transition_duration);
 
   color = ply_key_file_get_value (key_file, "two-step", "BackgroundStartColor");
 
@@ -471,6 +495,9 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                                          "throbber-");
   plugin->progress_animation = ply_progress_animation_new (plugin->animation_dir,
                                                            "progress-");
+  ply_progress_animation_set_transition (plugin->progress_animation,
+                                         plugin->transition,
+                                         plugin->transition_duration);
 
   ply_trace ("loading lock image");
   if (!ply_image_load (plugin->lock_image))

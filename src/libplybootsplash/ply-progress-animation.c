@@ -57,19 +57,26 @@ struct _ply_progress_animation
   char *image_dir;
   char *frames_prefix;
 
+  ply_progress_animation_transition_t transition;
+  double transition_duration;
+
   ply_window_t            *window;
   ply_frame_buffer_t      *frame_buffer;
   ply_frame_buffer_area_t  area;
   ply_frame_buffer_area_t  frame_area;
 
   double percent_done;
+  int previous_frame_number;
+
+  double transition_start_time;
 
   uint32_t is_hidden : 1;
+  uint32_t is_transitioning : 1;
 };
 
 ply_progress_animation_t *
 ply_progress_animation_new (const char *image_dir,
-                    const char *frames_prefix)
+                            const char *frames_prefix)
 {
   ply_progress_animation_t *progress_animation;
 
@@ -91,8 +98,18 @@ ply_progress_animation_new (const char *image_dir,
   progress_animation->frame_area.y = 0;
   progress_animation->frame_area.width = 0;
   progress_animation->frame_area.height = 0;
+  progress_animation->previous_frame_number = 0;
 
   return progress_animation;
+}
+
+void
+ply_progress_animation_set_transition (ply_progress_animation_t *progress_animation,
+                                       ply_progress_animation_transition_t transition,
+                                       double                    duration)
+{
+  progress_animation->transition = transition;
+  progress_animation->transition_duration = duration;
 }
 
 static void
@@ -136,7 +153,7 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
   int number_of_frames;
   int frame_number;
   ply_image_t * const * frames;
-  uint32_t *frame_data;
+  uint32_t *previous_frame_data, *frame_data;
 
   if (progress_animation->is_hidden)
     return;
@@ -154,6 +171,14 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
   if (progress_animation->frame_area.width > 0)
     draw_background (progress_animation);
 
+  if (progress_animation->previous_frame_number != frame_number &&
+      progress_animation->transition != PLY_PROGRESS_ANIMATION_TRANSITION_NONE &&
+      progress_animation->transition_duration > 0.0)
+    {
+      progress_animation->is_transitioning = true;
+      progress_animation->transition_start_time = ply_get_timestamp ();
+    }
+
   frames = (ply_image_t * const *) ply_array_get_elements (progress_animation->frames);
 
   progress_animation->frame_area.x = progress_animation->area.x;
@@ -162,11 +187,42 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
   progress_animation->frame_area.height = ply_image_get_height (frames[frame_number]);
   frame_data = ply_image_get_data (frames[frame_number]);
 
-  ply_frame_buffer_fill_with_argb32_data (progress_animation->frame_buffer,
-                                          &progress_animation->frame_area, 0, 0,
-                                          frame_data);
+  if (progress_animation->is_transitioning)
+    {
+      double now;
+      double fade_percentage;
+      double fade_out_opacity;
+      now = ply_get_timestamp ();
+
+      fade_percentage = (now - progress_animation->transition_start_time) / progress_animation->transition_duration;
+
+      if (fade_percentage >= 1.0)
+        progress_animation->is_transitioning = false;
+      fade_percentage = CLAMP (fade_percentage, 0.0, 1.0);
+
+      previous_frame_data = ply_image_get_data (frames[frame_number - 1]);
+      if (progress_animation->transition == PLY_PROGRESS_ANIMATION_TRANSITION_FADE_OVER)
+        fade_out_opacity = 1.0;
+      else
+        fade_out_opacity = 1.0 - fade_percentage;
+
+      ply_frame_buffer_fill_with_argb32_data_at_opacity (progress_animation->frame_buffer,
+                                                         &progress_animation->frame_area, 0, 0,
+                                                         previous_frame_data, fade_out_opacity);
+      ply_frame_buffer_fill_with_argb32_data_at_opacity (progress_animation->frame_buffer,
+                                                         &progress_animation->frame_area, 0, 0,
+                                                         frame_data, fade_percentage);
+    }
+  else
+    {
+      ply_frame_buffer_fill_with_argb32_data (progress_animation->frame_buffer,
+                                              &progress_animation->frame_area, 0, 0,
+                                              frame_data);
+    }
 
   ply_frame_buffer_unpause_updates (progress_animation->frame_buffer);
+
+  progress_animation->previous_frame_number = frame_number;
 }
 
 static bool

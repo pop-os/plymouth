@@ -251,7 +251,7 @@ bool
 ply_progress_animation_load (ply_progress_animation_t *progress_animation)
 {
   if (ply_array_get_size (progress_animation->frames) != 0)
-    ply_progress_animation_remove_frames (progress_animation->frames);
+    ply_progress_animation_remove_frames (progress_animation);
 
   if (!ply_progress_animation_add_frames (progress_animation))
     return false;

@@ -81,6 +81,7 @@ struct _ply_boot_splash_plugin
   ply_frame_buffer_area_t box_area, lock_area;
   ply_image_t *lock_image;
   ply_image_t *box_image;
+  ply_image_t *corner_image;
   ply_window_t *window;
 
   ply_entry_t *entry;
@@ -126,6 +127,10 @@ create_plugin (ply_key_file_t *key_file)
 
   asprintf (&image_path, "%s/box.png", image_dir);
   plugin->box_image = ply_image_new (image_path);
+  free (image_path);
+
+  asprintf (&image_path, "%s/corner-image.png", image_dir);
+  plugin->corner_image = ply_image_new (image_path);
   free (image_path);
 
   plugin->entry = ply_entry_new (image_dir);
@@ -185,6 +190,10 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 
   ply_image_free (plugin->box_image);
   ply_image_free (plugin->lock_image);
+
+  if (plugin->corner_image != NULL)
+    ply_image_free (plugin->corner_image);
+
   ply_entry_free (plugin->entry);
   ply_animation_free (plugin->animation);
   ply_progress_animation_free (plugin->progress_animation);
@@ -256,6 +265,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
                                plugin->animation_vertical_alignment * area.height - height / 2.0);
 
   plugin->is_animating = true;
+
+  ply_window_draw_area (plugin->window, 0, 0, area.width, area.height);
 }
 
 static void
@@ -353,6 +364,22 @@ on_draw (ply_boot_splash_plugin_t *plugin,
   else
     {
       ply_progress_animation_draw (plugin->progress_animation);
+
+      if (plugin->corner_image != NULL)
+        {
+          ply_frame_buffer_area_t screen_area;
+          ply_frame_buffer_area_t image_area;
+
+          ply_frame_buffer_get_size (plugin->frame_buffer, &screen_area);
+
+          image_area.width = ply_image_get_width (plugin->corner_image);
+          image_area.height = ply_image_get_height (plugin->corner_image);
+          image_area.x = screen_area.width - image_area.width - 20;
+          image_area.y = screen_area.height - image_area.height - 20;
+
+          ply_frame_buffer_fill_with_argb32_data (plugin->frame_buffer, &image_area, 0, 0, ply_image_get_data (plugin->corner_image));
+
+        }
     }
   ply_frame_buffer_unpause_updates (plugin->frame_buffer);
 }
@@ -452,6 +479,17 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   ply_trace ("loading box image");
   if (!ply_image_load (plugin->box_image))
     return false;
+
+  if (plugin->corner_image != NULL)
+    {
+      ply_trace ("loading corner image");
+
+      if (!ply_image_load (plugin->corner_image))
+        {
+          ply_image_free (plugin->corner_image);
+          plugin->corner_image = NULL;
+        }
+    }
 
   ply_trace ("loading entry");
   if (!ply_entry_load (plugin->entry))

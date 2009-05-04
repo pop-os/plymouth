@@ -106,6 +106,7 @@ struct _ply_boot_splash_plugin
   uint32_t root_is_mounted : 1;
   uint32_t is_visible : 1;
   uint32_t is_animating : 1;
+  uint32_t is_idle : 1;
 };
 
 static void add_handlers (ply_boot_splash_plugin_t *plugin);
@@ -276,6 +277,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
 
   if (plugin->is_animating)
      return;
+
+  plugin->is_idle = false;
 
   draw_background (plugin, NULL);
 
@@ -577,6 +580,7 @@ on_animation_stopped (ply_boot_splash_plugin_t *plugin)
       ply_trigger_pull (plugin->idle_trigger, NULL);
       plugin->idle_trigger = NULL;
     }
+  plugin->is_idle = true;
 }
 
 void
@@ -716,6 +720,12 @@ void
 become_idle (ply_boot_splash_plugin_t *plugin,
              ply_trigger_t            *idle_trigger)
 {
+  if (plugin->is_idle)
+    {
+      ply_trigger_pull (idle_trigger, NULL);
+      return;
+    }
+
   plugin->idle_trigger = idle_trigger;
 
   if (ply_animation_is_stopped (plugin->animation))

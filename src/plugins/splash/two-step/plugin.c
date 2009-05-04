@@ -101,6 +101,7 @@ struct _ply_boot_splash_plugin
   uint32_t background_end_color;
 
   ply_trigger_t *idle_trigger;
+  ply_trigger_t *stop_trigger;
 
   uint32_t root_is_mounted : 1;
   uint32_t is_visible : 1;
@@ -565,6 +566,15 @@ update_status (ply_boot_splash_plugin_t *plugin,
   assert (plugin != NULL);
 }
 
+static void
+on_animation_stopped (ply_boot_splash_plugin_t *plugin)
+{
+  if (plugin->idle_trigger != NULL)
+    {
+      ply_trigger_pull (plugin->idle_trigger, NULL);
+      plugin->idle_trigger = NULL;
+    }
+}
 
 void
 on_boot_progress (ply_boot_splash_plugin_t *plugin,
@@ -577,8 +587,13 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
     {
       if (ply_animation_is_stopped (plugin->animation))
         {
+          plugin->stop_trigger = ply_trigger_new (&plugin->stop_trigger);
+          ply_trigger_add_handler (plugin->stop_trigger,
+                                   (ply_trigger_handler_t)
+                                   on_animation_stopped,
+                                   plugin);
           ply_progress_animation_hide (plugin->progress_animation);
-          begin_animation (plugin, NULL);
+          begin_animation (plugin, plugin->stop_trigger);
         }
     }
   else
@@ -698,8 +713,18 @@ void
 become_idle (ply_boot_splash_plugin_t *plugin,
              ply_trigger_t            *idle_trigger)
 {
-  stop_animation (plugin);
-  ply_trigger_pull (idle_trigger, NULL);
+  plugin->idle_trigger = idle_trigger;
+
+  if (ply_animation_is_stopped (plugin->animation))
+    {
+      plugin->stop_trigger = ply_trigger_new (&plugin->stop_trigger);
+      ply_trigger_add_handler (plugin->stop_trigger,
+                               (ply_trigger_handler_t)
+                               on_animation_stopped,
+                               plugin);
+      ply_progress_animation_hide (plugin->progress_animation);
+      begin_animation (plugin, plugin->stop_trigger);
+    }
 }
 
 void display_normal (ply_boot_splash_plugin_t *plugin)

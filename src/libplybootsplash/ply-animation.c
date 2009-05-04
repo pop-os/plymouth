@@ -303,7 +303,7 @@ bool
 ply_animation_load (ply_animation_t *animation)
 {
   if (ply_array_get_size (animation->frames) != 0)
-    ply_animation_remove_frames (animation->frames);
+    ply_animation_remove_frames (animation);
 
   if (!ply_animation_add_frames (animation))
     return false;

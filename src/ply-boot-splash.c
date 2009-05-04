@@ -61,6 +61,8 @@ struct _ply_boot_splash
   char *status;
 
   ply_progress_t *progress;
+  ply_boot_splash_on_idle_handler_t idle_handler;
+  void *idle_handler_user_data;
 
   uint32_t is_loaded : 1;
   uint32_t is_shown : 1;
@@ -68,6 +70,9 @@ struct _ply_boot_splash
 
 typedef const ply_boot_splash_plugin_interface_t *
         (* get_plugin_interface_function_t) (void);
+
+static void ply_boot_splash_update_progress (ply_boot_splash_t *splash);
+static void ply_boot_splash_detach_from_event_loop (ply_boot_splash_t *splash);
 
 ply_boot_splash_t *
 ply_boot_splash_new (const char   *theme_path,
@@ -194,11 +199,29 @@ ply_boot_splash_unload (ply_boot_splash_t *splash)
 void
 ply_boot_splash_free (ply_boot_splash_t *splash)
 {
+  ply_trace ("freeing splash");
   if (splash == NULL)
     return;
 
+  if (splash->loop != NULL)
+    {
+      if (splash->plugin_interface->on_boot_progress != NULL)
+        {
+          ply_event_loop_stop_watching_for_timeout (splash->loop,
+                                                    (ply_event_loop_timeout_handler_t)
+                                                    ply_boot_splash_update_progress, splash);
+        }
+
+      ply_event_loop_stop_watching_for_exit (splash->loop, (ply_event_loop_exit_handler_t)
+                                             ply_boot_splash_detach_from_event_loop,
+                                             splash);
+    }
+
   if (splash->module_handle != NULL)
     ply_boot_splash_unload (splash);
+
+  if (splash->idle_trigger != NULL)
+    ply_trigger_free (splash->idle_trigger);
 
   free (splash->theme_path);
   free (splash->plugin_dir);
@@ -403,6 +426,19 @@ ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
                                  splash); 
 }
 
+static void
+on_idle (ply_boot_splash_t *splash)
+{
+
+  ply_trace ("splash now idle");
+  ply_event_loop_watch_for_timeout (splash->loop, 0.01,
+                                    (ply_event_loop_timeout_handler_t)
+                                    splash->idle_handler,
+                                    splash->idle_handler_user_data);
+  splash->idle_handler = NULL;
+  splash->idle_handler_user_data = NULL;
+}
+
 void
 ply_boot_splash_become_idle (ply_boot_splash_t                  *splash,
                              ply_boot_splash_on_idle_handler_t  idle_handler,
@@ -410,16 +446,24 @@ ply_boot_splash_become_idle (ply_boot_splash_t                  *splash,
 {
   assert (splash->idle_trigger == NULL);
 
+  ply_trace ("telling splash to become idle");
   if (splash->plugin_interface->become_idle == NULL)
     {
-      idle_handler (user_data);
+      ply_event_loop_watch_for_timeout (splash->loop, 0.01,
+                                        (ply_event_loop_timeout_handler_t)
+                                        idle_handler,
+                                        user_data);
+
       return;
     }
 
+  splash->idle_handler = idle_handler;
+  splash->idle_handler_user_data = user_data;
+
   splash->idle_trigger = ply_trigger_new (&splash->idle_trigger);
   ply_trigger_add_handler (splash->idle_trigger,
-                           (ply_trigger_handler_t) idle_handler,
-                           user_data);
+                           (ply_trigger_handler_t) on_idle,
+                           splash);
 
   splash->plugin_interface->become_idle (splash->plugin, splash->idle_trigger);
 }

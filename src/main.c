@@ -91,6 +91,8 @@ typedef struct
   ply_command_parser_t *command_parser;
   ply_mode_t mode;
 
+  ply_trigger_t *quit_trigger;
+
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
   uint32_t no_boot_log : 1;
   uint32_t showing_details : 1;
@@ -98,6 +100,7 @@ typedef struct
   uint32_t is_redirected : 1;
   uint32_t is_attached : 1;
   uint32_t should_be_attached : 1;
+  uint32_t should_retain_splash : 1;
 
   char *console;
 
@@ -663,32 +666,65 @@ tell_gdm_to_transition (void)
 #endif
 
 static void
-on_quit (state_t *state,
-         bool     retain_splash)
+quit_program (state_t *state)
+{
+  ply_trace ("exiting event loop");
+  ply_event_loop_exit (state->loop, 0);
+
+#ifdef PLY_ENABLE_GDM_TRANSITION
+  if (state->should_retain_splash)
+    {
+      tell_gdm_to_transition ();
+    }
+#endif
+
+  if (state->quit_trigger != NULL)
+    {
+      ply_trigger_pull (state->quit_trigger, NULL);
+      state->quit_trigger = NULL;
+    }
+}
+
+static void
+on_boot_splash_idle (state_t *state)
+{
+  ply_trace ("boot splash idle");
+  if (!state->should_retain_splash)
+    {
+      ply_trace ("hiding splash");
+      if (state->boot_splash != NULL)
+          ply_boot_splash_hide (state->boot_splash);
+    }
+
+  ply_trace ("quitting splash");
+  quit_splash (state);
+  ply_trace ("quitting program");
+  quit_program (state);
+}
+
+static void
+on_quit (state_t       *state,
+         bool           retain_splash,
+         ply_trigger_t *quit_trigger)
 {
   ply_trace ("time to quit, closing log");
   if (state->session != NULL)
     ply_terminal_session_close_log (state->session);
   ply_trace ("unloading splash");
+
+  state->should_retain_splash = retain_splash;
+
+  state->quit_trigger = quit_trigger;
+
   if (state->boot_splash != NULL)
     {
-      if (!retain_splash)
-        {
-          if (state->boot_splash != NULL)
-              ply_boot_splash_hide (state->boot_splash);
-        }
-
-      quit_splash (state);
+      ply_boot_splash_become_idle (state->boot_splash,
+                                   (ply_boot_splash_on_idle_handler_t)
+                                   on_boot_splash_idle,
+                                   state);
     }
-  ply_trace ("exiting event loop");
-  ply_event_loop_exit (state->loop, 0);
-
-#ifdef PLY_ENABLE_GDM_TRANSITION
-  if (retain_splash)
-    {
-      tell_gdm_to_transition ();
-    }
-#endif
+  else
+    quit_program (state);
 }
 
 static ply_boot_server_t *

@@ -271,6 +271,16 @@ ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
 
 }
 
+static void
+ply_boot_connection_on_quit_complete (ply_boot_connection_t *connection)
+{
+  if (!ply_write (connection->fd,
+                  PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
+                  strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+    {
+      ply_error ("could not write bytes: %m");
+    }
+}
 
 static void
 ply_boot_connection_on_question_answer (ply_boot_connection_t *connection,
@@ -345,11 +355,22 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_QUIT) == 0)
     {
       bool retain_splash;
+      ply_trigger_t *quit_trigger;
 
       retain_splash = (bool) argument[0];
 
+      quit_trigger = ply_trigger_new (NULL);
+
+      ply_trigger_add_handler (quit_trigger,
+                               (ply_trigger_handler_t)
+                               ply_boot_connection_on_quit_complete,
+                               connection);
+
       if (server->quit_handler != NULL)
-        server->quit_handler (server->user_data, retain_splash, server);
+        server->quit_handler (server->user_data, retain_splash, quit_trigger, server);
+
+      free(command);
+      return;
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PASSWORD) == 0)
     {

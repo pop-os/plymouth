@@ -82,6 +82,7 @@ typedef void (* ply_boot_server_error_handler_t) (void              *user_data,
                                                   ply_boot_server_t *server);
 typedef void (* ply_boot_server_quit_handler_t) (void              *user_data,
                                                  bool               retain_splash,
+                                                 ply_trigger_t     *quit_trigger,
                                                  ply_boot_server_t *server);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS

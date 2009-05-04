@@ -110,6 +110,7 @@ struct _ply_boot_splash_plugin
 
 static void add_handlers (ply_boot_splash_plugin_t *plugin);
 static void remove_handlers (ply_boot_splash_plugin_t *plugin);
+static void stop_animation (ply_boot_splash_plugin_t *plugin);
 
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 ply_boot_splash_plugin_t *
@@ -209,6 +210,8 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 
   if (plugin->loop != NULL)
     {
+      stop_animation (plugin);
+
       ply_event_loop_stop_watching_for_exit (plugin->loop, (ply_event_loop_exit_handler_t)
                                              detach_from_event_loop,
                                              plugin);

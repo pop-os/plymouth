@@ -304,7 +304,7 @@ bool
 ply_throbber_load (ply_throbber_t *throbber)
 {
   if (ply_array_get_size (throbber->frames) != 0)
-    ply_throbber_remove_frames (throbber->frames);
+    ply_throbber_remove_frames (throbber);
 
   if (!ply_throbber_add_frames (throbber))
     return false;

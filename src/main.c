@@ -37,6 +37,7 @@
 #include <linux/kd.h>
 #include <linux/vt.h>
 
+#include "ply-buffer.h"
 #include "ply-command-parser.h"
 #include "ply-boot-server.h"
 #include "ply-boot-splash.h"
@@ -113,6 +114,8 @@ static bool attach_to_running_session (state_t *state);
 static void on_escape_pressed (state_t *state);
 static void dump_details_and_quit_splash (state_t *state);
 static void update_display (state_t *state);
+
+static ply_buffer_t *debug_buffer;
 
 static void
 switch_to_vt (int vt_number)
@@ -1198,15 +1201,36 @@ initialize_environment (state_t *state)
 }
 
 static void
+on_error_message (ply_buffer_t *debug_buffer,
+                  const void   *bytes,
+                  size_t        number_of_bytes)
+{
+  ply_buffer_append_bytes (debug_buffer, bytes, number_of_bytes);
+}
+
+static void
 on_crash (int signum)
 {
     int fd;
+    const char *bytes;
+    size_t size;
 
     fd = open ("/dev/tty1", O_RDWR | O_NOCTTY);
 
     ioctl (fd, KDSETMODE, KD_TEXT);
 
     close (fd);
+
+    if (debug_buffer != NULL) {
+            fd = open (PLYMOUTH_LOG_DIRECTORY "/plymouth-crash.log",
+                       O_WRONLY | O_CREAT, 0600);
+            size = ply_buffer_get_size (debug_buffer);
+            bytes = ply_buffer_get_bytes (debug_buffer);
+            ply_write (fd, bytes, size);
+            close (fd);
+
+            pause ();
+    }
 
     signal (signum, SIG_DFL);
     raise(signum);
@@ -1305,6 +1329,16 @@ main (int    argc,
         }
     }
 
+  if (debug)
+    {
+      debug_buffer = ply_buffer_new ();
+
+      ply_logger_add_filter (ply_logger_get_error_default (),
+                             (ply_logger_filter_handler_t)
+                             on_error_message,
+                             debug_buffer);
+    }
+
   signal (SIGABRT, on_crash);
   signal (SIGSEGV, on_crash);
 
@@ -1391,6 +1425,8 @@ main (int    argc,
 
   ply_trace ("freeing event loop");
   ply_event_loop_free (state.loop);
+
+  ply_buffer_free (debug_buffer);
 
   ply_trace ("exiting with code %d", exit_code);
 

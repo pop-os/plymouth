@@ -1123,6 +1123,7 @@ ply_event_loop_disconnect_source (ply_event_loop_t           *loop,
 static void
 ply_event_loop_handle_timeouts (ply_event_loop_t *loop)
 {
+  ply_list_t *watches_to_dispatch;
   ply_list_node_t *node;
   double now;
 
@@ -1130,6 +1131,8 @@ ply_event_loop_handle_timeouts (ply_event_loop_t *loop)
 
   now = ply_get_timestamp ();
   node = ply_list_get_first_node (loop->timeout_watches);
+
+  watches_to_dispatch = ply_list_new ();
   loop->wakeup_time = PLY_EVENT_LOOP_NO_TIMED_WAKEUP;
   while (node != NULL)
     {
@@ -1142,8 +1145,7 @@ ply_event_loop_handle_timeouts (ply_event_loop_t *loop)
       if (watch->timeout <= now)
         {
           assert (watch->handler != NULL);
-          watch->handler (watch->user_data, loop);
-          free (watch);
+          ply_list_append_data (watches_to_dispatch, watch);
           ply_list_remove_node (loop->timeout_watches, node);
         }
       else {
@@ -1155,6 +1157,23 @@ ply_event_loop_handle_timeouts (ply_event_loop_t *loop)
 
       node = next_node;
     }
+
+  node = ply_list_get_first_node (watches_to_dispatch);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_event_loop_timeout_watch_t *watch;
+
+      watch = (ply_event_loop_timeout_watch_t *) ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (loop->timeout_watches, node);
+
+      watch->handler (watch->user_data, loop);
+      free (watch);
+
+      node = next_node;
+    }
+
+  ply_list_free (watches_to_dispatch);
 
 }
 

@@ -66,3 +66,4 @@ glow.plymouth: $(srcdir)/glow.plymouth.in
 	sed -e 's,[@]PLYMOUTH_THEME_PATH[@],$(PLYMOUTH_THEME_PATH),g' \
 	       $(srcdir)/glow.plymouth.in > glow.plymouth
 
+EXTRA_DIST = glow.plymouth.in

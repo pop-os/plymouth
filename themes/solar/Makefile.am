@@ -17,4 +17,4 @@ solar.plymouth: $(srcdir)/solar.plymouth.in
 	sed -e 's,[@]PLYMOUTH_THEME_PATH[@],$(PLYMOUTH_THEME_PATH),g' \
 	       $(srcdir)/solar.plymouth.in > solar.plymouth
 
-
+EXTRA_DIST = solar.plymouth.in

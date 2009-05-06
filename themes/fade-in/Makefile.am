@@ -7,3 +7,5 @@ CLEANFILES = fade-in.plymouth
 fade-in.plymouth: $(srcdir)/fade-in.plymouth.in
 	sed -e 's,[@]PLYMOUTH_THEME_PATH[@],$(PLYMOUTH_THEME_PATH),g' \
 	       $(srcdir)/fade-in.plymouth.in > fade-in.plymouth
+
+EXTRA_DIST = fade-in.plymouth.in

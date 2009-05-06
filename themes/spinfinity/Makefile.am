@@ -47,4 +47,5 @@ spinfinity.plymouth: $(srcdir)/spinfinity.plymouth.in
 	sed -e 's,[@]PLYMOUTH_THEME_PATH[@],$(PLYMOUTH_THEME_PATH),g' \
 	       $(srcdir)/spinfinity.plymouth.in > spinfinity.plymouth
 
+EXTRA_DIST = spinfinity.plymouth.in
 

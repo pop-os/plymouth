@@ -887,6 +887,7 @@ start_boot_splash (state_t    *state,
                    const char *module_path)
 {
   ply_boot_splash_t *splash;
+  ply_boot_splash_mode_t splash_mode;
 
   ply_trace ("Loading boot splash plugin '%s'",
              module_path);
@@ -910,7 +911,12 @@ start_boot_splash (state_t    *state,
   ply_trace ("adding windows to boot splash");
   add_windows_to_boot_splash (state, splash);
   ply_trace ("showing plugin");
-  if (!ply_boot_splash_show (splash))
+  if (state->mode == PLY_MODE_SHUTDOWN)
+    splash_mode = PLY_BOOT_SPLASH_MODE_SHUTDOWN;
+  else
+    splash_mode = PLY_BOOT_SPLASH_MODE_BOOT_UP;
+
+  if (!ply_boot_splash_show (splash, splash_mode))
     {
       ply_save_errno ();
       ply_boot_splash_free (splash);

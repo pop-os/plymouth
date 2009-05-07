@@ -62,6 +62,7 @@
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
+  ply_boot_splash_mode_t mode;
 
   ply_window_t *window;
 
@@ -178,6 +179,12 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   ply_window_clear_screen (plugin->window);
   ply_window_hide_text_cursor (plugin->window);
 
+  if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+    {
+      ply_text_progress_bar_hide (plugin->progress_bar);
+      return;
+    }
+
   ply_text_progress_bar_show (plugin->progress_bar,
                               plugin->window);
 
@@ -288,7 +295,8 @@ remove_window (ply_boot_splash_plugin_t *plugin,
 bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
-                    ply_buffer_t             *boot_buffer)
+                    ply_buffer_t             *boot_buffer,
+                    ply_boot_splash_mode_t    mode)
 {
   assert (plugin != NULL);
 
@@ -298,6 +306,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   ply_window_set_text_cursor_position (plugin->window, 0, 0);
 
   plugin->loop = loop;
+  plugin->mode = mode;
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
                                  detach_from_event_loop,
                                  plugin);

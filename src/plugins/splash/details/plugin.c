@@ -76,6 +76,7 @@ ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
+  ply_boot_splash_mode_t mode;
   ply_list_t *windows;
   ply_boot_splash_display_type_t state;
 
@@ -231,7 +232,8 @@ uninitialize_window (ply_window_t             *window,
 bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
-                    ply_buffer_t             *boot_buffer)
+                    ply_buffer_t             *boot_buffer,
+                    ply_boot_splash_mode_t    mode)
 {
   size_t size;
 
@@ -241,6 +243,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                    (ply_boot_splash_plugin_window_handler_t)
                    initialize_window, NULL, NULL);
   plugin->loop = loop;
+  plugin->mode = mode;
 
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
                                  detach_from_event_loop,

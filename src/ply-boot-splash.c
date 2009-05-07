@@ -214,7 +214,8 @@ ply_boot_splash_attach_progress (ply_boot_splash_t *splash,
 
 
 bool
-ply_boot_splash_show (ply_boot_splash_t *splash)
+ply_boot_splash_show (ply_boot_splash_t *splash,
+                      ply_boot_splash_mode_t mode)
 {
   assert (splash != NULL);
   assert (splash->module_name != NULL);
@@ -230,7 +231,8 @@ ply_boot_splash_show (ply_boot_splash_t *splash)
   ply_trace ("showing splash screen\n");
   if (!splash->plugin_interface->show_splash_screen (splash->plugin,
                                                      splash->loop,
-                                                     splash->boot_buffer))
+                                                     splash->boot_buffer,
+                                                     mode))
     {
 
       ply_save_errno ();

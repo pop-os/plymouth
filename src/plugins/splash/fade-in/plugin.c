@@ -74,6 +74,7 @@ typedef struct
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
+  ply_boot_splash_mode_t mode;
   ply_frame_buffer_t *frame_buffer;
   ply_image_t *logo_image;
   ply_image_t *star_image;
@@ -255,6 +256,9 @@ animate_at_time (ply_boot_splash_plugin_t *plugin,
   opacity = .5 * sin ((time / 5) * (2 * M_PI)) + .8;
   opacity = CLAMP (opacity, 0, 1.0);
 
+  if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+    opacity = 1.0;
+
   if (fabs (opacity - last_opacity) <= DBL_MIN)
     {
       ply_frame_buffer_unpause_updates (plugin->frame_buffer);
@@ -318,13 +322,18 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   if (plugin->is_animating)
      return;
 
+  draw_background (plugin, NULL);
+
+  plugin->start_time = ply_get_timestamp ();
+  animate_at_time (plugin, plugin->start_time);
+
+  if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+    return;
+
   ply_event_loop_watch_for_timeout (plugin->loop, 
                                     1.0 / FRAMES_PER_SECOND,
                                     (ply_event_loop_timeout_handler_t)
                                     on_timeout, plugin);
-
-  plugin->start_time = ply_get_timestamp ();
-  draw_background (plugin, NULL);
 
   plugin->is_animating = true;
 }
@@ -495,7 +504,8 @@ remove_window (ply_boot_splash_plugin_t *plugin,
 bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
-                    ply_buffer_t             *boot_buffer)
+                    ply_buffer_t             *boot_buffer,
+                    ply_boot_splash_mode_t    mode)
 {
   assert (plugin != NULL);
   assert (plugin->logo_image != NULL);
@@ -503,6 +513,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   add_handlers (plugin);
 
   plugin->loop = loop;
+  plugin->mode = mode;
 
   ply_trace ("loading logo image");
   if (!ply_image_load (plugin->logo_image))

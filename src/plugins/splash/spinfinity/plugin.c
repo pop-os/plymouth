@@ -75,6 +75,7 @@ typedef enum {
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
+  ply_boot_splash_mode_t mode;
   ply_frame_buffer_t *frame_buffer;
   ply_frame_buffer_area_t box_area, lock_area, logo_area, bar_area;
   ply_image_t *logo_image;
@@ -200,6 +201,9 @@ start_animation (ply_boot_splash_plugin_t *plugin)
 
   draw_background (plugin, NULL);
   draw_logo (plugin);
+
+  if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+    return;
 
   ply_frame_buffer_get_size (plugin->frame_buffer, &area);
 
@@ -388,7 +392,8 @@ remove_window (ply_boot_splash_plugin_t *plugin,
 bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
-                    ply_buffer_t             *boot_buffer)
+                    ply_buffer_t             *boot_buffer,
+                    ply_boot_splash_mode_t    mode)
 {
   assert (plugin != NULL);
   assert (plugin->logo_image != NULL);
@@ -396,6 +401,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   add_handlers (plugin);
 
   plugin->loop = loop;
+  plugin->mode = mode;
 
   ply_trace ("loading logo image");
   if (!ply_image_load (plugin->logo_image))

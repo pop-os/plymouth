@@ -60,6 +60,7 @@
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
+  ply_boot_splash_mode_t mode;
 
   ply_window_t *window;
 
@@ -139,6 +140,9 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   ply_window_set_background_color (plugin->window, PLY_WINDOW_COLOR_BLUE);
   ply_window_clear_screen (plugin->window);
   ply_window_hide_text_cursor (plugin->window);
+
+  if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+    return;
 
   window_width = ply_window_get_number_of_text_columns (plugin->window);
   window_height = ply_window_get_number_of_text_rows (plugin->window);
@@ -255,7 +259,8 @@ remove_window (ply_boot_splash_plugin_t *plugin,
 bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
-                    ply_buffer_t             *boot_buffer)
+                    ply_buffer_t             *boot_buffer,
+                    ply_boot_splash_mode_t    mode)
 {
   assert (plugin != NULL);
 
@@ -263,6 +268,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   ply_show_new_kernel_messages (false);
 
   plugin->loop = loop;
+  plugin->mode = mode;
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
                                  detach_from_event_loop,
                                  plugin);

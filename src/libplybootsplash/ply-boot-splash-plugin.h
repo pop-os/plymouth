@@ -31,6 +31,12 @@
 #include "ply-trigger.h"
 #include "ply-window.h"
 
+typedef enum
+{
+  PLY_BOOT_SPLASH_MODE_BOOT_UP,
+  PLY_BOOT_SPLASH_MODE_SHUTDOWN,
+} ply_boot_splash_mode_t;
+
 typedef struct _ply_boot_splash_plugin ply_boot_splash_plugin_t;
 
 typedef struct
@@ -45,7 +51,8 @@ typedef struct
                           ply_window_t             *window);
   bool (* show_splash_screen) (ply_boot_splash_plugin_t *plugin,
                                ply_event_loop_t         *loop,
-                               ply_buffer_t             *boot_buffer);
+                               ply_buffer_t             *boot_buffer,
+                               ply_boot_splash_mode_t    mode);
   void (* update_status) (ply_boot_splash_plugin_t *plugin,
                           const char               *status);
   void (* on_boot_output) (ply_boot_splash_plugin_t *plugin,

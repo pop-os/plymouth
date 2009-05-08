@@ -35,6 +35,7 @@
 #include <paths.h>
 
 #include <linux/kd.h>
+#include <linux/vt.h>
 
 #include "ply-command-parser.h"
 #include "ply-boot-server.h"
@@ -112,6 +113,26 @@ static bool attach_to_running_session (state_t *state);
 static void on_escape_pressed (state_t *state);
 static void dump_details_and_quit_splash (state_t *state);
 static void update_display (state_t *state);
+
+static void
+switch_to_vt (int vt_number)
+{
+    int fd;
+
+    fd = open ("/dev/tty0", O_RDWR | O_NOCTTY);
+
+    if (fd < 0)
+      return;
+
+  if (ioctl (fd, VT_ACTIVATE, vt_number) < 0)
+    {
+      close (fd);
+      return;
+    }
+
+  ioctl (fd, VT_WAITACTIVE, vt_number);
+  close (fd);
+}
 
 static void
 on_session_begin (state_t                *state,
@@ -1051,7 +1072,8 @@ check_logging (state_t *state)
 }
 
 static void
-check_for_consoles (state_t *state)
+check_for_consoles (state_t    *state,
+                    const char *default_tty)
 {
   char *console_key;
   char *remaining_command_line;
@@ -1080,14 +1102,14 @@ check_for_consoles (state_t *state)
       if (strcmp (state->console, "tty0") == 0 || strcmp (state->console, "/dev/tty0") == 0)
         {
           free (state->console);
-          state->console = strdup ("tty1");
+          state->console = strdup (default_tty);
         }
 
       ply_list_append_data (state->windows, create_window (state, state->console));
     }
 
     if (ply_list_get_length (state->windows) == 0)
-      ply_list_append_data (state->windows, create_window (state, "tty1"));
+      ply_list_append_data (state->windows, create_window (state, default_tty));
 }
 
 static bool
@@ -1120,6 +1142,8 @@ redirect_standard_io_to_device (char *device)
 static bool
 initialize_environment (state_t *state)
 {
+  const char *default_tty;
+
   ply_trace ("initializing minimal work environment");
   ply_list_node_t *node;
 
@@ -1133,12 +1157,21 @@ initialize_environment (state_t *state)
   state->keystroke_triggers = ply_list_new ();
   state->entry_triggers = ply_list_new ();
   state->entry_buffer = ply_buffer_new();
-  check_for_consoles (state);
+
+  if (state->mode == PLY_MODE_SHUTDOWN)
+    {
+      default_tty = "tty63";
+      switch_to_vt (63);
+    }
+  else
+    default_tty = "tty1";
+
+  check_for_consoles (state, default_tty);
 
   if (state->console != NULL)
     redirect_standard_io_to_device (state->console);
   else
-    redirect_standard_io_to_device ("tty1");
+    redirect_standard_io_to_device (default_tty);
 
   for (node = ply_list_get_first_node (state->windows); node;
                     node = ply_list_get_next_node (state->windows, node))

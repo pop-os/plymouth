@@ -165,6 +165,8 @@ create_plugin (ply_key_file_t *key_file)
         plugin->transition = PLY_PROGRESS_ANIMATION_TRANSITION_FADE_OVER;
       else if (strcmp (transition, "cross-fade") == 0)
         plugin->transition = PLY_PROGRESS_ANIMATION_TRANSITION_CROSS_FADE;
+      else if (strcmp (transition, "merge-fade") == 0)
+        plugin->transition = PLY_PROGRESS_ANIMATION_TRANSITION_MERGE_FADE;
     }
   free (transition);
 

@@ -147,6 +147,51 @@ draw_background (ply_progress_animation_t *progress_animation)
                          progress_animation->frame_area.height);
 }
 
+static uint32_t*
+image_fade_merge(ply_image_t* frame0, ply_image_t* frame1, float fade, int width, int height)
+{
+  int frame0_width = ply_image_get_width (frame0);
+  int frame0_height = ply_image_get_height (frame0);
+  int frame1_width = ply_image_get_width (frame1);
+  int frame1_height = ply_image_get_height (frame1);
+
+  uint32_t *frame0_data = ply_image_get_data (frame0);
+  uint32_t *frame1_data = ply_image_get_data (frame1);
+
+  uint32_t *reply_data = malloc (width * height * sizeof (uint32_t));
+  int x, y, i;
+
+
+  for (y = 0; y < height; y++)
+    {
+      for (x = 0; x < width; x++)
+        {
+          uint32_t pixel0, pixel1, pixelout;
+          
+          if (y < frame0_height && x < frame0_width)
+            pixel0 = frame0_data[y*frame0_width+x];
+          else 
+            pixel0 = 0;
+          
+          if (y < frame1_height && x < frame1_width)
+            pixel1 = frame1_data[y*frame1_width+x];
+          else 
+            pixel1 = 0;
+            
+          pixelout = 0;
+          for (i = 0; i < 4; i++)
+            {
+              int subval0 = (pixel0 >> (i * 8)) & 0xFF;
+              int subval1 = (pixel1 >> (i * 8)) & 0xFF;
+              int subvalout = subval0 * (1-fade) + subval1 * fade;
+              pixelout |= (subvalout & 0xFF) << (i * 8);
+            }
+          reply_data[y*width+x] = pixelout;
+        }
+    }
+  return reply_data;
+}
+
 void
 ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
 {
@@ -183,8 +228,6 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
 
   progress_animation->frame_area.x = progress_animation->area.x;
   progress_animation->frame_area.y = progress_animation->area.y;
-  progress_animation->frame_area.width = ply_image_get_width (frames[frame_number]);
-  progress_animation->frame_area.height = ply_image_get_height (frames[frame_number]);
   frame_data = ply_image_get_data (frames[frame_number]);
 
   if (progress_animation->is_transitioning)
@@ -192,6 +235,8 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
       double now;
       double fade_percentage;
       double fade_out_opacity;
+      int width, height;
+      uint32_t* faded_data;
       now = ply_get_timestamp ();
 
       fade_percentage = (now - progress_animation->transition_start_time) / progress_animation->transition_duration;
@@ -201,20 +246,50 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
       fade_percentage = CLAMP (fade_percentage, 0.0, 1.0);
 
       previous_frame_data = ply_image_get_data (frames[frame_number - 1]);
-      if (progress_animation->transition == PLY_PROGRESS_ANIMATION_TRANSITION_FADE_OVER)
-        fade_out_opacity = 1.0;
-      else
-        fade_out_opacity = 1.0 - fade_percentage;
+      if (progress_animation->transition == PLY_PROGRESS_ANIMATION_TRANSITION_MERGE_FADE)
+        {
+          width = MAX(ply_image_get_width (frames[frame_number]), ply_image_get_width (frames[frame_number - 1]));
+          height = MAX(ply_image_get_height (frames[frame_number]), ply_image_get_width (frames[frame_number - 1]));
+          progress_animation->frame_area.width = width;
+          progress_animation->frame_area.height = height;
 
-      ply_frame_buffer_fill_with_argb32_data_at_opacity (progress_animation->frame_buffer,
-                                                         &progress_animation->frame_area, 0, 0,
-                                                         previous_frame_data, fade_out_opacity);
-      ply_frame_buffer_fill_with_argb32_data_at_opacity (progress_animation->frame_buffer,
-                                                         &progress_animation->frame_area, 0, 0,
-                                                         frame_data, fade_percentage);
+          faded_data = image_fade_merge(frames[frame_number - 1], frames[frame_number], fade_percentage, width, height);
+
+          ply_frame_buffer_fill_with_argb32_data_at_opacity (progress_animation->frame_buffer,
+                                                             &progress_animation->frame_area, 0, 0,
+                                                             faded_data, 1.0);
+        free(faded_data);
+        }
+      else
+        {
+          if (progress_animation->transition == PLY_PROGRESS_ANIMATION_TRANSITION_FADE_OVER)
+            fade_out_opacity = 1.0;
+          else
+            fade_out_opacity = 1.0 - fade_percentage;
+
+          progress_animation->frame_area.width = ply_image_get_width (frames[frame_number - 1]);
+          progress_animation->frame_area.height = ply_image_get_height (frames[frame_number - 1]);
+          ply_frame_buffer_fill_with_argb32_data_at_opacity (progress_animation->frame_buffer,
+                                                             &progress_animation->frame_area, 0, 0,
+                                                             previous_frame_data, fade_out_opacity);
+
+          progress_animation->frame_area.width = ply_image_get_width (frames[frame_number]);
+          progress_animation->frame_area.height = ply_image_get_height (frames[frame_number]);
+          ply_frame_buffer_fill_with_argb32_data_at_opacity (progress_animation->frame_buffer,
+                                                             &progress_animation->frame_area, 0, 0,
+                                                             frame_data, fade_percentage);
+
+          width = MAX(ply_image_get_width (frames[frame_number]), ply_image_get_width (frames[frame_number - 1]));
+          height = MAX(ply_image_get_height (frames[frame_number]), ply_image_get_width (frames[frame_number - 1]));
+          progress_animation->frame_area.width = width;
+          progress_animation->frame_area.height = height;
+        }
+      
     }
   else
     {
+      progress_animation->frame_area.width = ply_image_get_width (frames[frame_number]);
+      progress_animation->frame_area.height = ply_image_get_height (frames[frame_number]);
       ply_frame_buffer_fill_with_argb32_data (progress_animation->frame_buffer,
                                               &progress_animation->frame_area, 0, 0,
                                               frame_data);

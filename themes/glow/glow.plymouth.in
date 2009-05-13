@@ -7,5 +7,5 @@ ModuleName=two-step
 ImageDir=@PLYMOUTH_THEME_PATH@/glow
 HorizontalAlignment=.25
 VerticalAlignment=.5
-Transition=fade-over
+Transition=merge-fade
 TransitionDuration=.5

@@ -36,8 +36,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "ply-list.h"
 #include "ply-utils.h"
+#include "ply-hashtable.h"
 
 typedef struct
 {
@@ -48,7 +48,7 @@ typedef struct
 typedef struct
 {
   char *name;
-  ply_list_t *entries;
+  ply_hashtable_t *entries;
 } ply_key_file_group_t;
 
 struct _ply_key_file
@@ -56,7 +56,7 @@ struct _ply_key_file
   char  *filename;
   FILE  *fp;
 
-  ply_list_t *groups;
+  ply_hashtable_t *groups;
 };
 
 static bool ply_key_file_open_file (ply_key_file_t *key_file);
@@ -96,9 +96,35 @@ ply_key_file_new (const char *filename)
 
   key_file->filename = strdup (filename);
   key_file->fp = NULL;
-  key_file->groups = ply_list_new ();
+  key_file->groups = ply_hashtable_new (ply_hashtable_string_hash, ply_hashtable_string_compare);
 
   return key_file;
+}
+
+static void
+ply_key_file_free_entry_foreach (void *key, 
+                                 void *data,
+                                 void *user_data)
+{
+  ply_key_file_entry_t *entry = data;
+  free (entry->key);
+  free (entry->value);
+  free (entry);
+}
+
+static void
+ply_key_file_free_group (void *key, 
+                         void *data,
+                         void *user_data)
+{
+  ply_key_file_group_t *group = data;
+  
+  ply_hashtable_foreach (group->entries,
+					     ply_key_file_free_entry_foreach,
+					     NULL);
+  ply_hashtable_free (group->entries);
+  free (group->name);
+  free (group);
 }
 
 void
@@ -108,8 +134,12 @@ ply_key_file_free (ply_key_file_t *key_file)
     return;
 
   assert (key_file->filename != NULL);
-
-  ply_list_free (key_file->groups);
+  ply_hashtable_foreach (key_file->groups,
+					     ply_key_file_free_group,
+					     NULL);
+  
+  
+  ply_hashtable_free (key_file->groups);
   free (key_file->filename);
   free (key_file);
 }
@@ -123,7 +153,7 @@ ply_key_file_load_group (ply_key_file_t *key_file,
 
   group = calloc (1, sizeof (ply_key_file_group_t));
   group->name = strdup (group_name);
-  group->entries = ply_list_new ();
+  group->entries = ply_hashtable_new (ply_hashtable_string_hash, ply_hashtable_string_compare);
 
   do
     {
@@ -153,7 +183,7 @@ ply_key_file_load_group (ply_key_file_t *key_file,
       entry->key = key;
       entry->value = value;
 
-      ply_list_append_data (group->entries, entry);
+      ply_hashtable_insert (group->entries, entry->key, entry);
     }
   while (items_matched != EOF);
 
@@ -165,7 +195,8 @@ ply_key_file_load_groups (ply_key_file_t *key_file)
 {
   int items_matched;
   char *group_name;
-
+  bool added_group = false;
+  
   do
     {
       ply_key_file_group_t *group;
@@ -182,11 +213,12 @@ ply_key_file_load_groups (ply_key_file_t *key_file)
       if (group == NULL)
         break;
 
-      ply_list_append_data (key_file->groups, group);
+      ply_hashtable_insert (key_file->groups, group->name, group);
+      added_group = true;
     }
   while (items_matched != EOF);
 
-  return ply_list_get_length (key_file->groups) > 0;
+  return added_group;
 }
 
 bool
@@ -210,21 +242,7 @@ static ply_key_file_group_t *
 ply_key_file_find_group (ply_key_file_t *key_file,
                          const char     *group_name)
 {
-  ply_list_node_t *node;
-
-  node = ply_list_get_first_node (key_file->groups);
-
-  while (node)
-    {
-      ply_key_file_group_t *group = ply_list_node_get_data (node);
-
-      if (strcmp (group->name, group_name) == 0)
-        return group;
-
-      node = ply_list_get_next_node (key_file->groups, node);
-    }
-
-  return NULL;
+  return  ply_hashtable_lookup (key_file->groups, (void *) group_name);
 }
 
 static ply_key_file_entry_t *
@@ -232,21 +250,7 @@ ply_key_file_find_entry (ply_key_file_t       *key_file,
                          ply_key_file_group_t *group,
                          const char           *key)
 {
-  ply_list_node_t *node;
-
-  node = ply_list_get_first_node (group->entries);
-
-  while (node)
-    {
-      ply_key_file_entry_t *entry = ply_list_node_get_data (node);
-
-      if (strcmp (entry->key, key) == 0)
-        return entry;
-
-      node = ply_list_get_next_node (group->entries, node);
-    }
-
-  return NULL;
+  return  ply_hashtable_lookup (group->entries, (void *) key);
 }
 
 bool

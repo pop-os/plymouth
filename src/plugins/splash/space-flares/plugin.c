@@ -188,8 +188,6 @@ struct _ply_boot_splash_plugin
   ply_label_t *label;
   ply_boot_splash_display_type_t state;
 
-  ply_trigger_t *idle_trigger;
-
   ply_list_t *sprites;
 
   double now;
@@ -963,8 +961,7 @@ start_animation (ply_boot_splash_plugin_t *plugin)
 }
 
 static void
-stop_animation (ply_boot_splash_plugin_t *plugin,
-                ply_trigger_t            *trigger)
+stop_animation (ply_boot_splash_plugin_t *plugin)
 {
   ply_list_node_t *node;
 
@@ -999,7 +996,7 @@ static void
 on_interrupt (ply_boot_splash_plugin_t *plugin)
 {
   ply_event_loop_exit (plugin->loop, 1);
-  stop_animation (plugin, NULL);
+  stop_animation (plugin);
   ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
 }
 
@@ -1502,7 +1499,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   if (plugin->loop != NULL)
     {
-      stop_animation (plugin, NULL);
+      stop_animation (plugin);
 
       ply_event_loop_stop_watching_for_exit (plugin->loop, (ply_event_loop_exit_handler_t)
                                              detach_from_event_loop,
@@ -1592,7 +1589,8 @@ void
 become_idle (ply_boot_splash_plugin_t *plugin,
              ply_trigger_t            *idle_trigger)
 {
-  stop_animation (plugin, idle_trigger);
+  stop_animation (plugin);
+  ply_trigger_pull (idle_trigger, NULL);
 }
 
 void display_normal (ply_boot_splash_plugin_t *plugin)
@@ -1612,7 +1610,7 @@ display_password (ply_boot_splash_plugin_t *plugin,
 {
   if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_NORMAL)
     {
-      stop_animation (plugin, NULL);
+      stop_animation (plugin);
     }
   plugin->state = PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY;
   show_password_prompt (plugin, prompt);
@@ -1626,7 +1624,7 @@ display_question (ply_boot_splash_plugin_t *plugin,
 {
   if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_NORMAL)
     {
-      stop_animation (plugin, NULL);
+      stop_animation (plugin);
     }
 
   plugin->state = PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY;

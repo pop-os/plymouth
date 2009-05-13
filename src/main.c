@@ -1426,9 +1426,9 @@ main (int    argc,
   ply_trace ("freeing event loop");
   ply_event_loop_free (state.loop);
 
-  ply_buffer_free (debug_buffer);
-
   ply_trace ("exiting with code %d", exit_code);
+  
+  ply_buffer_free (debug_buffer);
 
   ply_free_error_log();
 

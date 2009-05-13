@@ -478,7 +478,7 @@ main (int    argc,
   ply_boot_splash_add_window (state.splash, state.window);
   ply_boot_splash_attach_to_event_loop (state.splash, state.loop);
 
-  if (!ply_boot_splash_show (state.splash))
+  if (!ply_boot_splash_show (state.splash, PLY_BOOT_SPLASH_MODE_BOOT_UP))
     {
       perror ("could not show splash screen");
       return errno;

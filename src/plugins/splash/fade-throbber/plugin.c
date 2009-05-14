@@ -1,4 +1,4 @@
-/* fade-in.c - boot splash plugin
+/* fade-throbber.c - boot splash plugin
  *
  * Copyright (C) 2007, 2008 Red Hat, Inc.
  *
@@ -103,7 +103,7 @@ create_plugin (ply_key_file_t *key_file)
   plugin->start_time = 0.0;
 
   plugin->logo_image = ply_image_new (PLYMOUTH_LOGO_FILE);
-  image_dir = ply_key_file_get_value (key_file, "fade-in", "ImageDir");
+  image_dir = ply_key_file_get_value (key_file, "fade-throbber", "ImageDir");
 
   asprintf (&image_path, "%s/star.png", image_dir);
   plugin->star_image = ply_image_new (image_path);

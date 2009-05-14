@@ -1,7 +1,7 @@
 [Plymouth Theme]
 Name=Fade In
 Description=Simple theme that fades in and out with shimmering stars
-ModuleName=fade-in
+ModuleName=fade-throbber
 
-[fade-in]
+[fade-throbber]
 ImageDir=@PLYMOUTH_THEME_PATH@/fade-in

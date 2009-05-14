@@ -105,10 +105,10 @@ AC_SUBST(background_start_color)
 AC_ARG_WITH(background-end-color-stop, AC_HELP_STRING([--with-background-end-color-stop], [first color end in background gradients used by boot splash plugins]),background_end_color=${withval},background_end_color=0x3a362f)
 AC_SUBST(background_end_color)
 
-AC_ARG_WITH(default-plugin, AC_HELP_STRING([--with-default-plugin=fade-in], [Plugin to use by default]),default_plugin_name=${withval},default_plugin_name=fade-in)
+AC_ARG_WITH(default-plugin, AC_HELP_STRING([--with-default-plugin=fade-throbber], [Plugin to use by default]),default_plugin_name=${withval},default_plugin_name=fade-throbber)
 AM_CONDITIONAL(ADD_DEFAULT_PLUGIN_LINK,
                [test "$default_plugin_name" = "spinfinity" \
-                  -o "$default_plugin_name" = "fade-in"    \
+                  -o "$default_plugin_name" = "fade-throbber"    \
                   -o "$default_plugin_name" = "text"       \
                   -o "$default_plugin_name" = "glow"       \
                   -o "$default_plugin_name" = "solar"      \
@@ -202,7 +202,7 @@ AC_OUTPUT([Makefile
            src/plugins/Makefile
            src/plugins/splash/Makefile
            src/plugins/splash/throbgress/Makefile
-           src/plugins/splash/fade-in/Makefile
+           src/plugins/splash/fade-throbber/Makefile
            src/plugins/splash/text/Makefile
            src/plugins/splash/details/Makefile
            src/plugins/splash/space-flares/Makefile

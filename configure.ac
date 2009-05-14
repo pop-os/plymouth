@@ -109,7 +109,6 @@ AC_ARG_WITH(default-plugin, AC_HELP_STRING([--with-default-plugin=fade-in], [Plu
 AM_CONDITIONAL(ADD_DEFAULT_PLUGIN_LINK,
                [test "$default_plugin_name" = "spinfinity" \
                   -o "$default_plugin_name" = "fade-in"    \
-                  -o "$default_plugin_name" = "pulser"     \
                   -o "$default_plugin_name" = "text"       \
                   -o "$default_plugin_name" = "glow"       \
                   -o "$default_plugin_name" = "solar"      \
@@ -205,7 +204,6 @@ AC_OUTPUT([Makefile
            src/plugins/splash/spinfinity/Makefile
            src/plugins/splash/fade-in/Makefile
            src/plugins/splash/text/Makefile
-           src/plugins/splash/pulser/Makefile
            src/plugins/splash/details/Makefile
            src/plugins/splash/solar/Makefile
            src/plugins/splash/glow/Makefile
@@ -221,7 +219,6 @@ AC_OUTPUT([Makefile
            themes/spinfinity/Makefile
            themes/fade-in/Makefile
            themes/text/Makefile
-           themes/pulser/Makefile
            themes/details/Makefile
            themes/solar/Makefile
            themes/glow/Makefile

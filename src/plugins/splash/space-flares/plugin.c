@@ -220,7 +220,7 @@ create_plugin (ply_key_file_t *key_file)
 
   plugin->logo_image = ply_image_new (PLYMOUTH_LOGO_FILE);
 
-  image_dir = ply_key_file_get_value (key_file, "solar", "ImageDir");
+  image_dir = ply_key_file_get_value (key_file, "space-flares", "ImageDir");
 
   asprintf (&image_path, "%s/lock.png", image_dir);
   plugin->lock_image = ply_image_new (image_path);
@@ -935,7 +935,7 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
 }
 
 void 
-setup_solar (ply_boot_splash_plugin_t *plugin);
+setup_scene (ply_boot_splash_plugin_t *plugin);
 
 static void
 start_animation (ply_boot_splash_plugin_t *plugin)
@@ -951,7 +951,7 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   ply_frame_buffer_get_size (plugin->frame_buffer, &area);
 
   plugin->now = ply_get_timestamp ();
-  setup_solar (plugin);
+  setup_scene (plugin);
   ply_window_draw_area (plugin->window, area.x, area.y, area.width, area.height);
 
   if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
@@ -1235,7 +1235,7 @@ void highlight_image (ply_image_t *highlighted_image, ply_image_t *orig_image, i
  
 }
 void 
-setup_solar (ply_boot_splash_plugin_t *plugin)
+setup_scene (ply_boot_splash_plugin_t *plugin)
 {
   ply_frame_buffer_area_t screen_area;
   sprite_t *sprite;

@@ -205,7 +205,7 @@ AC_OUTPUT([Makefile
            src/plugins/splash/fade-in/Makefile
            src/plugins/splash/text/Makefile
            src/plugins/splash/details/Makefile
-           src/plugins/splash/solar/Makefile
+           src/plugins/splash/space-flares/Makefile
            src/plugins/splash/two-step/Makefile
            src/plugins/controls/Makefile
            src/plugins/controls/label/Makefile

@@ -518,6 +518,59 @@ ply_frame_buffer_area_union (ply_frame_buffer_area_t *area1,
 }
 
 static void
+integrate_area_with_flush_area (ply_frame_buffer_t      *buffer,
+                                ply_frame_buffer_area_t *new_area)
+{
+  ply_list_node_t *node;
+  ply_frame_buffer_area_t overlapping_area;
+
+  /* FIXME: The logic in the function isn't as sophisticated as it could be.
+   * It only culls if one old area completely overlaps the new flush area.
+   *
+   * It doesn't cull if two or more old flush areas collectively overlap the
+   * new flush area.
+   */
+
+  node = ply_list_get_first_node (buffer->areas_to_flush);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_frame_buffer_area_t *existing_area_to_flush;
+
+      existing_area_to_flush = (ply_frame_buffer_area_t *) ply_list_node_get_data (node);
+
+      next_node = ply_list_get_next_node (buffer->areas_to_flush, node);
+
+      ply_frame_buffer_area_intersect (new_area,
+                                       existing_area_to_flush,
+                                       &overlapping_area);
+
+      /* If an existing flush area is completely inside the
+       * new area, then we can remove the old area from the list.
+       *
+       * If the new area is completely inside an old area then
+       * we don't need to add the new area at all.
+       */
+      if (overlapping_area.width == existing_area_to_flush->width &&
+          overlapping_area.height == existing_area_to_flush->height)
+        {
+          free (existing_area_to_flush);
+          ply_list_remove_node (buffer->areas_to_flush, node);
+        }
+      else if (overlapping_area.width == new_area->width &&
+               overlapping_area.height == new_area->height)
+        {
+          free (new_area);
+          return;
+        }
+
+      node = next_node;
+    }
+
+  ply_list_append_data (buffer->areas_to_flush, new_area);
+}
+
+static void
 ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t      *buffer,
                                          ply_frame_buffer_area_t *area)
 {
@@ -535,7 +588,7 @@ ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t      *buffer,
       return;
     }
 
-  ply_list_append_data (buffer->areas_to_flush, cropped_area);
+  integrate_area_with_flush_area (buffer, cropped_area);
 }
 
 static bool

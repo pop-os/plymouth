@@ -23,6 +23,7 @@
  *             Ray Strode <rstrode@redhat.com>
  */
 #include "config.h"
+#include "ply-list.h"
 #include "ply-frame-buffer.h"
 #include "ply-logger.h"
 
@@ -76,7 +77,7 @@ struct _ply_frame_buffer
   unsigned int row_stride;
 
   ply_frame_buffer_area_t area;
-  ply_frame_buffer_area_t area_to_flush;
+  ply_list_t *areas_to_flush;
 
   void (*flush_area) (ply_frame_buffer_t      *buffer,
                       ply_frame_buffer_area_t *area_to_flush);
@@ -520,34 +521,49 @@ static void
 ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t      *buffer,
                                          ply_frame_buffer_area_t *area)
 {
-  ply_frame_buffer_area_t cropped_area;
+  ply_frame_buffer_area_t *cropped_area;
+
   assert (buffer != NULL);
   assert (area != NULL);
 
-  ply_frame_buffer_area_intersect (area, &buffer->area, &cropped_area);
+  cropped_area = malloc (sizeof (ply_frame_buffer_area_t));
+  ply_frame_buffer_area_intersect (area, &buffer->area, cropped_area);
 
-  if (cropped_area.width == 0 || cropped_area.height == 0)
-    return;
+  if (cropped_area->width == 0 || cropped_area->height == 0)
+    {
+      free (cropped_area);
+      return;
+    }
 
-  ply_frame_buffer_area_union (&buffer->area_to_flush,
-                               &cropped_area,
-                               &buffer->area_to_flush);
+  ply_list_append_data (buffer->areas_to_flush, cropped_area);
 }
 
 static bool
 ply_frame_buffer_flush (ply_frame_buffer_t *buffer)
 {
+  ply_list_node_t *node;
   assert (buffer != NULL);
 
   if (buffer->pause_count > 0)
     return true;
 
-  (*buffer->flush_area) (buffer, &buffer->area_to_flush);
+  node = ply_list_get_first_node (buffer->areas_to_flush);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_frame_buffer_area_t *area_to_flush;
 
-  buffer->area_to_flush.x = buffer->area.width - 1;
-  buffer->area_to_flush.y = buffer->area.height - 1;
-  buffer->area_to_flush.width = 0; 
-  buffer->area_to_flush.height = 0; 
+      area_to_flush = (ply_frame_buffer_area_t *) ply_list_node_get_data (node);
+
+      next_node = ply_list_get_next_node (buffer->areas_to_flush, node);
+
+      (*buffer->flush_area) (buffer, area_to_flush);
+
+      free (area_to_flush);
+      ply_list_remove_node (buffer->areas_to_flush, node);
+
+      node = next_node;
+    }
 
   return true;
 }
@@ -569,10 +585,35 @@ ply_frame_buffer_new (const char *device_name)
 
   buffer->map_address = MAP_FAILED;
   buffer->shadow_buffer = NULL;
+  buffer->areas_to_flush = ply_list_new ();
 
   buffer->pause_count = 0;
 
   return buffer;
+}
+
+static void
+free_flush_areas (ply_frame_buffer_t *buffer)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (buffer->areas_to_flush);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_frame_buffer_area_t *area_to_flush;
+
+      area_to_flush = (ply_frame_buffer_area_t *) ply_list_node_get_data (node);
+
+      next_node = ply_list_get_next_node (buffer->areas_to_flush, node);
+
+      free (area_to_flush);
+      ply_list_remove_node (buffer->areas_to_flush, node);
+
+      node = next_node;
+    }
+
+  ply_list_free (buffer->areas_to_flush);
 }
 
 void
@@ -582,6 +623,8 @@ ply_frame_buffer_free (ply_frame_buffer_t *buffer)
 
   if (ply_frame_buffer_device_is_open (buffer))
     ply_frame_buffer_close (buffer);
+
+  free_flush_areas (buffer);
 
   free (buffer->device_name);
   free (buffer->shadow_buffer);

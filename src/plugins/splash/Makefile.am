@@ -1,4 +1,4 @@
-SUBDIRS = throbgress fade-throbber text details space-flares two-step
+SUBDIRS = throbgress fade-throbber text details space-flares two-step script
 MAINTAINERCLEANFILES = Makefile.in
 
 if ADD_DEFAULT_PLUGIN_LINK

@@ -1,0 +1,25 @@
+fun SpriteUpdate(sprite){
+    SpriteSetX(sprite.native, sprite.x);
+    SpriteSetY(sprite.native, sprite.y);
+    SpriteSetZ(sprite.native, sprite.z);
+    }
+
+
+fun SpriteNewWithImage(filename){
+    local.sprite;
+    
+    sprite.image = ImageNew(filename);
+    sprite.native = SpriteNew();
+    if (sprite.image == NULL) return NULL;
+    SpriteSetImage(sprite.native, sprite.image);
+    
+    sprite.x = 0;
+    sprite.y = 0;
+    sprite.z = 0;
+    
+    SpriteUpdate(sprite);
+    
+    return sprite;
+    }
+
+

@@ -207,6 +207,7 @@ AC_OUTPUT([Makefile
            src/plugins/splash/details/Makefile
            src/plugins/splash/space-flares/Makefile
            src/plugins/splash/two-step/Makefile
+           src/plugins/splash/script/Makefile
            src/plugins/controls/Makefile
            src/plugins/controls/label/Makefile
            src/Makefile
@@ -222,6 +223,7 @@ AC_OUTPUT([Makefile
            themes/details/Makefile
            themes/solar/Makefile
            themes/glow/Makefile
+           themes/script/Makefile
            images/Makefile
            scripts/Makefile
 ])

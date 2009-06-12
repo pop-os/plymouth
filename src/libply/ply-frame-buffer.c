@@ -78,7 +78,8 @@ struct _ply_frame_buffer
   ply_frame_buffer_area_t area;
   ply_frame_buffer_area_t area_to_flush;
 
-  void (*flush)(ply_frame_buffer_t *buffer);
+  void (*flush_area) (ply_frame_buffer_t      *buffer,
+                      ply_frame_buffer_area_t *area_to_flush);
 
   int pause_count;
 };
@@ -145,19 +146,20 @@ ply_frame_buffer_close_device (ply_frame_buffer_t *buffer)
 }
 
 static void
-flush_generic (ply_frame_buffer_t *buffer)
+flush_area_to_any_device (ply_frame_buffer_t      *buffer,
+                          ply_frame_buffer_area_t *area_to_flush)
 {
   unsigned long row, column;
   char *row_buffer;
   size_t bytes_per_row;
   unsigned long x1, y1, x2, y2;
 
-  x1 = buffer->area_to_flush.x;
-  y1 = buffer->area_to_flush.y;
-  x2 = x1 + buffer->area_to_flush.width;
-  y2 = y1 + buffer->area_to_flush.height;
+  x1 = area_to_flush->x;
+  y1 = area_to_flush->y;
+  x2 = x1 + area_to_flush->width;
+  y2 = y1 + area_to_flush->height;
 
-  bytes_per_row = buffer->area_to_flush.width * buffer->bytes_per_pixel;
+  bytes_per_row = area_to_flush->width * buffer->bytes_per_pixel;
   row_buffer = malloc (buffer->row_stride * buffer->bytes_per_pixel);
   for (row = y1; row < y2; row++)
     {
@@ -180,34 +182,35 @@ flush_generic (ply_frame_buffer_t *buffer)
 
       offset = row * buffer->row_stride * buffer->bytes_per_pixel + x1 * buffer->bytes_per_pixel;
       memcpy (buffer->map_address + offset, row_buffer + x1 * buffer->bytes_per_pixel,
-              buffer->area_to_flush.width * buffer->bytes_per_pixel);
+              area_to_flush->width * buffer->bytes_per_pixel);
     }
   free (row_buffer);
 }
 
 static void
-flush_xrgb32 (ply_frame_buffer_t *buffer)
+flush_area_to_xrgb32_device (ply_frame_buffer_t      *buffer,
+                             ply_frame_buffer_area_t *area_to_flush)
 {
   unsigned long x1, y1, x2, y2, y;
   char *dst, *src;
 
-  x1 = buffer->area_to_flush.x;
-  y1 = buffer->area_to_flush.y;
-  x2 = x1 + buffer->area_to_flush.width;
-  y2 = y1 + buffer->area_to_flush.height;
+  x1 = area_to_flush->x;
+  y1 = area_to_flush->y;
+  x2 = x1 + area_to_flush->width;
+  y2 = y1 + area_to_flush->height;
 
   dst = &buffer->map_address[(y1 * buffer->row_stride + x1) * 4];
   src = (char *) &buffer->shadow_buffer[y1 * buffer->area.width + x1];
 
-  if (buffer->area_to_flush.width == buffer->row_stride)
+  if (area_to_flush->width == buffer->row_stride)
     {
-      memcpy (dst, src, buffer->area_to_flush.width * buffer->area_to_flush.height * 4);
+      memcpy (dst, src, area_to_flush->width * area_to_flush->height * 4);
       return;
     }
 
   for (y = y1; y < y2; y++)
     {
-      memcpy (dst, src, buffer->area_to_flush.width * 4);
+      memcpy (dst, src, area_to_flush->width * 4);
       dst += buffer->row_stride * 4;
       src += buffer->area.width * 4;
     }
@@ -328,9 +331,9 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
       buffer->red_bit_position == 16 && buffer->bits_for_red == 8 &&
       buffer->green_bit_position == 8 && buffer->bits_for_green == 8 &&
       buffer->blue_bit_position == 0 && buffer->bits_for_blue == 8)
-    buffer->flush = flush_xrgb32;
+    buffer->flush_area = flush_area_to_xrgb32_device;
   else
-    buffer->flush = flush_generic;
+    buffer->flush_area = flush_area_to_any_device;
 
   return true;
 }
@@ -539,7 +542,7 @@ ply_frame_buffer_flush (ply_frame_buffer_t *buffer)
   if (buffer->pause_count > 0)
     return true;
 
-  (*buffer->flush) (buffer);
+  (*buffer->flush_area) (buffer, &buffer->area_to_flush);
 
   buffer->area_to_flush.x = buffer->area.width - 1;
   buffer->area_to_flush.y = buffer->area.height - 1;

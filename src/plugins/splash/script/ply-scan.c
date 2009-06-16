@@ -26,7 +26,7 @@ static ply_scan_t* ply_scan_new(void)
  return scan;
 }
 
-ply_scan_t* ply_scan_file(char* filename)
+ply_scan_t* ply_scan_file(const char* filename)
 {
  int fd = open(filename, O_RDONLY);
  if (fd<0) return NULL;
@@ -37,7 +37,7 @@ ply_scan_t* ply_scan_file(char* filename)
  return scan;
 }
 
-ply_scan_t* ply_scan_string(char* string)
+ply_scan_t* ply_scan_string(const char* string)
 {
  ply_scan_t* scan = ply_scan_new();
  scan->source.string = string;
@@ -52,6 +52,7 @@ void ply_scan_token_clean(ply_scan_token_t* token)
     case PLY_SCAN_TOKEN_TYPE_EMPTY:
     case PLY_SCAN_TOKEN_TYPE_EOF:
     case PLY_SCAN_TOKEN_TYPE_INTEGER:
+    case PLY_SCAN_TOKEN_TYPE_FLOAT:
     case PLY_SCAN_TOKEN_TYPE_SYMBOL:
         break;
     case PLY_SCAN_TOKEN_TYPE_IDENTIFIER:
@@ -121,15 +122,31 @@ void ply_scan_read_next_token(ply_scan_t* scan, ply_scan_token_t* token)
     return;
     }
  if (curchar >= '0' && curchar <= '9'){
-    token->type = PLY_SCAN_TOKEN_TYPE_INTEGER;
-    long long int value = 0;
+    long long int int_value = 0;
     do {
-        value *= 10;
-        value += curchar - '0';
+        int_value *= 10;
+        int_value += curchar - '0';
         curchar = ply_scan_get_next_char(scan);
         }
     while (curchar >= '0' && curchar <= '9');
-    token->data.integer = value;
+    
+    if (curchar == '.'){
+        double floatpoint = int_value;
+        double scalar = 1;
+        
+        curchar = ply_scan_get_next_char(scan);
+        while (curchar >= '0' && curchar <= '9'){
+            scalar /= 10;
+            floatpoint += scalar * (curchar - '0');
+            curchar = ply_scan_get_next_char(scan);
+            }
+        token->type = PLY_SCAN_TOKEN_TYPE_FLOAT;
+        token->data.floatpoint = floatpoint;
+        }
+    else {
+        token->type = PLY_SCAN_TOKEN_TYPE_INTEGER;
+        token->data.integer = int_value;
+        }
     return;
     }
  

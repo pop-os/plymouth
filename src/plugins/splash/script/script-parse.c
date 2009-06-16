@@ -49,6 +49,14 @@ static script_exp* script_parse_exp_tm (ply_scan_t* scan)
     return exp;
     }
  
+ if (curtoken->type == PLY_SCAN_TOKEN_TYPE_FLOAT){
+    exp = malloc(sizeof(script_exp));
+    exp->type = SCRIPT_EXP_TYPE_TERM_FLOAT;
+    exp->data.floatpoint = curtoken->data.floatpoint;
+    ply_scan_get_next_token(scan);
+    return exp;
+    }
+ 
  if (curtoken->type == PLY_SCAN_TOKEN_TYPE_IDENTIFIER){
     exp = malloc(sizeof(script_exp));
     if (!strcmp(curtoken->data.string, "NULL")){
@@ -512,6 +520,7 @@ static void script_parse_exp_free (script_exp* exp)
         script_parse_exp_free (exp->data.dual.sub_b);
         break;
     case SCRIPT_EXP_TYPE_TERM_INT:
+    case SCRIPT_EXP_TYPE_TERM_FLOAT:
     case SCRIPT_EXP_TYPE_TERM_NULL:
     case SCRIPT_EXP_TYPE_TERM_LOCAL:
     case SCRIPT_EXP_TYPE_TERM_GLOBAL:
@@ -608,7 +617,7 @@ static void script_parse_op_list_free (ply_list_t* op_list)
 
 
 
-script_op* script_parse_file (char* filename)
+script_op* script_parse_file (const char* filename)
 {
  ply_scan_t* scan = ply_scan_file (filename);
  assert(scan);
@@ -626,7 +635,7 @@ script_op* script_parse_file (char* filename)
 
 
 
-script_op* script_parse_string (char* string)
+script_op* script_parse_string (const char* string)
 {
  ply_scan_t* scan = ply_scan_string (string);
  assert(scan);

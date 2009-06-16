@@ -73,6 +73,7 @@ typedef enum
  SCRIPT_OBJ_TYPE_NULL,
  SCRIPT_OBJ_TYPE_REF,
  SCRIPT_OBJ_TYPE_INT,
+ SCRIPT_OBJ_TYPE_FLOAT,
  SCRIPT_OBJ_TYPE_STRING,
  SCRIPT_OBJ_TYPE_HASH,
  SCRIPT_OBJ_TYPE_FUNCTION,
@@ -86,6 +87,7 @@ typedef struct script_obj
  union
  {
     int integer;
+    float floatpoint;
     char* string;
     struct script_obj* obj;
     script_function* function;
@@ -100,6 +102,7 @@ typedef enum
 {
  SCRIPT_EXP_TYPE_TERM_NULL,
  SCRIPT_EXP_TYPE_TERM_INT,
+ SCRIPT_EXP_TYPE_TERM_FLOAT,
  SCRIPT_EXP_TYPE_TERM_STRING,
  SCRIPT_EXP_TYPE_TERM_VAR,
  SCRIPT_EXP_TYPE_TERM_LOCAL,
@@ -133,6 +136,7 @@ typedef struct script_exp
     struct script_exp *sub;
     char* string;
     int integer; 
+    float floatpoint;
     struct {
         struct script_exp* name;
         ply_list_t* parameters;

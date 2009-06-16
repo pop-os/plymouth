@@ -33,23 +33,15 @@ static script_obj* script_evaluate_plus (script_state* state, script_exp* exp)
             case SCRIPT_OBJ_TYPE_INT:
                 obj = script_obj_new_int (script_obj_a->data.integer + script_obj_b->data.integer);
                 break;
-            case SCRIPT_OBJ_TYPE_NULL:
-                obj = script_obj_new_int (script_obj_a->data.integer);                // int + NULL = int  ? meh
-                break;
-            default:
-                break;
-            }
-        break;
-        }
-    case SCRIPT_OBJ_TYPE_NULL:
-        {
-        switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_INT:
-                obj = script_obj_new_int (script_obj_b->data.integer);
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.integer + script_obj_b->data.floatpoint);
                 break;
             case SCRIPT_OBJ_TYPE_STRING:
                 {
-                obj = script_obj_new_string (script_obj_b->data.string);
+                char* newstring;
+                asprintf(&newstring, "%d%s", script_obj_a->data.integer, script_obj_b->data.string);
+                obj = script_obj_new_string (newstring);
+                free(newstring);
                 break;
                 }
             default:
@@ -57,7 +49,28 @@ static script_obj* script_evaluate_plus (script_state* state, script_exp* exp)
             }
         break;
         }
-    
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint + script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint + script_obj_b->data.floatpoint);
+                break;
+            case SCRIPT_OBJ_TYPE_STRING:
+                {
+                char* newstring;
+                asprintf(&newstring, "%f%s", script_obj_a->data.floatpoint, script_obj_b->data.string);
+                obj = script_obj_new_string (newstring);
+                free(newstring);
+                break;
+                }
+            default:
+                break;
+            }
+        break;
+        }
     case SCRIPT_OBJ_TYPE_STRING:
         {
         switch (script_obj_b->type){
@@ -69,15 +82,20 @@ static script_obj* script_evaluate_plus (script_state* state, script_exp* exp)
                 free(newstring);
                 break;
                 }
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                {
+                char* newstring;
+                asprintf(&newstring, "%s%f", script_obj_a->data.string, script_obj_b->data.floatpoint);
+                obj = script_obj_new_string (newstring);
+                free(newstring);
+                break;
+                }
             case SCRIPT_OBJ_TYPE_STRING:
                 {
                 char* newstring;
                 asprintf(&newstring, "%s%s", script_obj_a->data.string, script_obj_b->data.string);
                 obj = script_obj_new_string (newstring);
                 free(newstring);
-                break;
-            case SCRIPT_OBJ_TYPE_NULL:
-                obj = script_obj_new_string (script_obj_a->data.string);
                 break;
                 }
             default:
@@ -115,25 +133,28 @@ static script_obj* script_evaluate_minus (script_state* state, script_exp* exp)
             case SCRIPT_OBJ_TYPE_INT:
                 obj = script_obj_new_int (script_obj_a->data.integer - script_obj_b->data.integer);
                 break;
-            case SCRIPT_OBJ_TYPE_NULL:
-                obj = script_obj_new_int (script_obj_a->data.integer);
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.integer - script_obj_b->data.floatpoint);
                 break;
             default:
                 break;
             }
         break;
         }
-    case SCRIPT_OBJ_TYPE_NULL:
+    case SCRIPT_OBJ_TYPE_FLOAT:
         {
         switch (script_obj_b->type){
             case SCRIPT_OBJ_TYPE_INT:
-                obj = script_obj_new_int (-script_obj_b->data.integer);
+                obj = script_obj_new_float (script_obj_a->data.floatpoint - script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint - script_obj_b->data.floatpoint);
                 break;
             default:
                 break;
             }
         break;
-        }        
+        }
     default:
         break;
     }
@@ -161,6 +182,23 @@ static script_obj* script_evaluate_mul (script_state* state, script_exp* exp)
         switch (script_obj_b->type){
             case SCRIPT_OBJ_TYPE_INT:
                 obj = script_obj_new_int (script_obj_a->data.integer * script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.integer * script_obj_b->data.floatpoint);
+                break;
+            default:
+                break;
+            }
+        break;
+        }
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint * script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint * script_obj_b->data.floatpoint);
                 break;
             default:
                 break;
@@ -193,8 +231,24 @@ static script_obj* script_evaluate_div (script_state* state, script_exp* exp)
         {
         switch (script_obj_b->type){
             case SCRIPT_OBJ_TYPE_INT:
-                if (script_obj_b->data.integer == 0) obj = script_obj_new_null ();
-                else obj = script_obj_new_int (script_obj_a->data.integer / script_obj_b->data.integer);
+                obj = script_obj_new_float ((float)script_obj_a->data.integer / script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.integer / script_obj_b->data.floatpoint);
+                break;
+            default:
+                break;
+            }
+        break;
+        }
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint / script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint / script_obj_b->data.floatpoint);
                 break;
             default:
                 break;
@@ -228,8 +282,24 @@ static script_obj* script_evaluate_mod (script_state* state, script_exp* exp)
         {
         switch (script_obj_b->type){
             case SCRIPT_OBJ_TYPE_INT:
-                if (script_obj_b->data.integer == 0) obj = script_obj_new_null ();
-                else obj = script_obj_new_int (script_obj_a->data.integer % script_obj_b->data.integer);
+                obj = script_obj_new_int (script_obj_a->data.integer % script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (fmod(script_obj_a->data.integer, script_obj_b->data.floatpoint));
+                break;
+            default:
+                break;
+            }
+        break;
+        }
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                obj = script_obj_new_float (fmod(script_obj_a->data.floatpoint, script_obj_b->data.integer));
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (fmod(script_obj_a->data.floatpoint, script_obj_b->data.floatpoint));
                 break;
             default:
                 break;
@@ -342,19 +412,36 @@ static script_obj* script_evaluate_cmp (script_state* state, script_exp* exp)
  int eq=0;
  int ne=0;
  
- int val;
+ float val;
  int valset=0;
  
   switch (script_obj_a->type){
-    case SCRIPT_OBJ_TYPE_REF:
-        assert(0);
     case SCRIPT_OBJ_TYPE_INT:
         {
         switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_REF:
-                assert(0);
             case SCRIPT_OBJ_TYPE_INT:
                 val = script_obj_a->data.integer - script_obj_b->data.integer;
+                valset=1;
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                val = script_obj_a->data.integer - script_obj_b->data.floatpoint;
+                valset=1;
+                break;
+            default:
+                ne = 1;
+                break;
+            }
+        break;
+        }
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                val = script_obj_a->data.floatpoint - script_obj_b->data.integer;
+                valset=1;
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                val = script_obj_a->data.floatpoint - script_obj_b->data.floatpoint;
                 valset=1;
                 break;
             default:
@@ -366,8 +453,6 @@ static script_obj* script_evaluate_cmp (script_state* state, script_exp* exp)
     case SCRIPT_OBJ_TYPE_STRING:
         {
         switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_REF:
-                assert(0);
             case SCRIPT_OBJ_TYPE_STRING:
                 val = strcmp(script_obj_a->data.string, script_obj_b->data.string);
                 valset=1;
@@ -381,8 +466,6 @@ static script_obj* script_evaluate_cmp (script_state* state, script_exp* exp)
     case SCRIPT_OBJ_TYPE_HASH:
         {
         switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_REF:
-                assert(0);
             case SCRIPT_OBJ_TYPE_HASH:
                 if (script_obj_a == script_obj_b) eq = 1;
                 else ne = 1;
@@ -396,8 +479,6 @@ static script_obj* script_evaluate_cmp (script_state* state, script_exp* exp)
     case SCRIPT_OBJ_TYPE_FUNCTION:
         {
         switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_REF:
-                assert(0);
             case SCRIPT_OBJ_TYPE_FUNCTION:
                 if (script_obj_a == script_obj_b) eq = 1;
                 else ne = 1;
@@ -411,8 +492,6 @@ static script_obj* script_evaluate_cmp (script_state* state, script_exp* exp)
     case SCRIPT_OBJ_TYPE_NULL:
         {
         switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_REF:
-                assert(0);
             case SCRIPT_OBJ_TYPE_NULL:
                 eq = 1;
                 break;
@@ -425,10 +504,10 @@ static script_obj* script_evaluate_cmp (script_state* state, script_exp* exp)
     case SCRIPT_OBJ_TYPE_NATIVE:
         {
         switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_REF:
-                assert(0);
             case SCRIPT_OBJ_TYPE_NATIVE:
-                eq = 1;
+                if (script_obj_a->data.native.object_data == script_obj_b->data.native.object_data)
+                    eq = 1;
+                else ne = 1;
                 break;
             default:
                 ne = 1;
@@ -571,6 +650,10 @@ static script_obj* script_evaluate (script_state* state, script_exp* exp)
     case SCRIPT_EXP_TYPE_TERM_INT:
         {
         return script_obj_new_int (exp->data.integer);
+        }
+    case SCRIPT_EXP_TYPE_TERM_FLOAT:
+        {
+        return script_obj_new_float (exp->data.floatpoint);
         }
     case SCRIPT_EXP_TYPE_TERM_STRING:
         {

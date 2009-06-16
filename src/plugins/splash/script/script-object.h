@@ -11,6 +11,7 @@ script_obj* script_obj_deref_direct (script_obj* obj);
 void script_obj_deref (script_obj** obj_ptr);
 char* script_obj_print (script_obj* obj);
 script_obj* script_obj_new_int (int number);
+script_obj* script_obj_new_float (float number);
 script_obj* script_obj_new_string (const char* string);
 script_obj* script_obj_new_null (void);
 script_obj* script_obj_new_hash (void);

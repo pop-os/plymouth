@@ -60,6 +60,8 @@ void script_obj_reset (script_obj* obj)
         break;
     case SCRIPT_OBJ_TYPE_INT:
         break;
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        break;
     case SCRIPT_OBJ_TYPE_STRING:
         free(obj->data.string);
         break;
@@ -146,6 +148,11 @@ char* script_obj_print (script_obj* obj)
         asprintf(&reply, "%d[%d]", obj->data.integer, obj->refcount);
         return reply;
         }
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        {
+        asprintf(&reply, "%f[%d]", obj->data.floatpoint, obj->refcount);
+        return reply;
+        }
     case SCRIPT_OBJ_TYPE_STRING:
         {
         asprintf(&reply, "\"%s\"[%d]", obj->data.string, obj->refcount);
@@ -190,6 +197,15 @@ script_obj* script_obj_new_int (int number)
  obj->type = SCRIPT_OBJ_TYPE_INT;
  obj->refcount = 1;
  obj->data.integer = number;
+ return obj;
+}
+
+script_obj* script_obj_new_float (float number)
+{
+ script_obj* obj = malloc(sizeof(script_obj));
+ obj->type = SCRIPT_OBJ_TYPE_FLOAT;
+ obj->refcount = 1;
+ obj->data.floatpoint = number;
  return obj;
 }
 
@@ -253,8 +269,9 @@ int script_obj_as_int (script_obj* obj)
  obj = script_obj_deref_direct(obj);
  switch (obj->type){
     case SCRIPT_OBJ_TYPE_INT:
-        if (obj->data.integer) return obj->data.integer;
-        else return 0;
+        return obj->data.integer;
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        return (int) obj->data.floatpoint;
     case SCRIPT_OBJ_TYPE_NULL:
         return 0;
     case SCRIPT_OBJ_TYPE_REF:       // should have been de-reffed already
@@ -264,7 +281,6 @@ int script_obj_as_int (script_obj* obj)
     case SCRIPT_OBJ_TYPE_NATIVE:
         return 0;
     case SCRIPT_OBJ_TYPE_STRING:
-        if (*obj->data.string) return true;
         return 0;
     }
     
@@ -278,6 +294,9 @@ bool script_obj_as_bool (script_obj* obj)
  switch (obj->type){
     case SCRIPT_OBJ_TYPE_INT:
         if (obj->data.integer) return true;
+        return false;
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        if (obj->data.floatpoint) return true;
         return false;
     case SCRIPT_OBJ_TYPE_NULL:
         return false;
@@ -305,6 +324,9 @@ char* script_obj_as_string (script_obj* obj)              // reply is strdupped
  switch (obj->type){
     case SCRIPT_OBJ_TYPE_INT:
         asprintf(&reply, "%d", obj->data.integer);
+        return reply;
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        asprintf(&reply, "%f", obj->data.floatpoint);
         return reply;
     case SCRIPT_OBJ_TYPE_NULL:
         asprintf(&reply, "NULL");
@@ -337,6 +359,10 @@ void script_obj_assign (script_obj* obj_a, script_obj* obj_b)
     case SCRIPT_OBJ_TYPE_INT:
         obj_a->type = SCRIPT_OBJ_TYPE_INT;
         obj_a->data.integer = obj_b->data.integer;
+        break;
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        obj_a->type = SCRIPT_OBJ_TYPE_FLOAT;
+        obj_a->data.floatpoint = obj_b->data.floatpoint;
         break;
     case SCRIPT_OBJ_TYPE_STRING:
         obj_a->type = SCRIPT_OBJ_TYPE_STRING;

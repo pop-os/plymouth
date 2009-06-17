@@ -519,51 +519,244 @@ ply_frame_buffer_area_union (ply_frame_buffer_area_t *area1,
 
 static void
 integrate_area_with_flush_area (ply_frame_buffer_t      *buffer,
+                                ply_list_node_t         *node,
                                 ply_frame_buffer_area_t *new_area)
 {
-  ply_list_node_t *node;
-  ply_frame_buffer_area_t overlapping_area;
-
-  /* FIXME: The logic in the function isn't as sophisticated as it could be.
-   * It only culls if one old area completely overlaps the new flush area.
-   *
-   * It doesn't cull if two or more old flush areas collectively overlap the
-   * new flush area.
-   */
-
-  node = ply_list_get_first_node (buffer->areas_to_flush);
+  if (new_area->width == 0) return;
+  if (new_area->height == 0) return;
   while (node != NULL)
     {
       ply_list_node_t *next_node;
-      ply_frame_buffer_area_t *existing_area_to_flush;
-
-      existing_area_to_flush = (ply_frame_buffer_area_t *) ply_list_node_get_data (node);
-
+      ply_frame_buffer_area_t *second_new_area;
+      ply_frame_buffer_area_t *old_area;
+      old_area = (ply_frame_buffer_area_t *) ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (buffer->areas_to_flush, node);
+      
+      /*
+        Say we have an overlap between rectangle A and rectangle B and C denotes the overlap.
+        Depending on the type of overlap we can create a non overlapping addition to the set.
+        
+        1:Collision on one side         2:Collision on two sides  
+        Trim one of the rectanges       Break into two rectangles 
+        
+        AAAAA         AAAAA               AAAAA         AAAAA     
+        AAACCBBB      AAAAABBB            AAAAA         AAAAA     
+        AAACCBBB  =>  AAAAABBB            AAACCBBB  =>  AAAAAbbb  
+        AAACCBBB      AAAAABBB            AAACCBBB      AAAAAbbb  
+        AAAAA         AAAAA                  BBBBB         BBBBB  
+                                             BBBBB         BBBBB
+        
+        3:Collision on opposite sides   4:Fully contained
+        Break into two rectangles       Throw away the rectangle 
 
-      ply_frame_buffer_area_intersect (new_area,
-                                       existing_area_to_flush,
-                                       &overlapping_area);
+         AAAAA        AAAAA              AAAAA        AAAAA
+        BCCCCCB      BAAAAAb             ACCCA        AAAAA
+        BCCCCCB  =>  BAAAAAb             ACCCA   =>   AAAAA
+        BCCCCCB      BAAAAAb             ACCCA        AAAAA
+         AAAAA        AAAAA              AAAAA        AAAAA
+        
+      */
+      enum {H_COLLISION_NONE, H_COLLISION_LEFT, H_COLLISION_RIGHT, H_COLLISION_BOTH, H_COLLISION_CONTAINED}
+            h_collision = H_COLLISION_NONE;
+      enum {V_COLLISION_NONE, V_COLLISION_TOP, V_COLLISION_BOTTOM, V_COLLISION_BOTH, V_COLLISION_CONTAINED}
+            v_collision = V_COLLISION_NONE;
+      
+      if (new_area->x >= old_area->x && (new_area->x + new_area->width) <= (old_area->x + old_area->width))
+        h_collision = H_COLLISION_CONTAINED;
+      else
+        {                                       /* Remember: x+width points to the first pixel outside the rectangle*/
+          if (new_area->x < old_area->x &&
+              (new_area->x + (int)new_area->width) > old_area->x)
+            h_collision = H_COLLISION_LEFT;         /* new_area colllided with the left edge of old_area */
 
-      /* If an existing flush area is completely inside the
-       * new area, then we can remove the old area from the list.
-       *
-       * If the new area is completely inside an old area then
-       * we don't need to add the new area at all.
-       */
-      if (overlapping_area.width == existing_area_to_flush->width &&
-          overlapping_area.height == existing_area_to_flush->height)
-        {
-          free (existing_area_to_flush);
-          ply_list_remove_node (buffer->areas_to_flush, node);
+          if (new_area->x < (old_area->x + (int)old_area->width) &&
+              (new_area->x + (int)new_area->width) >= (old_area->x + (int)old_area->width))
+            {                                       /* new_area colllided with the right edge of old_area */
+              if (h_collision == H_COLLISION_LEFT)
+                h_collision = H_COLLISION_BOTH;
+              else
+                h_collision = H_COLLISION_RIGHT;
+            }
         }
-      else if (overlapping_area.width == new_area->width &&
-               overlapping_area.height == new_area->height)
-        {
-          free (new_area);
-          return;
-        }
 
+      if (h_collision != H_COLLISION_NONE)
+        {
+          if (new_area->y >= old_area->y && (new_area->y + new_area->height) <= (old_area->y + old_area->height))
+            v_collision = V_COLLISION_CONTAINED;
+          else
+            {
+              if (new_area->y < old_area->y &&
+                  (new_area->y + (int)new_area->height) > old_area->y)
+                v_collision = V_COLLISION_TOP;
+              if (new_area->y < (old_area->y + (int)old_area->height) &&
+                  (new_area->y + (int)new_area->height) >= (old_area->y + (int)old_area->height))
+                {                                       /* new_area colllided with the right edge of old_area */
+                  if (v_collision == V_COLLISION_TOP)
+                    v_collision = V_COLLISION_BOTH;
+                  else
+                    v_collision = V_COLLISION_BOTTOM;
+                }
+            }
+        }
+      
+      switch(v_collision)
+        {
+          case V_COLLISION_NONE:
+            break;
+          case V_COLLISION_TOP:
+            {
+              switch (h_collision)
+                {
+                  case H_COLLISION_NONE:   /* no collision */
+                    break;
+                  case H_COLLISION_LEFT:   /* collision with old top left corner, split new into two */
+                    {
+                      second_new_area = malloc (sizeof (ply_frame_buffer_area_t));
+                      second_new_area->x = new_area->x;
+                      second_new_area->y = old_area->y;
+                      second_new_area->width = old_area->x - new_area->x;
+                      second_new_area->height = (new_area->y + new_area->height) - old_area->y;
+                      new_area->height = old_area->y - new_area->y;
+
+                      integrate_area_with_flush_area (buffer, node, second_new_area);
+                      integrate_area_with_flush_area (buffer, node, new_area);
+                      return;
+                    }
+                  case H_COLLISION_RIGHT:   /* collision with old top right corner, split new into two */
+                    {
+                      second_new_area = malloc (sizeof (ply_frame_buffer_area_t));
+                      second_new_area->x = old_area->x + old_area->width;
+                      second_new_area->y = old_area->y;
+                      second_new_area->width = (new_area->x + new_area->width) - (old_area->x + old_area->width);
+                      second_new_area->height = (new_area->y + new_area->height) - old_area->y;
+                      new_area->height = old_area->y - new_area->y;
+
+                      integrate_area_with_flush_area (buffer, node, second_new_area);
+                      integrate_area_with_flush_area (buffer, node, new_area);
+                      return;
+                    }
+                  case H_COLLISION_BOTH:   /* collision with old top, left and right corners, trim old */
+                    old_area->height = (old_area->y + old_area->height) - (new_area->y + new_area->height);
+                    old_area->y = new_area->y + new_area->height;
+                    break;
+                  case H_COLLISION_CONTAINED:   /* collision with old top edge only, trim new */
+                    new_area->height = old_area->y - new_area->y;
+                    break;
+                }
+              break;
+            }
+          case V_COLLISION_BOTTOM:
+            {
+              switch (h_collision)
+                {
+                  case H_COLLISION_NONE:   /* no collision */
+                    break;
+                  case H_COLLISION_LEFT:   /* collision with old bottom left corner, split new into two */
+                    {
+                      second_new_area = malloc (sizeof (ply_frame_buffer_area_t));
+                      second_new_area->x = new_area->x;
+                      second_new_area->y = new_area->y;
+                      second_new_area->width = old_area->x - new_area->x;
+                      second_new_area->height = (old_area->y + old_area->height) - new_area->y;
+
+                      new_area->height = (new_area->y + new_area->height) - (old_area->y + old_area->height);
+                      new_area->y = old_area->y + old_area->height;
+
+                      integrate_area_with_flush_area (buffer, node, second_new_area);
+                      integrate_area_with_flush_area (buffer, node, new_area);
+                      return;
+                    }
+                  case H_COLLISION_RIGHT:   /* collision with old bottom right corner, split new into two */
+                    {
+                      second_new_area = malloc (sizeof (ply_frame_buffer_area_t));
+                      second_new_area->x = old_area->x + old_area->width;
+                      second_new_area->y = new_area->y;
+                      second_new_area->width = (new_area->x + new_area->width) - (old_area->x + old_area->width);
+                      second_new_area->height = (old_area->y + old_area->height) - new_area->y;
+
+                      new_area->height = (new_area->y + new_area->height) - (old_area->y + old_area->height);
+                      new_area->y = old_area->y + old_area->height;
+
+                      integrate_area_with_flush_area (buffer, node, second_new_area);
+                      integrate_area_with_flush_area (buffer, node, new_area);
+                      return;
+                    }
+                  case H_COLLISION_BOTH:   /* collision with old bottom, left and right corners, trim old */
+                    old_area->height = new_area->y - old_area->y;
+                    break;
+                  case H_COLLISION_CONTAINED:   /* collision with old botoom edge only, trim new */
+                    new_area->height = (new_area->y + new_area->height) - (old_area->y + old_area->height);
+                    new_area->y = old_area->y + old_area->height;
+                    break;
+                }
+              break;
+            }
+          case V_COLLISION_BOTH:
+            {
+              switch (h_collision)
+                {
+                  case H_COLLISION_NONE:   /* no collision */
+                    break;
+                  case H_COLLISION_LEFT:   /* collision with old left, top and bottom corners, trim old */
+                    old_area->width = (old_area->x + old_area->width) - (new_area->x + new_area->width);
+                    old_area->x = new_area->x + new_area->width;
+                    break;
+                  case H_COLLISION_RIGHT:   /* collision with old right, top and bottom corners, trim old */
+                    old_area->width = new_area->x - old_area->x;
+                    break;
+                  case H_COLLISION_BOTH:   /* old fully contained within new, remove old */
+                    free (old_area);
+                    ply_list_remove_node (buffer->areas_to_flush, node);
+                    break;
+                  case H_COLLISION_CONTAINED:   /* collision with old top and bottom edges but not left and right, split new into two */
+                    {
+                      second_new_area = malloc (sizeof (ply_frame_buffer_area_t));
+                      second_new_area->x = new_area->x;
+                      second_new_area->y = old_area->y + old_area->height;
+                      second_new_area->width = new_area->width;
+                      second_new_area->height = (new_area->y + new_area->height) - (old_area->y + old_area->height);
+                      new_area->height = old_area->y - new_area->y;
+
+                      integrate_area_with_flush_area (buffer, node, second_new_area);
+                      integrate_area_with_flush_area (buffer, node, new_area);
+                      return;
+                    }
+                }
+              break;
+            }
+          case V_COLLISION_CONTAINED:
+            {
+              switch (h_collision)
+                {
+                  case H_COLLISION_NONE:   /* no collision */
+                    break;
+                  case H_COLLISION_LEFT:   /* collision with old left edge only, trim new */
+                    new_area->width = old_area->x - new_area->x;
+                    break;
+                  case H_COLLISION_RIGHT:   /* collision with old right edge only, trim new */
+                    new_area->width = (new_area->x + new_area->width) - (old_area->x + old_area->width);
+                    new_area->x = old_area->x + old_area->width;
+                    break;
+                  case H_COLLISION_BOTH:
+                    {       /* collision with old left and right edges but not top and botton, split new into two */
+                      second_new_area = malloc (sizeof (ply_frame_buffer_area_t));
+                      second_new_area->x = old_area->x + old_area->width;
+                      second_new_area->y = new_area->y;
+                      second_new_area->width = (new_area->x + new_area->width) - (old_area->x + old_area->width);
+                      second_new_area->height = new_area->height;
+                      new_area->width = old_area->x - new_area->x;
+
+                      integrate_area_with_flush_area (buffer, node, second_new_area);
+                      integrate_area_with_flush_area (buffer, node, new_area);
+                      return;
+                    }
+                  case H_COLLISION_CONTAINED:   /* new fully contained within old, remove new */
+                    free (new_area);
+                    return;
+                }
+              break;
+            }
+        }
       node = next_node;
     }
 
@@ -588,7 +781,9 @@ ply_frame_buffer_add_area_to_flush_area (ply_frame_buffer_t      *buffer,
       return;
     }
 
-  integrate_area_with_flush_area (buffer, cropped_area);
+  integrate_area_with_flush_area (buffer, 
+                                  ply_list_get_first_node (buffer->areas_to_flush),
+                                  cropped_area);
 }
 
 static bool

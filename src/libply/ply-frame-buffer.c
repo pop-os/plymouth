@@ -1093,6 +1093,10 @@ ply_frame_buffer_fill_with_gradient (ply_frame_buffer_t      *buffer,
 
   uint32_t red, green, blue, red_step, green_step, blue_step, t, pixel;
   uint32_t x, y;
+  /* we use a fixed seed so that the dithering doesn't change on repaints
+   * of the same area.
+   */
+  uint32_t noise = 0x100001;
   ply_frame_buffer_area_t cropped_area;
 
   if (area == NULL)
@@ -1111,20 +1115,8 @@ ply_frame_buffer_fill_with_gradient (ply_frame_buffer_t      *buffer,
   t = (end << BLUE_SHIFT) & COLOR_MASK;
   blue_step = (int32_t) (t - blue) / (int32_t) buffer->area.height;
 
-  /* we use a fixed seed so that the dithering doesn't change on repaints
-   * of the same area.
-   */
-  srand(100200);
 
-/* FIXME: we assume RAND_MAX is at least 24 bits here, and it is on linux.
- * On some platforms it's only 16its though.  If that were true on linux,
- * then NOISE_BITS would get effectively ignored, since those bits would
- * always overlap with zeros.  We could fix it by running rand() twice
- * per channel generating 32-bits of noise, or by shifting the result of
- * rand() over 8 bits, such that the zeros would be overlapping with the
- * least significant fractional bits of the color channel instead.
- */
-#define NOISE() (rand () & NOISE_MASK)
+#define RANDOMIZE(num) (num = (num + (num << 1)) & NOISE_MASK)
 
   for (y = buffer->area.y; y < buffer->area.y + buffer->area.height; y++)
     {
@@ -1132,11 +1124,13 @@ ply_frame_buffer_fill_with_gradient (ply_frame_buffer_t      *buffer,
         {
           for (x = cropped_area.x; x < cropped_area.x + cropped_area.width; x++)
             {
-              pixel =
-                  0xff000000 |
-                  (((red   + NOISE ()) & COLOR_MASK) >> RED_SHIFT) |
-                  (((green + NOISE ()) & COLOR_MASK) >> GREEN_SHIFT) |
-                  (((blue  + NOISE ()) & COLOR_MASK) >> BLUE_SHIFT);
+              pixel = 0xff000000;
+              RANDOMIZE(noise);
+              pixel |= (((red   + noise) & COLOR_MASK) >> RED_SHIFT);
+              RANDOMIZE(noise);
+              pixel |= (((green + noise) & COLOR_MASK) >> GREEN_SHIFT);
+              RANDOMIZE(noise);
+              pixel |= (((blue  + noise) & COLOR_MASK) >> BLUE_SHIFT);
 
               buffer->shadow_buffer[y * buffer->area.width + x] = pixel;
             }

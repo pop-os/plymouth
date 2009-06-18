@@ -1117,23 +1117,51 @@ ply_frame_buffer_fill_with_gradient (ply_frame_buffer_t      *buffer,
 
 
 #define RANDOMIZE(num) (num = (num + (num << 1)) & NOISE_MASK)
+#define UNROLLED_PIXEL_COUNT 8
 
   for (y = buffer->area.y; y < buffer->area.y + buffer->area.height; y++)
     {
       if (cropped_area.y <= y && y < cropped_area.y + cropped_area.height)
         {
-          for (x = cropped_area.x; x < cropped_area.x + cropped_area.width; x++)
+          if (cropped_area.width < UNROLLED_PIXEL_COUNT)
             {
-              pixel = 0xff000000;
-              RANDOMIZE(noise);
-              pixel |= (((red   + noise) & COLOR_MASK) >> RED_SHIFT);
-              RANDOMIZE(noise);
-              pixel |= (((green + noise) & COLOR_MASK) >> GREEN_SHIFT);
-              RANDOMIZE(noise);
-              pixel |= (((blue  + noise) & COLOR_MASK) >> BLUE_SHIFT);
+              for (x = cropped_area.x; x < cropped_area.x + cropped_area.width; x++)
+                {
+                  pixel = 0xff000000;
+                  RANDOMIZE(noise);
+                  pixel |= (((red   + noise) & COLOR_MASK) >> RED_SHIFT);
+                  RANDOMIZE(noise);
+                  pixel |= (((green + noise) & COLOR_MASK) >> GREEN_SHIFT);
+                  RANDOMIZE(noise);
+                  pixel |= (((blue  + noise) & COLOR_MASK) >> BLUE_SHIFT);
 
-              buffer->shadow_buffer[y * buffer->area.width + x] = pixel;
+                  buffer->shadow_buffer[y * buffer->area.width + x] = pixel;
+                }
             }
+          else
+            {
+              uint32_t shaded_set[UNROLLED_PIXEL_COUNT];
+              uint32_t *ptr = &buffer->shadow_buffer[y * buffer->area.width + cropped_area.x];
+              for (x = 0; x < UNROLLED_PIXEL_COUNT; x++)
+                {
+                  shaded_set[x] = 0xff000000;
+                  RANDOMIZE(noise);
+                  shaded_set[x] |= (((red   + noise) & COLOR_MASK) >> RED_SHIFT);
+                  RANDOMIZE(noise);
+                  shaded_set[x] |= (((green + noise) & COLOR_MASK) >> GREEN_SHIFT);
+                  RANDOMIZE(noise);
+                  shaded_set[x] |= (((blue  + noise) & COLOR_MASK) >> BLUE_SHIFT);
+                }
+              for (x = cropped_area.width; x >=UNROLLED_PIXEL_COUNT; x-=UNROLLED_PIXEL_COUNT)
+                {
+                    memcpy((void*)ptr, (void*)shaded_set, UNROLLED_PIXEL_COUNT * sizeof(uint32_t));
+                    ptr += UNROLLED_PIXEL_COUNT;
+                }
+              memcpy((void*)ptr, (void*)shaded_set, x * sizeof(uint32_t));
+              
+              
+            }
+          
         }
 
       red += red_step;

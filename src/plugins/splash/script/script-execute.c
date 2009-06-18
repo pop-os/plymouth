@@ -553,6 +553,18 @@ static script_obj* script_evaluate_cmp (script_state* state, script_exp* exp)
  return script_obj_new_int (reply);
 }
 
+static script_obj* script_evaluate_logic (script_state* state, script_exp* exp)
+{
+ script_obj* obj = script_evaluate (state, exp->data.dual.sub_a);
+ if (exp->type == SCRIPT_EXP_TYPE_AND && !script_obj_as_bool(obj))
+    return obj;
+ else if (exp->type == SCRIPT_EXP_TYPE_OR &&script_obj_as_bool(obj))
+    return obj;
+ script_obj_unref (obj);
+ obj = script_evaluate (state, exp->data.dual.sub_b);
+ return obj;
+}
+
 static script_obj* script_evaluate_func (script_state* state, script_exp* exp)
 {
  script_state localstate;
@@ -646,6 +658,11 @@ static script_obj* script_evaluate (script_state* state, script_exp* exp)
     case SCRIPT_EXP_TYPE_LE:
         {
         return script_evaluate_cmp (state, exp);
+        }
+    case SCRIPT_EXP_TYPE_AND:
+    case SCRIPT_EXP_TYPE_OR:
+        {
+        return script_evaluate_logic (state, exp);
         }
     case SCRIPT_EXP_TYPE_TERM_INT:
         {

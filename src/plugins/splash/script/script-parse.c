@@ -24,9 +24,11 @@
 int var (exp)           tm   =      ! ++ -- 
 f() f[] f.a             pi   =      
 * / %                   md   =
-+ -                     pm   =      && || 
++ -                     pm   =
 < <= > >=               gt   =
 == !=                   eq   =
+&&                      an
+||                      or
 =                       as   =      += -= *= %=
 
 */
@@ -250,9 +252,9 @@ static script_exp* script_parse_exp_eq (ply_scan_t* scan)
 {
  script_exp* sub_a = script_parse_exp_gt (scan);
  if (!sub_a) return NULL; 
- ply_scan_token_t* curtoken = ply_scan_get_current_token(scan);
- ply_scan_token_t* peektoken = ply_scan_peek_next_token(scan);
  while (1){
+    ply_scan_token_t* curtoken = ply_scan_get_current_token(scan);
+    ply_scan_token_t* peektoken = ply_scan_peek_next_token(scan);
     if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
     if (peektoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
     
@@ -269,22 +271,75 @@ static script_exp* script_parse_exp_eq (ply_scan_t* scan)
     exp->data.dual.sub_b = script_parse_exp_gt (scan);
     assert(exp->data.dual.sub_b);                                        //FIXME syntax error
     sub_a = exp;
-    curtoken = ply_scan_get_current_token(scan);
-    peektoken = ply_scan_peek_next_token(scan);
     }
  
  return sub_a;
 }
 
+
+static script_exp* script_parse_exp_an (ply_scan_t* scan)
+{
+ script_exp* sub_a = script_parse_exp_eq (scan);
+ if (!sub_a) return NULL; 
+ while (1){
+    ply_scan_token_t* curtoken = ply_scan_get_current_token(scan);
+    ply_scan_token_t* peektoken = ply_scan_peek_next_token(scan);
+    if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
+    if (peektoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
+    
+    if (curtoken->data.symbol != '&') break;
+    if (peektoken->data.symbol != '&') break;
+    ply_scan_get_next_token(scan);
+    ply_scan_get_next_token(scan);
+    
+    script_exp* exp = malloc(sizeof(script_exp));
+    exp->type = SCRIPT_EXP_TYPE_AND;
+    exp->data.dual.sub_a = sub_a;
+    exp->data.dual.sub_b = script_parse_exp_eq (scan);
+    assert(exp->data.dual.sub_b);                                        //FIXME syntax error
+    sub_a = exp;
+    }
+ 
+ return sub_a;
+}
+
+
+static script_exp* script_parse_exp_or (ply_scan_t* scan)
+{
+ script_exp* sub_a = script_parse_exp_an (scan);
+ if (!sub_a) return NULL; 
+ while (1){
+    ply_scan_token_t* curtoken = ply_scan_get_current_token(scan);
+    ply_scan_token_t* peektoken = ply_scan_peek_next_token(scan);
+    if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
+    if (peektoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
+    
+    if (peektoken->data.symbol != '|') break;
+    if (curtoken->data.symbol != '|') break;
+    ply_scan_get_next_token(scan);
+    ply_scan_get_next_token(scan);
+    
+    script_exp* exp = malloc(sizeof(script_exp));
+    exp->type = SCRIPT_EXP_TYPE_OR;
+    exp->data.dual.sub_a = sub_a;
+    exp->data.dual.sub_b = script_parse_exp_an (scan);
+    assert(exp->data.dual.sub_b);                                        //FIXME syntax error
+    sub_a = exp;
+    }
+ 
+ return sub_a;
+}
+
+
 static script_exp* script_parse_exp_as (ply_scan_t* scan)
 {
- script_exp* lhs = script_parse_exp_eq (scan);
+ script_exp* lhs = script_parse_exp_or (scan);
  if (!lhs) return NULL; 
  ply_scan_token_t* curtoken = ply_scan_get_current_token(scan);
  
  if (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && curtoken->data.symbol == '=' ){
     ply_scan_get_next_token(scan);
-    script_exp* rhs = script_parse_exp_eq(scan);
+    script_exp* rhs = script_parse_exp_or(scan);
     assert(rhs);                                        //FIXME syntax error
     script_exp* exp = malloc(sizeof(script_exp));
     exp->type = SCRIPT_EXP_TYPE_ASSIGN;
@@ -514,6 +569,8 @@ static void script_parse_exp_free (script_exp* exp)
     case SCRIPT_EXP_TYPE_GE:
     case SCRIPT_EXP_TYPE_LT:
     case SCRIPT_EXP_TYPE_LE:
+    case SCRIPT_EXP_TYPE_AND:
+    case SCRIPT_EXP_TYPE_OR:
     case SCRIPT_EXP_TYPE_ASSIGN:
     case SCRIPT_EXP_TYPE_HASH:
         script_parse_exp_free (exp->data.dual.sub_a);

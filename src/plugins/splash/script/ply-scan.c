@@ -57,6 +57,7 @@ void ply_scan_token_clean(ply_scan_token_t* token)
         break;
     case PLY_SCAN_TOKEN_TYPE_IDENTIFIER:
     case PLY_SCAN_TOKEN_TYPE_STRING:
+    case PLY_SCAN_TOKEN_TYPE_COMMENT:
         free(token->data.string);
         break;
     }
@@ -100,7 +101,9 @@ unsigned char ply_scan_get_next_char(ply_scan_t* scan)
 
 void ply_scan_read_next_token(ply_scan_t* scan, ply_scan_token_t* token)
 {
- unsigned char curchar = ply_scan_get_current_char(scan);
+ unsigned char curchar = ply_scan_get_current_char(scan);       // FIXME Double check these unsigned chars are ok
+ unsigned char nextchar;
+ 
  token->whitespace = 0;
  while(true){
     if (curchar == ' ')  {curchar = ply_scan_get_next_char(scan); token->whitespace++; continue;}
@@ -191,10 +194,34 @@ void ply_scan_read_next_token(ply_scan_t* scan, ply_scan_token_t* token)
     return;
     }
  
+ nextchar = ply_scan_get_next_char(scan);
+ 
+    {
+    bool linecomment = false;
+    if (curchar == '#') linecomment = true;
+    if (curchar == '/' && nextchar == '/'){
+        linecomment = true;
+        nextchar = ply_scan_get_next_char(scan);
+        }
+    if (linecomment){
+        int index = 0;
+        token->data.string = malloc(sizeof(char));
+        token->data.string[0] = '\0';
+        curchar = nextchar;
+        for (curchar = nextchar; curchar != '\n' && curchar != '\0'; curchar = ply_scan_get_next_char(scan)){
+            token->data.string = realloc(token->data.string, (index+2)*sizeof(char));
+            token->data.string[index] = curchar;
+            token->data.string[index+1] = '\0';
+            index++;
+            }
+        token->type = PLY_SCAN_TOKEN_TYPE_COMMENT;
+        return;
+        }
+    }
+ 
  // all other
  token->type = PLY_SCAN_TOKEN_TYPE_SYMBOL;
  token->data.symbol = curchar;
- ply_scan_get_next_char(scan);
  return;
 }
 
@@ -214,7 +241,11 @@ static ply_scan_token_t* ply_scan_peek_token(ply_scan_t* scan, int n)
  if (scan->tokens[n]->type == PLY_SCAN_TOKEN_TYPE_EMPTY){
     if (n > 0 && scan->tokens[n-1]->type == PLY_SCAN_TOKEN_TYPE_EMPTY)
         ply_scan_peek_token(scan, n-1);
-    ply_scan_read_next_token(scan, scan->tokens[n]);
+    do {
+        ply_scan_token_clean(scan->tokens[n]);
+        ply_scan_read_next_token(scan, scan->tokens[n]);                        // FIXME if skipping comments, add whitespace to next token
+        }
+    while (scan->tokens[n]->type == PLY_SCAN_TOKEN_TYPE_COMMENT);               // FIXME optionally pass comments back
 //     printf("%d:", n);
 //     switch (scan->tokens[n]->type){
 //         case PLY_SCAN_TOKEN_TYPE_STRING:

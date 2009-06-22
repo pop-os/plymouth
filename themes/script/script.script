@@ -45,4 +45,7 @@ fun refresh (){
     return;
     }
 
+// This is a comment
+# As is this (both are acceptable because people do forget which to use)
+
 PlymouthSetRefreshFunction(refresh);

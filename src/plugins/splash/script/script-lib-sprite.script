@@ -2,6 +2,7 @@ fun SpriteUpdate(sprite){
     SpriteSetX(sprite.native, sprite.x);
     SpriteSetY(sprite.native, sprite.y);
     SpriteSetZ(sprite.native, sprite.z);
+    SpriteSetImage(sprite.native, sprite.image);
     }
 
 

@@ -288,6 +288,30 @@ int script_obj_as_int (script_obj* obj)
  return false;
 }
 
+float script_obj_as_float (script_obj* obj)
+{                                                     // If in then reply contents, otherwise reply 0
+ obj = script_obj_deref_direct(obj);
+ switch (obj->type){
+    case SCRIPT_OBJ_TYPE_INT:
+        return (float) obj->data.integer;
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        return obj->data.floatpoint;
+    case SCRIPT_OBJ_TYPE_NULL:
+        return 0;
+    case SCRIPT_OBJ_TYPE_REF:       // should have been de-reffed already
+        assert(0);
+    case SCRIPT_OBJ_TYPE_HASH:
+    case SCRIPT_OBJ_TYPE_FUNCTION:
+    case SCRIPT_OBJ_TYPE_NATIVE:
+        return 0;
+    case SCRIPT_OBJ_TYPE_STRING:
+        return 0;
+    }
+    
+ assert(0);         // Abort on uncaught
+ return false;
+}
+
 bool script_obj_as_bool (script_obj* obj)
 {                                                 // False objects are NULL, 0, ""
  obj = script_obj_deref_direct(obj);

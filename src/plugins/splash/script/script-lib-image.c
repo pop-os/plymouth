@@ -3,6 +3,7 @@
 #include "ply-utils.h"
 #include "script.h"
 #include "script-object.h"
+#include "script-parse.h"
 #include "script-execute.h"
 #include "script-lib-image.h" 
 #include <assert.h>
@@ -84,6 +85,28 @@ static script_return image_get_height (script_state* state, void* user_data)
 
 
 
+static script_return image_rotate (script_state* state, void* user_data)
+{
+ script_lib_image_data_t* data = user_data;
+ script_obj* script_obj_image = script_obj_hash_get_element (state->local, "image");
+ script_obj* script_obj_angle = script_obj_hash_get_element (state->local, "angle");
+ script_obj_deref(&script_obj_image);
+ script_obj* reply;
+ if (script_obj_image->type == SCRIPT_OBJ_TYPE_NATIVE &&
+     script_obj_image->data.native.class == data->class){
+    ply_image_t *image = script_obj_image->data.native.object_data;
+    ply_image_t *new_image = ply_image_rotate (image, ply_image_get_width (image)/2, ply_image_get_height (image)/2, script_obj_as_float (script_obj_angle));
+    reply = script_obj_new_native (new_image, data->class);
+    }
+ else
+    reply = script_obj_new_null ();
+ script_obj_unref(script_obj_image);
+ script_obj_unref(script_obj_angle);
+ return (script_return){SCRIPT_RETURN_TYPE_RETURN, reply};
+}
+
+
+
 
 script_lib_image_data_t* script_lib_image_setup(script_state *state, char* image_dir)
 {
@@ -92,6 +115,7 @@ script_lib_image_data_t* script_lib_image_setup(script_state *state, char* image
  data->image_dir = strdup(image_dir);
 
  script_add_native_function (state->global, "ImageNew", image_new, data, "filename", NULL);
+ script_add_native_function (state->global, "ImageRotate", image_rotate, data, "image", "angle", NULL);
  script_add_native_function (state->global, "ImageGetWidth", image_get_width, data, "image", NULL);
  script_add_native_function (state->global, "ImageGetHeight", image_get_height, data, "image", NULL);
  

@@ -19,6 +19,7 @@ script_obj* script_obj_new_function (script_function* function);
 script_obj* script_obj_new_ref (script_obj* sub_obj);
 script_obj* script_obj_new_native (void* object_data, script_obj_native_class* class);
 int script_obj_as_int (script_obj* obj);
+float script_obj_as_float (script_obj* obj);
 bool script_obj_as_bool (script_obj* obj);
 char* script_obj_as_string (script_obj* obj);
 void script_obj_assign (script_obj* obj_a, script_obj* obj_b);

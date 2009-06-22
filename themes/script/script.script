@@ -4,12 +4,14 @@ while (index<30){
     mystring = index;
     if (index<10) mystring = "0" + index;
     sprites[index] = SpriteNewWithImage("../spinfinity/throbber-" + mystring + ".png");
+    sprites[index].orig_image = sprites[index].image;
     sprites[index].xd = 1 + index;
     sprites[index].yd = 1 + index;
     index = index + 1;
     }
 
 random = 1;
+count = 0;
 
 fun update_logo_sprite (sprite){
     image_width =  ImageGetWidth (sprite.image);
@@ -28,13 +30,14 @@ fun update_logo_sprite (sprite){
     
     sprite.x = sprite.x + sprite.xd;
     sprite.y = sprite.y + sprite.yd;
-    
+    sprite.image = ImageRotate(sprite.orig_image, count*0.1);
     SpriteUpdate(sprite);
     }
 
 
 fun refresh (){
     index = 0;
+    count++;
     while (!(index>=30)){
         update_logo_sprite (sprites[index]);
         index++;

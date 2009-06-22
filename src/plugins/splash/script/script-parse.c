@@ -21,14 +21,16 @@
 
 
 /*                          done    todo
-int var (exp)           tm   =      ! ++ -- 
-f() f[] f.a             pi   =      
+int var (exp)           tm   =
+f() f[] f.a             pi   =
+pre: ! ++ -- + -        pr   =
+post:  ++ --            po   =
 * / %                   md   =
 + -                     pm   =
 < <= > >=               gt   =
 == !=                   eq   =
-&&                      an
-||                      or
+&&                      an   =
+||                      or   =
 =                       as   =      += -= *= %=
 
 */
@@ -166,11 +168,88 @@ static script_exp* script_parse_exp_pi (ply_scan_t* scan)
 }
 
 
+static script_exp* script_parse_exp_pr (ply_scan_t* scan)
+{
+ script_exp_type type;
+ ply_scan_token_t* curtoken = ply_scan_get_current_token(scan);
+ ply_scan_token_t* peektoken = ply_scan_peek_next_token(scan);
+ 
+ if (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL){
+    if (curtoken->data.symbol == '+'){
+        if (peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && peektoken->data.symbol == '+'){
+            ply_scan_get_next_token(scan);
+            ply_scan_get_next_token(scan);
+            type = SCRIPT_EXP_TYPE_PRE_INC;
+            }
+        else {
+            ply_scan_get_next_token(scan);
+            type = SCRIPT_EXP_TYPE_POS;
+            }
+        }
+    else if (curtoken->data.symbol == '-'){
+        if (peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && peektoken->data.symbol == '-'){
+            ply_scan_get_next_token(scan);
+            ply_scan_get_next_token(scan);
+            type = SCRIPT_EXP_TYPE_PRE_DEC;
+            }
+        else {
+            ply_scan_get_next_token(scan);
+            type = SCRIPT_EXP_TYPE_NEG;
+            }
+        }
+    else if (curtoken->data.symbol == '!'){
+        ply_scan_get_next_token(scan);
+        type = SCRIPT_EXP_TYPE_NOT;
+        }
+    else {
+        return script_parse_exp_pi (scan);
+        }
+    script_exp* exp = malloc(sizeof(script_exp));
+    exp->type = type;
+    exp->data.sub = script_parse_exp_pr (scan);
+    return exp;
+    }
+ return script_parse_exp_pi (scan);
+}
+
+
+
+static script_exp* script_parse_exp_po (ply_scan_t* scan)
+{
+ script_exp* exp = script_parse_exp_pr (scan);
+ 
+ while (true){
+    ply_scan_token_t* curtoken = ply_scan_get_current_token(scan);
+    ply_scan_token_t* peektoken = ply_scan_peek_next_token(scan);
+    if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
+    if (peektoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
+    if (curtoken->data.symbol == '+' && peektoken->data.symbol == '+') {
+        ply_scan_get_next_token(scan);
+        ply_scan_get_next_token(scan);
+        script_exp* new_exp = malloc(sizeof(script_exp));
+        new_exp->type = SCRIPT_EXP_TYPE_POST_INC;
+        new_exp->data.sub = exp;
+        exp = new_exp;
+        }
+    else if (curtoken->data.symbol == '-' && peektoken->data.symbol == '-') {
+        ply_scan_get_next_token(scan);
+        ply_scan_get_next_token(scan);
+        script_exp* new_exp = malloc(sizeof(script_exp));
+        new_exp->type = SCRIPT_EXP_TYPE_POST_DEC;
+        new_exp->data.sub = exp;
+        exp = new_exp;
+        }
+    else break;
+    }
+ 
+ return exp;
+}
+
 
 
 static script_exp* script_parse_exp_md (ply_scan_t* scan)
 {
- script_exp* sub_a = script_parse_exp_pi (scan);
+ script_exp* sub_a = script_parse_exp_po (scan);
  if (!sub_a) return NULL;
  ply_scan_token_t* curtoken = ply_scan_get_current_token(scan);
  while (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL &&
@@ -183,7 +262,7 @@ static script_exp* script_parse_exp_md (ply_scan_t* scan)
     else                                    exp->type = SCRIPT_EXP_TYPE_MOD;
     exp->data.dual.sub_a = sub_a;
     ply_scan_get_next_token(scan);
-    exp->data.dual.sub_b = script_parse_exp_pi (scan);
+    exp->data.dual.sub_b = script_parse_exp_po (scan);
     assert(exp->data.dual.sub_b);                                        //FIXME syntax error
     sub_a = exp;
     curtoken = ply_scan_get_current_token(scan);
@@ -575,6 +654,15 @@ static void script_parse_exp_free (script_exp* exp)
     case SCRIPT_EXP_TYPE_HASH:
         script_parse_exp_free (exp->data.dual.sub_a);
         script_parse_exp_free (exp->data.dual.sub_b);
+        break;
+    case SCRIPT_EXP_TYPE_NOT:
+    case SCRIPT_EXP_TYPE_POS:
+    case SCRIPT_EXP_TYPE_NEG:
+    case SCRIPT_EXP_TYPE_PRE_INC:
+    case SCRIPT_EXP_TYPE_PRE_DEC:
+    case SCRIPT_EXP_TYPE_POST_INC:
+    case SCRIPT_EXP_TYPE_POST_DEC:
+        script_parse_exp_free (exp->data.sub);
         break;
     case SCRIPT_EXP_TYPE_TERM_INT:
     case SCRIPT_EXP_TYPE_TERM_FLOAT:

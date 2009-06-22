@@ -9,11 +9,11 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdbool.h>
+#include <math.h>
 
 #include "script.h"
 #include "script-execute.h"
 #include "script-object.h"
-
 
 static script_obj* script_evaluate (script_state* state, script_exp* exp);
 
@@ -392,7 +392,6 @@ static script_obj* script_evaluate_assign (script_state* state, script_exp* exp)
  script_obj* script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
  script_obj* script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
  script_obj_deref (&script_obj_b);
- script_obj_reset (script_obj_a);
  script_obj_assign (script_obj_a, script_obj_b);
  
  script_obj_unref(script_obj_b);
@@ -515,6 +514,10 @@ static script_obj* script_evaluate_cmp (script_state* state, script_exp* exp)
             }
         break;
         }
+    case SCRIPT_OBJ_TYPE_REF:
+        {
+        assert(0);
+        }
     }
  if(valset){
     if (val < 0) {lt = 1; ne = 1;}
@@ -563,6 +566,62 @@ static script_obj* script_evaluate_logic (script_state* state, script_exp* exp)
  script_obj_unref (obj);
  obj = script_evaluate (state, exp->data.dual.sub_b);
  return obj;
+}
+
+static script_obj* script_evaluate_unary (script_state* state, script_exp* exp)
+{
+ script_obj* obj = script_evaluate (state, exp->data.sub);
+ script_obj* new_obj;
+ script_obj_deref (&obj);
+ if (exp->type == SCRIPT_EXP_TYPE_NOT){
+    int reply = !script_obj_as_bool(obj);
+    script_obj_unref (obj);
+    return script_obj_new_int (reply);
+    }
+ if (exp->type == SCRIPT_EXP_TYPE_POS){     // FIXME what should happen on non number operands?
+    return obj;                             // Does nothing, maybe just remove at parse stage
+    }
+ if (exp->type == SCRIPT_EXP_TYPE_NEG){
+    if (obj->type == SCRIPT_OBJ_TYPE_INT){
+        new_obj = script_obj_new_int (-obj->data.integer);
+        }
+    else if (obj->type == SCRIPT_OBJ_TYPE_FLOAT){
+        new_obj = script_obj_new_float (-obj->data.floatpoint);
+        }
+    else new_obj = script_obj_new_null ();
+    script_obj_unref (obj);
+    return new_obj;
+    }
+ 
+ 
+ int change_pre = 0;
+ int change_post;
+ 
+ if (exp->type == SCRIPT_EXP_TYPE_PRE_INC || SCRIPT_EXP_TYPE_POST_INC)
+    change_post = 1;
+ else 
+    change_post = -1;
+    
+ if (exp->type == SCRIPT_EXP_TYPE_PRE_INC)
+    change_pre = 1;
+ else if (exp->type == SCRIPT_EXP_TYPE_PRE_DEC)
+    change_pre = -1;
+ 
+ if (obj->type == SCRIPT_OBJ_TYPE_INT){
+    new_obj = script_obj_new_int (obj->data.integer + change_pre);
+    obj->data.integer += change_post;
+    }
+ else if (obj->type == SCRIPT_OBJ_TYPE_FLOAT){
+    new_obj = script_obj_new_float (obj->data.floatpoint + change_pre);
+    obj->data.floatpoint += change_post;
+    }
+ else {
+    new_obj = script_obj_new_null ();   // If performeing something like a=hash++; a and hash become NULL
+    script_obj_reset (obj);
+    }
+ 
+ script_obj_unref (obj);
+ return new_obj;
 }
 
 static script_obj* script_evaluate_func (script_state* state, script_exp* exp)
@@ -663,6 +722,16 @@ static script_obj* script_evaluate (script_state* state, script_exp* exp)
     case SCRIPT_EXP_TYPE_OR:
         {
         return script_evaluate_logic (state, exp);
+        }
+    case SCRIPT_EXP_TYPE_NOT:
+    case SCRIPT_EXP_TYPE_POS:
+    case SCRIPT_EXP_TYPE_NEG:
+    case SCRIPT_EXP_TYPE_PRE_INC:
+    case SCRIPT_EXP_TYPE_PRE_DEC:
+    case SCRIPT_EXP_TYPE_POST_INC:
+    case SCRIPT_EXP_TYPE_POST_DEC:
+        {
+        return script_evaluate_unary (state, exp);
         }
     case SCRIPT_EXP_TYPE_TERM_INT:
         {

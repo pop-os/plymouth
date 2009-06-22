@@ -176,7 +176,7 @@ static script_exp* script_parse_exp_pr (ply_scan_t* scan)
  
  if (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL){
     if (curtoken->data.symbol == '+'){
-        if (peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && peektoken->data.symbol == '+'){
+        if (peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && peektoken->data.symbol == '+' && !peektoken->whitespace){
             ply_scan_get_next_token(scan);
             ply_scan_get_next_token(scan);
             type = SCRIPT_EXP_TYPE_PRE_INC;
@@ -187,7 +187,7 @@ static script_exp* script_parse_exp_pr (ply_scan_t* scan)
             }
         }
     else if (curtoken->data.symbol == '-'){
-        if (peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && peektoken->data.symbol == '-'){
+        if (peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && peektoken->data.symbol == '-' && !peektoken->whitespace){
             ply_scan_get_next_token(scan);
             ply_scan_get_next_token(scan);
             type = SCRIPT_EXP_TYPE_PRE_DEC;
@@ -223,7 +223,7 @@ static script_exp* script_parse_exp_po (ply_scan_t* scan)
     ply_scan_token_t* peektoken = ply_scan_peek_next_token(scan);
     if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
     if (peektoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
-    if (curtoken->data.symbol == '+' && peektoken->data.symbol == '+') {
+    if (curtoken->data.symbol == '+' && peektoken->data.symbol == '+' && !peektoken->whitespace) {
         ply_scan_get_next_token(scan);
         ply_scan_get_next_token(scan);
         script_exp* new_exp = malloc(sizeof(script_exp));
@@ -231,7 +231,7 @@ static script_exp* script_parse_exp_po (ply_scan_t* scan)
         new_exp->data.sub = exp;
         exp = new_exp;
         }
-    else if (curtoken->data.symbol == '-' && peektoken->data.symbol == '-') {
+    else if (curtoken->data.symbol == '-' && peektoken->data.symbol == '-' && !peektoken->whitespace) {
         ply_scan_get_next_token(scan);
         ply_scan_get_next_token(scan);
         script_exp* new_exp = malloc(sizeof(script_exp));
@@ -306,7 +306,8 @@ static script_exp* script_parse_exp_gt (ply_scan_t* scan)
     int eq = 0;
     curtoken = ply_scan_get_next_token(scan);
     if (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && 
-             curtoken->data.symbol == '='){
+             curtoken->data.symbol == '=' &&
+             !curtoken->whitespace){
         eq = 1;
         curtoken = ply_scan_get_next_token(scan);
         }
@@ -338,6 +339,7 @@ static script_exp* script_parse_exp_eq (ply_scan_t* scan)
     if (peektoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
     
     if (peektoken->data.symbol != '=') break;
+    if (peektoken->whitespace) break;
     if ((curtoken->data.symbol != '=') && (curtoken->data.symbol != '!')) break;
     int ne = (curtoken->data.symbol == '!');
     ply_scan_get_next_token(scan);
@@ -368,6 +370,7 @@ static script_exp* script_parse_exp_an (ply_scan_t* scan)
     
     if (curtoken->data.symbol != '&') break;
     if (peektoken->data.symbol != '&') break;
+    if (peektoken->whitespace) break;
     ply_scan_get_next_token(scan);
     ply_scan_get_next_token(scan);
     
@@ -395,6 +398,7 @@ static script_exp* script_parse_exp_or (ply_scan_t* scan)
     
     if (peektoken->data.symbol != '|') break;
     if (curtoken->data.symbol != '|') break;
+    if (peektoken->whitespace) break;
     ply_scan_get_next_token(scan);
     ply_scan_get_next_token(scan);
     

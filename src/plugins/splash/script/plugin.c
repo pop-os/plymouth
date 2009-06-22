@@ -235,11 +235,11 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
                                                 on_timeout, plugin);
     }
  script_state_destroy(plugin->script_state);
- script_parse_op_free (plugin->script_main_op);
  script_lib_sprite_destroy(plugin->script_sprite_lib);
  script_lib_image_destroy(plugin->script_image_lib);
  script_lib_plymouth_destroy(plugin->script_plymouth_lib);
  script_lib_math_destroy(plugin->script_math_lib);
+ script_parse_op_free (plugin->script_main_op);
 }
 
 static void

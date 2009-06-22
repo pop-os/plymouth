@@ -61,6 +61,7 @@ void ply_scan_token_clean(ply_scan_token_t* token)
         break;
     }
  token->type = PLY_SCAN_TOKEN_TYPE_EMPTY;
+ token->whitespace = 0;
 }
 
 void ply_scan_free(ply_scan_t* scan)
@@ -100,11 +101,11 @@ unsigned char ply_scan_get_next_char(ply_scan_t* scan)
 void ply_scan_read_next_token(ply_scan_t* scan, ply_scan_token_t* token)
 {
  unsigned char curchar = ply_scan_get_current_char(scan);
- 
+ token->whitespace = 0;
  while(true){
-    if (curchar == ' ')  {curchar = ply_scan_get_next_char(scan); continue;}
-    if (curchar == '\n') {curchar = ply_scan_get_next_char(scan); continue;}
-    if (curchar == '\t') {curchar = ply_scan_get_next_char(scan); continue;}
+    if (curchar == ' ')  {curchar = ply_scan_get_next_char(scan); token->whitespace++; continue;}
+    if (curchar == '\n') {curchar = ply_scan_get_next_char(scan); token->whitespace++; continue;}
+    if (curchar == '\t') {curchar = ply_scan_get_next_char(scan); token->whitespace++; continue;}
     break;
     }
  if (ply_bitarray_lookup(scan->identifier_1st_char, curchar)){

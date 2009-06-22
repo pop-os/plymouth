@@ -25,6 +25,7 @@ typedef struct
     long long int integer;
     double floatpoint;
  } data;
+ int whitespace;
 } ply_scan_token_t;
 
 typedef struct

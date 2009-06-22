@@ -349,8 +349,8 @@ char* script_obj_as_string (script_obj* obj)              // reply is strdupped
 
 void script_obj_assign (script_obj* obj_a, script_obj* obj_b)
 {
- script_obj_deref (&obj_b);
  script_obj_reset (obj_a);
+ obj_b = script_obj_deref_direct (obj_b);
  
  switch (obj_b->type){
     case SCRIPT_OBJ_TYPE_NULL:

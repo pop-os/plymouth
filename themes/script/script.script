@@ -47,5 +47,5 @@ fun refresh (){
 
 // This is a comment
 # As is this (both are acceptable because people do forget which to use)
-
+/* A block comment /* with a nested sub-comment */ */
 PlymouthSetRefreshFunction(refresh);

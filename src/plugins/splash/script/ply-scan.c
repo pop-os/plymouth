@@ -218,6 +218,35 @@ void ply_scan_read_next_token(ply_scan_t* scan, ply_scan_token_t* token)
         return;
         }
     }
+
+ if (curchar == '/' && nextchar == '*'){
+    int index = 0;
+    int depth = 1;
+    token->data.string = malloc(sizeof(char));
+    token->data.string[0] = '\0';
+    curchar = ply_scan_get_next_char(scan);
+    nextchar = ply_scan_get_next_char(scan);
+    
+    while (true){
+        if (curchar == '/' && nextchar == '*') {
+            depth++;
+            }
+        if (curchar == '*' && nextchar == '/') {
+            depth--;
+            if (!depth) break;
+            }
+        
+        token->data.string = realloc(token->data.string, (index+2)*sizeof(char));
+        token->data.string[index] = curchar;
+        token->data.string[index+1] = '\0';
+        index++;
+        curchar = nextchar;
+        nextchar = ply_scan_get_next_char(scan);
+        }
+    ply_scan_get_next_char(scan);
+    token->type = PLY_SCAN_TOKEN_TYPE_COMMENT;
+    return;
+    }
  
  // all other
  token->type = PLY_SCAN_TOKEN_TYPE_SYMBOL;

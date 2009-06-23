@@ -15,6 +15,7 @@ static ply_scan_t* ply_scan_new(void)
  ply_scan_t* scan = calloc(1, sizeof(ply_scan_t));
  scan->tokens = NULL;
  scan->tokencount = 0;
+ scan->cur_char = '\0';
  scan->line_index = 1;                  // According to Nedit the first line is 1 but first column is 0
  scan->column_index = COLUMN_START_INDEX;
  
@@ -91,6 +92,13 @@ unsigned char ply_scan_get_current_char(ply_scan_t* scan)
 
 unsigned char ply_scan_get_next_char(ply_scan_t* scan)
 {
+ if (scan->cur_char == '\n') {
+    scan->line_index++;
+    scan->column_index = COLUMN_START_INDEX;
+    }
+ else if (scan->cur_char != '\0')
+    scan->column_index++;
+ 
  if (scan->source_is_file) {
     int got = read (scan->source.fd, &scan->cur_char, 1);
     if (!got) scan->cur_char = 0;                      // FIXME a better way of doing EOF etc
@@ -99,13 +107,6 @@ unsigned char ply_scan_get_next_char(ply_scan_t* scan)
     scan->cur_char = *scan->source.string;
     if (scan->cur_char) scan->source.string++;
     }
- if (scan->cur_char == '\n') {
-    scan->line_index++;
-    scan->column_index = COLUMN_START_INDEX;
-    }
- else
-    scan->column_index++;
- 
  return scan->cur_char;
 }
 

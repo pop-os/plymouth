@@ -14,6 +14,7 @@ typedef enum
  PLY_SCAN_TOKEN_TYPE_STRING,
  PLY_SCAN_TOKEN_TYPE_SYMBOL,
  PLY_SCAN_TOKEN_TYPE_COMMENT,
+ PLY_SCAN_TOKEN_TYPE_ERROR,
 } ply_scan_token_type_t;
 
 typedef struct

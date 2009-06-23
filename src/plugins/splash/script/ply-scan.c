@@ -54,6 +54,7 @@ void ply_scan_token_clean(ply_scan_token_t* token)
     case PLY_SCAN_TOKEN_TYPE_INTEGER:
     case PLY_SCAN_TOKEN_TYPE_FLOAT:
     case PLY_SCAN_TOKEN_TYPE_SYMBOL:
+    case PLY_SCAN_TOKEN_TYPE_ERROR:
         break;
     case PLY_SCAN_TOKEN_TYPE_IDENTIFIER:
     case PLY_SCAN_TOKEN_TYPE_STRING:
@@ -106,33 +107,40 @@ void ply_scan_read_next_token(ply_scan_t* scan, ply_scan_token_t* token)
  
  token->whitespace = 0;
  while(true){
-    if (curchar == ' ')  {curchar = ply_scan_get_next_char(scan); token->whitespace++; continue;}
+    if (curchar == ' ')  {curchar = ply_scan_get_next_char(scan); token->whitespace++; continue;}   //FIXME restrcuture
     if (curchar == '\n') {curchar = ply_scan_get_next_char(scan); token->whitespace++; continue;}
     if (curchar == '\t') {curchar = ply_scan_get_next_char(scan); token->whitespace++; continue;}
     break;
     }
+ 
+ nextchar = ply_scan_get_next_char(scan);
+ 
  if (ply_bitarray_lookup(scan->identifier_1st_char, curchar)){
     token->type = PLY_SCAN_TOKEN_TYPE_IDENTIFIER;
-    int index = 0;
-    token->data.string = NULL;
-    do {
+    int index = 1;
+    token->data.string =  malloc(2*sizeof(char));
+    token->data.string[0] = curchar;
+    token->data.string[1] = '\0';
+    curchar = nextchar;
+    while (ply_bitarray_lookup(scan->identifier_nth_char, curchar)){
         token->data.string = realloc(token->data.string, (index+2)*sizeof(char));
         token->data.string[index] = curchar;
         token->data.string[index+1] = '\0';
         index++;
         curchar = ply_scan_get_next_char(scan);
         }
-    while (ply_bitarray_lookup(scan->identifier_nth_char, curchar));
     return;
     }
+ 
+ 
  if (curchar >= '0' && curchar <= '9'){
-    long long int int_value = 0;
-    do {
+    long long int int_value = curchar - '0';
+    curchar = nextchar;
+    while (curchar >= '0' && curchar <= '9') {
         int_value *= 10;
         int_value += curchar - '0';
         curchar = ply_scan_get_next_char(scan);
         }
-    while (curchar >= '0' && curchar <= '9');
     
     if (curchar == '.'){
         double floatpoint = int_value;
@@ -159,16 +167,24 @@ void ply_scan_read_next_token(ply_scan_t* scan, ply_scan_token_t* token)
     return;
     }
  
- if (curchar == '"') {
+ if (curchar == '\"') {
     token->type = PLY_SCAN_TOKEN_TYPE_STRING;
     int index = 0;
     token->data.string = malloc(sizeof(char));
     token->data.string[0] = '\0';
+    curchar = nextchar;
 
-    while (1){
-        curchar = ply_scan_get_next_char(scan);
-        if (curchar == '"') break;
-        assert(curchar != '\0');
+    while (curchar != '\"'){
+        if (curchar == '\0') {
+            token->data.string = "End of file before end of string";
+            token->type = PLY_SCAN_TOKEN_TYPE_ERROR;
+            return;
+            }
+        if (curchar == '\n') {
+            token->data.string = "Line terminator before end of string";
+            token->type = PLY_SCAN_TOKEN_TYPE_ERROR;
+            return;
+            }
         if (curchar == '\\') {
             curchar = ply_scan_get_next_char(scan);
             switch (curchar){
@@ -189,12 +205,11 @@ void ply_scan_read_next_token(ply_scan_t* scan, ply_scan_token_t* token)
         token->data.string[index] = curchar;
         token->data.string[index+1] = '\0';
         index++;
+        curchar = ply_scan_get_next_char(scan);
         }
     ply_scan_get_next_char(scan);
     return;
     }
- 
- nextchar = ply_scan_get_next_char(scan);
  
     {
     bool linecomment = false;
@@ -228,6 +243,13 @@ void ply_scan_read_next_token(ply_scan_t* scan, ply_scan_token_t* token)
     nextchar = ply_scan_get_next_char(scan);
     
     while (true){
+        if (nextchar == '\0') {
+            free(token->data.string);
+            token->data.string = "End of file before end of comment";
+            token->type = PLY_SCAN_TOKEN_TYPE_ERROR;
+            return;
+            }
+
         if (curchar == '/' && nextchar == '*') {
             depth++;
             }

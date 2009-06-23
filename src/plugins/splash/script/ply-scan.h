@@ -28,6 +28,8 @@ typedef struct
     double floatpoint;
  } data;
  int whitespace;
+ int line_index;
+ int column_index;
 } ply_scan_token_t;
 
 typedef struct
@@ -42,6 +44,8 @@ typedef struct
   ply_bitarray_t *identifier_nth_char;
   int tokencount;
   ply_scan_token_t **tokens;
+  int line_index;
+  int column_index;
   bool source_is_file;
 } ply_scan_t;
 

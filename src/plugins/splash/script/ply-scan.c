@@ -7,12 +7,16 @@
 #include <stdbool.h>
 #include <unistd.h>
 
+#define COLUMN_START_INDEX 0
+
 static ply_scan_t* ply_scan_new(void)
 {
  unsigned char* chars;
  ply_scan_t* scan = calloc(1, sizeof(ply_scan_t));
  scan->tokens = NULL;
  scan->tokencount = 0;
+ scan->line_index = 1;                  // According to Nedit the first line is 1 but first column is 0
+ scan->column_index = COLUMN_START_INDEX;
  
  scan->identifier_1st_char = ply_bitarray_new(256);
  scan->identifier_nth_char = ply_bitarray_new(256);
@@ -87,16 +91,21 @@ unsigned char ply_scan_get_current_char(ply_scan_t* scan)
 
 unsigned char ply_scan_get_next_char(ply_scan_t* scan)
 {
- 
  if (scan->source_is_file) {
     int got = read (scan->source.fd, &scan->cur_char, 1);
-    if (!got) return 0;                                             // FIXME a better way of doing EOF etc
+    if (!got) scan->cur_char = 0;                      // FIXME a better way of doing EOF etc
     }
  else {
     scan->cur_char = *scan->source.string;
     if (scan->cur_char) scan->source.string++;
     }
- // update indexes
+ if (scan->cur_char == '\n') {
+    scan->line_index++;
+    scan->column_index = COLUMN_START_INDEX;
+    }
+ else
+    scan->column_index++;
+ 
  return scan->cur_char;
 }
 
@@ -112,7 +121,8 @@ void ply_scan_read_next_token(ply_scan_t* scan, ply_scan_token_t* token)
     if (curchar == '\t') {curchar = ply_scan_get_next_char(scan); token->whitespace++; continue;}
     break;
     }
- 
+ token->line_index = scan->line_index;
+ token->column_index = scan->column_index;
  nextchar = ply_scan_get_next_char(scan);
  
  if (ply_bitarray_lookup(scan->identifier_1st_char, curchar)){
@@ -312,7 +322,7 @@ static ply_scan_token_t* ply_scan_peek_token(ply_scan_t* scan, int n)
 //             printf("%d\n", (int)scan->tokens[n]->data.integer);
 //             break;
 //         }
-    } 
+    }
  return scan->tokens[n];
 }
 

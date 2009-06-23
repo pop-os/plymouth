@@ -3,6 +3,7 @@
 #include "ply-hashtable.h"
 #include "ply-list.h"
 #include "ply-bitarray.h"
+#include "ply-logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -40,6 +41,11 @@ static script_op* script_parse_op (ply_scan_t* scan);
 static script_exp* script_parse_exp (ply_scan_t* scan);
 static ply_list_t* script_parse_op_list (ply_scan_t* scan);
 static void script_parse_op_list_free (ply_list_t* op_list);
+
+static void script_parse_error (ply_scan_token_t* token, char* expected)
+{
+ ply_error ("Parser error L:%d C:%d : %s\n", token->line_index, token->column_index, expected);
+}
 
 static script_exp* script_parse_exp_tm (ply_scan_t* scan)
 {
@@ -91,9 +97,15 @@ static script_exp* script_parse_exp_tm (ply_scan_t* scan)
  if (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && curtoken->data.symbol == '('){
     ply_scan_get_next_token(scan);
     exp = script_parse_exp (scan);
-    assert(exp);                                        //FIXME syntax error
     curtoken = ply_scan_get_current_token(scan);
-    assert(curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && curtoken->data.symbol == ')');
+    if (!exp){
+        script_parse_error (curtoken, "Expected valid contents of bracketed expression");
+        return NULL;
+        }
+    if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL || curtoken->data.symbol != ')'){
+        script_parse_error (curtoken, "Expected bracketed block to be terminated with a ')'");
+        return NULL;
+        }
     ply_scan_get_next_token(scan);
     return exp;
     }
@@ -118,9 +130,15 @@ static script_exp* script_parse_exp_pi (ply_scan_t* scan)
             ply_list_append_data (parameters, parameter);
 
             curtoken = ply_scan_get_current_token(scan);
-            assert(curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL);       //FIXME syntax error
+            if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL){
+                script_parse_error (curtoken, "Function parameters should be separated with a ',' and terminated with a ')'");
+                return NULL;
+                }
             if (curtoken->data.symbol == ')') break;
-            assert (curtoken->data.symbol == ',');                      //FIXME syntax error
+            if (curtoken->data.symbol != ','){
+                script_parse_error (curtoken, "Function parameters should be separated with a ',' and terminated with a ')'");
+                return NULL;
+                }
             ply_scan_get_next_token(scan);
             }
         ply_scan_get_next_token(scan);
@@ -140,19 +158,26 @@ static script_exp* script_parse_exp_pi (ply_scan_t* scan)
             key->type = SCRIPT_EXP_TYPE_TERM_STRING;
             key->data.string = strdup(curtoken->data.string);
             }
-        else if (curtoken->type == PLY_SCAN_TOKEN_TYPE_INTEGER){        // errrr, integer keys without being [] bracketted
+        else if (curtoken->type == PLY_SCAN_TOKEN_TYPE_INTEGER){        // errrr, integer keys without being [] bracketed
             key = malloc(sizeof(script_exp));                           // This is broken with floats as obj.10.6 is obj[10.6] and not obj[10][6]
             key->type = SCRIPT_EXP_TYPE_TERM_INT;
             key->data.integer = curtoken->data.integer;
             }
-        else assert(0);                                                 //FIXME syntax error
+        else {
+            script_parse_error (curtoken, "A dot based hash index must be an identifier (or a integer)");
+            return NULL;
+            }
+
         curtoken = ply_scan_get_next_token(scan);
         }
     else if (curtoken->data.symbol == '['){
         ply_scan_get_next_token(scan);
         key = script_parse_exp (scan);
         curtoken = ply_scan_get_current_token(scan);
-        assert (curtoken->data.symbol == ']');
+        if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL || curtoken->data.symbol != ']'){
+            script_parse_error (curtoken, "Expected a ']' to terminate the index expression");
+            return NULL;
+            }
         curtoken = ply_scan_get_next_token(scan);
         }
     else break;
@@ -262,10 +287,13 @@ static script_exp* script_parse_exp_md (ply_scan_t* scan)
     else                                    exp->type = SCRIPT_EXP_TYPE_MOD;
     exp->data.dual.sub_a = sub_a;
     ply_scan_get_next_token(scan);
-    exp->data.dual.sub_b = script_parse_exp_po (scan);
-    assert(exp->data.dual.sub_b);                                        //FIXME syntax error
     sub_a = exp;
+    exp->data.dual.sub_b = script_parse_exp_po (scan);
     curtoken = ply_scan_get_current_token(scan);
+    if (!exp->data.dual.sub_b){
+        script_parse_error (curtoken, "An invalid RHS of an expression");
+        return NULL;
+        }
     }
  
  return sub_a;
@@ -285,9 +313,12 @@ static script_exp* script_parse_exp_pm (ply_scan_t* scan)
     exp->data.dual.sub_a = sub_a;
     ply_scan_get_next_token(scan);
     exp->data.dual.sub_b = script_parse_exp_md (scan);
-    assert(exp->data.dual.sub_b);                                        //FIXME syntax error
     sub_a = exp;
     curtoken = ply_scan_get_current_token(scan);
+    if (!exp->data.dual.sub_b){
+        script_parse_error (curtoken, "An invalid RHS of an expression");
+        return NULL;
+        }
     }
  
  return sub_a;
@@ -319,10 +350,13 @@ static script_exp* script_parse_exp_gt (ply_scan_t* scan)
     
     exp->data.dual.sub_a = sub_a;
     exp->data.dual.sub_b = script_parse_exp_pm (scan);
-    assert(exp->data.dual.sub_b);                                        //FIXME syntax error
     sub_a = exp;
     curtoken = ply_scan_get_current_token(scan);
     peektoken = ply_scan_peek_next_token(scan);
+    if (!exp->data.dual.sub_b){
+        script_parse_error (curtoken, "An invalid RHS of an expression");
+        return NULL;
+        }
     }
  
  return sub_a;
@@ -350,8 +384,11 @@ static script_exp* script_parse_exp_eq (ply_scan_t* scan)
     else      exp->type = SCRIPT_EXP_TYPE_EQ;
     exp->data.dual.sub_a = sub_a;
     exp->data.dual.sub_b = script_parse_exp_gt (scan);
-    assert(exp->data.dual.sub_b);                                        //FIXME syntax error
     sub_a = exp;
+    if (!exp->data.dual.sub_b){
+        script_parse_error (ply_scan_get_current_token(scan), "An invalid RHS of an expression");
+        return NULL;
+        }
     }
  
  return sub_a;
@@ -378,8 +415,11 @@ static script_exp* script_parse_exp_an (ply_scan_t* scan)
     exp->type = SCRIPT_EXP_TYPE_AND;
     exp->data.dual.sub_a = sub_a;
     exp->data.dual.sub_b = script_parse_exp_eq (scan);
-    assert(exp->data.dual.sub_b);                                        //FIXME syntax error
     sub_a = exp;
+    if (!exp->data.dual.sub_b){
+        script_parse_error (ply_scan_get_current_token(scan), "An invalid RHS of an expression");
+        return NULL;
+        }
     }
  
  return sub_a;
@@ -406,8 +446,11 @@ static script_exp* script_parse_exp_or (ply_scan_t* scan)
     exp->type = SCRIPT_EXP_TYPE_OR;
     exp->data.dual.sub_a = sub_a;
     exp->data.dual.sub_b = script_parse_exp_an (scan);
-    assert(exp->data.dual.sub_b);                                        //FIXME syntax error
     sub_a = exp;
+    if (!exp->data.dual.sub_b){
+        script_parse_error (ply_scan_get_current_token(scan), "An invalid RHS of an expression");
+        return NULL;
+        }
     }
  
  return sub_a;
@@ -423,7 +466,10 @@ static script_exp* script_parse_exp_as (ply_scan_t* scan)
  if (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && curtoken->data.symbol == '=' ){
     ply_scan_get_next_token(scan);
     script_exp* rhs = script_parse_exp_or(scan);
-    assert(rhs);                                        //FIXME syntax error
+    if (!rhs){
+        script_parse_error (ply_scan_get_current_token(scan), "An invalid RHS of an expression");
+        return NULL;
+        }
     script_exp* exp = malloc(sizeof(script_exp));
     exp->type = SCRIPT_EXP_TYPE_ASSIGN;
     exp->data.dual.sub_a = lhs;
@@ -448,8 +494,10 @@ static script_op* script_parse_op_block (ply_scan_t* scan)
  
  ply_scan_get_next_token(scan);
  ply_list_t* sublist = script_parse_op_list (scan);
- assert(curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL);       //FIXME syntax error
- assert(curtoken->data.symbol == '}');
+ if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL || curtoken->data.symbol != '}'){
+    script_parse_error (ply_scan_get_current_token(scan), "Expected a '}' to terminate the operation block");
+    return NULL;
+    }
  curtoken = ply_scan_get_next_token(scan);
 
  script_op* op = malloc(sizeof(script_op));
@@ -469,16 +517,22 @@ static script_op* script_parse_if_while (ply_scan_t* scan)
  else return NULL;
  
  curtoken = ply_scan_get_next_token(scan);
- assert(curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL);       //FIXME syntax error
- assert(curtoken->data.symbol == '(');
+ if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL || curtoken->data.symbol != '('){
+    script_parse_error (curtoken, "Expected a '(' at the start of a condition block");
+    return NULL;
+    }
  curtoken = ply_scan_get_next_token(scan);
  
  script_exp* cond = script_parse_exp (scan);
- assert(cond);                                               //FIXME syntax error
- 
  curtoken = ply_scan_get_current_token(scan);
- assert(curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL);       //FIXME syntax error
- assert(curtoken->data.symbol == ')');
+ if (!cond){
+    script_parse_error (curtoken, "Expected a valid condition expression");
+    return NULL;
+    }
+ if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL || curtoken->data.symbol != ')'){
+    script_parse_error (curtoken, "Expected a ')' at the end of a condition block");
+    return NULL;
+    }
  curtoken = ply_scan_get_next_token(scan);
  
  script_op* cond_op = script_parse_op(scan);
@@ -505,7 +559,10 @@ static script_op* script_parse_function (ply_scan_t* scan)
  if (strcmp(curtoken->data.string, "fun")) return NULL;
  
  curtoken = ply_scan_get_next_token(scan);
- assert(curtoken->type == PLY_SCAN_TOKEN_TYPE_IDENTIFIER);       //FIXME syntax error
+ if (curtoken->type != PLY_SCAN_TOKEN_TYPE_IDENTIFIER){
+    script_parse_error (curtoken, "A function declaration requires a valid name");
+    return NULL;
+    }
  
  script_exp* name = malloc(sizeof(script_exp));
  name->type = SCRIPT_EXP_TYPE_TERM_VAR;
@@ -513,22 +570,35 @@ static script_op* script_parse_function (ply_scan_t* scan)
 
  curtoken = ply_scan_get_next_token(scan);
  
- assert(curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL);       //FIXME syntax error
- assert(curtoken->data.symbol == '(');
+ if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL || curtoken->data.symbol != '('){
+    script_parse_error (curtoken, "Function declaration requires parameters to be declared within '(' brackets");
+    return NULL;
+    }
+ 
  curtoken = ply_scan_get_next_token(scan);
  parameter_list = ply_list_new();
  
  
  while (true){
     if (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && curtoken->data.symbol == ')') break;
-    assert (curtoken->type == PLY_SCAN_TOKEN_TYPE_IDENTIFIER);
+    if (curtoken->type != PLY_SCAN_TOKEN_TYPE_IDENTIFIER){
+       script_parse_error (curtoken, "Function declaration parameters must be valid identifiers");
+       return NULL;
+       }
     char* parameter = strdup(curtoken->data.string);
     ply_list_append_data (parameter_list, parameter);
     
     curtoken = ply_scan_get_next_token(scan);
-    assert(curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL);       //FIXME syntax error
+    
+    if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL){
+       script_parse_error (curtoken, "Function declaration parameters must separated with ',' and terminated ')'");
+       return NULL;
+       }
     if (curtoken->data.symbol == ')') break;
-    assert (curtoken->data.symbol == ',');                      //FIXME syntax error
+    if (curtoken->data.symbol == ','){ 
+       script_parse_error (curtoken, "Function declaration parameters must separated with ',' and terminated ')'");
+       return NULL;
+       }
     ply_scan_get_next_token(scan);
     }
  
@@ -568,9 +638,11 @@ static script_op* script_parse_return (ply_scan_t* scan)
     }
 
 #ifdef WITH_SEMIES
-    assert(curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL);
-    assert(curtoken->data.symbol == ';');
-    curtoken = ply_scan_get_next_token(scan);
+ if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL || curtoken->data.symbol != ';'){
+    script_parse_error (curtoken, "Expected ';' after an expression");
+    return NULL;
+    }
+ curtoken = ply_scan_get_next_token(scan);
 #endif
 
  op->type = type;
@@ -611,8 +683,10 @@ static script_op* script_parse_op (ply_scan_t* scan)
     if (!exp) return NULL;
     curtoken = ply_scan_get_current_token(scan);
 #ifdef WITH_SEMIES
-    assert(curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL);
-    assert(curtoken->data.symbol == ';');
+    if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL || curtoken->data.symbol != ';'){
+        script_parse_error (curtoken, "Expected ';' after an expression");
+        return NULL;
+        }
     curtoken = ply_scan_get_next_token(scan);
 #endif
 
@@ -769,8 +843,18 @@ static void script_parse_op_list_free (ply_list_t* op_list)
 script_op* script_parse_file (const char* filename)
 {
  ply_scan_t* scan = ply_scan_file (filename);
- assert(scan);
+ if (!scan){
+     ply_error ("Parser error : Error opening file %s\n", filename);
+     return NULL;
+     }
  ply_list_t* list = script_parse_op_list (scan);
+ 
+ ply_scan_token_t* curtoken = ply_scan_get_current_token(scan);
+ if (curtoken->type != PLY_SCAN_TOKEN_TYPE_EOF){
+    script_parse_error (curtoken, "Unparsed characters at end of file");
+    return NULL;
+    }
+ 
  ply_scan_free(scan);
  script_op* op = malloc(sizeof(script_op));
  op->type = SCRIPT_OP_TYPE_OP_BLOCK;
@@ -787,7 +871,10 @@ script_op* script_parse_file (const char* filename)
 script_op* script_parse_string (const char* string)
 {
  ply_scan_t* scan = ply_scan_string (string);
- assert(scan);
+ if (!scan){
+     ply_error ("Parser error : Error creating a parser with a string");
+     return NULL;
+     }
  ply_list_t* list = script_parse_op_list (scan);
  ply_scan_free(scan);
  script_op* op = malloc(sizeof(script_op));

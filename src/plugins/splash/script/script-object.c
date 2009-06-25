@@ -34,6 +34,8 @@ void script_obj_ref (script_obj* obj)
 
 void script_obj_unref (script_obj* obj)
 {
+ if (!obj) return;
+ assert(obj->refcount>0);
  obj->refcount--;
  if (obj->refcount<=0){
     script_obj_free (obj);

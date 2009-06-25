@@ -5,31 +5,32 @@ while (index<30){
     if (index<10) mystring = "0" + index;
     sprites[index] = SpriteNewWithImage("../spinfinity/throbber-" + mystring + ".png");
     sprites[index].orig_image = sprites[index].image;
-    sprites[index].xd = 1 + index;
-    sprites[index].yd = 1 + index;
+    sprites[index].xd = (50 + index)/10;
+    sprites[index].yd = (50 + index)/10;
     index = index + 1;
     }
 
 random = 1;
 count = 0;
+progress=0;
 
 fun update_logo_sprite (sprite){
     image_width =  ImageGetWidth (sprite.image);
     image_height = ImageGetHeight(sprite.image);
     
     if (sprite.x < 0)
-        sprite.xd = +(global.random % 5 + 1)/0.5;
+        sprite.xd = +(global.random % 5 + 1);
     if (sprite.y < 0)
-        sprite.yd = +(global.random % 5 + 1)/0.5;
+        sprite.yd = +(global.random % 5 + 1);
     if ((sprite.x + image_width) > 800)
-        sprite.xd = -((global.random % 5 + 1)/0.5);
+        sprite.xd = -((global.random % 5 + 1));
     if ((sprite.y + image_height) > 600)
-        sprite.yd = -((global.random % 5 + 1)/0.5);
+        sprite.yd = -((global.random % 5 + 1));
 
     global.random = (1 + global.random * 7) % 101;
     
-    sprite.x = sprite.x + sprite.xd;
-    sprite.y = sprite.y + sprite.yd;
+    sprite.x = sprite.x + sprite.xd*global.progress;
+    sprite.y = sprite.y + sprite.yd*global.progress;
     sprite.image = ImageRotate(sprite.orig_image, count*0.1);
     SpriteUpdate(sprite);
     }
@@ -45,7 +46,33 @@ fun refresh (){
     return;
     }
 
+fun on_progress (duration, progress){
+    global.progress = progress*300;
+    }
+    
+fun on_keyboard (key){
+    index = 0;
+    if (key == "a"){
+        while (!(index>=30)){
+            sprites[index].x = 0;
+            index++;
+            }
+        }
+    if (key == "b"){
+        while (!(index>=30)){
+            sprites[index].y = 0;
+            index++;
+            }
+        }
+    return;
+    }
+
+
 // This is a comment
 # As is this (both are acceptable because people do forget which to use)
 /* A block comment /* with a nested sub-comment */ */
+
 PlymouthSetRefreshFunction(refresh);
+PlymouthSetKeyboardInputFunction(on_keyboard);
+PlymouthSetBootProgressFunction(on_progress);
+PlymouthSetUpdateStatusFunction(on_keyboard);

@@ -175,6 +175,7 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
   if (plugin->progress_target<0)
     plugin->progress = percent_done;
   plugin->progress_target = percent_done;
+  script_lib_plymouth_on_boot_progress(plugin->script_state, plugin->script_plymouth_lib, duration, plugin->progress);  
 }
 
 
@@ -202,7 +203,7 @@ start_animation (ply_boot_splash_plugin_t *plugin)
  plugin->script_math_lib = script_lib_math_setup(plugin->script_state);
  
  script_return ret = script_execute(plugin->script_state, plugin->script_main_op);
- if (ret.object) script_obj_unref(ret.object);                  // Throw anything sent back away
+ script_obj_unref(ret.object);
  
 
   
@@ -256,6 +257,11 @@ on_keyboard_input (ply_boot_splash_plugin_t *plugin,
                    const char               *keyboard_input,
                    size_t                    character_size)
 {
+  char keyboard_string[character_size+1];
+  memcpy(keyboard_string, keyboard_input, character_size);
+  keyboard_string[character_size]='\0';
+  
+  script_lib_plymouth_on_keyboard_input(plugin->script_state, plugin->script_plymouth_lib, keyboard_string);
 }
 
 void
@@ -373,6 +379,7 @@ update_status (ply_boot_splash_plugin_t *plugin,
                const char               *status)
 {
   assert (plugin != NULL);
+  script_lib_plymouth_on_update_status(plugin->script_state, plugin->script_plymouth_lib, status);
 }
 
 void
@@ -401,6 +408,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 void
 on_root_mounted (ply_boot_splash_plugin_t *plugin)
 {
+  script_lib_plymouth_on_root_mounted(plugin->script_state, plugin->script_plymouth_lib);
 }
 
 void
@@ -415,6 +423,7 @@ become_idle (ply_boot_splash_plugin_t *plugin,
 void display_normal (ply_boot_splash_plugin_t *plugin)
 {
   plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
+  script_lib_plymouth_on_display_normal(plugin->script_state, plugin->script_plymouth_lib);
 }
 
 void
@@ -423,6 +432,7 @@ display_password (ply_boot_splash_plugin_t *plugin,
                   int                       bullets)
 {
   plugin->state = PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY;
+  script_lib_plymouth_on_display_password(plugin->script_state, plugin->script_plymouth_lib, prompt, bullets);
 }
 
 void
@@ -431,6 +441,7 @@ display_question (ply_boot_splash_plugin_t *plugin,
                   const char               *entry_text)
 {
   plugin->state = PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY;
+  script_lib_plymouth_on_display_question(plugin->script_state, plugin->script_plymouth_lib, prompt, entry_text);
 }
 
 ply_boot_splash_plugin_interface_t *

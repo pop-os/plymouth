@@ -139,7 +139,7 @@ static script_exp* script_parse_exp_pi (ply_scan_t* scan)
                 script_parse_error (curtoken, "Function parameters should be separated with a ',' and terminated with a ')'");
                 return NULL;
                 }
-            ply_scan_get_next_token(scan);
+            curtoken = ply_scan_get_next_token(scan);
             }
         ply_scan_get_next_token(scan);
         func->data.function.name = exp;
@@ -591,15 +591,15 @@ static script_op* script_parse_function (ply_scan_t* scan)
     curtoken = ply_scan_get_next_token(scan);
     
     if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL){
-       script_parse_error (curtoken, "Function declaration parameters must separated with ',' and terminated ')'");
+       script_parse_error (curtoken, "Function declaration parameters must separated with ',' and terminated with a ')'");
        return NULL;
        }
     if (curtoken->data.symbol == ')') break;
-    if (curtoken->data.symbol == ','){ 
-       script_parse_error (curtoken, "Function declaration parameters must separated with ',' and terminated ')'");
+    if (curtoken->data.symbol != ','){ 
+       script_parse_error (curtoken, "Function declaration parameters must separated with ',' and terminated with a ')'");
        return NULL;
        }
-    ply_scan_get_next_token(scan);
+    curtoken = ply_scan_get_next_token(scan);
     }
  
  curtoken = ply_scan_get_next_token(scan);

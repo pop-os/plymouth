@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include "ply-utils.h"
 #include "script.h"
+#include "script-parse.h"
 #include "script-execute.h"
 #include "script-object.h"
 #include "script-lib-plymouth.h" 
@@ -18,12 +19,20 @@
 
 static script_return plymouth_set_refresh (script_state* state, void* user_data)
 {
- script_lib_plymouth_data_t* data = user_data;
+ script_obj** script_func = user_data;
  script_obj* obj = script_obj_hash_get_element (state->local, "function");
  script_obj_deref(&obj);
+ if (*script_func)
+    script_obj_unref(*script_func);
+ 
  if (obj->type == SCRIPT_OBJ_TYPE_FUNCTION){
-    data->script_refresh_func = obj;
+    *script_func = obj;
     }
+ else {
+    *script_func = NULL;
+    script_obj_unref(obj);
+    }
+
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()};
 }
 
@@ -34,7 +43,7 @@ script_lib_plymouth_data_t* script_lib_plymouth_setup(script_state *state)
  
  data->script_refresh_func = NULL;
  
- script_add_native_function (state->global, "PlymouthSetRefreshFunction", plymouth_set_refresh, data, "function", NULL);
+ script_add_native_function (state->global, "PlymouthSetRefreshFunction", plymouth_set_refresh, &data->script_refresh_func, "function", NULL);
  data->script_main_op = script_parse_string (script_lib_plymouth_string);
  script_return ret = script_execute(state, data->script_main_op);
  if (ret.object) script_obj_unref(ret.object);                  // Throw anything sent back away
@@ -49,3 +58,16 @@ void script_lib_plymouth_destroy(script_lib_plymouth_data_t* data)
  script_obj_unref(data->script_refresh_func);
  free(data);
 }
+
+
+
+
+void script_lib_plymouth_on_refresh(script_state* state, script_lib_plymouth_data_t* data)
+{
+ script_obj* refresh_func_obj = data->script_refresh_func;
+ if (refresh_func_obj &&  refresh_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION){
+    script_return ret = script_execute_function (state, data->script_refresh_func->data.function, NULL);
+    if (ret.object) script_obj_unref(ret.object);                  // Throw anything sent back away
+    }
+}
+

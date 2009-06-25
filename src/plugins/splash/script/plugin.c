@@ -157,13 +157,8 @@ on_timeout (ply_boot_splash_plugin_t *plugin)
 
   now = ply_get_timestamp ();
 
- if (plugin->script_plymouth_lib->script_refresh_func){
-    script_state* sub_state = script_state_init_sub(plugin->script_state);
-    script_return ret = script_execute(sub_state, plugin->script_plymouth_lib->script_refresh_func->data.function->data.script);    // FIXME too many redirections
-    if (ret.object) script_obj_unref(ret.object);                  // Throw anything sent back away
-    script_state_destroy(sub_state);
-    }
- script_lib_sprite_refresh(plugin->script_sprite_lib);
+  script_lib_plymouth_on_refresh(plugin->script_state, plugin->script_plymouth_lib);
+  script_lib_sprite_refresh(plugin->script_sprite_lib);
   
   sleep_time = 1.0 / FRAMES_PER_SECOND;
   ply_event_loop_watch_for_timeout (plugin->loop, 

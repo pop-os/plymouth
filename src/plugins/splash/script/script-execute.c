@@ -4,6 +4,7 @@
 #include "ply-list.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <fcntl.h>
 #include <assert.h>
 #include <stdbool.h>
@@ -16,6 +17,7 @@
 #include "script-object.h"
 
 static script_obj* script_evaluate (script_state* state, script_exp* exp);
+static script_return script_execute_function_with_parlist (script_state* state, script_function* function, ply_list_t* parameter_data);
 
 static script_obj* script_evaluate_plus (script_state* state, script_exp* exp)
 {
@@ -626,7 +628,6 @@ static script_obj* script_evaluate_unary (script_state* state, script_exp* exp)
 
 static script_obj* script_evaluate_func (script_state* state, script_exp* exp)
 {
- script_state localstate;
  script_obj* func = script_evaluate (state, exp->data.function.name);
  script_obj* obj = NULL;
  script_obj_deref (&func);
@@ -634,54 +635,33 @@ static script_obj* script_evaluate_func (script_state* state, script_exp* exp)
  if (func->type != SCRIPT_OBJ_TYPE_FUNCTION)
     return script_obj_new_null ();
  
- localstate = *state;
- localstate.local = script_obj_new_hash();
+ ply_list_t* parameter_expressions = exp->data.function.parameters;
+ ply_list_t* parameter_data = ply_list_new();
  
- ply_list_t* parameter_names = func->data.function->parameters;
- ply_list_t* parameter_data = exp->data.function.parameters;
- 
- ply_list_node_t *node_name = ply_list_get_first_node (parameter_names);
- ply_list_node_t *node_data = ply_list_get_first_node (parameter_data);
- while (node_name && node_data){
-    script_exp* data_exp = ply_list_node_get_data (node_data);
-    char* name = ply_list_node_get_data (node_name);
+ ply_list_node_t *node_expression = ply_list_get_first_node (parameter_expressions);
+ while (node_expression){
+    script_exp* data_exp = ply_list_node_get_data (node_expression);
     script_obj* data_obj = script_evaluate (state, data_exp);
-    
-    script_vareable* vareable = malloc(sizeof(script_vareable));
-    vareable->name = strdup(name);
-    vareable->object = data_obj;
-
-    ply_hashtable_insert (localstate.local->data.hash, vareable->name, vareable);
-
-    
-    node_name = ply_list_get_next_node (parameter_names, node_name);
-    node_data = ply_list_get_next_node (parameter_data, node_data);
+    ply_list_append_data (parameter_data, data_obj);
+    node_expression = ply_list_get_next_node (parameter_expressions, node_expression);
     }
  
- script_return reply;
- switch (func->data.function->type){
-    case SCRIPT_FUNCTION_TYPE_SCRIPT:
-        {
-        script_op* op = func->data.function->data.script;
-        reply = script_execute (&localstate, op);
-        break;
-        }
-    case SCRIPT_FUNCTION_TYPE_NATIVE:
-        {
-        reply = func->data.function->data.native (&localstate, func->data.function->user_data);
-        break;
-        }
-    }
- 
- 
- 
- script_obj_unref (localstate.local);
- script_obj_unref (func);
+ script_return reply = script_execute_function_with_parlist (state, func->data.function, parameter_data);
  if (reply.type == SCRIPT_RETURN_TYPE_RETURN)
     obj = reply.object;
- if (!obj){
-    obj = script_obj_new_null ();
+ else
+    obj = script_obj_new_null();
+    
+ ply_list_node_t *node_data = ply_list_get_first_node (parameter_data);
+ while (node_data){
+    script_obj* data_obj = ply_list_node_get_data (node_data);
+    script_obj_unref (data_obj);
+    node_data = ply_list_get_next_node (parameter_data, node_data);
     }
+ ply_list_free(parameter_data);
+ 
+ script_obj_unref (func);
+ 
  return obj;
 }
 
@@ -798,6 +778,66 @@ static script_return script_execute_list (script_state* state, ply_list_t* op_li
             return reply;
         }
     }
+ return reply;
+}
+
+                                                                                         // parameter_data list should be freed by caller
+static script_return script_execute_function_with_parlist (script_state* state, script_function* function, ply_list_t* parameter_data)
+{
+ script_state* sub_state = script_state_init_sub(state);
+ 
+ ply_list_t* parameter_names = function->parameters;
+ 
+ ply_list_node_t *node_name = ply_list_get_first_node (parameter_names);
+ ply_list_node_t *node_data = ply_list_get_first_node (parameter_data);
+ while (node_name && node_data){
+    script_obj* data_obj = ply_list_node_get_data (node_data);
+    char* name = ply_list_node_get_data (node_name);
+    
+    script_obj_hash_add_element (sub_state->local, data_obj, name);
+    
+    node_name = ply_list_get_next_node (parameter_names, node_name);
+    node_data = ply_list_get_next_node (parameter_data, node_data);
+    }
+ 
+ script_return reply;
+ switch (function->type){
+    case SCRIPT_FUNCTION_TYPE_SCRIPT:
+        {
+        script_op* op = function->data.script;
+        reply = script_execute (sub_state, op);
+        break;
+        }
+    case SCRIPT_FUNCTION_TYPE_NATIVE:
+        {
+        reply = function->data.native (sub_state, function->user_data);
+        break;
+        }
+    }
+ 
+ script_state_destroy(sub_state);
+ return reply;
+}
+
+
+script_return script_execute_function (script_state* state, script_function* function, script_obj* first_arg,  ...)
+{
+ script_return reply;
+ va_list args;
+ script_obj* arg;
+ ply_list_t *parameter_data = ply_list_new();
+ 
+ arg = first_arg;
+ va_start (args, first_arg);
+ while (arg){
+    ply_list_append_data (parameter_data, arg);
+    arg = va_arg (args, script_obj*);
+    }
+ va_end (args);
+ 
+ reply = script_execute_function_with_parlist (state, function, parameter_data);
+ ply_list_free(parameter_data);
+ 
  return reply;
 }
 

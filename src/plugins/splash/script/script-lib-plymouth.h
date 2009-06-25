@@ -13,4 +13,6 @@ typedef struct
 script_lib_plymouth_data_t* script_lib_plymouth_setup(script_state *state);
 void script_lib_plymouth_destroy(script_lib_plymouth_data_t* data);
 
+void script_lib_plymouth_on_refresh(script_state* state, script_lib_plymouth_data_t* data);
+
 #endif /* SCRIPT_LIB_PLYMOUTH */

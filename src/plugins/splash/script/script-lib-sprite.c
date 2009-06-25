@@ -4,6 +4,7 @@
 #include "ply-logger.h"
 #include "ply-key-file.h"
 #include "script.h"
+#include "script-parse.h"
 #include "script-execute.h"
 #include "script-object.h"
 #include "script-lib-image.h"

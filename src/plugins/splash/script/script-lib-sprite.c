@@ -11,6 +11,7 @@
 #include "script-lib-sprite.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <math.h>
 
 
 #define STRINGIFY_VAR script_lib_sprite_string
@@ -21,7 +22,7 @@ static void sprite_free (script_obj* obj)
  script_lib_sprite_data_t* data = obj->data.native.class->user_data;
  ply_list_remove_data (data->sprite_list, obj->data.native.object_data);
  sprite_t *sprite = obj->data.native.object_data;
- if (sprite->image_obj) script_obj_unref(sprite->image_obj);
+ script_obj_unref(sprite->image_obj);
  free(obj->data.native.object_data);
 }
 
@@ -62,10 +63,11 @@ static script_return sprite_set_image (script_state* state, void* user_data)
      script_obj_sprite->data.native.class == data->class){
     sprite_t *sprite = script_obj_sprite->data.native.object_data;
     ply_image_t *image = script_obj_image->data.native.object_data;
-    if (sprite->image_obj) script_obj_unref(sprite->image_obj);
+    script_obj_unref(sprite->image_obj);
     script_obj_ref(script_obj_image);
     sprite->image = image;
     sprite->image_obj = script_obj_image;
+    sprite->refresh_me = true;
     }
  script_obj_unref(script_obj_sprite);
  script_obj_unref(script_obj_image);
@@ -123,6 +125,26 @@ static script_return sprite_set_z (script_state* state, void* user_data)
      script_obj_sprite->data.native.class == data->class){
     sprite_t *sprite = script_obj_sprite->data.native.object_data;
     sprite->z = script_obj_as_int(script_obj_value);
+    }
+ script_obj_unref(script_obj_sprite);
+ script_obj_unref(script_obj_value);
+ return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()};
+}
+
+
+
+static script_return sprite_set_opacity (script_state* state, void* user_data)
+{
+ script_lib_sprite_data_t* data = user_data;
+ script_obj* script_obj_sprite = script_obj_hash_get_element (state->local, "sprite");
+ script_obj_deref(&script_obj_sprite);
+ script_obj* script_obj_value = script_obj_hash_get_element (state->local, "value");
+ script_obj_deref(&script_obj_value);
+ 
+ if (script_obj_sprite->type == SCRIPT_OBJ_TYPE_NATIVE &&
+     script_obj_sprite->data.native.class == data->class){
+    sprite_t *sprite = script_obj_sprite->data.native.object_data;
+    sprite->opacity = script_obj_as_float(script_obj_value);
     }
  script_obj_unref(script_obj_sprite);
  script_obj_unref(script_obj_value);
@@ -190,10 +212,11 @@ script_lib_sprite_data_t* script_lib_sprite_setup(script_state *state, ply_windo
  script_add_native_function (state->global, "SpriteSetX", sprite_set_x, data, "sprite", "value", NULL);
  script_add_native_function (state->global, "SpriteSetY", sprite_set_y, data, "sprite", "value", NULL);
  script_add_native_function (state->global, "SpriteSetZ", sprite_set_z, data, "sprite", "value", NULL);
+ script_add_native_function (state->global, "SpriteSetOpacity", sprite_set_opacity, data, "sprite", "value", NULL);
 
  data->script_main_op = script_parse_string (script_lib_sprite_string);
  script_return ret = script_execute(state, data->script_main_op);
- if (ret.object) script_obj_unref(ret.object);                  // Throw anything sent back away
+ script_obj_unref(ret.object);
 
  {
  ply_frame_buffer_area_t screen_area;
@@ -211,7 +234,7 @@ void script_lib_sprite_refresh(script_lib_sprite_data_t* data)
  for(node = ply_list_get_first_node (data->sprite_list); node; node = ply_list_get_next_node (data->sprite_list, node)){
     sprite_t* sprite = ply_list_node_get_data (node);
     if (!sprite->image) continue;
-    if (sprite->x != sprite->old_x || sprite->y != sprite->old_y || sprite->z != sprite->old_z || sprite->old_opacity != sprite->opacity || sprite->refresh_me){
+    if (sprite->x != sprite->old_x || sprite->y != sprite->old_y || sprite->z != sprite->old_z || fabs(sprite->old_opacity - sprite->opacity) > 0.01 || sprite->refresh_me){
         int width = ply_image_get_width (sprite->image);
         int height= ply_image_get_height (sprite->image);
         draw_area (data, sprite->x, sprite->y, width, height);
@@ -220,6 +243,7 @@ void script_lib_sprite_refresh(script_lib_sprite_data_t* data)
         sprite->old_y = sprite->y;
         sprite->old_z = sprite->z;
         sprite->old_opacity = sprite->opacity;
+        sprite->refresh_me = false;
         }
     }
 }

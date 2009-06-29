@@ -192,6 +192,13 @@ char* script_obj_print (script_obj* obj)
 }
 
 
+script_obj* script_obj_new_null (void)
+{
+ script_obj* obj = malloc(sizeof(script_obj));
+ obj->type = SCRIPT_OBJ_TYPE_NULL;
+ obj->refcount = 1;
+ return obj;
+}
 
 script_obj* script_obj_new_int (int number)
 {
@@ -213,18 +220,11 @@ script_obj* script_obj_new_float (float number)
 
 script_obj* script_obj_new_string (const char* string)
 {
+ if (!string) return script_obj_new_null ();
  script_obj* obj = malloc(sizeof(script_obj));
  obj->type = SCRIPT_OBJ_TYPE_STRING;
  obj->refcount = 1;
  obj->data.string = strdup(string);
- return obj;
-}
-
-script_obj* script_obj_new_null (void)
-{
- script_obj* obj = malloc(sizeof(script_obj));
- obj->type = SCRIPT_OBJ_TYPE_NULL;
- obj->refcount = 1;
  return obj;
 }
 

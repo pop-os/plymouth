@@ -259,10 +259,12 @@ void script_lib_sprite_refresh(script_lib_sprite_data_t* data)
         int width = ply_image_get_width (sprite->image);
         int height= ply_image_get_height (sprite->image);
         draw_area (data, sprite->x, sprite->y, width, height);
-        draw_area (data, sprite->old_x, sprite->old_y, width, height);
+        draw_area (data, sprite->old_x, sprite->old_y, sprite->old_width, sprite->old_height);
         sprite->old_x = sprite->x;
         sprite->old_y = sprite->y;
         sprite->old_z = sprite->z;
+        sprite->old_width = width;
+        sprite->old_height = height;        
         sprite->old_opacity = sprite->opacity;
         sprite->refresh_me = false;
         }

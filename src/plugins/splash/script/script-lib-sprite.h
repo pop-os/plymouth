@@ -21,6 +21,8 @@ typedef struct
   int old_x; 
   int old_y;
   int old_z;
+  int old_width;
+  int old_height;
   float old_opacity;
   bool refresh_me;
   bool remove_me;

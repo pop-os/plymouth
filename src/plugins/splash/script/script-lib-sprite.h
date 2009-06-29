@@ -23,6 +23,7 @@ typedef struct
   int old_z;
   float old_opacity;
   bool refresh_me;
+  bool remove_me;
   ply_image_t *image;
   script_obj *image_obj;
 } sprite_t;

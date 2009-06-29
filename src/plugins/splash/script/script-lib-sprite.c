@@ -19,11 +19,8 @@
 
 static void sprite_free (script_obj* obj)
 {
- script_lib_sprite_data_t* data = obj->data.native.class->user_data;
- ply_list_remove_data (data->sprite_list, obj->data.native.object_data);
  sprite_t *sprite = obj->data.native.object_data;
- script_obj_unref(sprite->image_obj);
- free(obj->data.native.object_data);
+ sprite->remove_me = true;
 }
 
 static script_return sprite_new (script_state* state, void* user_data)
@@ -41,6 +38,7 @@ static script_return sprite_new (script_state* state, void* user_data)
  sprite->old_z = 0;
  sprite->old_opacity = 1.0;
  sprite->refresh_me = false;
+ sprite->remove_me = false;
  sprite->image = NULL;
  sprite->image_obj = NULL;
  ply_list_append_data (data->sprite_list, sprite);
@@ -179,6 +177,7 @@ draw_area (script_lib_sprite_data_t*            data,
       sprite_t* sprite = ply_list_node_get_data (node);
       ply_frame_buffer_area_t sprite_area;
 
+      if (sprite->remove_me) continue;
 
       sprite_area.x = sprite->x;
       sprite_area.y = sprite->y;
@@ -231,10 +230,32 @@ script_lib_sprite_data_t* script_lib_sprite_setup(script_state *state, ply_windo
 void script_lib_sprite_refresh(script_lib_sprite_data_t* data)
 {
  ply_list_node_t *node;
+ 
+ node = ply_list_get_first_node (data->sprite_list); 
+ while (node){
+    sprite_t* sprite = ply_list_node_get_data (node);
+    ply_list_node_t *next_node = ply_list_get_next_node (data->sprite_list, node);
+    if (sprite->remove_me) {
+        if (sprite->image) {
+            int width = ply_image_get_width (sprite->image);
+            int height= ply_image_get_height (sprite->image);
+            draw_area (data, sprite->old_x, sprite->old_y, width, height);
+            }
+        ply_list_remove_node (data->sprite_list, node);
+        script_obj_unref(sprite->image_obj);
+        free(sprite);
+        }
+    node = next_node;
+    }
+ 
  for(node = ply_list_get_first_node (data->sprite_list); node; node = ply_list_get_next_node (data->sprite_list, node)){
     sprite_t* sprite = ply_list_node_get_data (node);
     if (!sprite->image) continue;
-    if (sprite->x != sprite->old_x || sprite->y != sprite->old_y || sprite->z != sprite->old_z || fabs(sprite->old_opacity - sprite->opacity) > 0.01 || sprite->refresh_me){
+    if (    sprite->x != sprite->old_x || 
+            sprite->y != sprite->old_y || 
+            sprite->z != sprite->old_z || 
+            fabs(sprite->old_opacity - sprite->opacity) > 0.01 ||       // People can't see the difference between 
+            sprite->refresh_me ){
         int width = ply_image_get_width (sprite->image);
         int height= ply_image_get_height (sprite->image);
         draw_area (data, sprite->x, sprite->y, width, height);

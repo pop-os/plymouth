@@ -72,6 +72,10 @@ void script_lib_plymouth_destroy(script_lib_plymouth_data_t* data)
  script_obj_unref(data->script_boot_progress_func);
  script_obj_unref(data->script_root_mounted_func);
  script_obj_unref(data->script_keyboard_input_func);
+ script_obj_unref(data->script_update_status_func);
+ script_obj_unref(data->script_display_normal_func);
+ script_obj_unref(data->script_display_password_func);
+ script_obj_unref(data->script_display_question_func);
  free(data);
 }
 

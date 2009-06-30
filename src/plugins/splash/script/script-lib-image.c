@@ -35,7 +35,23 @@ static script_return image_new (script_state* state, void* user_data)
  
  script_obj* script_obj_filename = script_obj_hash_get_element (state->local, "filename");
  filename = script_obj_as_string(script_obj_filename);
- asprintf(&path_filename, "%s/%s", data->image_dir, filename);
+ 
+ char* test_string = filename;
+ char* prefix_string = "special://";
+ while (*test_string && *prefix_string && *test_string == *prefix_string){
+    test_string++;
+    prefix_string++;
+    }
+ if (!*prefix_string) {
+    if (strcmp(test_string, "logo") == 0)
+        path_filename = strdup (PLYMOUTH_LOGO_FILE);
+    else
+        path_filename = strdup ("");
+    }
+ else
+    asprintf(&path_filename, "%s/%s", data->image_dir, filename);
+ 
+ 
  script_obj_unref(script_obj_filename);
  
  ply_image_t *image = ply_image_new (path_filename);

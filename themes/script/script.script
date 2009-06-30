@@ -1,4 +1,7 @@
 
+logo.image = ImageNew("special://logo");
+logo.sprite = SpriteNew();
+SpriteSetImage(logo.sprite, logo.image);
 
 
 index = 0;
@@ -19,11 +22,16 @@ fun refresh (){
         int_frame_index = MathInt(frame_index);
         SpriteSetImage (throbber_sprite, frame_image[int_frame_index]);
         SpriteSetX (throbber_sprite, 400 - ImageGetWidth(frame_image[int_frame_index])  / 2);
-        SpriteSetY (throbber_sprite, 300 - ImageGetHeight(frame_image[int_frame_index]) / 2);
+        SpriteSetY (throbber_sprite, 300);
         SpriteSetOpacity (throbber_sprite, 1);
+        SpriteSetX (logo.sprite, 400 - ImageGetWidth(logo.image)  / 2);
+        SpriteSetY (logo.sprite, 300 - ImageGetHeight(logo.image));
+        SpriteSetOpacity (logo.sprite, 1);
         }
     if (status != "normal"){
         SpriteSetOpacity (throbber_sprite, 0);
+        SpriteSetX (logo.sprite, 0);
+        SpriteSetY (logo.sprite, 0);
         }
     }
 

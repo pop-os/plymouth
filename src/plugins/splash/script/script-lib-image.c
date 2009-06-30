@@ -124,6 +124,30 @@ static script_return image_rotate (script_state* state, void* user_data)
 
 
 
+static script_return image_scale (script_state* state, void* user_data)
+{
+ script_lib_image_data_t* data = user_data;
+ script_obj* script_obj_image = script_obj_hash_get_element (state->local, "image");
+ script_obj* script_obj_width = script_obj_hash_get_element (state->local, "width");
+ script_obj* script_obj_height = script_obj_hash_get_element (state->local, "height");
+ script_obj_deref(&script_obj_image);
+ script_obj* reply;
+ if (script_obj_image->type == SCRIPT_OBJ_TYPE_NATIVE &&
+     script_obj_image->data.native.class == data->class){
+    ply_image_t *image = script_obj_image->data.native.object_data;
+    ply_image_t *new_image = ply_image_resize (image, script_obj_as_int (script_obj_width), script_obj_as_int (script_obj_height));
+    reply = script_obj_new_native (new_image, data->class);
+    }
+ else
+    reply = script_obj_new_null ();
+ script_obj_unref(script_obj_image);
+ script_obj_unref(script_obj_width);
+ script_obj_unref(script_obj_height);
+ return (script_return){SCRIPT_RETURN_TYPE_RETURN, reply};
+}
+
+
+
 
 script_lib_image_data_t* script_lib_image_setup(script_state *state, char* image_dir)
 {
@@ -133,6 +157,7 @@ script_lib_image_data_t* script_lib_image_setup(script_state *state, char* image
 
  script_add_native_function (state->global, "ImageNew", image_new, data, "filename", NULL);
  script_add_native_function (state->global, "ImageRotate", image_rotate, data, "image", "angle", NULL);
+ script_add_native_function (state->global, "ImageScale", image_scale, data, "image", "width", "height", NULL);
  script_add_native_function (state->global, "ImageGetWidth", image_get_width, data, "image", NULL);
  script_add_native_function (state->global, "ImageGetHeight", image_get_height, data, "image", NULL);
  

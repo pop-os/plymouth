@@ -536,11 +536,22 @@ static script_op* script_parse_if_while (ply_scan_t* scan)
  curtoken = ply_scan_get_next_token(scan);
  
  script_op* cond_op = script_parse_op(scan);
+ script_op* else_op = NULL;
+ 
+ curtoken = ply_scan_get_current_token(scan);
+ if (type == SCRIPT_OP_TYPE_IF &&
+        curtoken->type == PLY_SCAN_TOKEN_TYPE_IDENTIFIER &&
+        !strcmp(curtoken->data.string, "else")){
+    curtoken = ply_scan_get_next_token(scan);
+    else_op = script_parse_op(scan);
+    }
+ 
  
  script_op* op = malloc(sizeof(script_op));
  op->type = type;
  op->data.cond_op.cond = cond;
- op->data.cond_op.op = cond_op;
+ op->data.cond_op.op1 = cond_op;
+ op->data.cond_op.op2 = else_op;
  return op;
 }
 
@@ -773,6 +784,7 @@ static void script_parse_exp_free (script_exp* exp)
 
 void script_parse_op_free (script_op* op)
 {
+ if (!op) return;
  switch (op->type){
     case SCRIPT_OP_TYPE_EXPRESSION:
         {
@@ -788,7 +800,8 @@ void script_parse_op_free (script_op* op)
     case SCRIPT_OP_TYPE_WHILE:
         {
         script_parse_exp_free (op->data.cond_op.cond);
-        script_parse_op_free  (op->data.cond_op.op);
+        script_parse_op_free  (op->data.cond_op.op1);
+        script_parse_op_free  (op->data.cond_op.op2);
         break;
         }
         {

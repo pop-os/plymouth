@@ -177,7 +177,8 @@ typedef struct script_op
     ply_list_t* list;
     struct {
         script_exp* cond;
-        struct script_op* op;
+        struct script_op* op1;
+        struct script_op* op2;
         } cond_op;
     struct {
         script_exp* name;

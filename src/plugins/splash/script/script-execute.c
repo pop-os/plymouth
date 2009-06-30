@@ -847,6 +847,7 @@ script_return script_execute_function (script_state* state, script_function* fun
 script_return script_execute (script_state* state, script_op* op)
 {
  script_return reply = {SCRIPT_RETURN_TYPE_NORMAL, NULL};
+ if (!op) return reply;
  switch (op->type){
     case SCRIPT_OP_TYPE_EXPRESSION:
         {
@@ -864,7 +865,10 @@ script_return script_execute (script_state* state, script_op* op)
         {
         script_obj* obj = script_evaluate (state, op->data.cond_op.cond);
         if (script_obj_as_bool(obj)){
-            reply = script_execute (state, op->data.cond_op.op);       // FIXME propagate break
+            reply = script_execute (state, op->data.cond_op.op1);
+            }
+        else {
+            reply = script_execute (state, op->data.cond_op.op2);
             }
         script_obj_unref(obj);
         break;
@@ -875,7 +879,7 @@ script_return script_execute (script_state* state, script_op* op)
         while (1){
             obj = script_evaluate (state, op->data.cond_op.cond);
             if (script_obj_as_bool(obj)){
-                reply = script_execute (state, op->data.cond_op.op);       // FIXME handle break
+                reply = script_execute (state, op->data.cond_op.op1);
                 script_obj_unref(obj);
                 switch (reply.type) {
                     case SCRIPT_RETURN_TYPE_NORMAL:

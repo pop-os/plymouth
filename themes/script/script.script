@@ -1,43 +1,75 @@
 
-logo.image = ImageNew("special://logo");
-logo.sprite = SpriteNew();
-SpriteSetImage(logo.sprite, logo.image);
+splash_type = "fade_in";        # or "spinfinity"
+
+if (splash_type == "spinfinity"){
+    logo.image = ImageNew("special://logo");
+    logo.sprite = SpriteNew();
+    SpriteSetImage(logo.sprite, logo.image);
 
 
-index = 0;
-while (1){
-    index_string = "" + index;
-    if (index < 10) index_string = "0" + index_string;
-    frame_image[index] = ImageNew("../spinfinity/throbber-" + index_string + ".png");
-    if (!frame_image[index]) break;
-    index++;
-    }
-frame_count = index + 1;
-frame_index = 0;
-throbber_sprite = SpriteNew();
-
-fun refresh (){
-    if (status == "normal"){
-        frame_index = (frame_index + 20/50) % frame_count;
-        int_frame_index = MathInt(frame_index);
-        SpriteSetImage (throbber_sprite, frame_image[int_frame_index]);
-        SpriteSetX (throbber_sprite, 400 - ImageGetWidth(frame_image[int_frame_index])  / 2);
-        SpriteSetY (throbber_sprite, 300);
-        SpriteSetOpacity (throbber_sprite, 1);
-        SpriteSetX (logo.sprite, 400 - ImageGetWidth(logo.image)  / 2);
-        SpriteSetY (logo.sprite, 300 - ImageGetHeight(logo.image));
-        SpriteSetOpacity (logo.sprite, 1);
+    index = 0;
+    while (1){
+        index_string = "" + index;
+        if (index < 10) index_string = "0" + index_string;
+        frame_image[index] = ImageNew("../spinfinity/throbber-" + index_string + ".png");
+        if (!frame_image[index]) break;
+        index++;
         }
-    else{
-        SpriteSetOpacity (throbber_sprite, 0);
-        SpriteSetX (logo.sprite, 0);
-        SpriteSetY (logo.sprite, 0);
+    frame_count = index + 1;
+    frame_index = 0;
+    throbber_sprite = SpriteNew();
+
+    fun refresh (){
+        if (status == "normal"){
+            frame_index = (frame_index + 20/50) % frame_count;
+            int_frame_index = MathInt(frame_index);
+            SpriteSetImage (throbber_sprite, frame_image[int_frame_index]);
+            SpriteSetX (throbber_sprite, 400 - ImageGetWidth(frame_image[int_frame_index])  / 2);
+            SpriteSetY (throbber_sprite, 300);
+            SpriteSetOpacity (throbber_sprite, 1);
+            SpriteSetX (logo.sprite, 400 - ImageGetWidth(logo.image)  / 2);
+            SpriteSetY (logo.sprite, 300 - ImageGetHeight(logo.image));
+            SpriteSetOpacity (logo.sprite, 1);
+            }
+        else{
+            SpriteSetOpacity (throbber_sprite, 0);
+            SpriteSetX (logo.sprite, 0);
+            SpriteSetY (logo.sprite, 0);
+            }
         }
+
+    refresh ();                         # do one at the start
+    PlymouthSetRefreshFunction (refresh);
     }
+else if (splash_type == "fade_in"){
+    logo.image = ImageNew("special://logo");
+    logo.sprite = SpriteNew();
+    SpriteSetImage(logo.sprite, logo.image);
+    SpriteSetX (logo.sprite, 400 - ImageGetWidth(logo.image)  / 2);     # Place in the middle of the screen
+    SpriteSetY (logo.sprite, 300 - ImageGetHeight(logo.image) / 2);
+    logo.opacity_angle = 0;
+    
+    fun refresh (){
+        if (status == "normal"){
+            logo.opacity_angle = logo.opacity_angle + ((2 * 3.14) / 50) / 4;  # 0.25 HZ
+            
+            min_opacity = 0.3;
+            opacity = (MathCos(logo.opacity_angle) + 1) / 2;
+            opacity = opacity * (1 - min_opacity) + min_opacity;
+            SpriteSetOpacity (logo.sprite, opacity);
+            }
+        else{
+            SpriteSetOpacity (logo.sprite, 0);
+            }
+        }
 
-refresh ();                         # do one at the start
-PlymouthSetRefreshFunction (refresh);
-
+    refresh ();                         # do one at the start
+    PlymouthSetRefreshFunction (refresh);
+    }
+else {
+    # Panic?
+    
+    }
 
 
 

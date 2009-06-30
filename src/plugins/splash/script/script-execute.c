@@ -366,6 +366,8 @@ static script_obj* script_evaluate_var (script_state* state, script_exp* exp)
 {
  char* name = exp->data.string;
  script_obj* obj;
+ script_obj_deref(&state->global);
+ script_obj_deref(&state->local);
  assert (state->global->type == SCRIPT_OBJ_TYPE_HASH);
  assert (state->local->type == SCRIPT_OBJ_TYPE_HASH);
  

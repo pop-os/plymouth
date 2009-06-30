@@ -523,7 +523,7 @@ static script_obj* script_evaluate_cmp (script_state* state, script_exp* exp)
     }
  if(valset){
     if (val < 0) {lt = 1; ne = 1;}
-    if (val == 0) eq = 1;
+    if (fabsf(val) == 0) eq = 1;
     if (val > 0) {gt = 1; ne = 1;}
     }
  

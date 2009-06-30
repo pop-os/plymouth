@@ -1,1 +1,20 @@
-   
+fun MathAbs (value){
+    if (value < 0) return -value;
+    return value;
+    }
+
+fun MathMin (value, min){
+    if (value < min) return min;
+    return value;
+    }
+
+fun MathMax (value, max){
+    if (value > max) return max;
+    return value;
+    }
+
+fun MathClamp (value, min, max){
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+    }

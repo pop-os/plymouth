@@ -176,6 +176,7 @@ draw_area (script_lib_sprite_data_t*            data,
     {
       sprite_t* sprite = ply_list_node_get_data (node);
       ply_frame_buffer_area_t sprite_area;
+      if (!sprite->image) continue;
 
       if (sprite->remove_me) continue;
 

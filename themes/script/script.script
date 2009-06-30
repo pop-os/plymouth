@@ -166,3 +166,49 @@ fun display_password (prompt, bullets){
         }
     }
 PlymouthSetDisplayPasswordFunction(display_password);
+
+
+
+
+
+
+
+
+
+
+
+#-----------------------------------------Dialogue stuff --------------------------------
+
+
+
+
+progress_box.image = ImageNew("progress_box.png");
+progress_box.sprite = SpriteNew();
+SpriteSetImage(progress_box.sprite, progress_box.image);
+
+progress_box.x = 400 -        ImageGetWidth(progress_box.image)  / 2;
+progress_box.y = 300 * 1.5  - ImageGetHeight(progress_box.image) / 2;
+
+SpriteSetX (progress_box.sprite, progress_box.x);
+SpriteSetY (progress_box.sprite, progress_box.y);
+
+progress_bar.original_image = ImageNew("progress_bar.png");
+progress_bar.sprite = SpriteNew();
+
+progress_bar.x = 400 -        ImageGetWidth(progress_bar.original_image) / 2;
+progress_bar.y = 300 * 1.5  - ImageGetHeight(progress_box.image) / 2 + (ImageGetHeight(progress_box.image) - ImageGetHeight(progress_bar.original_image)) / 2;
+SpriteSetX (progress_bar.sprite, progress_bar.x);
+SpriteSetY (progress_bar.sprite, progress_bar.y);
+
+
+fun progress (duration, progress){
+    progress_bar.image = ImageScale(progress_bar.original_image, ImageGetWidth(progress_bar.original_image) * progress, ImageGetHeight(progress_bar.original_image));
+    SpriteSetImage (progress_bar.sprite, progress_bar.image);
+    }
+
+
+
+
+PlymouthSetBootProgressFunction(progress);
+
+

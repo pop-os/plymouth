@@ -89,9 +89,6 @@ struct _ply_boot_splash_plugin
   char *script_filename;
   char *image_dir;
  
-  double progress;
-  double progress_target;
-
   script_state   *script_state;
   script_op      *script_main_op;
   script_lib_sprite_data_t *script_sprite_lib;
@@ -122,8 +119,6 @@ create_plugin (ply_key_file_t *key_file)
   plugin->script_filename = ply_key_file_get_value (key_file, "script", "ScriptFile");
  
   plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
-  plugin->progress = 0;
-  plugin->progress_target = -1;
   return plugin;
 }
 
@@ -153,10 +148,7 @@ static void
 on_timeout (ply_boot_splash_plugin_t *plugin)
 {
   double sleep_time;
-  double now;
-
-  now = ply_get_timestamp ();
-
+  
   script_lib_plymouth_on_refresh(plugin->script_state, plugin->script_plymouth_lib);
   script_lib_sprite_refresh(plugin->script_sprite_lib);
   
@@ -172,10 +164,7 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
                   double                    percent_done)
 {
-  if (plugin->progress_target<0)
-    plugin->progress = percent_done;
-  plugin->progress_target = percent_done;
-  script_lib_plymouth_on_boot_progress(plugin->script_state, plugin->script_plymouth_lib, duration, plugin->progress);  
+  script_lib_plymouth_on_boot_progress(plugin->script_state, plugin->script_plymouth_lib, duration, percent_done);  
 }
 
 

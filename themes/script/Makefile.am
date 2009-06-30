@@ -5,7 +5,9 @@ dist_theme_DATA =                                                     \
                     box.png                                           \
                     bullet.png                                        \
                     entry.png                                         \
-                    lock.png
+                    lock.png                                          \
+                    progress_box.png                                  \
+                    progress_bar.png
 
 
 MAINTAINERCLEANFILES = Makefile.in script.plymouth

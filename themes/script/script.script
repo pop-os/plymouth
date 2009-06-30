@@ -1,78 +1,132 @@
+
+
+
 index = 0;
-
-while (index<30){
-    mystring = index;
-    if (index<10) mystring = "0" + index;
-    sprites[index] = SpriteNewWithImage("../spinfinity/throbber-" + mystring + ".png");
-    sprites[index].orig_image = sprites[index].image;
-    sprites[index].xd = (50 + index)/10;
-    sprites[index].yd = (50 + index)/10;
-    index = index + 1;
+while (1){
+    index_string = "" + index;
+    if (index < 10) index_string = "0" + index_string;
+    frame_image[index] = ImageNew("../spinfinity/throbber-" + index_string + ".png");
+    if (!frame_image[index]) break;
+    index++;
     }
-
-random = 1;
-count = 0;
-progress=0;
-
-fun update_logo_sprite (sprite){
-    image_width =  ImageGetWidth (sprite.image);
-    image_height = ImageGetHeight(sprite.image);
-    
-    if (sprite.x < 0)
-        sprite.xd = +(global.random % 5 + 1);
-    if (sprite.y < 0)
-        sprite.yd = +(global.random % 5 + 1);
-    if ((sprite.x + image_width) > 800)
-        sprite.xd = -((global.random % 5 + 1));
-    if ((sprite.y + image_height) > 600)
-        sprite.yd = -((global.random % 5 + 1));
-
-    global.random = (1 + global.random * 7) % 101;
-    
-    sprite.x = sprite.x + sprite.xd*global.progress;
-    sprite.y = sprite.y + sprite.yd*global.progress;
-    sprite.image = ImageRotate(sprite.orig_image, count*0.1);
-    SpriteUpdate(sprite);
-    }
-
+frame_count = index + 1;
+frame_index = 0;
+throbber_sprite = SpriteNew();
 
 fun refresh (){
-    index = 0;
-    count++;
-    while (!(index>=30)){
-        update_logo_sprite (sprites[index]);
-        index++;
+    if (status == "normal"){
+        frame_index = (frame_index + 20/50) % frame_count;
+        int_frame_index = MathInt(frame_index);
+        SpriteSetImage (throbber_sprite, frame_image[int_frame_index]);
+        SpriteSetX (throbber_sprite, 400 - ImageGetWidth(frame_image[int_frame_index])  / 2);
+        SpriteSetY (throbber_sprite, 300 - ImageGetHeight(frame_image[int_frame_index]) / 2);
+        SpriteSetOpacity (throbber_sprite, 1);
         }
-    return;
+    if (status != "normal"){
+        SpriteSetOpacity (throbber_sprite, 0);
+        }
     }
 
-fun on_progress (duration, progress){
-    global.progress = progress*300;
+refresh ();                         # do one at the start
+PlymouthSetRefreshFunction (refresh);
+
+
+
+
+
+
+
+
+
+
+
+
+
+#-----------------------------------------Dialogue stuff --------------------------------
+
+
+status = "normal";
+
+fun dialogue_setup(){
+    local.box;
+    local.lock;
+    local.entry;
+    local.bullet_image;
+    
+    box.image = ImageNew("box.png");
+    lock.image = ImageNew("lock.png");
+    entry.image = ImageNew("entry.png");
+    bullet_image = ImageNew("bullet.png");
+    
+    box.sprite = SpriteNew();
+    SpriteSetImage(box.sprite, box.image);
+    box.x = 400 - ImageGetWidth (box.image)/2;
+    box.y = 300 - ImageGetHeight(box.image)/2;
+    box.z = 10000;
+    SpriteSetPosition(box.sprite, box.x, box.y, box.z);
+    
+    lock.sprite = SpriteNew();
+    SpriteSetImage(lock.sprite, lock.image);
+    lock.x = box.x + ImageGetWidth(box.image)/2 - (ImageGetWidth(lock.image) + ImageGetWidth(entry.image)) / 2;
+    lock.y = box.y + ImageGetHeight(box.image)/2 - ImageGetHeight(lock.image)/2;
+    lock.z = box.z + 1;
+    SpriteSetPosition(lock.sprite, lock.x, lock.y, lock.z);
+    
+    entry.sprite = SpriteNew();
+    SpriteSetImage(entry.sprite, entry.image);
+    entry.x = lock.x + ImageGetWidth(lock.image);
+    entry.y = box.y + ImageGetHeight(box.image)/2 - ImageGetHeight(entry.image)/2;
+    entry.z = box.z + 1;
+    SpriteSetPosition(entry.sprite, entry.x, entry.y, entry.z);
+    
+    
+    global.dialogue = local;
     }
     
-fun on_keyboard (key){
+fun dialogue_opacity(opacity){
+    global.dialogue.opacity = opacity;
+    local = global.dialogue;
+    SpriteSetOpacity (box.sprite, opacity);
+    SpriteSetOpacity (lock.sprite, opacity);
+    SpriteSetOpacity (entry.sprite, opacity);
     index = 0;
-    if (key == "a"){
-        while (!(index>=30)){
-            sprites[index].x = 0;
-            index++;
-            }
+    while (bullet[index]){
+        SpriteSetOpacity(bullet[index].sprite, opacity);
+        index++;
         }
-    if (key == "b"){
-        while (!(index>=30)){
-            sprites[index].y = 0;
-            index++;
-            }
-        }
-    return;
     }
 
+fun display_normal (){
+    global.status = "normal";
+    if (!global.dialogue) return;
+    dialogue_setup();
+    dialogue_opacity (0);
+    }
 
-// This is a comment
-# As is this (both are acceptable because people do forget which to use)
-/* A block comment /* with a nested sub-comment */ */
+PlymouthSetDisplayNormalFunction(display_normal);
 
-PlymouthSetRefreshFunction(refresh);
-PlymouthSetKeyboardInputFunction(on_keyboard);
-PlymouthSetBootProgressFunction(on_progress);
-PlymouthSetUpdateStatusFunction(on_keyboard);
+fun display_password (prompt, bullets){
+    global.status = "password";
+    if (!global.dialogue) dialogue_setup();
+    dialogue_opacity (1);
+    index = 0;
+    while (dialogue.bullet[index] || index < bullets){
+        if (!dialogue.bullet[index]){
+            dialogue.bullet[index].sprite = SpriteNew();
+            SpriteSetImage(dialogue.bullet[index].sprite, dialogue.bullet_image);
+            dialogue.bullet[index].x = dialogue.entry.x + index * ImageGetWidth(dialogue.bullet_image);
+            SpriteSetX(dialogue.bullet[index].sprite, dialogue.bullet[index].x);
+            dialogue.bullet[index].y = dialogue.entry.y + ImageGetHeight(dialogue.entry.image)/2 - ImageGetHeight(dialogue.bullet_image)/2;
+            SpriteSetY(dialogue.bullet[index].sprite, dialogue.bullet[index].y);
+            dialogue.bullet[index].z = dialogue.entry.z + 1;
+            SpriteSetZ(dialogue.bullet[index].sprite, dialogue.bullet[index].z);
+            }
+        SpriteSetOpacity(dialogue.bullet[index].sprite, 0);
+        if (index < bullets){
+            SpriteSetOpacity(dialogue.bullet[index].sprite, 1);
+            }
+        
+        index++;
+        }
+    }
+PlymouthSetDisplayPasswordFunction(display_password);

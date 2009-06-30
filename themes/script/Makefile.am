@@ -1,7 +1,11 @@
 themedir = $(datadir)/plymouth/themes/script
 dist_theme_DATA =                                                     \
                     script.plymouth                                   \
-                    script.script
+                    script.script                                     \
+                    box.png                                           \
+                    bullet.png                                        \
+                    entry.png                                         \
+                    lock.png
 
 
 MAINTAINERCLEANFILES = Makefile.in script.plymouth

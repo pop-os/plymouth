@@ -28,7 +28,7 @@ fun refresh (){
         SpriteSetY (logo.sprite, 300 - ImageGetHeight(logo.image));
         SpriteSetOpacity (logo.sprite, 1);
         }
-    if (status != "normal"){
+    else{
         SpriteSetOpacity (throbber_sprite, 0);
         SpriteSetX (logo.sprite, 0);
         SpriteSetY (logo.sprite, 0);
@@ -98,9 +98,8 @@ fun dialogue_opacity(opacity){
     SpriteSetOpacity (lock.sprite, opacity);
     SpriteSetOpacity (entry.sprite, opacity);
     index = 0;
-    while (bullet[index]){
+    for (index = 0; bullet[index]; index++){
         SpriteSetOpacity(bullet[index].sprite, opacity);
-        index++;
         }
     }
 
@@ -117,8 +116,7 @@ fun display_password (prompt, bullets){
     global.status = "password";
     if (!global.dialogue) dialogue_setup();
     dialogue_opacity (1);
-    index = 0;
-    while (dialogue.bullet[index] || index < bullets){
+    for (index = 0; dialogue.bullet[index] || index < bullets; index++){
         if (!dialogue.bullet[index]){
             dialogue.bullet[index].sprite = SpriteNew();
             SpriteSetImage(dialogue.bullet[index].sprite, dialogue.bullet_image);
@@ -133,8 +131,6 @@ fun display_password (prompt, bullets){
         if (index < bullets){
             SpriteSetOpacity(dialogue.bullet[index].sprite, 1);
             }
-        
-        index++;
         }
     }
 PlymouthSetDisplayPasswordFunction(display_password);

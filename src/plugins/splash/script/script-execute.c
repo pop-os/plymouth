@@ -874,6 +874,7 @@ script_return script_execute (script_state* state, script_op* op)
         break;
         }
     case SCRIPT_OP_TYPE_WHILE:
+    case SCRIPT_OP_TYPE_FOR:
         {
         script_obj* obj;
         while (1){
@@ -889,9 +890,9 @@ script_return script_execute (script_state* state, script_op* op)
                     case SCRIPT_RETURN_TYPE_BREAK:
                         return (script_return){SCRIPT_RETURN_TYPE_NORMAL, NULL};
                     case SCRIPT_RETURN_TYPE_CONTINUE:
-                        reply = (script_return){SCRIPT_RETURN_TYPE_NORMAL, NULL};
                         break;
                     }
+                script_execute (state, op->data.cond_op.op2);
                 }
             else {
                 script_obj_unref(obj);

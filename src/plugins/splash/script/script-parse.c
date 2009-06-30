@@ -533,8 +533,8 @@ static script_op* script_parse_if_while (ply_scan_t* scan)
     script_parse_error (curtoken, "Expected a ')' at the end of a condition block");
     return NULL;
     }
- curtoken = ply_scan_get_next_token(scan);
  
+ ply_scan_get_next_token(scan);
  script_op* cond_op = script_parse_op(scan);
  script_op* else_op = NULL;
  
@@ -542,7 +542,7 @@ static script_op* script_parse_if_while (ply_scan_t* scan)
  if (type == SCRIPT_OP_TYPE_IF &&
         curtoken->type == PLY_SCAN_TOKEN_TYPE_IDENTIFIER &&
         !strcmp(curtoken->data.string, "else")){
-    curtoken = ply_scan_get_next_token(scan);
+    ply_scan_get_next_token(scan);
     else_op = script_parse_op(scan);
     }
  
@@ -554,6 +554,87 @@ static script_op* script_parse_if_while (ply_scan_t* scan)
  op->data.cond_op.op2 = else_op;
  return op;
 }
+
+
+static script_op* script_parse_for (ply_scan_t* scan)
+{
+ ply_scan_token_t* curtoken = ply_scan_get_current_token(scan);
+ if (curtoken->type != PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
+    return NULL;
+ if (strcmp(curtoken->data.string, "for")) return NULL;
+ 
+ curtoken = ply_scan_get_next_token(scan);
+ if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL || curtoken->data.symbol != '('){
+    script_parse_error (curtoken, "Expected a '(' at the start of a condition block");
+    return NULL;
+    }
+ curtoken = ply_scan_get_next_token(scan);
+ 
+ script_exp* first = script_parse_exp (scan);
+ if (!first){
+    script_parse_error (curtoken, "Expected a valid first expression");
+    return NULL;
+    }
+ 
+ curtoken = ply_scan_get_current_token(scan);
+ if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL || curtoken->data.symbol != ';'){
+    script_parse_error (curtoken, "Expected a ';' after the first 'for' expression");
+    return NULL;
+    }
+ ply_scan_get_next_token(scan);
+ 
+ script_exp* cond = script_parse_exp (scan);
+ if (!cond){
+    script_parse_error (curtoken, "Expected a valid condition expression");
+    return NULL;
+    }
+ 
+ curtoken = ply_scan_get_current_token(scan);
+ if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL || curtoken->data.symbol != ';'){
+    script_parse_error (curtoken, "Expected a ';' after the 'for' condition");
+    return NULL;
+    }
+ ply_scan_get_next_token(scan);
+    
+ script_exp* last = script_parse_exp (scan);
+ if (!last){
+    script_parse_error (curtoken, "Expected a valid last expression");
+    return NULL;
+    }
+    
+ curtoken = ply_scan_get_current_token(scan);
+ if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL || curtoken->data.symbol != ')'){
+    script_parse_error (curtoken, "Expected a ')' at the end of a for block");
+    return NULL;
+    }
+ ply_scan_get_next_token(scan);
+ script_op* op_body = script_parse_op(scan);
+ 
+ 
+ script_op* op_first = malloc(sizeof(script_op));
+ op_first->type = SCRIPT_OP_TYPE_EXPRESSION;
+ op_first->data.exp = first;
+ 
+ script_op* op_last = malloc(sizeof(script_op));
+ op_last->type = SCRIPT_OP_TYPE_EXPRESSION;
+ op_last->data.exp = last;
+ 
+ script_op* op_for = malloc(sizeof(script_op));
+ op_for->type = SCRIPT_OP_TYPE_FOR;
+ op_for->data.cond_op.cond = cond;
+ op_for->data.cond_op.op1 = op_body;
+ op_for->data.cond_op.op2 = op_last;
+ 
+ 
+ script_op* op_block = malloc(sizeof(script_op));
+ op_block->type = SCRIPT_OP_TYPE_OP_BLOCK;
+ op_block->data.list = ply_list_new();
+ ply_list_append_data(op_block->data.list, op_first);
+ ply_list_append_data(op_block->data.list, op_for);
+ 
+ return op_block;
+}
+
 
 
 
@@ -679,6 +760,9 @@ static script_op* script_parse_op (ply_scan_t* scan)
  reply = script_parse_if_while (scan);
  if (reply) return reply;
 
+ reply = script_parse_for (scan);
+ if (reply) return reply;
+
  reply = script_parse_return (scan);
  if (reply) return reply;
 
@@ -798,6 +882,7 @@ void script_parse_op_free (script_op* op)
         }
     case SCRIPT_OP_TYPE_IF:
     case SCRIPT_OP_TYPE_WHILE:
+    case SCRIPT_OP_TYPE_FOR:
         {
         script_parse_exp_free (op->data.cond_op.cond);
         script_parse_op_free  (op->data.cond_op.op1);

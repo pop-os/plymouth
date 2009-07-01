@@ -29,6 +29,17 @@ static script_obj* script_evaluate_apply_function (script_state* state, script_e
  return obj;
 }
 
+static script_obj* script_evaluate_apply_function_and_assign (script_state* state, script_exp* exp, script_obj* (*function) (script_obj*, script_obj*))
+{
+ script_obj* script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
+ script_obj* script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
+ script_obj* obj = function (script_obj_a, script_obj_b);
+ script_obj_assign (script_obj_a, obj);
+ script_obj_unref (script_obj_a);
+ script_obj_unref (script_obj_b);
+ return obj;
+}
+
 static script_obj* script_evaluate_hash (script_state* state, script_exp* exp)
 {
  script_obj* hash = script_evaluate (state, exp->data.dual.sub_a);
@@ -457,6 +468,26 @@ static script_obj* script_evaluate (script_state* state, script_exp* exp)
     case SCRIPT_EXP_TYPE_ASSIGN:
         {
         return script_evaluate_assign (state, exp);
+        }
+    case SCRIPT_EXP_TYPE_ASSIGN_PLUS:
+        {
+        return script_evaluate_apply_function_and_assign (state, exp, script_obj_plus);
+        }
+    case SCRIPT_EXP_TYPE_ASSIGN_MINUS:
+        {
+        return script_evaluate_apply_function_and_assign (state, exp, script_obj_minus);
+        }
+    case SCRIPT_EXP_TYPE_ASSIGN_MUL:
+        {
+        return script_evaluate_apply_function_and_assign (state, exp, script_obj_mul);
+        }
+    case SCRIPT_EXP_TYPE_ASSIGN_DIV:
+        {
+        return script_evaluate_apply_function_and_assign (state, exp, script_obj_div);
+        }
+    case SCRIPT_EXP_TYPE_ASSIGN_MOD:
+        {
+        return script_evaluate_apply_function_and_assign (state, exp, script_obj_mod);
         }
     case SCRIPT_EXP_TYPE_HASH:
         {

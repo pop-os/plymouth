@@ -32,7 +32,7 @@ post:  ++ --            po   =
 == !=                   eq   =
 &&                      an   =
 ||                      or   =
-=                       as   =      += -= *= %=
+=                       as   =      += -= *= %= /=
 
 */
 
@@ -277,10 +277,13 @@ static script_exp* script_parse_exp_md (ply_scan_t* scan)
  script_exp* sub_a = script_parse_exp_po (scan);
  if (!sub_a) return NULL;
  ply_scan_token_t* curtoken = ply_scan_get_current_token(scan);
+ ply_scan_token_t* peektoken = ply_scan_peek_next_token(scan);
  while (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL &&
             (curtoken->data.symbol == '*' ||
              curtoken->data.symbol == '/' ||
-             curtoken->data.symbol == '%' )){
+             curtoken->data.symbol == '%' ) &&
+           !(peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL &&
+             peektoken->data.symbol == '=' )){
     script_exp* exp = malloc(sizeof(script_exp));
     if (curtoken->data.symbol == '*')       exp->type = SCRIPT_EXP_TYPE_MUL;
     else if (curtoken->data.symbol == '/')  exp->type = SCRIPT_EXP_TYPE_DIV;
@@ -290,6 +293,7 @@ static script_exp* script_parse_exp_md (ply_scan_t* scan)
     sub_a = exp;
     exp->data.dual.sub_b = script_parse_exp_po (scan);
     curtoken = ply_scan_get_current_token(scan);
+    peektoken = ply_scan_peek_next_token(scan);
     if (!exp->data.dual.sub_b){
         script_parse_error (curtoken, "An invalid RHS of an expression");
         return NULL;
@@ -304,9 +308,12 @@ static script_exp* script_parse_exp_pm (ply_scan_t* scan)
  script_exp* sub_a = script_parse_exp_md (scan);
  if (!sub_a) return NULL; 
  ply_scan_token_t* curtoken = ply_scan_get_current_token(scan);
+ ply_scan_token_t* peektoken = ply_scan_peek_next_token(scan);
  while (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL &&
             (curtoken->data.symbol == '+' ||
-             curtoken->data.symbol == '-' )){
+             curtoken->data.symbol == '-' ) &&
+           !(peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL &&
+             peektoken->data.symbol == '=' )){
     script_exp* exp = malloc(sizeof(script_exp));
     if (curtoken->data.symbol == '+')   exp->type = SCRIPT_EXP_TYPE_PLUS;
     else                                exp->type = SCRIPT_EXP_TYPE_MINUS;
@@ -315,6 +322,7 @@ static script_exp* script_parse_exp_pm (ply_scan_t* scan)
     exp->data.dual.sub_b = script_parse_exp_md (scan);
     sub_a = exp;
     curtoken = ply_scan_get_current_token(scan);
+    peektoken = ply_scan_peek_next_token(scan);
     if (!exp->data.dual.sub_b){
         script_parse_error (curtoken, "An invalid RHS of an expression");
         return NULL;
@@ -462,16 +470,50 @@ static script_exp* script_parse_exp_as (ply_scan_t* scan)
  script_exp* lhs = script_parse_exp_or (scan);
  if (!lhs) return NULL; 
  ply_scan_token_t* curtoken = ply_scan_get_current_token(scan);
+ ply_scan_token_t* peektoken = ply_scan_peek_next_token(scan);
+ bool modify_assign;
  
- if (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && curtoken->data.symbol == '=' ){
+ modify_assign = !peektoken->whitespace &&
+                  curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && 
+                  peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && 
+                  peektoken->data.symbol == '=';
+ 
+ if (modify_assign || (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL && curtoken->data.symbol == '=')){
+    script_exp_type type;
+    if (modify_assign) {
+        switch (curtoken->data.symbol){
+            case '+':
+                type = SCRIPT_EXP_TYPE_ASSIGN_PLUS;
+                break;
+            case '-':
+                type = SCRIPT_EXP_TYPE_ASSIGN_MINUS;
+                break;
+            case '*':
+                type = SCRIPT_EXP_TYPE_ASSIGN_MUL;
+                break;
+            case '/':
+                type = SCRIPT_EXP_TYPE_ASSIGN_DIV;
+                break;
+            case '%':
+                type = SCRIPT_EXP_TYPE_ASSIGN_MOD;
+                break;
+            default:
+                script_parse_error (ply_scan_get_current_token(scan), "An invalid modify assign character");
+                return NULL;
+            }
+        ply_scan_get_next_token(scan);
+        }
+    else
+        type = SCRIPT_EXP_TYPE_ASSIGN;
+    
     ply_scan_get_next_token(scan);
-    script_exp* rhs = script_parse_exp_or(scan);
+    script_exp* rhs = script_parse_exp_as(scan);
     if (!rhs){
         script_parse_error (ply_scan_get_current_token(scan), "An invalid RHS of an expression");
         return NULL;
         }
     script_exp* exp = malloc(sizeof(script_exp));
-    exp->type = SCRIPT_EXP_TYPE_ASSIGN;
+    exp->type = type;
     exp->data.dual.sub_a = lhs;
     exp->data.dual.sub_b = rhs;
     return exp;
@@ -824,6 +866,11 @@ static void script_parse_exp_free (script_exp* exp)
     case SCRIPT_EXP_TYPE_AND:
     case SCRIPT_EXP_TYPE_OR:
     case SCRIPT_EXP_TYPE_ASSIGN:
+    case SCRIPT_EXP_TYPE_ASSIGN_PLUS:
+    case SCRIPT_EXP_TYPE_ASSIGN_MINUS:
+    case SCRIPT_EXP_TYPE_ASSIGN_MUL:
+    case SCRIPT_EXP_TYPE_ASSIGN_DIV:
+    case SCRIPT_EXP_TYPE_ASSIGN_MOD:
     case SCRIPT_EXP_TYPE_HASH:
         script_parse_exp_free (exp->data.dual.sub_a);
         script_parse_exp_free (exp->data.dual.sub_b);

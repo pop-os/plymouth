@@ -1,5 +1,6 @@
 
-splash_type = "fade_in";        # or "spinfinity"
+
+splash_type = "spinfinity";        # "fade_in" or "spinfinity"
 
 if (splash_type == "spinfinity"){
     logo.image = ImageNew("special://logo");
@@ -9,7 +10,7 @@ if (splash_type == "spinfinity"){
 
     index = 0;
     while (1){
-        index_string = "" + index;
+        index_string = index;
         if (index < 10) index_string = "0" + index_string;
         frame_image[index] = ImageNew("../spinfinity/throbber-" + index_string + ".png");
         if (!frame_image[index]) break;
@@ -21,14 +22,15 @@ if (splash_type == "spinfinity"){
 
     fun refresh (){
         if (status == "normal"){
-            frame_index = (frame_index + 20/50) % frame_count;
+            frame_index += 20 / 50;
+            frame_index %= frame_count;
             int_frame_index = MathInt(frame_index);
             SpriteSetImage (throbber_sprite, frame_image[int_frame_index]);
-            SpriteSetX (throbber_sprite, 400 - ImageGetWidth(frame_image[int_frame_index])  / 2);
-            SpriteSetY (throbber_sprite, 300);
+            SpriteSetX (throbber_sprite, SpriteWindowGetWidth()  / 2 - ImageGetWidth(frame_image[int_frame_index])  / 2);
+            SpriteSetY (throbber_sprite, SpriteWindowGetHeight() / 2);
             SpriteSetOpacity (throbber_sprite, 1);
-            SpriteSetX (logo.sprite, 400 - ImageGetWidth(logo.image)  / 2);
-            SpriteSetY (logo.sprite, 300 - ImageGetHeight(logo.image));
+            SpriteSetX (logo.sprite,  SpriteWindowGetWidth()  / 2 - ImageGetWidth(logo.image)  / 2);
+            SpriteSetY (logo.sprite,  SpriteWindowGetHeight() / 2 - ImageGetHeight(logo.image));
             SpriteSetOpacity (logo.sprite, 1);
             }
         else{
@@ -45,17 +47,18 @@ else if (splash_type == "fade_in"){
     logo.image = ImageNew("special://logo");
     logo.sprite = SpriteNew();
     SpriteSetImage(logo.sprite, logo.image);
-    SpriteSetX (logo.sprite, 400 - ImageGetWidth(logo.image)  / 2);     # Place in the middle of the screen
-    SpriteSetY (logo.sprite, 300 - ImageGetHeight(logo.image) / 2);
+    SpriteSetX (logo.sprite, SpriteWindowGetWidth()  / 2 - ImageGetWidth(logo.image)  / 2);     # Place in the middle of the screen
+    SpriteSetY (logo.sprite, SpriteWindowGetHeight() / 2 - ImageGetHeight(logo.image) / 2);
     logo.opacity_angle = 0;
     
     fun refresh (){
         if (status == "normal"){
-            logo.opacity_angle = logo.opacity_angle + ((2 * 3.14) / 50) / 4;  # 0.25 HZ
+            logo.opacity_angle = logo.opacity_angle + ((2 * 3.14) / 50) * 0.5;  # 0.5 HZ
             
             min_opacity = 0.3;
             opacity = (MathCos(logo.opacity_angle) + 1) / 2;
-            opacity = opacity * (1 - min_opacity) + min_opacity;
+            opacity *= 1 - min_opacity;
+            opacity += min_opacity;
             SpriteSetOpacity (logo.sprite, opacity);
             }
         else{
@@ -100,8 +103,8 @@ fun dialogue_setup(){
     
     box.sprite = SpriteNew();
     SpriteSetImage(box.sprite, box.image);
-    box.x = 400 - ImageGetWidth (box.image)/2;
-    box.y = 300 - ImageGetHeight(box.image)/2;
+    box.x = SpriteWindowGetWidth()  / 2 - ImageGetWidth (box.image)/2;
+    box.y = SpriteWindowGetHeight() / 2 - ImageGetHeight(box.image)/2;
     box.z = 10000;
     SpriteSetPosition(box.sprite, box.x, box.y, box.z);
     
@@ -129,7 +132,6 @@ fun dialogue_opacity(opacity){
     SpriteSetOpacity (box.sprite, opacity);
     SpriteSetOpacity (lock.sprite, opacity);
     SpriteSetOpacity (entry.sprite, opacity);
-    index = 0;
     for (index = 0; bullet[index]; index++){
         SpriteSetOpacity(bullet[index].sprite, opacity);
         }
@@ -137,9 +139,7 @@ fun dialogue_opacity(opacity){
 
 fun display_normal (){
     global.status = "normal";
-    if (!global.dialogue) return;
-    dialogue_setup();
-    dialogue_opacity (0);
+    if (global.dialogue) dialogue_opacity (0);
     }
 
 PlymouthSetDisplayNormalFunction(display_normal);
@@ -154,7 +154,7 @@ fun display_password (prompt, bullets){
             SpriteSetImage(dialogue.bullet[index].sprite, dialogue.bullet_image);
             dialogue.bullet[index].x = dialogue.entry.x + index * ImageGetWidth(dialogue.bullet_image);
             SpriteSetX(dialogue.bullet[index].sprite, dialogue.bullet[index].x);
-            dialogue.bullet[index].y = dialogue.entry.y + ImageGetHeight(dialogue.entry.image)/2 - ImageGetHeight(dialogue.bullet_image)/2;
+            dialogue.bullet[index].y = dialogue.entry.y + ImageGetHeight(dialogue.entry.image) / 2 - ImageGetHeight(dialogue.bullet_image) / 2;
             SpriteSetY(dialogue.bullet[index].sprite, dialogue.bullet[index].y);
             dialogue.bullet[index].z = dialogue.entry.z + 1;
             SpriteSetZ(dialogue.bullet[index].sprite, dialogue.bullet[index].z);
@@ -177,7 +177,7 @@ PlymouthSetDisplayPasswordFunction(display_password);
 
 
 
-#-----------------------------------------Dialogue stuff --------------------------------
+#-----------------------------------------Progress stuff --------------------------------
 
 
 
@@ -186,8 +186,8 @@ progress_box.image = ImageNew("progress_box.png");
 progress_box.sprite = SpriteNew();
 SpriteSetImage(progress_box.sprite, progress_box.image);
 
-progress_box.x = 400 -        ImageGetWidth(progress_box.image)  / 2;
-progress_box.y = 300 * 1.5  - ImageGetHeight(progress_box.image) / 2;
+progress_box.x = SpriteWindowGetWidth()  / 2 -    ImageGetWidth(progress_box.image)  / 2;
+progress_box.y = SpriteWindowGetHeight() * 0.75 - ImageGetHeight(progress_box.image) / 2;
 
 SpriteSetX (progress_box.sprite, progress_box.x);
 SpriteSetY (progress_box.sprite, progress_box.y);
@@ -195,15 +195,17 @@ SpriteSetY (progress_box.sprite, progress_box.y);
 progress_bar.original_image = ImageNew("progress_bar.png");
 progress_bar.sprite = SpriteNew();
 
-progress_bar.x = 400 -        ImageGetWidth(progress_bar.original_image) / 2;
-progress_bar.y = 300 * 1.5  - ImageGetHeight(progress_box.image) / 2 + (ImageGetHeight(progress_box.image) - ImageGetHeight(progress_bar.original_image)) / 2;
+progress_bar.x = SpriteWindowGetWidth()  / 2 -        ImageGetWidth(progress_bar.original_image) / 2;
+progress_bar.y = SpriteWindowGetHeight() / 2 * 1.5  - ImageGetHeight(progress_box.image) / 2 + (ImageGetHeight(progress_box.image) - ImageGetHeight(progress_bar.original_image)) / 2;
 SpriteSetX (progress_bar.sprite, progress_bar.x);
 SpriteSetY (progress_bar.sprite, progress_bar.y);
 
 
 fun progress (duration, progress){
-    progress_bar.image = ImageScale(progress_bar.original_image, ImageGetWidth(progress_bar.original_image) * progress, ImageGetHeight(progress_bar.original_image));
-    SpriteSetImage (progress_bar.sprite, progress_bar.image);
+    if (ImageGetWidth(progress_bar.image) != MathInt(ImageGetWidth(progress_bar.original_image) * progress)){
+        progress_bar.image = ImageScale(progress_bar.original_image, ImageGetWidth(progress_bar.original_image) * progress, ImageGetHeight(progress_bar.original_image));
+        SpriteSetImage (progress_bar.sprite, progress_bar.image);
+        }
     }
 
 

@@ -151,6 +151,26 @@ static script_return sprite_set_opacity (script_state* state, void* user_data)
 
 
 
+static script_return sprite_window_get_width (script_state* state, void* user_data)
+{
+ script_lib_sprite_data_t* data = user_data;
+ ply_frame_buffer_t *frame_buffer = ply_window_get_frame_buffer (data->window);
+ ply_frame_buffer_area_t area;
+ ply_frame_buffer_get_size (frame_buffer, &area);
+ return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_int (area.width)};
+}
+
+static script_return sprite_window_get_height (script_state* state, void* user_data)
+{
+ script_lib_sprite_data_t* data = user_data;
+ ply_frame_buffer_t *frame_buffer = ply_window_get_frame_buffer (data->window);
+ ply_frame_buffer_area_t area;
+ ply_frame_buffer_get_size (frame_buffer, &area);
+ return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_int (area.height)};
+}
+
+
+
 
 static void
 draw_area (script_lib_sprite_data_t*            data,
@@ -213,6 +233,8 @@ script_lib_sprite_data_t* script_lib_sprite_setup(script_state *state, ply_windo
  script_add_native_function (state->global, "SpriteSetY", sprite_set_y, data, "sprite", "value", NULL);
  script_add_native_function (state->global, "SpriteSetZ", sprite_set_z, data, "sprite", "value", NULL);
  script_add_native_function (state->global, "SpriteSetOpacity", sprite_set_opacity, data, "sprite", "value", NULL);
+ script_add_native_function (state->global, "SpriteWindowGetWidth", sprite_window_get_width, data, NULL);
+ script_add_native_function (state->global, "SpriteWindowGetHeight", sprite_window_get_height, data, NULL);
 
  data->script_main_op = script_parse_string (script_lib_sprite_string);
  script_return ret = script_execute(state, data->script_main_op);

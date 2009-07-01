@@ -25,7 +25,11 @@ char* script_obj_as_string (script_obj* obj);
 void script_obj_assign (script_obj* obj_a, script_obj* obj_b);
 script_obj* script_obj_hash_get_element (script_obj* hash, const char* name);
 void script_obj_hash_add_element (script_obj* hash, script_obj* element, const char* name);
- 
+script_obj* script_obj_plus (script_obj* script_obj_a_in, script_obj* script_obj_b_in);
+script_obj* script_obj_minus (script_obj* script_obj_a_in, script_obj* script_obj_b_in);
+script_obj* script_obj_mul (script_obj* script_obj_a_in, script_obj* script_obj_b_in);
+script_obj* script_obj_div (script_obj* script_obj_a_in, script_obj* script_obj_b_in);
+script_obj* script_obj_mod (script_obj* script_obj_a_in, script_obj* script_obj_b_in);
 
 
 #endif /* SCRIPT_OBJECT */

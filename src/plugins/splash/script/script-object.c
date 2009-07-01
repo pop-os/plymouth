@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdbool.h>
+#include <math.h>
 
 #include "script.h"
 #include "script-object.h"
@@ -436,4 +437,300 @@ void script_obj_hash_add_element (script_obj* hash, script_obj* element, const c
  script_obj_assign (obj, element);
  script_obj_unref (obj);
 }
+
+
+script_obj* script_obj_plus (script_obj* script_obj_a_in, script_obj* script_obj_b_in)
+{
+ script_obj* script_obj_a = script_obj_deref_direct(script_obj_a_in);
+ script_obj* script_obj_b = script_obj_deref_direct(script_obj_b_in);
+ script_obj* obj = NULL;
+ 
+ switch (script_obj_a->type){
+    case SCRIPT_OBJ_TYPE_INT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                obj = script_obj_new_int (script_obj_a->data.integer + script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.integer + script_obj_b->data.floatpoint);
+                break;
+            case SCRIPT_OBJ_TYPE_STRING:
+                {
+                char* newstring;
+                asprintf(&newstring, "%d%s", script_obj_a->data.integer, script_obj_b->data.string);
+                obj = script_obj_new_string (newstring);
+                free(newstring);
+                break;
+                }
+            default:
+                break;
+            }
+        break;
+        }
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint + script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint + script_obj_b->data.floatpoint);
+                break;
+            case SCRIPT_OBJ_TYPE_STRING:
+                {
+                char* newstring;
+                asprintf(&newstring, "%f%s", script_obj_a->data.floatpoint, script_obj_b->data.string);
+                obj = script_obj_new_string (newstring);
+                free(newstring);
+                break;
+                }
+            default:
+                break;
+            }
+        break;
+        }
+    case SCRIPT_OBJ_TYPE_STRING:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                {
+                char* newstring;
+                asprintf(&newstring, "%s%d", script_obj_a->data.string, script_obj_b->data.integer);
+                obj = script_obj_new_string (newstring);                    // FIXME these two asprintfs complain about ignored returned values
+                free(newstring);
+                break;
+                }
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                {
+                char* newstring;
+                asprintf(&newstring, "%s%f", script_obj_a->data.string, script_obj_b->data.floatpoint);
+                obj = script_obj_new_string (newstring);
+                free(newstring);
+                break;
+                }
+            case SCRIPT_OBJ_TYPE_STRING:
+                {
+                char* newstring;
+                asprintf(&newstring, "%s%s", script_obj_a->data.string, script_obj_b->data.string);
+                obj = script_obj_new_string (newstring);
+                free(newstring);
+                break;
+                }
+            default:
+                break;
+            }
+        break;
+        }
+       
+    default:
+        break;
+    }
+ 
+ if (!obj){
+    obj = script_obj_new_null ();
+    }
+ return obj;
+}
+
+
+script_obj* script_obj_minus (script_obj* script_obj_a_in, script_obj* script_obj_b_in)
+{
+ script_obj* script_obj_a = script_obj_deref_direct(script_obj_a_in);
+ script_obj* script_obj_b = script_obj_deref_direct(script_obj_b_in);
+ script_obj* obj = NULL;
+ 
+ switch (script_obj_a->type){
+    case SCRIPT_OBJ_TYPE_INT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                obj = script_obj_new_int (script_obj_a->data.integer - script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.integer - script_obj_b->data.floatpoint);
+                break;
+            default:
+                break;
+            }
+        break;
+        }
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint - script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint - script_obj_b->data.floatpoint);
+                break;
+            default:
+                break;
+            }
+        break;
+        }
+    default:
+        break;
+    }
+ 
+ if (!obj){
+    obj = script_obj_new_null ();
+    }
+ return obj;
+}
+
+
+script_obj* script_obj_mul (script_obj* script_obj_a_in, script_obj* script_obj_b_in)
+{
+ script_obj* script_obj_a = script_obj_deref_direct(script_obj_a_in);
+ script_obj* script_obj_b = script_obj_deref_direct(script_obj_b_in);
+ script_obj* obj = NULL;
+ 
+ switch (script_obj_a->type){
+    case SCRIPT_OBJ_TYPE_INT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                obj = script_obj_new_int (script_obj_a->data.integer * script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.integer * script_obj_b->data.floatpoint);
+                break;
+            default:
+                break;
+            }
+        break;
+        }
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint * script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint * script_obj_b->data.floatpoint);
+                break;
+            default:
+                break;
+            }
+        break;
+        }
+    default:
+        break;
+    }
+ 
+ if (!obj){
+    obj = script_obj_new_null ();
+    }
+ return obj;
+}
+
+
+script_obj* script_obj_div (script_obj* script_obj_a_in, script_obj* script_obj_b_in)
+{
+ script_obj* script_obj_a = script_obj_deref_direct(script_obj_a_in);
+ script_obj* script_obj_b = script_obj_deref_direct(script_obj_b_in);
+ script_obj* obj = NULL;
+ 
+ switch (script_obj_a->type){
+    case SCRIPT_OBJ_TYPE_INT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                obj = script_obj_new_float ((float)script_obj_a->data.integer / script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.integer / script_obj_b->data.floatpoint);
+                break;
+            default:
+                break;
+            }
+        break;
+        }
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint / script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (script_obj_a->data.floatpoint / script_obj_b->data.floatpoint);
+                break;
+            default:
+                break;
+            }
+        break;
+        }
+    default:
+        break;
+    }
+ 
+ if (!obj){
+    obj = script_obj_new_null ();
+    }
+ return obj;
+}
+
+
+
+script_obj* script_obj_mod (script_obj* script_obj_a_in, script_obj* script_obj_b_in)
+{
+ script_obj* script_obj_a = script_obj_deref_direct(script_obj_a_in);
+ script_obj* script_obj_b = script_obj_deref_direct(script_obj_b_in);
+ script_obj* obj = NULL;
+ 
+ switch (script_obj_a->type){
+    case SCRIPT_OBJ_TYPE_INT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                obj = script_obj_new_int (script_obj_a->data.integer % script_obj_b->data.integer);
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (fmod(script_obj_a->data.integer, script_obj_b->data.floatpoint));
+                break;
+            default:
+                break;
+            }
+        break;
+        }
+    case SCRIPT_OBJ_TYPE_FLOAT:
+        {
+        switch (script_obj_b->type){
+            case SCRIPT_OBJ_TYPE_INT:
+                obj = script_obj_new_float (fmod(script_obj_a->data.floatpoint, script_obj_b->data.integer));
+                break;
+            case SCRIPT_OBJ_TYPE_FLOAT:
+                obj = script_obj_new_float (fmod(script_obj_a->data.floatpoint, script_obj_b->data.floatpoint));
+                break;
+            default:
+                break;
+            }
+        break;
+        }
+    default:
+        break;
+    }
+ 
+ if (!obj){
+    obj = script_obj_new_null ();
+    }
+ return obj;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

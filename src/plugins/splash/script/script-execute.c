@@ -19,304 +19,13 @@
 static script_obj* script_evaluate (script_state* state, script_exp* exp);
 static script_return script_execute_function_with_parlist (script_state* state, script_function* function, ply_list_t* parameter_data);
 
-static script_obj* script_evaluate_plus (script_state* state, script_exp* exp)
+static script_obj* script_evaluate_apply_function (script_state* state, script_exp* exp, script_obj* (*function) (script_obj*, script_obj*))
 {
  script_obj* script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
  script_obj* script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
- script_obj* obj = NULL;
- 
- script_obj_deref (&script_obj_a);
- script_obj_deref (&script_obj_b);
- 
- switch (script_obj_a->type){
-    case SCRIPT_OBJ_TYPE_INT:
-        {
-        switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_INT:
-                obj = script_obj_new_int (script_obj_a->data.integer + script_obj_b->data.integer);
-                break;
-            case SCRIPT_OBJ_TYPE_FLOAT:
-                obj = script_obj_new_float (script_obj_a->data.integer + script_obj_b->data.floatpoint);
-                break;
-            case SCRIPT_OBJ_TYPE_STRING:
-                {
-                char* newstring;
-                asprintf(&newstring, "%d%s", script_obj_a->data.integer, script_obj_b->data.string);
-                obj = script_obj_new_string (newstring);
-                free(newstring);
-                break;
-                }
-            default:
-                break;
-            }
-        break;
-        }
-    case SCRIPT_OBJ_TYPE_FLOAT:
-        {
-        switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_INT:
-                obj = script_obj_new_float (script_obj_a->data.floatpoint + script_obj_b->data.integer);
-                break;
-            case SCRIPT_OBJ_TYPE_FLOAT:
-                obj = script_obj_new_float (script_obj_a->data.floatpoint + script_obj_b->data.floatpoint);
-                break;
-            case SCRIPT_OBJ_TYPE_STRING:
-                {
-                char* newstring;
-                asprintf(&newstring, "%f%s", script_obj_a->data.floatpoint, script_obj_b->data.string);
-                obj = script_obj_new_string (newstring);
-                free(newstring);
-                break;
-                }
-            default:
-                break;
-            }
-        break;
-        }
-    case SCRIPT_OBJ_TYPE_STRING:
-        {
-        switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_INT:
-                {
-                char* newstring;
-                asprintf(&newstring, "%s%d", script_obj_a->data.string, script_obj_b->data.integer);
-                obj = script_obj_new_string (newstring);                    // FIXME these two asprintfs complain about ignored returned values
-                free(newstring);
-                break;
-                }
-            case SCRIPT_OBJ_TYPE_FLOAT:
-                {
-                char* newstring;
-                asprintf(&newstring, "%s%f", script_obj_a->data.string, script_obj_b->data.floatpoint);
-                obj = script_obj_new_string (newstring);
-                free(newstring);
-                break;
-                }
-            case SCRIPT_OBJ_TYPE_STRING:
-                {
-                char* newstring;
-                asprintf(&newstring, "%s%s", script_obj_a->data.string, script_obj_b->data.string);
-                obj = script_obj_new_string (newstring);
-                free(newstring);
-                break;
-                }
-            default:
-                break;
-            }
-        break;
-        }
-       
-    default:
-        break;
-    }
- 
+ script_obj* obj = function (script_obj_a, script_obj_b); 
  script_obj_unref (script_obj_a);
  script_obj_unref (script_obj_b);
- 
- if (!obj){
-    obj = script_obj_new_null ();
-    }
- return obj;
-}
-
-static script_obj* script_evaluate_minus (script_state* state, script_exp* exp)
-{
- script_obj* script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
- script_obj* script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
- script_obj* obj = NULL;
- 
- script_obj_deref (&script_obj_a);
- script_obj_deref (&script_obj_b);
- 
- switch (script_obj_a->type){
-    case SCRIPT_OBJ_TYPE_INT:
-        {
-        switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_INT:
-                obj = script_obj_new_int (script_obj_a->data.integer - script_obj_b->data.integer);
-                break;
-            case SCRIPT_OBJ_TYPE_FLOAT:
-                obj = script_obj_new_float (script_obj_a->data.integer - script_obj_b->data.floatpoint);
-                break;
-            default:
-                break;
-            }
-        break;
-        }
-    case SCRIPT_OBJ_TYPE_FLOAT:
-        {
-        switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_INT:
-                obj = script_obj_new_float (script_obj_a->data.floatpoint - script_obj_b->data.integer);
-                break;
-            case SCRIPT_OBJ_TYPE_FLOAT:
-                obj = script_obj_new_float (script_obj_a->data.floatpoint - script_obj_b->data.floatpoint);
-                break;
-            default:
-                break;
-            }
-        break;
-        }
-    default:
-        break;
-    }
- 
- script_obj_unref (script_obj_a);
- script_obj_unref (script_obj_b);
- if (!obj){
-    obj = script_obj_new_null ();
-    }
- return obj;
-}
-
-static script_obj* script_evaluate_mul (script_state* state, script_exp* exp)
-{
- script_obj* script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
- script_obj* script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
- script_obj* obj = NULL;
- 
- script_obj_deref (&script_obj_a);
- script_obj_deref (&script_obj_b);
- 
- switch (script_obj_a->type){
-    case SCRIPT_OBJ_TYPE_INT:
-        {
-        switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_INT:
-                obj = script_obj_new_int (script_obj_a->data.integer * script_obj_b->data.integer);
-                break;
-            case SCRIPT_OBJ_TYPE_FLOAT:
-                obj = script_obj_new_float (script_obj_a->data.integer * script_obj_b->data.floatpoint);
-                break;
-            default:
-                break;
-            }
-        break;
-        }
-    case SCRIPT_OBJ_TYPE_FLOAT:
-        {
-        switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_INT:
-                obj = script_obj_new_float (script_obj_a->data.floatpoint * script_obj_b->data.integer);
-                break;
-            case SCRIPT_OBJ_TYPE_FLOAT:
-                obj = script_obj_new_float (script_obj_a->data.floatpoint * script_obj_b->data.floatpoint);
-                break;
-            default:
-                break;
-            }
-        break;
-        }
-    default:
-        break;
-    }
- 
- script_obj_unref (script_obj_a);
- script_obj_unref (script_obj_b);
- if (!obj){
-    obj = script_obj_new_null ();
-    }
- return obj;
-}
-
-static script_obj* script_evaluate_div (script_state* state, script_exp* exp)
-{
- script_obj* script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
- script_obj* script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
- script_obj* obj = NULL;
- 
- script_obj_deref (&script_obj_a);
- script_obj_deref (&script_obj_b);
- 
- switch (script_obj_a->type){
-    case SCRIPT_OBJ_TYPE_INT:
-        {
-        switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_INT:
-                obj = script_obj_new_float ((float)script_obj_a->data.integer / script_obj_b->data.integer);
-                break;
-            case SCRIPT_OBJ_TYPE_FLOAT:
-                obj = script_obj_new_float (script_obj_a->data.integer / script_obj_b->data.floatpoint);
-                break;
-            default:
-                break;
-            }
-        break;
-        }
-    case SCRIPT_OBJ_TYPE_FLOAT:
-        {
-        switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_INT:
-                obj = script_obj_new_float (script_obj_a->data.floatpoint / script_obj_b->data.integer);
-                break;
-            case SCRIPT_OBJ_TYPE_FLOAT:
-                obj = script_obj_new_float (script_obj_a->data.floatpoint / script_obj_b->data.floatpoint);
-                break;
-            default:
-                break;
-            }
-        break;
-        }
-    default:
-        break;
-    }
- 
- script_obj_unref (script_obj_a);
- script_obj_unref (script_obj_b);
- if (!obj){
-    obj = script_obj_new_null ();
-    }
- return obj;
-}
-
-
-static script_obj* script_evaluate_mod (script_state* state, script_exp* exp)
-{
- script_obj* script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
- script_obj* script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
- script_obj* obj = NULL;
- 
- script_obj_deref (&script_obj_a);
- script_obj_deref (&script_obj_b);
- 
- switch (script_obj_a->type){
-    case SCRIPT_OBJ_TYPE_INT:
-        {
-        switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_INT:
-                obj = script_obj_new_int (script_obj_a->data.integer % script_obj_b->data.integer);
-                break;
-            case SCRIPT_OBJ_TYPE_FLOAT:
-                obj = script_obj_new_float (fmod(script_obj_a->data.integer, script_obj_b->data.floatpoint));
-                break;
-            default:
-                break;
-            }
-        break;
-        }
-    case SCRIPT_OBJ_TYPE_FLOAT:
-        {
-        switch (script_obj_b->type){
-            case SCRIPT_OBJ_TYPE_INT:
-                obj = script_obj_new_float (fmod(script_obj_a->data.floatpoint, script_obj_b->data.integer));
-                break;
-            case SCRIPT_OBJ_TYPE_FLOAT:
-                obj = script_obj_new_float (fmod(script_obj_a->data.floatpoint, script_obj_b->data.floatpoint));
-                break;
-            default:
-                break;
-            }
-        break;
-        }
-    default:
-        break;
-    }
- 
- script_obj_unref (script_obj_a);
- script_obj_unref (script_obj_b);
- if (!obj){
-    obj = script_obj_new_null ();
-    }
  return obj;
 }
 
@@ -673,23 +382,23 @@ static script_obj* script_evaluate (script_state* state, script_exp* exp)
  switch (exp->type){
     case SCRIPT_EXP_TYPE_PLUS:
         {
-        return script_evaluate_plus (state, exp);
+        return script_evaluate_apply_function (state, exp, script_obj_plus);
         }
     case SCRIPT_EXP_TYPE_MINUS:
         {
-        return script_evaluate_minus (state, exp);
+        return script_evaluate_apply_function (state, exp, script_obj_minus);
         }
     case SCRIPT_EXP_TYPE_MUL:
         {
-        return script_evaluate_mul (state, exp);
+        return script_evaluate_apply_function (state, exp, script_obj_mul);
         }
     case SCRIPT_EXP_TYPE_DIV:
         {
-        return script_evaluate_div (state, exp);
+        return script_evaluate_apply_function (state, exp, script_obj_div);
         }
     case SCRIPT_EXP_TYPE_MOD:
         {
-        return script_evaluate_mod (state, exp);
+        return script_evaluate_apply_function (state, exp, script_obj_mod);
         }
     case SCRIPT_EXP_TYPE_EQ:
     case SCRIPT_EXP_TYPE_NE:

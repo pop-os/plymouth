@@ -9,6 +9,9 @@ typedef struct
   ply_list_t     *sprite_list;
   script_obj_native_class* class;
   script_op      *script_main_op;
+  uint32_t        background_color_start;
+  uint32_t        background_color_end;
+  bool            full_refresh;
 } script_lib_sprite_data_t;
 
 

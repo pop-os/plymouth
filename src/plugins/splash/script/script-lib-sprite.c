@@ -1,6 +1,7 @@
 #include "ply-image.h"
 #include "ply-utils.h"
 #include "ply-window.h"
+#include "ply-frame-buffer.h"
 #include "ply-logger.h"
 #include "ply-key-file.h"
 #include "script.h"
@@ -16,6 +17,11 @@
 
 #define STRINGIFY_VAR script_lib_sprite_string
 #include "script-lib-sprite.string"
+
+
+
+static void draw_area (script_lib_sprite_data_t* data, int x, int y, int width, int height);
+
 
 static void sprite_free (script_obj* obj)
 {
@@ -169,6 +175,35 @@ static script_return sprite_window_get_height (script_state* state, void* user_d
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_int (area.height)};
 }
 
+static uint32_t extract_rgb_color (script_state* state)
+{
+ script_obj* script_obj_red = script_obj_hash_get_element (state->local, "red");
+ script_obj* script_obj_green = script_obj_hash_get_element (state->local, "green");
+ script_obj* script_obj_blue = script_obj_hash_get_element (state->local, "blue");
+ uint8_t red =   CLAMP(255 * script_obj_as_float(script_obj_red), 0, 255);
+ uint8_t green = CLAMP(255 * script_obj_as_float(script_obj_green), 0, 255);
+ uint8_t blue =  CLAMP(255 * script_obj_as_float(script_obj_blue), 0, 255);
+ script_obj_unref(script_obj_red);
+ script_obj_unref(script_obj_green);
+ script_obj_unref(script_obj_blue);
+ return (uint32_t) red<<16 | green<<8 | blue;
+}
+static script_return sprite_window_set_background_top_color (script_state* state, void* user_data)
+{
+ script_lib_sprite_data_t* data = user_data;
+ data->background_color_start = extract_rgb_color (state);
+ data->full_refresh = true;
+ return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()};
+}
+
+static script_return sprite_window_set_background_bottom_color (script_state* state, void* user_data)
+{
+ script_lib_sprite_data_t* data = user_data;
+ data->background_color_end = extract_rgb_color (state);
+ data->full_refresh = true;
+ return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()};
+}
+
 
 
 
@@ -187,10 +222,12 @@ draw_area (script_lib_sprite_data_t*            data,
   ply_frame_buffer_t *frame_buffer = ply_window_get_frame_buffer (data->window);
   
   ply_frame_buffer_pause_updates (frame_buffer);
-  
-  
-  ply_frame_buffer_fill_with_hex_color (frame_buffer, &clip_area, 0x00000000);
 
+
+  if (data->background_color_start == data->background_color_end) 
+    ply_frame_buffer_fill_with_hex_color (frame_buffer, &clip_area, data->background_color_start);
+  else
+    ply_frame_buffer_fill_with_gradient (frame_buffer, &clip_area, data->background_color_start, data->background_color_end);
   ply_list_node_t *node;
   for (node = ply_list_get_first_node (data->sprite_list); node; node = ply_list_get_next_node (data->sprite_list, node))
     {
@@ -199,6 +236,7 @@ draw_area (script_lib_sprite_data_t*            data,
       if (!sprite->image) continue;
 
       if (sprite->remove_me) continue;
+      if (sprite->opacity<0.011) continue;
 
       sprite_area.x = sprite->x;
       sprite_area.y = sprite->y;
@@ -235,17 +273,15 @@ script_lib_sprite_data_t* script_lib_sprite_setup(script_state *state, ply_windo
  script_add_native_function (state->global, "SpriteSetOpacity", sprite_set_opacity, data, "sprite", "value", NULL);
  script_add_native_function (state->global, "SpriteWindowGetWidth", sprite_window_get_width, data, NULL);
  script_add_native_function (state->global, "SpriteWindowGetHeight", sprite_window_get_height, data, NULL);
+ script_add_native_function (state->global, "SpriteWindowSetBackgroundTopColor", sprite_window_set_background_top_color, data, "red", "green", "blue", NULL);
+ script_add_native_function (state->global, "SpriteWindowSetBackgroundBottomColor", sprite_window_set_background_bottom_color, data, "red", "green", "blue", NULL);
 
  data->script_main_op = script_parse_string (script_lib_sprite_string);
+ data->background_color_start = 0x000000;
+ data->background_color_end   = 0x000000;
+ data->full_refresh = true;
  script_return ret = script_execute(state, data->script_main_op);
  script_obj_unref(ret.object);
-
- {
- ply_frame_buffer_area_t screen_area;
- ply_frame_buffer_t *frame_buffer = ply_window_get_frame_buffer (data->window);
- ply_frame_buffer_get_size (frame_buffer, &screen_area);
- draw_area (data, screen_area.x, screen_area.y, screen_area.width, screen_area.height);
- }
  return data;
 }
 
@@ -255,6 +291,15 @@ void script_lib_sprite_refresh(script_lib_sprite_data_t* data)
  ply_list_node_t *node;
  
  node = ply_list_get_first_node (data->sprite_list); 
+ 
+ if (data->full_refresh){
+    ply_frame_buffer_area_t screen_area;
+    ply_frame_buffer_t *frame_buffer = ply_window_get_frame_buffer (data->window);
+    ply_frame_buffer_get_size (frame_buffer, &screen_area);
+    draw_area (data, screen_area.x, screen_area.y, screen_area.width, screen_area.height);
+    data->full_refresh = false;
+    }
+
  while (node){
     sprite_t* sprite = ply_list_node_get_data (node);
     ply_list_node_t *next_node = ply_list_get_next_node (data->sprite_list, node);

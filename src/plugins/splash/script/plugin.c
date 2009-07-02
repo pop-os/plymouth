@@ -180,23 +180,17 @@ start_animation (ply_boot_splash_plugin_t *plugin)
 
   ply_frame_buffer_get_size (plugin->frame_buffer, &area);
 
-  ply_window_draw_area (plugin->window, area.x, area.y, area.width, area.height);
-  
- ply_trace ("starting simple");
- plugin->script_main_op = script_parse_file (plugin->script_filename);
- ply_trace ("starting simple");
- plugin->script_state = script_state_new(plugin);
- plugin->script_image_lib = script_lib_image_setup(plugin->script_state,plugin->image_dir);
- plugin->script_sprite_lib = script_lib_sprite_setup(plugin->script_state, plugin->window);
- plugin->script_plymouth_lib = script_lib_plymouth_setup(plugin->script_state);
- plugin->script_math_lib = script_lib_math_setup(plugin->script_state);
- 
- script_return ret = script_execute(plugin->script_state, plugin->script_main_op);
- script_obj_unref(ret.object);
- 
+  ply_trace ("parsing script file");
+  plugin->script_main_op = script_parse_file (plugin->script_filename);
+  plugin->script_state = script_state_new(plugin);
+  plugin->script_image_lib = script_lib_image_setup(plugin->script_state,plugin->image_dir);
+  plugin->script_sprite_lib = script_lib_sprite_setup(plugin->script_state, plugin->window);
+  plugin->script_plymouth_lib = script_lib_plymouth_setup(plugin->script_state);
+  plugin->script_math_lib = script_lib_math_setup(plugin->script_state);
 
-  
-
+  ply_trace ("executing script file");
+  script_return ret = script_execute(plugin->script_state, plugin->script_main_op);
+  script_obj_unref(ret.object);
   on_timeout (plugin);
 
   plugin->is_animating = true;

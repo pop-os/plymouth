@@ -2,6 +2,11 @@
 
 splash_type = "spinfinity";        # "fade_in" or "spinfinity"
 
+SpriteWindowSetBackgroundTopColor(0.2, 0.1, 0.5);
+SpriteWindowSetBackgroundBottomColor(0.2, 0.1, 0.5);
+
+
+
 if (splash_type == "spinfinity"){
     logo.image = ImageNew("special://logo");
     logo.sprite = SpriteNew();
@@ -40,7 +45,6 @@ if (splash_type == "spinfinity"){
             }
         }
 
-    refresh ();                         # do one at the start
     PlymouthSetRefreshFunction (refresh);
     }
 else if (splash_type == "fade_in"){
@@ -66,7 +70,6 @@ else if (splash_type == "fade_in"){
             }
         }
 
-    refresh ();                         # do one at the start
     PlymouthSetRefreshFunction (refresh);
     }
 else {

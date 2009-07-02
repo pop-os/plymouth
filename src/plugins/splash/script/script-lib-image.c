@@ -30,11 +30,8 @@ static script_return image_new (script_state* state, void* user_data)
 {
  script_lib_image_data_t* data = user_data;
  script_obj* reply;
- char* filename;
  char* path_filename;
- 
- script_obj* script_obj_filename = script_obj_hash_get_element (state->local, "filename");
- filename = script_obj_as_string(script_obj_filename);
+ char* filename = script_obj_hash_get_string (state->local, "filename");
  
  char* test_string = filename;
  char* prefix_string = "special://";
@@ -51,8 +48,6 @@ static script_return image_new (script_state* state, void* user_data)
  else
     asprintf(&path_filename, "%s/%s", data->image_dir, filename);
  
- 
- script_obj_unref(script_obj_filename);
  
  ply_image_t *image = ply_image_new (path_filename);
  if (ply_image_load (image)){
@@ -106,19 +101,18 @@ static script_return image_rotate (script_state* state, void* user_data)
 {
  script_lib_image_data_t* data = user_data;
  script_obj* script_obj_image = script_obj_hash_get_element (state->local, "image");
- script_obj* script_obj_angle = script_obj_hash_get_element (state->local, "angle");
  script_obj_deref(&script_obj_image);
+ float angle = script_obj_hash_get_float (state->local, "angle");
  script_obj* reply;
  if (script_obj_image->type == SCRIPT_OBJ_TYPE_NATIVE &&
      script_obj_image->data.native.class == data->class){
     ply_image_t *image = script_obj_image->data.native.object_data;
-    ply_image_t *new_image = ply_image_rotate (image, ply_image_get_width (image)/2, ply_image_get_height (image)/2, script_obj_as_float (script_obj_angle));
+    ply_image_t *new_image = ply_image_rotate (image, ply_image_get_width (image)/2, ply_image_get_height (image)/2, angle);
     reply = script_obj_new_native (new_image, data->class);
     }
  else
     reply = script_obj_new_null ();
  script_obj_unref(script_obj_image);
- script_obj_unref(script_obj_angle);
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, reply};
 }
 
@@ -128,21 +122,19 @@ static script_return image_scale (script_state* state, void* user_data)
 {
  script_lib_image_data_t* data = user_data;
  script_obj* script_obj_image = script_obj_hash_get_element (state->local, "image");
- script_obj* script_obj_width = script_obj_hash_get_element (state->local, "width");
- script_obj* script_obj_height = script_obj_hash_get_element (state->local, "height");
+ int width = script_obj_hash_get_int (state->local, "width");
+ int height = script_obj_hash_get_int (state->local, "height");
  script_obj_deref(&script_obj_image);
  script_obj* reply;
  if (script_obj_image->type == SCRIPT_OBJ_TYPE_NATIVE &&
      script_obj_image->data.native.class == data->class){
     ply_image_t *image = script_obj_image->data.native.object_data;
-    ply_image_t *new_image = ply_image_resize (image, script_obj_as_int (script_obj_width), script_obj_as_int (script_obj_height));
+    ply_image_t *new_image = ply_image_resize (image, width, height);
     reply = script_obj_new_native (new_image, data->class);
     }
  else
     reply = script_obj_new_null ();
  script_obj_unref(script_obj_image);
- script_obj_unref(script_obj_width);
- script_obj_unref(script_obj_height);
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, reply};
 }
 

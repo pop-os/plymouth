@@ -79,23 +79,19 @@ static script_return sprite_set_image (script_state* state, void* user_data)
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()};
 }
 
-
-
 static script_return sprite_set_x (script_state* state, void* user_data)
 {
  script_lib_sprite_data_t* data = user_data;
  script_obj* script_obj_sprite = script_obj_hash_get_element (state->local, "sprite");
  script_obj_deref(&script_obj_sprite);
- script_obj* script_obj_value = script_obj_hash_get_element (state->local, "value");
- script_obj_deref(&script_obj_value);
+ int value = script_obj_hash_get_int (state->local, "value");
  
  if (script_obj_sprite->type == SCRIPT_OBJ_TYPE_NATIVE &&
      script_obj_sprite->data.native.class == data->class){
     sprite_t *sprite = script_obj_sprite->data.native.object_data;
-    sprite->x = script_obj_as_int(script_obj_value);
+    sprite->x = value;
     }
  script_obj_unref(script_obj_sprite);
- script_obj_unref(script_obj_value);
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()};
 }
 
@@ -104,16 +100,14 @@ static script_return sprite_set_y (script_state* state, void* user_data)
  script_lib_sprite_data_t* data = user_data;
  script_obj* script_obj_sprite = script_obj_hash_get_element (state->local, "sprite");
  script_obj_deref(&script_obj_sprite);
- script_obj* script_obj_value = script_obj_hash_get_element (state->local, "value");
- script_obj_deref(&script_obj_value);
+ int value = script_obj_hash_get_int (state->local, "value");
  
  if (script_obj_sprite->type == SCRIPT_OBJ_TYPE_NATIVE &&
      script_obj_sprite->data.native.class == data->class){
     sprite_t *sprite = script_obj_sprite->data.native.object_data;
-    sprite->y = script_obj_as_int(script_obj_value);
+    sprite->y = value;
     }
  script_obj_unref(script_obj_sprite);
- script_obj_unref(script_obj_value);
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()};
 }
 
@@ -122,40 +116,32 @@ static script_return sprite_set_z (script_state* state, void* user_data)
  script_lib_sprite_data_t* data = user_data;
  script_obj* script_obj_sprite = script_obj_hash_get_element (state->local, "sprite");
  script_obj_deref(&script_obj_sprite);
- script_obj* script_obj_value = script_obj_hash_get_element (state->local, "value");
- script_obj_deref(&script_obj_value);
+ int value = script_obj_hash_get_int (state->local, "value");
  
  if (script_obj_sprite->type == SCRIPT_OBJ_TYPE_NATIVE &&
      script_obj_sprite->data.native.class == data->class){
     sprite_t *sprite = script_obj_sprite->data.native.object_data;
-    sprite->z = script_obj_as_int(script_obj_value);
+    sprite->z = value;
     }
  script_obj_unref(script_obj_sprite);
- script_obj_unref(script_obj_value);
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()};
 }
-
-
 
 static script_return sprite_set_opacity (script_state* state, void* user_data)
 {
  script_lib_sprite_data_t* data = user_data;
  script_obj* script_obj_sprite = script_obj_hash_get_element (state->local, "sprite");
  script_obj_deref(&script_obj_sprite);
- script_obj* script_obj_value = script_obj_hash_get_element (state->local, "value");
- script_obj_deref(&script_obj_value);
+ float value = script_obj_hash_get_float (state->local, "value");
  
  if (script_obj_sprite->type == SCRIPT_OBJ_TYPE_NATIVE &&
      script_obj_sprite->data.native.class == data->class){
     sprite_t *sprite = script_obj_sprite->data.native.object_data;
-    sprite->opacity = script_obj_as_float(script_obj_value);
+    sprite->opacity = value;
     }
  script_obj_unref(script_obj_sprite);
- script_obj_unref(script_obj_value);
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()};
 }
-
-
 
 static script_return sprite_window_get_width (script_state* state, void* user_data)
 {

@@ -210,6 +210,7 @@ script_obj* script_obj_new_int (int number)
 
 script_obj* script_obj_new_float (float number)
 {
+ if (isnan(number)) return script_obj_new_null ();
  script_obj* obj = malloc(sizeof(script_obj));
  obj->type = SCRIPT_OBJ_TYPE_FLOAT;
  obj->refcount = 1;
@@ -430,6 +431,12 @@ bool script_obj_is_native_of_class (script_obj* obj, script_obj_native_class* cl
  return (obj->type == SCRIPT_OBJ_TYPE_NATIVE && obj->data.native.class == class);
 }
 
+bool script_obj_is_native_of_class_name (script_obj* obj, char* class_name)
+{
+ obj = script_obj_deref_direct(obj);
+ return (obj->type == SCRIPT_OBJ_TYPE_NATIVE && obj->data.native.class->name == class_name);
+}
+
 
 
 
@@ -487,6 +494,37 @@ script_obj* script_obj_hash_get_element (script_obj* hash, const char* name)
  return obj;
 }
 
+int script_obj_hash_get_int (script_obj* hash, const char* name)
+{
+ script_obj* obj = script_obj_hash_get_element (hash, name);
+ int reply = script_obj_as_int (obj);
+ script_obj_unref (obj);
+ return reply;
+}
+
+float script_obj_hash_get_float (script_obj* hash, const char* name)
+{
+ script_obj* obj = script_obj_hash_get_element (hash, name);
+ float reply = script_obj_as_float (obj);
+ script_obj_unref (obj);
+ return reply;
+}
+
+bool script_obj_hash_get_bool (script_obj* hash, const char* name)
+{
+ script_obj* obj = script_obj_hash_get_element (hash, name);
+ bool reply = script_obj_as_bool (obj);
+ script_obj_unref (obj);
+ return reply;
+}
+
+char* script_obj_hash_get_string (script_obj* hash, const char* name)
+{
+ script_obj* obj = script_obj_hash_get_element (hash, name);
+ char* reply = script_obj_as_string (obj);
+ script_obj_unref (obj);
+ return reply;
+}
 
 void script_obj_hash_add_element (script_obj* hash, script_obj* element, const char* name)
 {

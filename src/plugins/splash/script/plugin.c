@@ -70,17 +70,16 @@
 #define FRAMES_PER_SECOND 50
 #endif
 
-
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
   ply_boot_splash_mode_t mode;
   ply_frame_buffer_t *frame_buffer;
   ply_window_t *window;
-  
+
   char *script_filename;
   char *image_dir;
- 
+
   script_state   *script_state;
   script_op      *script_main_op;
   script_lib_sprite_data_t *script_sprite_lib;
@@ -98,18 +97,15 @@ static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 static void stop_animation (ply_boot_splash_plugin_t *plugin);
 ply_boot_splash_plugin_t *create_plugin (ply_key_file_t *key_file);
 
-
 ply_boot_splash_plugin_t *
 create_plugin (ply_key_file_t *key_file)
 {
   ply_boot_splash_plugin_t *plugin;
-  srand ((int) ply_get_timestamp ());
-  
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
-
   plugin->image_dir = ply_key_file_get_value (key_file, "script", "ImageDir");
-  plugin->script_filename = ply_key_file_get_value (key_file, "script", "ScriptFile");
- 
+  plugin->script_filename = ply_key_file_get_value (key_file,
+                                                    "script",
+                                                    "ScriptFile");
   return plugin;
 }
 
@@ -118,18 +114,17 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
   if (plugin == NULL)
     return;
-
   remove_handlers (plugin);
 
   if (plugin->loop != NULL)
     {
       stop_animation (plugin);
-      ply_event_loop_stop_watching_for_exit (plugin->loop, (ply_event_loop_exit_handler_t)
+      ply_event_loop_stop_watching_for_exit (plugin->loop,
+                                             (ply_event_loop_exit_handler_t)
                                              detach_from_event_loop,
                                              plugin);
       detach_from_event_loop (plugin);
     }
-    
   free (plugin->script_filename);
   free (plugin->image_dir);
   free (plugin);
@@ -139,12 +134,13 @@ static void
 on_timeout (ply_boot_splash_plugin_t *plugin)
 {
   double sleep_time;
-  
-  script_lib_plymouth_on_refresh(plugin->script_state, plugin->script_plymouth_lib);
-  script_lib_sprite_refresh(plugin->script_sprite_lib);
-  
+
+  script_lib_plymouth_on_refresh (plugin->script_state,
+                                  plugin->script_plymouth_lib);
+  script_lib_sprite_refresh (plugin->script_sprite_lib);
+
   sleep_time = 1.0 / FRAMES_PER_SECOND;
-  ply_event_loop_watch_for_timeout (plugin->loop, 
+  ply_event_loop_watch_for_timeout (plugin->loop,
                                     sleep_time,
                                     (ply_event_loop_timeout_handler_t)
                                     on_timeout, plugin);
@@ -155,33 +151,38 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
                   double                    percent_done)
 {
-  script_lib_plymouth_on_boot_progress(plugin->script_state, plugin->script_plymouth_lib, duration, percent_done);  
+  script_lib_plymouth_on_boot_progress (plugin->script_state,
+                                        plugin->script_plymouth_lib,
+                                        duration,
+                                        percent_done);
 }
-
 
 static bool
 start_animation (ply_boot_splash_plugin_t *plugin)
 {
   ply_frame_buffer_area_t area;
+
   assert (plugin != NULL);
   assert (plugin->loop != NULL);
 
   if (plugin->is_animating)
-     return true;
-
+    return true;
   ply_frame_buffer_get_size (plugin->frame_buffer, &area);
 
   ply_trace ("parsing script file");
   plugin->script_main_op = script_parse_file (plugin->script_filename);
-  plugin->script_state = script_state_new(plugin);
-  plugin->script_image_lib = script_lib_image_setup(plugin->script_state,plugin->image_dir);
-  plugin->script_sprite_lib = script_lib_sprite_setup(plugin->script_state, plugin->window);
-  plugin->script_plymouth_lib = script_lib_plymouth_setup(plugin->script_state);
-  plugin->script_math_lib = script_lib_math_setup(plugin->script_state);
+  plugin->script_state = script_state_new (plugin);
+  plugin->script_image_lib = script_lib_image_setup (plugin->script_state,
+                                                     plugin->image_dir);
+  plugin->script_sprite_lib = script_lib_sprite_setup (plugin->script_state,
+                                                       plugin->window);
+  plugin->script_plymouth_lib = script_lib_plymouth_setup (plugin->script_state);
+  plugin->script_math_lib = script_lib_math_setup (plugin->script_state);
 
   ply_trace ("executing script file");
-  script_return ret = script_execute(plugin->script_state, plugin->script_main_op);
-  script_obj_unref(ret.object);
+  script_return ret = script_execute (plugin->script_state,
+                                      plugin->script_main_op);
+  script_obj_unref (ret.object);
   on_timeout (plugin);
 
   plugin->is_animating = true;
@@ -195,21 +196,18 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
   assert (plugin->loop != NULL);
 
   if (!plugin->is_animating)
-     return;
-
+    return;
   plugin->is_animating = false;
   if (plugin->loop != NULL)
-    {
-      ply_event_loop_stop_watching_for_timeout (plugin->loop,
-                                                (ply_event_loop_timeout_handler_t)
-                                                on_timeout, plugin);
-    }
- script_state_destroy(plugin->script_state);
- script_lib_sprite_destroy(plugin->script_sprite_lib);
- script_lib_image_destroy(plugin->script_image_lib);
- script_lib_plymouth_destroy(plugin->script_plymouth_lib);
- script_lib_math_destroy(plugin->script_math_lib);
- script_parse_op_free (plugin->script_main_op);
+    ply_event_loop_stop_watching_for_timeout (plugin->loop,
+                                              (ply_event_loop_timeout_handler_t)
+                                              on_timeout, plugin);
+  script_state_destroy (plugin->script_state);
+  script_lib_sprite_destroy (plugin->script_sprite_lib);
+  script_lib_image_destroy (plugin->script_image_lib);
+  script_lib_plymouth_destroy (plugin->script_plymouth_lib);
+  script_lib_math_destroy (plugin->script_math_lib);
+  script_parse_op_free (plugin->script_main_op);
 }
 
 static void
@@ -231,24 +229,24 @@ on_keyboard_input (ply_boot_splash_plugin_t *plugin,
                    const char               *keyboard_input,
                    size_t                    character_size)
 {
-  char keyboard_string[character_size+1];
-  memcpy(keyboard_string, keyboard_input, character_size);
-  keyboard_string[character_size]='\0';
-  
-  script_lib_plymouth_on_keyboard_input(plugin->script_state, plugin->script_plymouth_lib, keyboard_string);
+  char keyboard_string[character_size + 1];
+
+  memcpy (keyboard_string, keyboard_input, character_size);
+  keyboard_string[character_size] = '\0';
+
+  script_lib_plymouth_on_keyboard_input (plugin->script_state,
+                                         plugin->script_plymouth_lib,
+                                         keyboard_string);
 }
 
 void
 on_backspace (ply_boot_splash_plugin_t *plugin)
-{
-}
+{}
 
 void
 on_enter (ply_boot_splash_plugin_t *plugin,
           const char               *text)
-{
-}
-
+{}
 
 void
 on_draw (ply_boot_splash_plugin_t *plugin,
@@ -256,8 +254,7 @@ on_draw (ply_boot_splash_plugin_t *plugin,
          int                       y,
          int                       width,
          int                       height)
-{
-}
+{}
 
 void
 on_erase (ply_boot_splash_plugin_t *plugin,
@@ -265,8 +262,7 @@ on_erase (ply_boot_splash_plugin_t *plugin,
           int                       y,
           int                       width,
           int                       height)
-{
-}
+{}
 
 static void
 add_handlers (ply_boot_splash_plugin_t *plugin)
@@ -284,19 +280,16 @@ add_handlers (ply_boot_splash_plugin_t *plugin)
                                (ply_window_draw_handler_t)
                                on_draw, plugin);
   ply_window_set_erase_handler (plugin->window,
-                               (ply_window_erase_handler_t)
-                               on_erase, plugin);
+                                (ply_window_erase_handler_t)
+                                on_erase, plugin);
 }
 
 static void
 remove_handlers (ply_boot_splash_plugin_t *plugin)
 {
-
   ply_window_remove_keyboard_input_handler (plugin->window, (ply_window_keyboard_input_handler_t) on_keyboard_input);
   ply_window_remove_backspace_handler (plugin->window, (ply_window_backspace_handler_t) on_backspace);
   ply_window_remove_enter_handler (plugin->window, (ply_window_enter_handler_t) on_enter);
-  ply_window_set_draw_handler (plugin->window, NULL, NULL);
-  ply_window_set_erase_handler (plugin->window, NULL, NULL);
 }
 
 void
@@ -334,7 +327,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   ply_event_loop_watch_signal (plugin->loop,
                                SIGINT,
-                               (ply_event_handler_t) 
+                               (ply_event_handler_t)
                                on_interrupt, plugin);
 
   ply_trace ("setting graphics mode");
@@ -345,7 +338,6 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 
   ply_trace ("starting boot animation");
   return start_animation (plugin);
-  
 }
 
 void
@@ -353,7 +345,9 @@ update_status (ply_boot_splash_plugin_t *plugin,
                const char               *status)
 {
   assert (plugin != NULL);
-  script_lib_plymouth_on_update_status(plugin->script_state, plugin->script_plymouth_lib, status);
+  script_lib_plymouth_on_update_status (plugin->script_state,
+                                        plugin->script_plymouth_lib,
+                                        status);
 }
 
 void
@@ -368,12 +362,12 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
     {
       stop_animation (plugin);
 
-      ply_event_loop_stop_watching_for_exit (plugin->loop, (ply_event_loop_exit_handler_t)
+      ply_event_loop_stop_watching_for_exit (plugin->loop,
+                                             (ply_event_loop_exit_handler_t)
                                              detach_from_event_loop,
                                              plugin);
       detach_from_event_loop (plugin);
     }
-
   plugin->frame_buffer = NULL;
 
   ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
@@ -382,7 +376,8 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 void
 on_root_mounted (ply_boot_splash_plugin_t *plugin)
 {
-  script_lib_plymouth_on_root_mounted(plugin->script_state, plugin->script_plymouth_lib);
+  script_lib_plymouth_on_root_mounted (plugin->script_state,
+                                       plugin->script_plymouth_lib);
 }
 
 void
@@ -392,11 +387,10 @@ become_idle (ply_boot_splash_plugin_t *plugin,
   ply_trigger_pull (idle_trigger, NULL);
 }
 
-
-
 void display_normal (ply_boot_splash_plugin_t *plugin)
 {
-  script_lib_plymouth_on_display_normal(plugin->script_state, plugin->script_plymouth_lib);
+  script_lib_plymouth_on_display_normal (plugin->script_state,
+                                         plugin->script_plymouth_lib);
 }
 
 void
@@ -404,7 +398,10 @@ display_password (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   int                       bullets)
 {
-  script_lib_plymouth_on_display_password(plugin->script_state, plugin->script_plymouth_lib, prompt, bullets);
+  script_lib_plymouth_on_display_password (plugin->script_state,
+                                           plugin->script_plymouth_lib,
+                                           prompt,
+                                           bullets);
 }
 
 void
@@ -412,28 +409,31 @@ display_question (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   const char               *entry_text)
 {
-  script_lib_plymouth_on_display_question(plugin->script_state, plugin->script_plymouth_lib, prompt, entry_text);
+  script_lib_plymouth_on_display_question (plugin->script_state,
+                                           plugin->script_plymouth_lib,
+                                           prompt,
+                                           entry_text);
 }
 
 ply_boot_splash_plugin_interface_t *
 ply_boot_splash_plugin_get_interface (void)
 {
   static ply_boot_splash_plugin_interface_t plugin_interface =
-    {
-      .create_plugin = create_plugin,
-      .destroy_plugin = destroy_plugin,
-      .add_window = add_window,
-      .remove_window = remove_window,
-      .show_splash_screen = show_splash_screen,
-      .update_status = update_status,
-      .on_boot_progress = on_boot_progress,
-      .hide_splash_screen = hide_splash_screen,
-      .on_root_mounted = on_root_mounted,
-      .become_idle = become_idle,
-      .display_normal = display_normal,
-      .display_password = display_password,
-      .display_question = display_question,      
-    };
+  {
+    .create_plugin = create_plugin,
+    .destroy_plugin = destroy_plugin,
+    .add_window = add_window,
+    .remove_window = remove_window,
+    .show_splash_screen = show_splash_screen,
+    .update_status = update_status,
+    .on_boot_progress = on_boot_progress,
+    .hide_splash_screen = hide_splash_screen,
+    .on_root_mounted = on_root_mounted,
+    .become_idle = become_idle,
+    .display_normal = display_normal,
+    .display_password = display_password,
+    .display_question = display_question,
+  };
 
   return &plugin_interface;
 }

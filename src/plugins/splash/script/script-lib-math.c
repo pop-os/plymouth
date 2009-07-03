@@ -25,7 +25,7 @@
 #include "script-parse.h"
 #include "script-execute.h"
 #include "script-object.h"
-#include "script-lib-math.h" 
+#include "script-lib-math.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,47 +38,78 @@
 
 #include "script-lib-math.string"
 
-
-static script_return script_lib_math_float_from_float_function (script_state* state, void* user_data)
+static script_return script_lib_math_float_from_float_function (script_state *state,
+                                                                void         *user_data)
 {
- float (*function) (float) = user_data;
- float value = script_obj_hash_get_float (state->local, "value");
- float reply_float = function(value);
- return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_float (reply_float)};
+  float (*function)(float) = user_data;
+  float value = script_obj_hash_get_float (state->local, "value");
+  float reply_float = function (value);
+  return (script_return) {
+           SCRIPT_RETURN_TYPE_RETURN, script_obj_new_float (reply_float)
+  };
 }
 
-static script_return script_lib_math_int_from_float_function (script_state* state, void* user_data)
+static script_return script_lib_math_int_from_float_function (script_state *state,
+                                                              void         *user_data)
 {
- int (*function) (float) = user_data;
- float value = script_obj_hash_get_float (state->local, "value");
- int reply_int = function(value);
- return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_int (reply_int)};
+  int (*function)(float) = user_data;
+  float value = script_obj_hash_get_float (state->local, "value");
+  int reply_int = function (value);
+  return (script_return) {
+           SCRIPT_RETURN_TYPE_RETURN, script_obj_new_int (reply_int)
+  };
 }
 
 static int float_to_int (float value)
 {
- return (int) value;
+  return (int) value;
 }
 
-script_lib_math_data_t* script_lib_math_setup(script_state *state)
+script_lib_math_data_t *script_lib_math_setup (script_state *state)
 {
- script_lib_math_data_t* data = malloc(sizeof(script_lib_math_data_t));
- 
- script_add_native_function (state->global, "MathCos", script_lib_math_float_from_float_function, cosf,         "value", NULL);
- script_add_native_function (state->global, "MathSin", script_lib_math_float_from_float_function, sinf,         "value", NULL);
- script_add_native_function (state->global, "MathTan", script_lib_math_float_from_float_function, tanf,         "value", NULL);
- script_add_native_function (state->global, "MathSqrt",script_lib_math_float_from_float_function, sqrtf,        "value", NULL);
- script_add_native_function (state->global, "MathInt", script_lib_math_int_from_float_function,   float_to_int, "value", NULL);
- 
- data->script_main_op = script_parse_string (script_lib_math_string);
- script_return ret = script_execute(state, data->script_main_op);
- script_obj_unref(ret.object);
+  script_lib_math_data_t *data = malloc (sizeof (script_lib_math_data_t));
 
- return data;
+  script_add_native_function (state->global,
+                              "MathCos",
+                              script_lib_math_float_from_float_function,
+                              cosf,
+                              "value",
+                              NULL);
+  script_add_native_function (state->global,
+                              "MathSin",
+                              script_lib_math_float_from_float_function,
+                              sinf,
+                              "value",
+                              NULL);
+  script_add_native_function (state->global,
+                              "MathTan",
+                              script_lib_math_float_from_float_function,
+                              tanf,
+                              "value",
+                              NULL);
+  script_add_native_function (state->global,
+                              "MathSqrt",
+                              script_lib_math_float_from_float_function,
+                              sqrtf,
+                              "value",
+                              NULL);
+  script_add_native_function (state->global,
+                              "MathInt",
+                              script_lib_math_int_from_float_function,
+                              float_to_int,
+                              "value",
+                              NULL);
+
+  data->script_main_op = script_parse_string (script_lib_math_string);
+  script_return ret = script_execute (state, data->script_main_op);
+  script_obj_unref (ret.object);
+
+  return data;
 }
 
-void script_lib_math_destroy(script_lib_math_data_t* data)
+void script_lib_math_destroy (script_lib_math_data_t *data)
 {
- script_parse_op_free (data->script_main_op);
- free(data);
+  script_parse_op_free (data->script_main_op);
+  free (data);
 }
+

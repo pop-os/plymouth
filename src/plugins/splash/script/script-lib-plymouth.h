@@ -35,20 +35,34 @@ typedef struct
   script_obj     *script_display_normal_func;
   script_obj     *script_display_password_func;
   script_obj     *script_display_question_func;
-  
 } script_lib_plymouth_data_t;
 
+script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state *state);
+void script_lib_plymouth_destroy (script_lib_plymouth_data_t *data);
 
-script_lib_plymouth_data_t* script_lib_plymouth_setup(script_state *state);
-void script_lib_plymouth_destroy(script_lib_plymouth_data_t* data);
-
-void script_lib_plymouth_on_refresh(script_state* state, script_lib_plymouth_data_t* data);
-void script_lib_plymouth_on_boot_progress(script_state* state, script_lib_plymouth_data_t* data, float duration, float progress);
-void script_lib_plymouth_on_root_mounted(script_state* state, script_lib_plymouth_data_t* data);
-void script_lib_plymouth_on_keyboard_input(script_state* state, script_lib_plymouth_data_t* data, const char* keyboard_input);
-void script_lib_plymouth_on_update_status(script_state* state, script_lib_plymouth_data_t* data, const char* new_status);
-void script_lib_plymouth_on_display_normal(script_state* state, script_lib_plymouth_data_t* data);
-void script_lib_plymouth_on_display_password(script_state* state, script_lib_plymouth_data_t* data, const char *prompt, int bullets);
-void script_lib_plymouth_on_display_question(script_state* state, script_lib_plymouth_data_t* data, const char *prompt, const char *entry_text);
+void script_lib_plymouth_on_refresh (script_state               *state,
+                                     script_lib_plymouth_data_t *data);
+void script_lib_plymouth_on_boot_progress (script_state               *state,
+                                           script_lib_plymouth_data_t *data,
+                                           float                       duration,
+                                           float                       progress);
+void script_lib_plymouth_on_root_mounted (script_state               *state,
+                                          script_lib_plymouth_data_t *data);
+void script_lib_plymouth_on_keyboard_input (script_state               *state,
+                                            script_lib_plymouth_data_t *data,
+                                            const char                 *keyboard_input);
+void script_lib_plymouth_on_update_status (script_state               *state,
+                                           script_lib_plymouth_data_t *data,
+                                           const char                 *new_status);
+void script_lib_plymouth_on_display_normal (script_state               *state,
+                                            script_lib_plymouth_data_t *data);
+void script_lib_plymouth_on_display_password (script_state               *state,
+                                              script_lib_plymouth_data_t *data,
+                                              const char                 *prompt,
+                                              int                         bullets);
+void script_lib_plymouth_on_display_question (script_state               *state,
+                                              script_lib_plymouth_data_t *data,
+                                              const char                 *prompt,
+                                              const char                 *entry_text);
 
 #endif /* SCRIPT_LIB_PLYMOUTH */

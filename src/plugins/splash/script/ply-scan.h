@@ -27,39 +27,39 @@
 
 typedef enum
 {
- PLY_SCAN_TOKEN_TYPE_EMPTY,
- PLY_SCAN_TOKEN_TYPE_EOF,
- PLY_SCAN_TOKEN_TYPE_INTEGER,
- PLY_SCAN_TOKEN_TYPE_FLOAT,
- PLY_SCAN_TOKEN_TYPE_IDENTIFIER,
- PLY_SCAN_TOKEN_TYPE_STRING,
- PLY_SCAN_TOKEN_TYPE_SYMBOL,
- PLY_SCAN_TOKEN_TYPE_COMMENT,
- PLY_SCAN_TOKEN_TYPE_ERROR,
+  PLY_SCAN_TOKEN_TYPE_EMPTY,
+  PLY_SCAN_TOKEN_TYPE_EOF,
+  PLY_SCAN_TOKEN_TYPE_INTEGER,
+  PLY_SCAN_TOKEN_TYPE_FLOAT,
+  PLY_SCAN_TOKEN_TYPE_IDENTIFIER,
+  PLY_SCAN_TOKEN_TYPE_STRING,
+  PLY_SCAN_TOKEN_TYPE_SYMBOL,
+  PLY_SCAN_TOKEN_TYPE_COMMENT,
+  PLY_SCAN_TOKEN_TYPE_ERROR,
 } ply_scan_token_type_t;
 
 typedef struct
 {
- ply_scan_token_type_t type;
- union
- {
-    char* string;
+  ply_scan_token_type_t type;
+  union
+  {
+    char *string;
     char symbol;
     long long int integer;
     double floatpoint;
- } data;
- int whitespace;
- int line_index;
- int column_index;
+  } data;
+  int whitespace;
+  int line_index;
+  int column_index;
 } ply_scan_token_t;
 
 typedef struct
 {
- union
- {
-  int fd;
-  const char* string;
- } source;
+  union
+  {
+    int fd;
+    const char *string;
+  } source;
   unsigned char cur_char;
   ply_bitarray_t *identifier_1st_char;
   ply_bitarray_t *identifier_nth_char;
@@ -70,15 +70,16 @@ typedef struct
   bool source_is_file;
 } ply_scan_t;
 
-ply_scan_t* ply_scan_file(const char* filename);
-ply_scan_t* ply_scan_string(const char* string);
-void ply_scan_token_clean(ply_scan_token_t* token);
-void ply_scan_free(ply_scan_t* scan);
-unsigned char ply_scan_get_current_char(ply_scan_t* scan);
-unsigned char ply_scan_get_next_char(ply_scan_t* scan);
-ply_scan_token_t* ply_scan_get_current_token(ply_scan_t* scan);
-ply_scan_token_t* ply_scan_get_next_token(ply_scan_t* scan);
-ply_scan_token_t* ply_scan_peek_next_token(ply_scan_t* scan);
-void ply_scan_read_next_token(ply_scan_t* scan, ply_scan_token_t* token);
+ply_scan_t *ply_scan_file (const char *filename);
+ply_scan_t *ply_scan_string (const char *string);
+void ply_scan_token_clean (ply_scan_token_t *token);
+void ply_scan_free (ply_scan_t *scan);
+unsigned char ply_scan_get_current_char (ply_scan_t *scan);
+unsigned char ply_scan_get_next_char (ply_scan_t *scan);
+ply_scan_token_t *ply_scan_get_current_token (ply_scan_t *scan);
+ply_scan_token_t *ply_scan_get_next_token (ply_scan_t *scan);
+ply_scan_token_t *ply_scan_peek_next_token (ply_scan_t *scan);
+void ply_scan_read_next_token (ply_scan_t       *scan,
+                               ply_scan_token_t *token);
 
 #endif /* PLY_SCAN_H */

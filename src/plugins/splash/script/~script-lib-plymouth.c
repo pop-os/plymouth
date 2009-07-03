@@ -146,7 +146,7 @@ void script_lib_plymouth_on_refresh (script_state               *state,
   script_obj *refresh_func_obj = data->script_refresh_func;
 
   if (refresh_func_obj
-      && (refresh_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
+     && (refresh_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
     {
       script_return ret = script_execute_function (state,
                                                    refresh_func_obj->data.function,

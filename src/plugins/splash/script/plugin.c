@@ -71,20 +71,12 @@
 #endif
 
 
-typedef enum {
-  PLY_BOOT_SPLASH_DISPLAY_NORMAL,
-  PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY,
-  PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY
-} ply_boot_splash_display_type_t;
-
 struct _ply_boot_splash_plugin
 {
   ply_event_loop_t *loop;
   ply_boot_splash_mode_t mode;
   ply_frame_buffer_t *frame_buffer;
   ply_window_t *window;
-  
-  ply_boot_splash_display_type_t state;
   
   char *script_filename;
   char *image_dir;
@@ -118,7 +110,6 @@ create_plugin (ply_key_file_t *key_file)
   plugin->image_dir = ply_key_file_get_value (key_file, "script", "ImageDir");
   plugin->script_filename = ply_key_file_get_value (key_file, "script", "ScriptFile");
  
-  plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
   return plugin;
 }
 
@@ -405,7 +396,6 @@ become_idle (ply_boot_splash_plugin_t *plugin,
 
 void display_normal (ply_boot_splash_plugin_t *plugin)
 {
-  plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
   script_lib_plymouth_on_display_normal(plugin->script_state, plugin->script_plymouth_lib);
 }
 
@@ -414,7 +404,6 @@ display_password (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   int                       bullets)
 {
-  plugin->state = PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY;
   script_lib_plymouth_on_display_password(plugin->script_state, plugin->script_plymouth_lib, prompt, bullets);
 }
 
@@ -423,7 +412,6 @@ display_question (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   const char               *entry_text)
 {
-  plugin->state = PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY;
   script_lib_plymouth_on_display_question(plugin->script_state, plugin->script_plymouth_lib, prompt, entry_text);
 }
 

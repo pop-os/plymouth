@@ -84,7 +84,7 @@ void script_lib_plymouth_on_refresh(script_state* state, script_lib_plymouth_dat
  script_obj* refresh_func_obj = data->script_refresh_func;
  if (refresh_func_obj &&  refresh_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION){
     script_return ret = script_execute_function (state, refresh_func_obj->data.function, NULL);
-    script_obj_unref(ret.object);                  // Throw anything sent back away
+    script_obj_unref(ret.object);
     }
 }
 
@@ -95,7 +95,7 @@ void script_lib_plymouth_on_boot_progress(script_state* state, script_lib_plymou
     script_obj* duration_obj = script_obj_new_float (duration);
     script_obj* progress_obj = script_obj_new_float (progress);
     script_return ret = script_execute_function (state, boot_progress_func_obj->data.function, duration_obj, progress_obj, NULL);
-    script_obj_unref(ret.object);                  // Throw anything sent back away
+    script_obj_unref(ret.object);
     script_obj_unref(duration_obj);
     script_obj_unref(progress_obj);
     }

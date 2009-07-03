@@ -258,6 +258,7 @@ script_obj* script_obj_new_ref (script_obj* sub_obj)
 
 script_obj* script_obj_new_native (void* object_data, script_obj_native_class* class)
 {
+ if (!object_data) return script_obj_new_null ();
  script_obj* obj = malloc(sizeof(script_obj));
  obj->type = SCRIPT_OBJ_TYPE_NATIVE;
  obj->data.native.class = class;
@@ -341,7 +342,6 @@ bool script_obj_as_bool (script_obj* obj)
  return false;
 }
 
-
 char* script_obj_as_string (script_obj* obj)              // reply is strdupped and may be NULL
 {
  obj = script_obj_deref_direct(obj);
@@ -372,7 +372,22 @@ char* script_obj_as_string (script_obj* obj)              // reply is strdupped 
  return false;
 }
 
+void* script_obj_as_native_of_class (script_obj* obj, script_obj_native_class* class)
+{
+ obj = script_obj_deref_direct(obj);
+ if (script_obj_is_native_of_class (obj, class))
+    return obj->data.native.object_data;
+ return NULL;
+}
 
+
+void* script_obj_as_native_of_class_name (script_obj* obj, const char* class_name)
+{
+ obj = script_obj_deref_direct(obj);
+ if (script_obj_is_native_of_class_name (obj, class_name))
+    return obj->data.native.object_data;
+ return NULL;
+}
 
 
 bool script_obj_is_null (script_obj* obj)
@@ -431,10 +446,10 @@ bool script_obj_is_native_of_class (script_obj* obj, script_obj_native_class* cl
  return (obj->type == SCRIPT_OBJ_TYPE_NATIVE && obj->data.native.class == class);
 }
 
-bool script_obj_is_native_of_class_name (script_obj* obj, char* class_name)
+bool script_obj_is_native_of_class_name (script_obj* obj, const char* class_name)
 {
  obj = script_obj_deref_direct(obj);
- return (obj->type == SCRIPT_OBJ_TYPE_NATIVE && obj->data.native.class->name == class_name);
+ return (obj->type == SCRIPT_OBJ_TYPE_NATIVE && !strcmp(obj->data.native.class->name, class_name));
 }
 
 
@@ -522,6 +537,22 @@ char* script_obj_hash_get_string (script_obj* hash, const char* name)
 {
  script_obj* obj = script_obj_hash_get_element (hash, name);
  char* reply = script_obj_as_string (obj);
+ script_obj_unref (obj);
+ return reply;
+}
+
+void* script_obj_hash_get_native_of_class (script_obj* hash, const char* name, script_obj_native_class* class)
+{
+ script_obj* obj = script_obj_hash_get_element (hash, name);
+ void* reply = script_obj_as_native_of_class (obj, class);
+ script_obj_unref (obj);
+ return reply;
+}
+
+void* script_obj_hash_get_native_of_class_name (script_obj* hash, const char* name, const char* class_name)
+{
+ script_obj* obj = script_obj_hash_get_element (hash, name);
+ void* reply = script_obj_as_native_of_class_name (obj, class_name);
  script_obj_unref (obj);
  return reply;
 }

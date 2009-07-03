@@ -30,11 +30,9 @@ static script_return script_lib_math_int_from_float_function (script_state* stat
 {
  int (*function) (float) = user_data;
  float value = script_obj_hash_get_float (state->local, "value");
- float reply_int = function(value);
+ int reply_int = function(value);
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_int (reply_int)};
 }
-
-
 
 static int float_to_int (float value)
 {
@@ -58,11 +56,8 @@ script_lib_math_data_t* script_lib_math_setup(script_state *state)
  return data;
 }
 
-
 void script_lib_math_destroy(script_lib_math_data_t* data)
 {
  script_parse_op_free (data->script_main_op);
  free(data);
 }
-
- 

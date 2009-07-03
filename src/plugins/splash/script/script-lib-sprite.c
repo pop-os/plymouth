@@ -57,23 +57,19 @@ static script_return sprite_new (script_state* state, void* user_data)
 static script_return sprite_set_image (script_state* state, void* user_data)
 {
  script_lib_sprite_data_t* data = user_data;
- script_obj* script_obj_sprite = script_obj_hash_get_element (state->local, "sprite");
- script_obj_deref(&script_obj_sprite);
+ sprite_t *sprite = script_obj_hash_get_native_of_class (state->local, "sprite", data->class);
  script_obj* script_obj_image = script_obj_hash_get_element (state->local, "image");
  script_obj_deref(&script_obj_image);
+ ply_image_t *image = script_obj_as_native_of_class_name (script_obj_image, "image");
  
- if (script_obj_image->type == SCRIPT_OBJ_TYPE_NATIVE &&
-     script_obj_sprite->type == SCRIPT_OBJ_TYPE_NATIVE &&
-     script_obj_sprite->data.native.class == data->class){
-    sprite_t *sprite = script_obj_sprite->data.native.object_data;
-    ply_image_t *image = script_obj_image->data.native.object_data;
+ 
+ if (image && sprite){
     script_obj_unref(sprite->image_obj);
     script_obj_ref(script_obj_image);
     sprite->image = image;
     sprite->image_obj = script_obj_image;
     sprite->refresh_me = true;
     }
- script_obj_unref(script_obj_sprite);
  script_obj_unref(script_obj_image);
  
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()};
@@ -82,64 +78,44 @@ static script_return sprite_set_image (script_state* state, void* user_data)
 static script_return sprite_set_x (script_state* state, void* user_data)
 {
  script_lib_sprite_data_t* data = user_data;
- script_obj* script_obj_sprite = script_obj_hash_get_element (state->local, "sprite");
- script_obj_deref(&script_obj_sprite);
- int value = script_obj_hash_get_int (state->local, "value");
+ sprite_t *sprite = script_obj_hash_get_native_of_class (state->local, "sprite", data->class);
  
- if (script_obj_sprite->type == SCRIPT_OBJ_TYPE_NATIVE &&
-     script_obj_sprite->data.native.class == data->class){
-    sprite_t *sprite = script_obj_sprite->data.native.object_data;
-    sprite->x = value;
-    }
- script_obj_unref(script_obj_sprite);
+ if (sprite) 
+    sprite->x = script_obj_hash_get_int (state->local, "value");
+ 
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()};
 }
 
 static script_return sprite_set_y (script_state* state, void* user_data)
 {
  script_lib_sprite_data_t* data = user_data;
- script_obj* script_obj_sprite = script_obj_hash_get_element (state->local, "sprite");
- script_obj_deref(&script_obj_sprite);
- int value = script_obj_hash_get_int (state->local, "value");
+ sprite_t *sprite = script_obj_hash_get_native_of_class (state->local, "sprite", data->class);
  
- if (script_obj_sprite->type == SCRIPT_OBJ_TYPE_NATIVE &&
-     script_obj_sprite->data.native.class == data->class){
-    sprite_t *sprite = script_obj_sprite->data.native.object_data;
-    sprite->y = value;
-    }
- script_obj_unref(script_obj_sprite);
+ if (sprite) 
+    sprite->y = script_obj_hash_get_int (state->local, "value");
+ 
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()};
 }
 
 static script_return sprite_set_z (script_state* state, void* user_data)
 {
  script_lib_sprite_data_t* data = user_data;
- script_obj* script_obj_sprite = script_obj_hash_get_element (state->local, "sprite");
- script_obj_deref(&script_obj_sprite);
- int value = script_obj_hash_get_int (state->local, "value");
+ sprite_t *sprite = script_obj_hash_get_native_of_class (state->local, "sprite", data->class);
  
- if (script_obj_sprite->type == SCRIPT_OBJ_TYPE_NATIVE &&
-     script_obj_sprite->data.native.class == data->class){
-    sprite_t *sprite = script_obj_sprite->data.native.object_data;
-    sprite->z = value;
-    }
- script_obj_unref(script_obj_sprite);
+ if (sprite)
+    sprite->z = script_obj_hash_get_int (state->local, "value");
+    
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()};
 }
 
 static script_return sprite_set_opacity (script_state* state, void* user_data)
 {
  script_lib_sprite_data_t* data = user_data;
- script_obj* script_obj_sprite = script_obj_hash_get_element (state->local, "sprite");
- script_obj_deref(&script_obj_sprite);
- float value = script_obj_hash_get_float (state->local, "value");
+ sprite_t *sprite = script_obj_hash_get_native_of_class (state->local, "sprite", data->class);
  
- if (script_obj_sprite->type == SCRIPT_OBJ_TYPE_NATIVE &&
-     script_obj_sprite->data.native.class == data->class){
-    sprite_t *sprite = script_obj_sprite->data.native.object_data;
-    sprite->opacity = value;
-    }
- script_obj_unref(script_obj_sprite);
+ if (sprite) 
+    sprite->opacity = script_obj_hash_get_float (state->local, "value");
+ 
  return (script_return){SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()};
 }
 
@@ -163,15 +139,9 @@ static script_return sprite_window_get_height (script_state* state, void* user_d
 
 static uint32_t extract_rgb_color (script_state* state)
 {
- script_obj* script_obj_red = script_obj_hash_get_element (state->local, "red");
- script_obj* script_obj_green = script_obj_hash_get_element (state->local, "green");
- script_obj* script_obj_blue = script_obj_hash_get_element (state->local, "blue");
- uint8_t red =   CLAMP(255 * script_obj_as_float(script_obj_red), 0, 255);
- uint8_t green = CLAMP(255 * script_obj_as_float(script_obj_green), 0, 255);
- uint8_t blue =  CLAMP(255 * script_obj_as_float(script_obj_blue), 0, 255);
- script_obj_unref(script_obj_red);
- script_obj_unref(script_obj_green);
- script_obj_unref(script_obj_blue);
+ uint8_t red =   CLAMP(255 * script_obj_hash_get_float (state->local, "red"),   0, 255);
+ uint8_t green = CLAMP(255 * script_obj_hash_get_float (state->local, "green"), 0, 255);
+ uint8_t blue =  CLAMP(255 * script_obj_hash_get_float (state->local, "blue"),  0, 255);
  return (uint32_t) red<<16 | green<<8 | blue;
 }
 static script_return sprite_window_set_background_top_color (script_state* state, void* user_data)

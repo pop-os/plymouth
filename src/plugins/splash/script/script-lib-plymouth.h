@@ -10,7 +10,6 @@ typedef struct
   script_obj     *script_boot_progress_func;
   script_obj     *script_root_mounted_func;
   script_obj     *script_keyboard_input_func;
-  
   script_obj     *script_update_status_func;
   script_obj     *script_display_normal_func;
   script_obj     *script_display_password_func;

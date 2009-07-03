@@ -51,6 +51,7 @@ static script_return image_new (script_state* state, void* user_data)
     reply = script_obj_new_native (image, data->class);
     }
  else {
+    ply_image_free (image);
     reply = script_obj_new_null ();
     }
  free(filename);

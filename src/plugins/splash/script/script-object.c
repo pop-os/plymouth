@@ -576,6 +576,7 @@ script_obj* script_obj_plus (script_obj* script_obj_a, script_obj* script_obj_b)
         char* newstring;
         asprintf(&newstring, "%s%s", string_a, string_b);
         obj = script_obj_new_string (newstring);
+        free(newstring);
         }
     else {
         obj = script_obj_new_null ();

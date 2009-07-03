@@ -261,9 +261,7 @@ void script_lib_sprite_refresh(script_lib_sprite_data_t* data)
     ply_list_node_t *next_node = ply_list_get_next_node (data->sprite_list, node);
     if (sprite->remove_me) {
         if (sprite->image) {
-            int width = ply_image_get_width (sprite->image);
-            int height= ply_image_get_height (sprite->image);
-            draw_area (data, sprite->old_x, sprite->old_y, width, height);
+            draw_area (data, sprite->old_x, sprite->old_y, sprite->old_width, sprite->old_height);
             }
         ply_list_remove_node (data->sprite_list, node);
         script_obj_unref(sprite->image_obj);
@@ -300,9 +298,19 @@ void script_lib_sprite_refresh(script_lib_sprite_data_t* data)
 
 void script_lib_sprite_destroy(script_lib_sprite_data_t* data)
 {
- script_obj_native_class_destroy(data->class);
+ ply_list_node_t *node = ply_list_get_first_node (data->sprite_list); 
+ while (node){
+    sprite_t* sprite = ply_list_node_get_data (node);
+    ply_list_node_t *next_node = ply_list_get_next_node (data->sprite_list, node);
+    ply_list_remove_node (data->sprite_list, node);
+    script_obj_unref(sprite->image_obj);
+    free(sprite);
+    node = next_node;
+    }
+ 
  ply_list_free(data->sprite_list);
  script_parse_op_free (data->script_main_op);
+ script_obj_native_class_destroy(data->class);
  free(data);
 }
 

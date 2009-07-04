@@ -38,24 +38,24 @@
 
 #include "script-lib-math.string"
 
-static script_return script_lib_math_float_from_float_function (script_state *state,
-                                                                void         *user_data)
+static script_return_t script_lib_math_float_from_float_function (script_state_t *state,
+                                                                  void           *user_data)
 {
   float (*function)(float) = user_data;
   float value = script_obj_hash_get_float (state->local, "value");
   float reply_float = function (value);
-  return (script_return) {
+  return (script_return_t) {
            SCRIPT_RETURN_TYPE_RETURN, script_obj_new_float (reply_float)
   };
 }
 
-static script_return script_lib_math_int_from_float_function (script_state *state,
-                                                              void         *user_data)
+static script_return_t script_lib_math_int_from_float_function (script_state_t *state,
+                                                                void           *user_data)
 {
   int (*function)(float) = user_data;
   float value = script_obj_hash_get_float (state->local, "value");
   int reply_int = function (value);
-  return (script_return) {
+  return (script_return_t) {
            SCRIPT_RETURN_TYPE_RETURN, script_obj_new_int (reply_int)
   };
 }
@@ -65,7 +65,7 @@ static int float_to_int (float value)
   return (int) value;
 }
 
-script_lib_math_data_t *script_lib_math_setup (script_state *state)
+script_lib_math_data_t *script_lib_math_setup (script_state_t *state)
 {
   script_lib_math_data_t *data = malloc (sizeof (script_lib_math_data_t));
 
@@ -101,7 +101,7 @@ script_lib_math_data_t *script_lib_math_setup (script_state *state)
                               NULL);
 
   data->script_main_op = script_parse_string (script_lib_math_string);
-  script_return ret = script_execute (state, data->script_main_op);
+  script_return_t ret = script_execute (state, data->script_main_op);
   script_obj_unref (ret.object);
 
   return data;

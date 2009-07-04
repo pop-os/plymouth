@@ -28,8 +28,8 @@ typedef struct
 {
   ply_window_t              *window;
   ply_list_t                *sprite_list;
-  script_obj_native_class   *class;
-  script_op                 *script_main_op;
+  script_obj_native_class_t *class;
+  script_op_t               *script_main_op;
   uint32_t                   background_color_start;
   uint32_t                   background_color_end;
   bool                       full_refresh;
@@ -37,24 +37,24 @@ typedef struct
 
 typedef struct
 {
-  int          x;
-  int          y;
-  int          z;
-  float        opacity;
-  int          old_x;
-  int          old_y;
-  int          old_z;
-  int          old_width;
-  int          old_height;
-  float        old_opacity;
-  bool         refresh_me;
-  bool         remove_me;
-  ply_image_t *image;
-  script_obj  *image_obj;
+  int           x;
+  int           y;
+  int           z;
+  float         opacity;
+  int           old_x;
+  int           old_y;
+  int           old_z;
+  int           old_width;
+  int           old_height;
+  float         old_opacity;
+  bool          refresh_me;
+  bool          remove_me;
+  ply_image_t  *image;
+  script_obj_t *image_obj;
 } sprite_t;
 
-script_lib_sprite_data_t *script_lib_sprite_setup (script_state *state,
-                                                   ply_window_t *window);
+script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
+                                                   ply_window_t   *window);
 void script_lib_sprite_refresh (script_lib_sprite_data_t *data);
 void script_lib_sprite_destroy (script_lib_sprite_data_t *data);
 

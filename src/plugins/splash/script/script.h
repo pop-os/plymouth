@@ -32,58 +32,58 @@ typedef enum                        /* FIXME add _t to all types */
   SCRIPT_RETURN_TYPE_RETURN,
   SCRIPT_RETURN_TYPE_BREAK,
   SCRIPT_RETURN_TYPE_CONTINUE,
-} script_return_type;
+} script_return_type_t;
 
-struct script_obj;
+struct script_obj_t;
 
 typedef struct
 {
-  script_return_type type;
-  struct script_obj *object;
-} script_return;
+  script_return_type_t type;
+  struct script_obj_t *object;
+} script_return_t;
 
 typedef struct
 {
   void *user_data;
-  struct script_obj *global;
-  struct script_obj *local;
-} script_state;
+  struct script_obj_t *global;
+  struct script_obj_t *local;
+} script_state_t;
 
 typedef enum
 {
   SCRIPT_FUNCTION_TYPE_SCRIPT,
   SCRIPT_FUNCTION_TYPE_NATIVE,
-} script_function_type;
+} script_function_type_t;
 
-typedef script_return (*script_native_function)(script_state *, void *);
+typedef script_return_t (*script_native_function_t)(script_state_t *, void *);
 
-typedef struct script_function
+typedef struct script_function_t
 {
-  script_function_type type;
+  script_function_type_t type;
   ply_list_t *parameters;           /*  list of char* typedef names */
   void *user_data;
   union
   {
-    script_native_function native;
-    struct script_op *script;
+    script_native_function_t native;
+    struct script_op_t *script;
   } data;
   bool freeable;
-} script_function;
+} script_function_t;
 
-typedef void (*script_obj_function)(struct script_obj *);
+typedef void (*script_obj_function_t)(struct script_obj_t *);
 
 typedef struct
 {
-  script_obj_function free_func;
+  script_obj_function_t free_func;
   char *name;
   void *user_data;
-} script_obj_native_class;
+} script_obj_native_class_t;
 
 typedef struct
 {
   void *object_data;
-  script_obj_native_class *class;
-} script_obj_native;
+  script_obj_native_class_t *class;
+} script_obj_native_t;
 
 typedef enum
 {
@@ -95,23 +95,23 @@ typedef enum
   SCRIPT_OBJ_TYPE_HASH,
   SCRIPT_OBJ_TYPE_FUNCTION,
   SCRIPT_OBJ_TYPE_NATIVE,
-} script_obj_type;
+} script_obj_type_t;
 
-typedef struct script_obj
+typedef struct script_obj_t
 {
-  script_obj_type type;
+  script_obj_type_t type;
   int refcount;
   union
   {
     int integer;
     float floatpoint;
     char *string;
-    struct script_obj *obj;
-    script_function *function;
+    struct script_obj_t *obj;
+    script_function_t *function;
     ply_hashtable_t *hash;
-    script_obj_native native;
+    script_obj_native_t native;
   } data;
-} script_obj;
+} script_obj_t;
 
 typedef enum
 {
@@ -150,29 +150,29 @@ typedef enum
   SCRIPT_EXP_TYPE_ASSIGN_MUL,
   SCRIPT_EXP_TYPE_ASSIGN_DIV,
   SCRIPT_EXP_TYPE_ASSIGN_MOD,
-} script_exp_type;
+} script_exp_type_t;
 
-typedef struct script_exp
+typedef struct script_exp_t
 {
-  script_exp_type type;
+  script_exp_type_t type;
   union
   {
     struct
     {
-      struct script_exp *sub_a;
-      struct script_exp *sub_b;
+      struct script_exp_t *sub_a;
+      struct script_exp_t *sub_b;
     } dual;
-    struct script_exp *sub;
+    struct script_exp_t *sub;
     char *string;
     int integer;
     float floatpoint;
     struct
     {
-      struct script_exp *name;
+      struct script_exp_t *name;
       ply_list_t *parameters;
     } function;
   } data;
-} script_exp;
+} script_exp_t;
 
 typedef enum
 {
@@ -185,58 +185,54 @@ typedef enum
   SCRIPT_OP_TYPE_RETURN,
   SCRIPT_OP_TYPE_BREAK,
   SCRIPT_OP_TYPE_CONTINUE,
-} script_op_type;
+} script_op_type_t;
 
-typedef struct script_op
+typedef struct script_op_t
 {
-  script_op_type type;
+  script_op_type_t type;
   union
   {
-    script_exp *exp;
+    script_exp_t *exp;
     ply_list_t *list;
     struct
     {
-      script_exp *cond;
-      struct script_op *op1;
-      struct script_op *op2;
+      script_exp_t *cond;
+      struct script_op_t *op1;
+      struct script_op_t *op2;
     } cond_op;
     struct
     {
-      script_exp *name;
-      script_function *function;
+      script_exp_t *name;
+      script_function_t *function;
     } function_def;
   } data;
-} script_op;
+} script_op_t;
 
 typedef struct
 {
   char *name;
-  script_obj *object;
-} script_vareable;
+  script_obj_t *object;
+} script_vareable_t;
 
-script_function *script_function_script_new (script_op  *script,
-                                             void       *user_data,
-                                             ply_list_t *parameter_list);
-script_function *script_function_native_new (
-  script_native_function native_function,
-  void                  *user_data,
-  ply_list_t            *
-                         parameter_list);
-void script_add_native_function (script_obj            *hash,
-                                 const char            *name,
-                                 script_native_function native_function,
-                                 void                  *user_data,
-                                 const char            *first_arg,
+script_function_t *script_function_script_new (script_op_t  *script,
+                                               void         *user_data,
+                                               ply_list_t   *parameter_list);
+script_function_t *script_function_native_new (script_native_function_t  native_function,
+                                               void                     *user_data,
+                                               ply_list_t               *parameter_list);
+void script_add_native_function (script_obj_t            *hash,
+                                 const char              *name,
+                                 script_native_function_t native_function,
+                                 void                    *user_data,
+                                 const char              *first_arg,
                                  ...);
-script_obj_native_class *script_obj_native_class_new (
-  script_obj_function free_func,
-  const char         *name,
-  void               *
-                      user_data);
+script_obj_native_class_t *script_obj_native_class_new (script_obj_function_t free_func,
+                                                        const char           *name,
+                                                        void                 *user_data);
 
-void script_obj_native_class_destroy (script_obj_native_class * class );
-script_state *script_state_new (void *user_data);
-script_state *script_state_init_sub (script_state *oldstate);
-void script_state_destroy (script_state *state);
+void script_obj_native_class_destroy (script_obj_native_class_t * class);
+script_state_t *script_state_new (void *user_data);
+script_state_t *script_state_init_sub (script_state_t *oldstate);
+void script_state_destroy (script_state_t *state);
 
 #endif /* SCRIPT_H */

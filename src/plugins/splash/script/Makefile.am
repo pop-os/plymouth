@@ -45,7 +45,7 @@ script_la_SOURCES = $(srcdir)/plugin.c                                        \
                     $(srcdir)/ply-scan.h                                      
 
 MAINTAINERCLEANFILES = Makefile.in
-CLEANFILES = *.script.string
+CLEANFILES = *.string
 
 
 EXTRA_DIST = stringify.pl

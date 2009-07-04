@@ -24,11 +24,11 @@
 
 #include "script.h"
 
-script_return script_execute (script_state *state,
-                              script_op    *op);
-script_return script_execute_function (script_state    *state,
-                                       script_function *function,
-                                       script_obj      *first_arg,
-                                       ...);
+script_return_t script_execute (script_state_t *state,
+                                script_op_t    *op);
+script_return_t script_execute_function (script_state_t    *state,
+                                         script_function_t *function,
+                                         script_obj_t      *first_arg,
+                                         ...);
 
 #endif /* SCRIPT_EXECUTE_H */

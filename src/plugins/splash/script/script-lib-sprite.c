@@ -44,17 +44,17 @@ static void draw_area (script_lib_sprite_data_t *data,
                        int                       width,
                        int                       height);
 
-static void sprite_free (script_obj *obj)
+static void sprite_free (script_obj_t *obj)
 {
   sprite_t *sprite = obj->data.native.object_data;
   sprite->remove_me = true;
 }
 
-static script_return sprite_new (script_state *state,
-                                 void         *user_data)
+static script_return_t sprite_new (script_state_t *state,
+                                   void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
-  script_obj *reply;
+  script_obj_t *reply;
 
   sprite_t *sprite = calloc (1, sizeof (sprite_t));
 
@@ -73,17 +73,17 @@ static script_return sprite_new (script_state *state,
   ply_list_append_data (data->sprite_list, sprite);
 
   reply = script_obj_new_native (sprite, data->class);
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN, reply};
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN, reply};
 }
 
-static script_return sprite_set_image (script_state *state,
-                                       void         *user_data)
+static script_return_t sprite_set_image (script_state_t *state,
+                                         void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
   sprite_t *sprite = script_obj_hash_get_native_of_class (state->local,
                                                           "sprite",
                                                           data->class);
-  script_obj *script_obj_image = script_obj_hash_get_element (state->local,
+  script_obj_t *script_obj_image = script_obj_hash_get_element (state->local,
                                                               "image");
 
   script_obj_deref (&script_obj_image);
@@ -100,12 +100,12 @@ static script_return sprite_set_image (script_state *state,
     }
   script_obj_unref (script_obj_image);
 
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                           script_obj_new_null ()};
 }
 
-static script_return sprite_set_x (script_state *state,
-                                   void         *user_data)
+static script_return_t sprite_set_x (script_state_t *state,
+                                     void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
   sprite_t *sprite = script_obj_hash_get_native_of_class (state->local,
@@ -114,12 +114,12 @@ static script_return sprite_set_x (script_state *state,
 
   if (sprite)
     sprite->x = script_obj_hash_get_int (state->local, "value");
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                           script_obj_new_null ()};
 }
 
-static script_return sprite_set_y (script_state *state,
-                                   void         *user_data)
+static script_return_t sprite_set_y (script_state_t *state,
+                                     void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
   sprite_t *sprite = script_obj_hash_get_native_of_class (state->local,
@@ -128,12 +128,12 @@ static script_return sprite_set_y (script_state *state,
 
   if (sprite)
     sprite->y = script_obj_hash_get_int (state->local, "value");
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                           script_obj_new_null ()};
 }
 
-static script_return sprite_set_z (script_state *state,
-                                   void         *user_data)
+static script_return_t sprite_set_z (script_state_t *state,
+                                     void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
   sprite_t *sprite = script_obj_hash_get_native_of_class (state->local,
@@ -142,12 +142,12 @@ static script_return sprite_set_z (script_state *state,
 
   if (sprite)
     sprite->z = script_obj_hash_get_int (state->local, "value");
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                           script_obj_new_null ()};
 }
 
-static script_return sprite_set_opacity (script_state *state,
-                                         void         *user_data)
+static script_return_t sprite_set_opacity (script_state_t *state,
+                                           void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
   sprite_t *sprite = script_obj_hash_get_native_of_class (state->local,
@@ -156,35 +156,35 @@ static script_return sprite_set_opacity (script_state *state,
 
   if (sprite)
     sprite->opacity = script_obj_hash_get_float (state->local, "value");
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                           script_obj_new_null ()};
 }
 
-static script_return sprite_window_get_width (script_state *state,
-                                              void         *user_data)
+static script_return_t sprite_window_get_width (script_state_t *state,
+                                                void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
   ply_frame_buffer_t *frame_buffer = ply_window_get_frame_buffer (data->window);
   ply_frame_buffer_area_t area;
 
   ply_frame_buffer_get_size (frame_buffer, &area);
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                           script_obj_new_int (area.width)};
 }
 
-static script_return sprite_window_get_height (script_state *state,
-                                               void         *user_data)
+static script_return_t sprite_window_get_height (script_state_t *state,
+                                                 void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
   ply_frame_buffer_t *frame_buffer = ply_window_get_frame_buffer (data->window);
   ply_frame_buffer_area_t area;
 
   ply_frame_buffer_get_size (frame_buffer, &area);
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                           script_obj_new_int (area.height)};
 }
 
-static uint32_t extract_rgb_color (script_state *state)
+static uint32_t extract_rgb_color (script_state_t *state)
 {
   uint8_t red =   CLAMP (255 * script_obj_hash_get_float (state->local, "red"),   0, 255);
   uint8_t green = CLAMP (255 * script_obj_hash_get_float (state->local, "green"), 0, 255);
@@ -193,25 +193,25 @@ static uint32_t extract_rgb_color (script_state *state)
   return (uint32_t) red << 16 | green << 8 | blue;
 }
 
-static script_return sprite_window_set_background_top_color (script_state *state,
-                                                             void         *user_data)
+static script_return_t sprite_window_set_background_top_color (script_state_t *state,
+                                                               void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
 
   data->background_color_start = extract_rgb_color (state);
   data->full_refresh = true;
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN, 
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN, 
                           script_obj_new_null ()};
 }
 
-static script_return sprite_window_set_background_bottom_color (script_state *state,
-                                                                void         *user_data)
+static script_return_t sprite_window_set_background_bottom_color (script_state_t *state,
+                                                                  void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
 
   data->background_color_end = extract_rgb_color (state);
   data->full_refresh = true;
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                           script_obj_new_null ()};
 }
 
@@ -271,8 +271,8 @@ draw_area (script_lib_sprite_data_t *data,
   ply_frame_buffer_unpause_updates (frame_buffer);
 }
 
-script_lib_sprite_data_t *script_lib_sprite_setup (script_state *state,
-                                                   ply_window_t *window)
+script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
+                                                   ply_window_t   *window)
 {
   script_lib_sprite_data_t *data = malloc (sizeof (script_lib_sprite_data_t));
 
@@ -351,7 +351,7 @@ script_lib_sprite_data_t *script_lib_sprite_setup (script_state *state,
   data->background_color_start = 0x000000;
   data->background_color_end   = 0x000000;
   data->full_refresh = true;
-  script_return ret = script_execute (state, data->script_main_op);
+  script_return_t ret = script_execute (state, data->script_main_op);
   script_obj_unref (ret.object);
   return data;
 }

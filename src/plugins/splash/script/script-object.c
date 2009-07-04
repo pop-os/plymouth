@@ -36,22 +36,22 @@
 #include "script.h"
 #include "script-object.h"
 
-char *script_obj_print (script_obj *obj);
-void script_obj_reset (script_obj *obj);
+char *script_obj_print (script_obj_t *obj);
+void script_obj_reset (script_obj_t *obj);
 
-void script_obj_free (script_obj *obj)
+void script_obj_free (script_obj_t *obj)
 {
   assert (!obj->refcount);
   script_obj_reset (obj);
   free (obj);
 }
 
-void script_obj_ref (script_obj *obj)
+void script_obj_ref (script_obj_t *obj)
 {
   obj->refcount++;
 }
 
-void script_obj_unref (script_obj *obj)
+void script_obj_unref (script_obj_t *obj)
 {
   if (!obj) return;
   assert (obj->refcount > 0);
@@ -64,14 +64,14 @@ static void foreach_free_vareable (void *key,
                                    void *data,
                                    void *user_data)
 {
-  script_vareable *vareable = data;
+  script_vareable_t *vareable = data;
 
   script_obj_unref (vareable->object);
   free (vareable->name);
   free (vareable);
 }
 
-void script_obj_reset (script_obj *obj)
+void script_obj_reset (script_obj_t *obj)
 {
   switch (obj->type)
     {
@@ -126,16 +126,16 @@ void script_obj_reset (script_obj *obj)
   obj->type = SCRIPT_OBJ_TYPE_NULL;
 }
 
-script_obj *script_obj_deref_direct (script_obj *obj)
+script_obj_t *script_obj_deref_direct (script_obj_t *obj)
 {
   while (obj->type == SCRIPT_OBJ_TYPE_REF)
     obj = obj->data.obj;
   return obj;
 }
 
-void script_obj_deref (script_obj **obj_ptr)
+void script_obj_deref (script_obj_t **obj_ptr)
 {
-  script_obj *obj = *obj_ptr;
+  script_obj_t *obj = *obj_ptr;
 
   obj = script_obj_deref_direct (obj);
   script_obj_ref (obj);
@@ -147,7 +147,7 @@ static void foreach_print_vareable (void *key,
                                     void *data,
                                     void *user_data)
 {
-  script_vareable *vareable = data;
+  script_vareable_t *vareable = data;
   char *string = script_obj_print (vareable->object);
   char *reply;
   char *prev = *(char **) user_data;
@@ -159,7 +159,7 @@ static void foreach_print_vareable (void *key,
   *(char **) user_data = reply;
 }
 
-char *script_obj_print (script_obj *obj)
+char *script_obj_print (script_obj_t *obj)
 {
   char *reply;
 
@@ -228,18 +228,18 @@ char *script_obj_print (script_obj *obj)
   return NULL;
 }
 
-script_obj *script_obj_new_null (void)
+script_obj_t *script_obj_new_null (void)
 {
-  script_obj *obj = malloc (sizeof (script_obj));
+  script_obj_t *obj = malloc (sizeof (script_obj_t));
 
   obj->type = SCRIPT_OBJ_TYPE_NULL;
   obj->refcount = 1;
   return obj;
 }
 
-script_obj *script_obj_new_int (int number)
+script_obj_t *script_obj_new_int (int number)
 {
-  script_obj *obj = malloc (sizeof (script_obj));
+  script_obj_t *obj = malloc (sizeof (script_obj_t));
 
   obj->type = SCRIPT_OBJ_TYPE_INT;
   obj->refcount = 1;
@@ -247,29 +247,29 @@ script_obj *script_obj_new_int (int number)
   return obj;
 }
 
-script_obj *script_obj_new_float (float number)
+script_obj_t *script_obj_new_float (float number)
 {
   if (isnan (number)) return script_obj_new_null ();
-  script_obj *obj = malloc (sizeof (script_obj));
+  script_obj_t *obj = malloc (sizeof (script_obj_t));
   obj->type = SCRIPT_OBJ_TYPE_FLOAT;
   obj->refcount = 1;
   obj->data.floatpoint = number;
   return obj;
 }
 
-script_obj *script_obj_new_string (const char *string)
+script_obj_t *script_obj_new_string (const char *string)
 {
   if (!string) return script_obj_new_null ();
-  script_obj *obj = malloc (sizeof (script_obj));
+  script_obj_t *obj = malloc (sizeof (script_obj_t));
   obj->type = SCRIPT_OBJ_TYPE_STRING;
   obj->refcount = 1;
   obj->data.string = strdup (string);
   return obj;
 }
 
-script_obj *script_obj_new_hash (void)
+script_obj_t *script_obj_new_hash (void)
 {
-  script_obj *obj = malloc (sizeof (script_obj));
+  script_obj_t *obj = malloc (sizeof (script_obj_t));
 
   obj->type = SCRIPT_OBJ_TYPE_HASH;
   obj->data.hash = ply_hashtable_new (ply_hashtable_string_hash,
@@ -278,9 +278,9 @@ script_obj *script_obj_new_hash (void)
   return obj;
 }
 
-script_obj *script_obj_new_function (script_function *function)
+script_obj_t *script_obj_new_function (script_function_t *function)
 {
-  script_obj *obj = malloc (sizeof (script_obj));
+  script_obj_t *obj = malloc (sizeof (script_obj_t));
 
   obj->type = SCRIPT_OBJ_TYPE_FUNCTION;
   obj->data.function = function;
@@ -288,9 +288,9 @@ script_obj *script_obj_new_function (script_function *function)
   return obj;
 }
 
-script_obj *script_obj_new_ref (script_obj *sub_obj)
+script_obj_t *script_obj_new_ref (script_obj_t *sub_obj)
 {
-  script_obj *obj = malloc (sizeof (script_obj));
+  script_obj_t *obj = malloc (sizeof (script_obj_t));
 
   obj->type = SCRIPT_OBJ_TYPE_REF;
   obj->data.obj = sub_obj;
@@ -298,11 +298,11 @@ script_obj *script_obj_new_ref (script_obj *sub_obj)
   return obj;
 }
 
-script_obj *script_obj_new_native (void                    *object_data,
-                                   script_obj_native_class *class)
+script_obj_t *script_obj_new_native (void                      *object_data,
+                                     script_obj_native_class_t *class)
 {
   if (!object_data) return script_obj_new_null ();
-  script_obj *obj = malloc (sizeof (script_obj));
+  script_obj_t *obj = malloc (sizeof (script_obj_t));
   obj->type = SCRIPT_OBJ_TYPE_NATIVE;
   obj->data.native.class = class;
   obj->data.native.object_data = object_data;
@@ -310,7 +310,7 @@ script_obj *script_obj_new_native (void                    *object_data,
   return obj;
 }
 
-int script_obj_as_int (script_obj *obj)
+int script_obj_as_int (script_obj_t *obj)
 {                                                     /* If in then reply contents, otherwise reply 0 */
   obj = script_obj_deref_direct (obj);
   switch (obj->type)
@@ -340,7 +340,7 @@ int script_obj_as_int (script_obj *obj)
   return 0;
 }
 
-float script_obj_as_float (script_obj *obj)
+float script_obj_as_float (script_obj_t *obj)
 {                                                     /* If in then reply contents, otherwise reply 0 */
   obj = script_obj_deref_direct (obj);
   switch (obj->type)
@@ -370,7 +370,7 @@ float script_obj_as_float (script_obj *obj)
   return NAN;
 }
 
-bool script_obj_as_bool (script_obj *obj)
+bool script_obj_as_bool (script_obj_t *obj)
 {                                                 /* False objects are NULL, 0, "" */
   obj = script_obj_deref_direct (obj);
   switch (obj->type)
@@ -403,7 +403,7 @@ bool script_obj_as_bool (script_obj *obj)
   return false;
 }
 
-char *script_obj_as_string (script_obj *obj)              /* reply is strdupped and may be NULL */
+char *script_obj_as_string (script_obj_t *obj)              /* reply is strdupped and may be NULL */
 {
   obj = script_obj_deref_direct (obj);
   char *reply;
@@ -441,8 +441,8 @@ char *script_obj_as_string (script_obj *obj)              /* reply is strdupped 
   return false;
 }
 
-void *script_obj_as_native_of_class (script_obj              *obj,
-                                     script_obj_native_class *class)
+void *script_obj_as_native_of_class (script_obj_t              *obj,
+                                     script_obj_native_class_t *class)
 {
   obj = script_obj_deref_direct (obj);
   if (script_obj_is_native_of_class (obj, class))
@@ -450,7 +450,7 @@ void *script_obj_as_native_of_class (script_obj              *obj,
   return NULL;
 }
 
-void *script_obj_as_native_of_class_name (script_obj *obj,
+void *script_obj_as_native_of_class_name (script_obj_t *obj,
                                           const char *class_name)
 {
   obj = script_obj_deref_direct (obj);
@@ -459,63 +459,63 @@ void *script_obj_as_native_of_class_name (script_obj *obj,
   return NULL;
 }
 
-bool script_obj_is_null (script_obj *obj)
+bool script_obj_is_null (script_obj_t *obj)
 {
   obj = script_obj_deref_direct (obj);
   return obj->type == SCRIPT_OBJ_TYPE_NULL;
 }
 
-bool script_obj_is_int (script_obj *obj)
+bool script_obj_is_int (script_obj_t *obj)
 {
   obj = script_obj_deref_direct (obj);
   return obj->type == SCRIPT_OBJ_TYPE_INT;
 }
 
-bool script_obj_is_float (script_obj *obj)
+bool script_obj_is_float (script_obj_t *obj)
 {
   obj = script_obj_deref_direct (obj);
   return obj->type == SCRIPT_OBJ_TYPE_FLOAT;
 }
 
-bool script_obj_is_number (script_obj *obj)     /* Float or Int */
+bool script_obj_is_number (script_obj_t *obj)     /* Float or Int */
 {
   obj = script_obj_deref_direct (obj);
   return obj->type == SCRIPT_OBJ_TYPE_INT || obj->type == SCRIPT_OBJ_TYPE_FLOAT;
 }
 
-bool script_obj_is_string (script_obj *obj)
+bool script_obj_is_string (script_obj_t *obj)
 {
   obj = script_obj_deref_direct (obj);
   return obj->type == SCRIPT_OBJ_TYPE_STRING;
 }
 
-bool script_obj_is_hash (script_obj *obj)
+bool script_obj_is_hash (script_obj_t *obj)
 {
   obj = script_obj_deref_direct (obj);
   return obj->type == SCRIPT_OBJ_TYPE_HASH;
 }
 
-bool script_obj_is_function (script_obj *obj)
+bool script_obj_is_function (script_obj_t *obj)
 {
   obj = script_obj_deref_direct (obj);
   return obj->type == SCRIPT_OBJ_TYPE_FUNCTION;
 }
 
-bool script_obj_is_native (script_obj *obj)
+bool script_obj_is_native (script_obj_t *obj)
 {
   obj = script_obj_deref_direct (obj);
   return obj->type == SCRIPT_OBJ_TYPE_NATIVE;
 }
 
-bool script_obj_is_native_of_class (script_obj              *obj,
-                                    script_obj_native_class *class)
+bool script_obj_is_native_of_class (script_obj_t              *obj,
+                                    script_obj_native_class_t *class)
 {
   obj = script_obj_deref_direct (obj);
   return obj->type == SCRIPT_OBJ_TYPE_NATIVE && obj->data.native.class == class;
 }
 
-bool script_obj_is_native_of_class_name (script_obj *obj,
-                                         const char *class_name)
+bool script_obj_is_native_of_class_name (script_obj_t *obj,
+                                         const char   *class_name)
 {
   obj = script_obj_deref_direct (obj);
   return obj->type == SCRIPT_OBJ_TYPE_NATIVE && !strcmp (
@@ -523,8 +523,8 @@ bool script_obj_is_native_of_class_name (script_obj *obj,
            class_name);
 }
 
-void script_obj_assign (script_obj *obj_a,
-                        script_obj *obj_b)
+void script_obj_assign (script_obj_t *obj_a,
+                        script_obj_t *obj_b)
 {
   obj_b = script_obj_deref_direct (obj_b);
   if (obj_a == obj_b) return;                   /* FIXME triple check this */
@@ -564,20 +564,20 @@ void script_obj_assign (script_obj *obj_a,
     }
 }
 
-script_obj *script_obj_hash_get_element (script_obj *hash,
-                                         const char *name)
+script_obj_t *script_obj_hash_get_element (script_obj_t *hash,
+                                           const char   *name)
 {
   assert (hash->type == SCRIPT_OBJ_TYPE_HASH);
-  script_vareable *vareable = ply_hashtable_lookup (hash->data.hash,
-                                                    (void *) name);
-  script_obj *obj;
+  script_vareable_t *vareable = ply_hashtable_lookup (hash->data.hash,
+                                                      (void *) name);
+  script_obj_t *obj;
 
   if (vareable)
     obj = vareable->object;
   else
     {
       obj = script_obj_new_null ();
-      vareable = malloc (sizeof (script_vareable));
+      vareable = malloc (sizeof (script_vareable_t));
       vareable->name = strdup (name);
       vareable->object = obj;
       ply_hashtable_insert (hash->data.hash, vareable->name, vareable);
@@ -586,84 +586,84 @@ script_obj *script_obj_hash_get_element (script_obj *hash,
   return obj;
 }
 
-int script_obj_hash_get_int (script_obj *hash,
-                             const char *name)
+int script_obj_hash_get_int (script_obj_t *hash,
+                             const char   *name)
 {
-  script_obj *obj = script_obj_hash_get_element (hash, name);
+  script_obj_t *obj = script_obj_hash_get_element (hash, name);
   int reply = script_obj_as_int (obj);
 
   script_obj_unref (obj);
   return reply;
 }
 
-float script_obj_hash_get_float (script_obj *hash,
-                                 const char *name)
+float script_obj_hash_get_float (script_obj_t *hash,
+                                 const char   *name)
 {
-  script_obj *obj = script_obj_hash_get_element (hash, name);
+  script_obj_t *obj = script_obj_hash_get_element (hash, name);
   float reply = script_obj_as_float (obj);
 
   script_obj_unref (obj);
   return reply;
 }
 
-bool script_obj_hash_get_bool (script_obj *hash,
-                               const char *name)
+bool script_obj_hash_get_bool (script_obj_t *hash,
+                               const char   *name)
 {
-  script_obj *obj = script_obj_hash_get_element (hash, name);
+  script_obj_t *obj = script_obj_hash_get_element (hash, name);
   bool reply = script_obj_as_bool (obj);
 
   script_obj_unref (obj);
   return reply;
 }
 
-char *script_obj_hash_get_string (script_obj *hash,
-                                  const char *name)
+char *script_obj_hash_get_string (script_obj_t *hash,
+                                  const char   *name)
 {
-  script_obj *obj = script_obj_hash_get_element (hash, name);
+  script_obj_t *obj = script_obj_hash_get_element (hash, name);
   char *reply = script_obj_as_string (obj);
 
   script_obj_unref (obj);
   return reply;
 }
 
-void *script_obj_hash_get_native_of_class (script_obj              *hash,
-                                           const char              *name,
-                                           script_obj_native_class *class)
+void *script_obj_hash_get_native_of_class (script_obj_t              *hash,
+                                           const char                *name,
+                                           script_obj_native_class_t *class)
 {
-  script_obj *obj = script_obj_hash_get_element (hash, name);
+  script_obj_t *obj = script_obj_hash_get_element (hash, name);
   void *reply = script_obj_as_native_of_class (obj, class);
 
   script_obj_unref (obj);
   return reply;
 }
 
-void *script_obj_hash_get_native_of_class_name (script_obj *hash,
-                                                const char *name,
-                                                const char *class_name)
+void *script_obj_hash_get_native_of_class_name (script_obj_t *hash,
+                                                const char   *name,
+                                                const char   *class_name)
 {
-  script_obj *obj = script_obj_hash_get_element (hash, name);
+  script_obj_t *obj = script_obj_hash_get_element (hash, name);
   void *reply = script_obj_as_native_of_class_name (obj, class_name);
 
   script_obj_unref (obj);
   return reply;
 }
 
-void script_obj_hash_add_element (script_obj *hash,
-                                  script_obj *element,
-                                  const char *name)
+void script_obj_hash_add_element (script_obj_t *hash,
+                                  script_obj_t *element,
+                                  const char   *name)
 {
   assert (hash->type == SCRIPT_OBJ_TYPE_HASH);
-  script_obj *obj = script_obj_hash_get_element (hash, name);
+  script_obj_t *obj = script_obj_hash_get_element (hash, name);
   script_obj_assign (obj, element);
   script_obj_unref (obj);
 }
 
-script_obj *script_obj_plus (script_obj *script_obj_a,
-                             script_obj *script_obj_b)
+script_obj_t *script_obj_plus (script_obj_t *script_obj_a,
+                               script_obj_t *script_obj_b)
 {
   if (script_obj_is_string (script_obj_a) || script_obj_is_string (script_obj_b))
     {
-      script_obj *obj;
+      script_obj_t *obj;
       char *string_a = script_obj_as_string (script_obj_a);
       char *string_b = script_obj_as_string (script_obj_b);
       if (string_a && string_b)
@@ -692,8 +692,8 @@ script_obj *script_obj_plus (script_obj *script_obj_a,
   return script_obj_new_null ();
 }
 
-script_obj *script_obj_minus (script_obj *script_obj_a,
-                              script_obj *script_obj_b)
+script_obj_t *script_obj_minus (script_obj_t *script_obj_a,
+                                script_obj_t *script_obj_b)
 {
   if (script_obj_is_number (script_obj_a) && script_obj_is_number (script_obj_b))
     {
@@ -708,8 +708,8 @@ script_obj *script_obj_minus (script_obj *script_obj_a,
   return script_obj_new_null ();
 }
 
-script_obj *script_obj_mul (script_obj *script_obj_a,
-                            script_obj *script_obj_b)
+script_obj_t *script_obj_mul (script_obj_t *script_obj_a,
+                              script_obj_t *script_obj_b)
 {
   if (script_obj_is_number (script_obj_a) && script_obj_is_number (script_obj_b))
     {
@@ -724,8 +724,8 @@ script_obj *script_obj_mul (script_obj *script_obj_a,
   return script_obj_new_null ();
 }
 
-script_obj *script_obj_div (script_obj *script_obj_a,
-                            script_obj *script_obj_b)
+script_obj_t *script_obj_div (script_obj_t *script_obj_a,
+                              script_obj_t *script_obj_b)
 {
   if (script_obj_is_number (script_obj_a) && script_obj_is_number (script_obj_b))
     {
@@ -742,8 +742,8 @@ script_obj *script_obj_div (script_obj *script_obj_a,
   return script_obj_new_null ();
 }
 
-script_obj *script_obj_mod (script_obj *script_obj_a,
-                            script_obj *script_obj_b)
+script_obj_t *script_obj_mod (script_obj_t *script_obj_a,
+                              script_obj_t *script_obj_b)
 {
   if (script_obj_is_number (script_obj_a) && script_obj_is_number (script_obj_b))
     {

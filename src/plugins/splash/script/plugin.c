@@ -72,20 +72,20 @@
 
 struct _ply_boot_splash_plugin
 {
-  ply_event_loop_t *loop;
+  ply_event_loop_t      *loop;
   ply_boot_splash_mode_t mode;
-  ply_frame_buffer_t *frame_buffer;
-  ply_window_t *window;
+  ply_frame_buffer_t    *frame_buffer;
+  ply_window_t          *window;
 
   char *script_filename;
   char *image_dir;
 
-  script_state   *script_state;
-  script_op      *script_main_op;
-  script_lib_sprite_data_t *script_sprite_lib;
-  script_lib_image_data_t  *script_image_lib;
-  script_lib_plymouth_data_t  *script_plymouth_lib;
-  script_lib_math_data_t  *script_math_lib;
+  script_state_t                *script_state;
+  script_op_t                   *script_main_op;
+  script_lib_sprite_data_t      *script_sprite_lib;
+  script_lib_image_data_t       *script_image_lib;
+  script_lib_plymouth_data_t    *script_plymouth_lib;
+  script_lib_math_data_t        *script_math_lib;
 
   uint32_t is_animating : 1;
 };
@@ -180,8 +180,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   plugin->script_math_lib = script_lib_math_setup (plugin->script_state);
 
   ply_trace ("executing script file");
-  script_return ret = script_execute (plugin->script_state,
-                                      plugin->script_main_op);
+  script_return_t ret = script_execute (plugin->script_state,
+                                        plugin->script_main_op);
   script_obj_unref (ret.object);
   on_timeout (plugin);
 

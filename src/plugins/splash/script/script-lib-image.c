@@ -38,18 +38,18 @@
 #define STRINGIFY_VAR script_lib_image_string
 #include "script-lib-image.string"
 
-static void image_free (script_obj *obj)
+static void image_free (script_obj_t *obj)
 {
   ply_image_t *image = obj->data.native.object_data;
 
   ply_image_free (image);
 }
 
-static script_return image_new (script_state *state,
-                                void         *user_data)
+static script_return_t image_new (script_state_t *state,
+                                  void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
-  script_obj *reply;
+  script_obj_t *reply;
   char *path_filename;
   char *filename = script_obj_hash_get_string (state->local, "filename");
   char *test_string = filename;
@@ -79,11 +79,11 @@ static script_return image_new (script_state *state,
     }
   free (filename);
   free (path_filename);
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN, reply};
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN, reply};
 }
 
-static script_return image_get_width (script_state *state,
-                                      void         *user_data)
+static script_return_t image_get_width (script_state_t *state,
+                                        void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
   ply_image_t *image = script_obj_hash_get_native_of_class (state->local,
@@ -91,14 +91,14 @@ static script_return image_get_width (script_state *state,
                                                             data->class);
 
   if (image)
-    return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+    return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                             script_obj_new_int (ply_image_get_width (image))};
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                           script_obj_new_null ()};
 }
 
-static script_return image_get_height (script_state *state,
-                                       void         *user_data)
+static script_return_t image_get_height (script_state_t *state,
+                                         void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
   ply_image_t *image = script_obj_hash_get_native_of_class (state->local,
@@ -106,14 +106,14 @@ static script_return image_get_height (script_state *state,
                                                             data->class);
 
   if (image)
-    return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+    return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                             script_obj_new_int (ply_image_get_height (image))};
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                           script_obj_new_null ()};
 }
 
-static script_return image_rotate (script_state *state,
-                                   void         *user_data)
+static script_return_t image_rotate (script_state_t *state,
+                                     void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
   ply_image_t *image = script_obj_hash_get_native_of_class (state->local,
@@ -124,21 +124,19 @@ static script_return image_rotate (script_state *state,
   if (image)
     {
       ply_image_t *new_image = ply_image_rotate (image,
-                                                 ply_image_get_width (
-                                                   image) / 2,
-                                                 ply_image_get_height (
-                                                   image) / 2,
+                                                 ply_image_get_width (image) / 2,
+                                                 ply_image_get_height (image) / 2,
                                                  angle);
-      return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+      return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                               script_obj_new_native (new_image,
                                                      data->class)};
     }
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                           script_obj_new_null ()};
 }
 
-static script_return image_scale (script_state *state,
-                                  void         *user_data)
+static script_return_t image_scale (script_state_t *state,
+                                    void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
   ply_image_t *image = script_obj_hash_get_native_of_class (state->local,
@@ -150,15 +148,15 @@ static script_return image_scale (script_state *state,
   if (image)
     {
       ply_image_t *new_image = ply_image_resize (image, width, height);
-      return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+      return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                               script_obj_new_native (new_image,
                                                      data->class)};
     }
-  return (script_return) {SCRIPT_RETURN_TYPE_RETURN,
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
                           script_obj_new_null ()};
 }
 
-script_lib_image_data_t *script_lib_image_setup (script_state *state,
+script_lib_image_data_t *script_lib_image_setup (script_state_t *state,
                                                  char         *image_dir)
 {
   script_lib_image_data_t *data = malloc (sizeof (script_lib_image_data_t));
@@ -201,7 +199,7 @@ script_lib_image_data_t *script_lib_image_setup (script_state *state,
                               NULL);
 
   data->script_main_op = script_parse_string (script_lib_image_string);
-  script_return ret = script_execute (state, data->script_main_op);
+  script_return_t ret = script_execute (state, data->script_main_op);
   script_obj_unref (ret.object);
 
   return data;

@@ -37,32 +37,32 @@
 #include "script-execute.h"
 #include "script-object.h"
 
-static script_obj *script_evaluate (script_state *state,
-                                    script_exp   *exp);
-static script_return script_execute_function_with_parlist (script_state    *state,
-                                                           script_function *function,
-                                                           ply_list_t      *parameter_data);
+static script_obj_t *script_evaluate (script_state_t *state,
+                                      script_exp_t   *exp);
+static script_return_t script_execute_function_with_parlist (script_state_t    *state,
+                                                             script_function_t *function,
+                                                             ply_list_t        *parameter_data);
 
-static script_obj *script_evaluate_apply_function (script_state *state,
-                                                   script_exp   *exp,
-                                                   script_obj   *(*function)(script_obj *, script_obj *))
+static script_obj_t *script_evaluate_apply_function (script_state_t *state,
+                                                     script_exp_t   *exp,
+                                                     script_obj_t   *(*function)(script_obj_t *, script_obj_t *))
 {
-  script_obj *script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
-  script_obj *script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
-  script_obj *obj = function (script_obj_a, script_obj_b);
+  script_obj_t *script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
+  script_obj_t *script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
+  script_obj_t *obj = function (script_obj_a, script_obj_b);
 
   script_obj_unref (script_obj_a);
   script_obj_unref (script_obj_b);
   return obj;
 }
 
-static script_obj *script_evaluate_apply_function_and_assign (script_state *state,
-                                                              script_exp   *exp,
-                                                              script_obj   *(*function)(script_obj *, script_obj *))
+static script_obj_t *script_evaluate_apply_function_and_assign (script_state_t *state,
+                                                                script_exp_t   *exp,
+                                                                script_obj_t   *(*function)(script_obj_t *, script_obj_t *))
 {
-  script_obj *script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
-  script_obj *script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
-  script_obj *obj = function (script_obj_a, script_obj_b);
+  script_obj_t *script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
+  script_obj_t *script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
+  script_obj_t *obj = function (script_obj_a, script_obj_b);
 
   script_obj_assign (script_obj_a, obj);
   script_obj_unref (script_obj_a);
@@ -70,13 +70,13 @@ static script_obj *script_evaluate_apply_function_and_assign (script_state *stat
   return obj;
 }
 
-static script_obj *script_evaluate_hash (script_state *state,
-                                         script_exp   *exp)
+static script_obj_t *script_evaluate_hash (script_state_t *state,
+                                           script_exp_t   *exp)
 {
-  script_obj *hash = script_evaluate (state, exp->data.dual.sub_a);
-  script_obj *key  = script_evaluate (state, exp->data.dual.sub_b);
-  script_obj *hash_dereffed = script_obj_deref_direct (hash);
-  script_obj *obj;
+  script_obj_t *hash = script_evaluate (state, exp->data.dual.sub_a);
+  script_obj_t *key  = script_evaluate (state, exp->data.dual.sub_b);
+  script_obj_t *hash_dereffed = script_obj_deref_direct (hash);
+  script_obj_t *obj;
 
   script_obj_deref (&key);
 
@@ -85,13 +85,13 @@ static script_obj *script_evaluate_hash (script_state *state,
   else
     {
       script_obj_reset (hash);
-      script_obj *newhash  = script_obj_new_hash ();
+      script_obj_t *newhash  = script_obj_new_hash ();
       hash->type = SCRIPT_OBJ_TYPE_REF;
       hash->data.obj = newhash;
       script_obj_deref (&hash);
     }
   char *name = script_obj_as_string (key);
-  script_vareable *vareable = ply_hashtable_lookup (hash->data.hash, name);
+  script_vareable_t *vareable = ply_hashtable_lookup (hash->data.hash, name);
 
   if (vareable)
     {
@@ -101,7 +101,7 @@ static script_obj *script_evaluate_hash (script_state *state,
   else
     {
       obj = script_obj_new_null ();
-      vareable = malloc (sizeof (script_vareable));
+      vareable = malloc (sizeof (script_vareable_t));
       vareable->name = name;
       vareable->object = obj;
       ply_hashtable_insert (hash->data.hash, vareable->name, vareable);
@@ -112,19 +112,19 @@ static script_obj *script_evaluate_hash (script_state *state,
   return obj;
 }
 
-static script_obj *script_evaluate_var (script_state *state,
-                                        script_exp   *exp)
+static script_obj_t *script_evaluate_var (script_state_t *state,
+                                          script_exp_t   *exp)
 {
   char *name = exp->data.string;
-  script_obj *obj;
+  script_obj_t *obj;
 
   script_obj_deref (&state->global);
   script_obj_deref (&state->local);
   assert (state->global->type == SCRIPT_OBJ_TYPE_HASH);
   assert (state->local->type == SCRIPT_OBJ_TYPE_HASH);
 
-  script_vareable *vareable = ply_hashtable_lookup (state->local->data.hash,
-                                                    name);
+  script_vareable_t *vareable = ply_hashtable_lookup (state->local->data.hash,
+                                                      name);
   if (!vareable)
     vareable = ply_hashtable_lookup (state->global->data.hash, name);
   if (vareable)
@@ -135,7 +135,7 @@ static script_obj *script_evaluate_var (script_state *state,
     }
   obj = script_obj_new_null ();
 
-  vareable = malloc (sizeof (script_vareable));
+  vareable = malloc (sizeof (script_vareable_t));
   vareable->name = strdup (name);
   vareable->object = obj;
 
@@ -144,11 +144,11 @@ static script_obj *script_evaluate_var (script_state *state,
   return obj;
 }
 
-static script_obj *script_evaluate_assign (script_state *state,
-                                           script_exp   *exp)
+static script_obj_t *script_evaluate_assign (script_state_t *state,
+                                             script_exp_t   *exp)
 {
-  script_obj *script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
-  script_obj *script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
+  script_obj_t *script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
+  script_obj_t *script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
 
   script_obj_deref (&script_obj_b);
   script_obj_assign (script_obj_a, script_obj_b);
@@ -157,11 +157,11 @@ static script_obj *script_evaluate_assign (script_state *state,
   return script_obj_a;
 }
 
-static script_obj *script_evaluate_cmp (script_state *state,
-                                        script_exp   *exp)
+static script_obj_t *script_evaluate_cmp (script_state_t *state,
+                                          script_exp_t   *exp)
 {
-  script_obj *script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
-  script_obj *script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
+  script_obj_t *script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
+  script_obj_t *script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
 
   script_obj_deref (&script_obj_a);
   script_obj_deref (&script_obj_b);
@@ -360,10 +360,10 @@ static script_obj *script_evaluate_cmp (script_state *state,
   return script_obj_new_int (reply);
 }
 
-static script_obj *script_evaluate_logic (script_state *state,
-                                          script_exp   *exp)
+static script_obj_t *script_evaluate_logic (script_state_t *state,
+                                            script_exp_t   *exp)
 {
-  script_obj *obj = script_evaluate (state, exp->data.dual.sub_a);
+  script_obj_t *obj = script_evaluate (state, exp->data.dual.sub_a);
 
   if ((exp->type == SCRIPT_EXP_TYPE_AND) && !script_obj_as_bool (obj))
     return obj;
@@ -374,11 +374,11 @@ static script_obj *script_evaluate_logic (script_state *state,
   return obj;
 }
 
-static script_obj *script_evaluate_unary (script_state *state,
-                                          script_exp   *exp)
+static script_obj_t *script_evaluate_unary (script_state_t *state,
+                                            script_exp_t   *exp)
 {
-  script_obj *obj = script_evaluate (state, exp->data.sub);
-  script_obj *new_obj;
+  script_obj_t *obj = script_evaluate (state, exp->data.sub);
+  script_obj_t *new_obj;
 
   script_obj_deref (&obj);
   if (exp->type == SCRIPT_EXP_TYPE_NOT)
@@ -429,11 +429,11 @@ static script_obj *script_evaluate_unary (script_state *state,
   return new_obj;
 }
 
-static script_obj *script_evaluate_func (script_state *state,
-                                         script_exp   *exp)
+static script_obj_t *script_evaluate_func (script_state_t *state,
+                                           script_exp_t   *exp)
 {
-  script_obj *func = script_evaluate (state, exp->data.function.name);
-  script_obj *obj = NULL;
+  script_obj_t *func = script_evaluate (state, exp->data.function.name);
+  script_obj_t *obj = NULL;
 
   script_obj_deref (&func);
 
@@ -446,14 +446,14 @@ static script_obj *script_evaluate_func (script_state *state,
     parameter_expressions);
   while (node_expression)
     {
-      script_exp *data_exp = ply_list_node_get_data (node_expression);
-      script_obj *data_obj = script_evaluate (state, data_exp);
+      script_exp_t *data_exp = ply_list_node_get_data (node_expression);
+      script_obj_t *data_obj = script_evaluate (state, data_exp);
       ply_list_append_data (parameter_data, data_obj);
       node_expression = ply_list_get_next_node (parameter_expressions,
                                                 node_expression);
     }
 
-  script_return reply = script_execute_function_with_parlist (
+  script_return_t reply = script_execute_function_with_parlist (
     state,
     func->data.
     function,
@@ -465,7 +465,7 @@ static script_obj *script_evaluate_func (script_state *state,
   ply_list_node_t *node_data = ply_list_get_first_node (parameter_data);
   while (node_data)
     {
-      script_obj *data_obj = ply_list_node_get_data (node_data);
+      script_obj_t *data_obj = ply_list_node_get_data (node_data);
       script_obj_unref (data_obj);
       node_data = ply_list_get_next_node (parameter_data, node_data);
     }
@@ -476,8 +476,8 @@ static script_obj *script_evaluate_func (script_state *state,
   return obj;
 }
 
-static script_obj *script_evaluate (script_state *state,
-                                    script_exp   *exp)
+static script_obj_t *script_evaluate (script_state_t *state,
+                                      script_exp_t   *exp)
 {
   switch (exp->type)
     {
@@ -623,17 +623,17 @@ static script_obj *script_evaluate (script_state *state,
   assert (0);
 }
 
-static script_return script_execute_list (script_state *state,
-                                          ply_list_t   *op_list)                        /* FIXME script_execute returns the return obj */
+static script_return_t script_execute_list (script_state_t *state,
+                                            ply_list_t   *op_list)                        /* FIXME script_execute returns the return obj */
 {
-  script_return reply = {SCRIPT_RETURN_TYPE_NORMAL, NULL};
+  script_return_t reply = {SCRIPT_RETURN_TYPE_NORMAL, NULL};
   ply_list_node_t *node = ply_list_get_first_node (op_list);
 
   for (node = ply_list_get_first_node (op_list);
        node;
        node = ply_list_get_next_node (op_list, node))
     {
-      script_op *op = ply_list_node_get_data (node);
+      script_op_t *op = ply_list_node_get_data (node);
       reply = script_execute (state, op);
       switch (reply.type)
         {
@@ -650,18 +650,18 @@ static script_return script_execute_list (script_state *state,
 }
 
 /* parameter_data list should be freed by caller */
-static script_return script_execute_function_with_parlist (script_state    *state,
-                                                           script_function *function,
-                                                           ply_list_t      *parameter_data)
+static script_return_t script_execute_function_with_parlist (script_state_t    *state,
+                                                             script_function_t *function,
+                                                             ply_list_t      *parameter_data)
 {
-  script_state *sub_state = script_state_init_sub (state);
+  script_state_t *sub_state = script_state_init_sub (state);
   ply_list_t *parameter_names = function->parameters;
   ply_list_node_t *node_name = ply_list_get_first_node (parameter_names);
   ply_list_node_t *node_data = ply_list_get_first_node (parameter_data);
 
   while (node_name && node_data)
     {
-      script_obj *data_obj = ply_list_node_get_data (node_data);
+      script_obj_t *data_obj = ply_list_node_get_data (node_data);
       char *name = ply_list_node_get_data (node_name);
       
       script_obj_hash_add_element (sub_state->local, data_obj, name);
@@ -669,12 +669,12 @@ static script_return script_execute_function_with_parlist (script_state    *stat
       node_data = ply_list_get_next_node (parameter_data, node_data);
     }
 
-  script_return reply;
+  script_return_t reply;
   switch (function->type)
     {
       case SCRIPT_FUNCTION_TYPE_SCRIPT:
         {
-          script_op *op = function->data.script;
+          script_op_t *op = function->data.script;
           reply = script_execute (sub_state, op);
           break;
         }
@@ -690,14 +690,14 @@ static script_return script_execute_function_with_parlist (script_state    *stat
   return reply;
 }
 
-script_return script_execute_function (script_state    *state,
-                                       script_function *function,
-                                       script_obj      *first_arg,
-                                       ...)
+script_return_t script_execute_function (script_state_t    *state,
+                                         script_function_t *function,
+                                         script_obj_t      *first_arg,
+                                         ...)
 {
-  script_return reply;
+  script_return_t reply;
   va_list args;
-  script_obj *arg;
+  script_obj_t *arg;
   ply_list_t *parameter_data = ply_list_new ();
 
   arg = first_arg;
@@ -705,7 +705,7 @@ script_return script_execute_function (script_state    *state,
   while (arg)
     {
       ply_list_append_data (parameter_data, arg);
-      arg = va_arg (args, script_obj *);
+      arg = va_arg (args, script_obj_t *);
     }
   va_end (args);
 
@@ -715,17 +715,17 @@ script_return script_execute_function (script_state    *state,
   return reply;
 }
 
-script_return script_execute (script_state *state,
-                              script_op    *op)
+script_return_t script_execute (script_state_t *state,
+                                script_op_t    *op)
 {
-  script_return reply = {SCRIPT_RETURN_TYPE_NORMAL, NULL};
+  script_return_t reply = {SCRIPT_RETURN_TYPE_NORMAL, NULL};
 
   if (!op) return reply;
   switch (op->type)
     {
       case SCRIPT_OP_TYPE_EXPRESSION:
         {
-          script_obj *obj = script_evaluate (state, op->data.exp);
+          script_obj_t *obj = script_evaluate (state, op->data.exp);
           script_obj_unref (obj);  /* there is always a reply from all expressions (even assigns) which we chuck away */
           break;
         }
@@ -739,7 +739,7 @@ script_return script_execute (script_state *state,
 
       case SCRIPT_OP_TYPE_IF:
         {
-          script_obj *obj = script_evaluate (state, op->data.cond_op.cond);
+          script_obj_t *obj = script_evaluate (state, op->data.cond_op.cond);
           if (script_obj_as_bool (obj))
             reply = script_execute (state, op->data.cond_op.op1);
           else
@@ -751,7 +751,7 @@ script_return script_execute (script_state *state,
       case SCRIPT_OP_TYPE_WHILE:
       case SCRIPT_OP_TYPE_FOR:
         {
-          script_obj *obj;
+          script_obj_t *obj;
           while (1)
             {
               obj = script_evaluate (state, op->data.cond_op.cond);
@@ -768,7 +768,7 @@ script_return script_execute (script_state *state,
                         return reply;
 
                       case SCRIPT_RETURN_TYPE_BREAK:
-                        return (script_return) {SCRIPT_RETURN_TYPE_NORMAL, NULL};
+                        return (script_return_t) {SCRIPT_RETURN_TYPE_NORMAL, NULL};
 
                       case SCRIPT_RETURN_TYPE_CONTINUE:
                         break;
@@ -786,7 +786,7 @@ script_return script_execute (script_state *state,
 
       case SCRIPT_OP_TYPE_FUNCTION_DEF:
         {
-          script_obj *obj = script_evaluate (state, op->data.function_def.name);
+          script_obj_t *obj = script_evaluate (state, op->data.function_def.name);
           script_obj_reset (obj);
           obj->type = SCRIPT_OBJ_TYPE_FUNCTION;
           obj->data.function = op->data.function_def.function;
@@ -796,22 +796,22 @@ script_return script_execute (script_state *state,
 
       case SCRIPT_OP_TYPE_RETURN:
         {
-          script_obj *obj;
+          script_obj_t *obj;
           if (op->data.exp) obj = script_evaluate (state, op->data.exp);
           else obj = script_obj_new_null ();
-          reply = (script_return) {SCRIPT_RETURN_TYPE_RETURN, obj};
+          reply = (script_return_t) {SCRIPT_RETURN_TYPE_RETURN, obj};
           break;
         }
 
       case SCRIPT_OP_TYPE_BREAK:
         {
-          reply = (script_return) {SCRIPT_RETURN_TYPE_BREAK, NULL};
+          reply = (script_return_t) {SCRIPT_RETURN_TYPE_BREAK, NULL};
           break;
         }
 
       case SCRIPT_OP_TYPE_CONTINUE:
         {
-          reply = (script_return) {SCRIPT_RETURN_TYPE_CONTINUE, NULL};
+          reply = (script_return_t) {SCRIPT_RETURN_TYPE_CONTINUE, NULL};
           break;
         }
     }

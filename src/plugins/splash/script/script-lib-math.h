@@ -26,10 +26,10 @@
 
 typedef struct
 {
-  script_op      *script_main_op;
+  script_op_t      *script_main_op;
 } script_lib_math_data_t;
 
-script_lib_math_data_t *script_lib_math_setup (script_state *state);
+script_lib_math_data_t *script_lib_math_setup (script_state_t *state);
 void script_lib_math_destroy (script_lib_math_data_t *data);
 
 #endif /* SCRIPT_LIB_MATH */

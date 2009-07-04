@@ -38,8 +38,8 @@
 
 #define WITH_SEMIES
 
-static script_op *script_parse_op (ply_scan_t *scan);
-static script_exp *script_parse_exp (ply_scan_t *scan);
+static script_op_t *script_parse_op (ply_scan_t *scan);
+static script_exp_t *script_parse_exp (ply_scan_t *scan);
 static ply_list_t *script_parse_op_list (ply_scan_t *scan);
 static void script_parse_op_list_free (ply_list_t *op_list);
 
@@ -52,14 +52,14 @@ static void script_parse_error (ply_scan_token_t *token,
              expected);
 }
 
-static script_exp *script_parse_exp_tm (ply_scan_t *scan)
+static script_exp_t *script_parse_exp_tm (ply_scan_t *scan)
 {
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
-  script_exp *exp = NULL;
+  script_exp_t *exp = NULL;
 
   if (curtoken->type == PLY_SCAN_TOKEN_TYPE_INTEGER)
     {
-      exp = malloc (sizeof (script_exp));
+      exp = malloc (sizeof (script_exp_t));
       exp->type = SCRIPT_EXP_TYPE_TERM_INT;
       exp->data.integer = curtoken->data.integer;
       ply_scan_get_next_token (scan);
@@ -67,7 +67,7 @@ static script_exp *script_parse_exp_tm (ply_scan_t *scan)
     }
   if (curtoken->type == PLY_SCAN_TOKEN_TYPE_FLOAT)
     {
-      exp = malloc (sizeof (script_exp));
+      exp = malloc (sizeof (script_exp_t));
       exp->type = SCRIPT_EXP_TYPE_TERM_FLOAT;
       exp->data.floatpoint = curtoken->data.floatpoint;
       ply_scan_get_next_token (scan);
@@ -75,7 +75,7 @@ static script_exp *script_parse_exp_tm (ply_scan_t *scan)
     }
   if (curtoken->type == PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
     {
-      exp = malloc (sizeof (script_exp));
+      exp = malloc (sizeof (script_exp_t));
       if (!strcmp (curtoken->data.string, "NULL"))
         exp->type = SCRIPT_EXP_TYPE_TERM_NULL;
       else if (!strcmp (curtoken->data.string, "global"))
@@ -92,7 +92,7 @@ static script_exp *script_parse_exp_tm (ply_scan_t *scan)
     }
   if (curtoken->type == PLY_SCAN_TOKEN_TYPE_STRING)
     {
-      exp = malloc (sizeof (script_exp));
+      exp = malloc (sizeof (script_exp_t));
       exp->type = SCRIPT_EXP_TYPE_TERM_STRING;
       exp->data.string = strdup (curtoken->data.string);
       ply_scan_get_next_token (scan);
@@ -123,9 +123,9 @@ static script_exp *script_parse_exp_tm (ply_scan_t *scan)
   return exp;
 }
 
-static script_exp *script_parse_exp_pi (ply_scan_t *scan)
+static script_exp_t *script_parse_exp_pi (ply_scan_t *scan)
 {
-  script_exp *exp = script_parse_exp_tm (scan);
+  script_exp_t *exp = script_parse_exp_tm (scan);
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
 
   while (true)
@@ -133,14 +133,14 @@ static script_exp *script_parse_exp_pi (ply_scan_t *scan)
       if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
       if (curtoken->data.symbol == '(')
         {
-          script_exp *func = malloc (sizeof (script_exp));
+          script_exp_t *func = malloc (sizeof (script_exp_t));
           ply_list_t *parameters = ply_list_new ();
           ply_scan_get_next_token (scan);
           while (true)
             {
               if ((curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL)
                   && (curtoken->data.symbol == ')')) break;
-              script_exp *parameter = script_parse_exp (scan);
+              script_exp_t *parameter = script_parse_exp (scan);
 
               ply_list_append_data (parameters, parameter);
 
@@ -167,20 +167,20 @@ static script_exp *script_parse_exp_pi (ply_scan_t *scan)
           exp->data.function.parameters = parameters;
           continue;
         }
-      script_exp *key;
+      script_exp_t *key;
 
       if (curtoken->data.symbol == '.')
         {
           ply_scan_get_next_token (scan);
           if (curtoken->type == PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
             {
-              key = malloc (sizeof (script_exp));
+              key = malloc (sizeof (script_exp_t));
               key->type = SCRIPT_EXP_TYPE_TERM_STRING;
               key->data.string = strdup (curtoken->data.string);
             }
           else if (curtoken->type == PLY_SCAN_TOKEN_TYPE_INTEGER)       /* errrr, integer keys without being [] bracketed */
             {
-              key = malloc (sizeof (script_exp));                       /* This is broken with floats as obj.10.6 is obj[10.6] and not obj[10][6] */
+              key = malloc (sizeof (script_exp_t));                       /* This is broken with floats as obj.10.6 is obj[10.6] and not obj[10][6] */
               key->type = SCRIPT_EXP_TYPE_TERM_INT;
               key->data.integer = curtoken->data.integer;
             }
@@ -207,7 +207,7 @@ static script_exp *script_parse_exp_pi (ply_scan_t *scan)
           curtoken = ply_scan_get_next_token (scan);
         }
       else break;
-      script_exp *hash = malloc (sizeof (script_exp));
+      script_exp_t *hash = malloc (sizeof (script_exp_t));
       hash->type = SCRIPT_EXP_TYPE_HASH;
       hash->data.dual.sub_a = exp;
       hash->data.dual.sub_b = key;
@@ -216,9 +216,9 @@ static script_exp *script_parse_exp_pi (ply_scan_t *scan)
   return exp;
 }
 
-static script_exp *script_parse_exp_pr (ply_scan_t *scan)
+static script_exp_t *script_parse_exp_pr (ply_scan_t *scan)
 {
-  script_exp_type type;
+  script_exp_type_t type;
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
   ply_scan_token_t *peektoken = ply_scan_peek_next_token (scan);
 
@@ -261,7 +261,7 @@ static script_exp *script_parse_exp_pr (ply_scan_t *scan)
         }
       else
         return script_parse_exp_pi (scan);
-      script_exp *exp = malloc (sizeof (script_exp));
+      script_exp_t *exp = malloc (sizeof (script_exp_t));
       exp->type = type;
       exp->data.sub = script_parse_exp_pr (scan);
       return exp;
@@ -269,9 +269,9 @@ static script_exp *script_parse_exp_pr (ply_scan_t *scan)
   return script_parse_exp_pi (scan);
 }
 
-static script_exp *script_parse_exp_po (ply_scan_t *scan)
+static script_exp_t *script_parse_exp_po (ply_scan_t *scan)
 {
-  script_exp *exp = script_parse_exp_pr (scan);
+  script_exp_t *exp = script_parse_exp_pr (scan);
 
   while (true)
     {
@@ -284,7 +284,7 @@ static script_exp *script_parse_exp_po (ply_scan_t *scan)
         {
           ply_scan_get_next_token (scan);
           ply_scan_get_next_token (scan);
-          script_exp *new_exp = malloc (sizeof (script_exp));
+          script_exp_t *new_exp = malloc (sizeof (script_exp_t));
           new_exp->type = SCRIPT_EXP_TYPE_POST_INC;
           new_exp->data.sub = exp;
           exp = new_exp;
@@ -294,7 +294,7 @@ static script_exp *script_parse_exp_po (ply_scan_t *scan)
         {
           ply_scan_get_next_token (scan);
           ply_scan_get_next_token (scan);
-          script_exp *new_exp = malloc (sizeof (script_exp));
+          script_exp_t *new_exp = malloc (sizeof (script_exp_t));
           new_exp->type = SCRIPT_EXP_TYPE_POST_DEC;
           new_exp->data.sub = exp;
           exp = new_exp;
@@ -305,9 +305,9 @@ static script_exp *script_parse_exp_po (ply_scan_t *scan)
   return exp;
 }
 
-static script_exp *script_parse_exp_md (ply_scan_t *scan)
+static script_exp_t *script_parse_exp_md (ply_scan_t *scan)
 {
-  script_exp *sub_a = script_parse_exp_po (scan);
+  script_exp_t *sub_a = script_parse_exp_po (scan);
 
   if (!sub_a) return NULL;
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
@@ -319,7 +319,7 @@ static script_exp *script_parse_exp_md (ply_scan_t *scan)
          && !(peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL
               && peektoken->data.symbol == '='))
     {
-      script_exp *exp = malloc (sizeof (script_exp));
+      script_exp_t *exp = malloc (sizeof (script_exp_t));
       if (curtoken->data.symbol == '*') exp->type = SCRIPT_EXP_TYPE_MUL;
       else if (curtoken->data.symbol == '/') exp->type = SCRIPT_EXP_TYPE_DIV;
       else exp->type = SCRIPT_EXP_TYPE_MOD;
@@ -339,9 +339,9 @@ static script_exp *script_parse_exp_md (ply_scan_t *scan)
   return sub_a;
 }
 
-static script_exp *script_parse_exp_pm (ply_scan_t *scan)
+static script_exp_t *script_parse_exp_pm (ply_scan_t *scan)
 {
-  script_exp *sub_a = script_parse_exp_md (scan);
+  script_exp_t *sub_a = script_parse_exp_md (scan);
 
   if (!sub_a) return NULL;
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
@@ -352,7 +352,7 @@ static script_exp *script_parse_exp_pm (ply_scan_t *scan)
          && !(peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL
               && peektoken->data.symbol == '='))
     {
-      script_exp *exp = malloc (sizeof (script_exp));
+      script_exp_t *exp = malloc (sizeof (script_exp_t));
       if (curtoken->data.symbol == '+') exp->type = SCRIPT_EXP_TYPE_PLUS;
       else exp->type = SCRIPT_EXP_TYPE_MINUS;
       exp->data.dual.sub_a = sub_a;
@@ -371,9 +371,9 @@ static script_exp *script_parse_exp_pm (ply_scan_t *scan)
   return sub_a;
 }
 
-static script_exp *script_parse_exp_gt (ply_scan_t *scan)
+static script_exp_t *script_parse_exp_gt (ply_scan_t *scan)
 {
-  script_exp *sub_a = script_parse_exp_pm (scan);
+  script_exp_t *sub_a = script_parse_exp_pm (scan);
 
   if (!sub_a) return NULL;
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
@@ -392,7 +392,7 @@ static script_exp *script_parse_exp_gt (ply_scan_t *scan)
           eq = 1;
           curtoken = ply_scan_get_next_token (scan);
         }
-      script_exp *exp = malloc (sizeof (script_exp));
+      script_exp_t *exp = malloc (sizeof (script_exp_t));
       if      (gt &&  eq) exp->type = SCRIPT_EXP_TYPE_GE;
       else if (gt && !eq) exp->type = SCRIPT_EXP_TYPE_GT;
       else if (!gt &&  eq) exp->type = SCRIPT_EXP_TYPE_LE;
@@ -412,9 +412,9 @@ static script_exp *script_parse_exp_gt (ply_scan_t *scan)
   return sub_a;
 }
 
-static script_exp *script_parse_exp_eq (ply_scan_t *scan)
+static script_exp_t *script_parse_exp_eq (ply_scan_t *scan)
 {
-  script_exp *sub_a = script_parse_exp_gt (scan);
+  script_exp_t *sub_a = script_parse_exp_gt (scan);
 
   if (!sub_a) return NULL;
   while (1)
@@ -431,7 +431,7 @@ static script_exp *script_parse_exp_eq (ply_scan_t *scan)
       ply_scan_get_next_token (scan);
       ply_scan_get_next_token (scan);
 
-      script_exp *exp = malloc (sizeof (script_exp));
+      script_exp_t *exp = malloc (sizeof (script_exp_t));
       if (ne) exp->type = SCRIPT_EXP_TYPE_NE;
       else exp->type = SCRIPT_EXP_TYPE_EQ;
       exp->data.dual.sub_a = sub_a;
@@ -448,9 +448,9 @@ static script_exp *script_parse_exp_eq (ply_scan_t *scan)
   return sub_a;
 }
 
-static script_exp *script_parse_exp_an (ply_scan_t *scan)
+static script_exp_t *script_parse_exp_an (ply_scan_t *scan)
 {
-  script_exp *sub_a = script_parse_exp_eq (scan);
+  script_exp_t *sub_a = script_parse_exp_eq (scan);
 
   if (!sub_a) return NULL;
   while (1)
@@ -465,7 +465,7 @@ static script_exp *script_parse_exp_an (ply_scan_t *scan)
       ply_scan_get_next_token (scan);
       ply_scan_get_next_token (scan);
 
-      script_exp *exp = malloc (sizeof (script_exp));
+      script_exp_t *exp = malloc (sizeof (script_exp_t));
       exp->type = SCRIPT_EXP_TYPE_AND;
       exp->data.dual.sub_a = sub_a;
       exp->data.dual.sub_b = script_parse_exp_eq (scan);
@@ -481,9 +481,9 @@ static script_exp *script_parse_exp_an (ply_scan_t *scan)
   return sub_a;
 }
 
-static script_exp *script_parse_exp_or (ply_scan_t *scan)
+static script_exp_t *script_parse_exp_or (ply_scan_t *scan)
 {
-  script_exp *sub_a = script_parse_exp_an (scan);
+  script_exp_t *sub_a = script_parse_exp_an (scan);
 
   if (!sub_a) return NULL;
   while (1)
@@ -498,7 +498,7 @@ static script_exp *script_parse_exp_or (ply_scan_t *scan)
       ply_scan_get_next_token (scan);
       ply_scan_get_next_token (scan);
 
-      script_exp *exp = malloc (sizeof (script_exp));
+      script_exp_t *exp = malloc (sizeof (script_exp_t));
       exp->type = SCRIPT_EXP_TYPE_OR;
       exp->data.dual.sub_a = sub_a;
       exp->data.dual.sub_b = script_parse_exp_an (scan);
@@ -514,9 +514,9 @@ static script_exp *script_parse_exp_or (ply_scan_t *scan)
   return sub_a;
 }
 
-static script_exp *script_parse_exp_as (ply_scan_t *scan)
+static script_exp_t *script_parse_exp_as (ply_scan_t *scan)
 {
-  script_exp *lhs = script_parse_exp_or (scan);
+  script_exp_t *lhs = script_parse_exp_or (scan);
 
   if (!lhs) return NULL;
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
@@ -532,7 +532,7 @@ static script_exp *script_parse_exp_as (ply_scan_t *scan)
       || ((curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL)
           && (curtoken->data.symbol == '=')))
     {
-      script_exp_type type;
+      script_exp_type_t type;
       if (modify_assign)
         {
           switch (curtoken->data.symbol)
@@ -567,14 +567,14 @@ static script_exp *script_parse_exp_as (ply_scan_t *scan)
       else
         type = SCRIPT_EXP_TYPE_ASSIGN;
       ply_scan_get_next_token (scan);
-      script_exp *rhs = script_parse_exp_as (scan);
+      script_exp_t *rhs = script_parse_exp_as (scan);
       if (!rhs)
         {
           script_parse_error (ply_scan_get_current_token (scan),
                               "An invalid RHS of an expression");
           return NULL;
         }
-      script_exp *exp = malloc (sizeof (script_exp));
+      script_exp_t *exp = malloc (sizeof (script_exp_t));
       exp->type = type;
       exp->data.dual.sub_a = lhs;
       exp->data.dual.sub_b = rhs;
@@ -583,12 +583,12 @@ static script_exp *script_parse_exp_as (ply_scan_t *scan)
   return lhs;
 }
 
-static script_exp *script_parse_exp (ply_scan_t *scan)
+static script_exp_t *script_parse_exp (ply_scan_t *scan)
 {
   return script_parse_exp_as (scan);
 }
 
-static script_op *script_parse_op_block (ply_scan_t *scan)
+static script_op_t *script_parse_op_block (ply_scan_t *scan)
 {
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
 
@@ -606,16 +606,16 @@ static script_op *script_parse_op_block (ply_scan_t *scan)
     }
   curtoken = ply_scan_get_next_token (scan);
 
-  script_op *op = malloc (sizeof (script_op));
+  script_op_t *op = malloc (sizeof (script_op_t));
   op->type = SCRIPT_OP_TYPE_OP_BLOCK;
   op->data.list = sublist;
   return op;
 }
 
-static script_op *script_parse_if_while (ply_scan_t *scan)
+static script_op_t *script_parse_if_while (ply_scan_t *scan)
 {
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
-  script_op_type type;
+  script_op_type_t type;
 
   if (curtoken->type != PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
     return NULL;
@@ -633,7 +633,7 @@ static script_op *script_parse_if_while (ply_scan_t *scan)
     }
   curtoken = ply_scan_get_next_token (scan);
 
-  script_exp *cond = script_parse_exp (scan);
+  script_exp_t *cond = script_parse_exp (scan);
   curtoken = ply_scan_get_current_token (scan);
   if (!cond)
     {
@@ -648,8 +648,8 @@ static script_op *script_parse_if_while (ply_scan_t *scan)
       return NULL;
     }
   ply_scan_get_next_token (scan);
-  script_op *cond_op = script_parse_op (scan);
-  script_op *else_op = NULL;
+  script_op_t *cond_op = script_parse_op (scan);
+  script_op_t *else_op = NULL;
 
   curtoken = ply_scan_get_current_token (scan);
   if ((type == SCRIPT_OP_TYPE_IF)
@@ -659,7 +659,7 @@ static script_op *script_parse_if_while (ply_scan_t *scan)
       ply_scan_get_next_token (scan);
       else_op = script_parse_op (scan);
     }
-  script_op *op = malloc (sizeof (script_op));
+  script_op_t *op = malloc (sizeof (script_op_t));
   op->type = type;
   op->data.cond_op.cond = cond;
   op->data.cond_op.op1 = cond_op;
@@ -667,7 +667,7 @@ static script_op *script_parse_if_while (ply_scan_t *scan)
   return op;
 }
 
-static script_op *script_parse_for (ply_scan_t *scan)
+static script_op_t *script_parse_for (ply_scan_t *scan)
 {
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
 
@@ -684,7 +684,7 @@ static script_op *script_parse_for (ply_scan_t *scan)
     }
   curtoken = ply_scan_get_next_token (scan);
 
-  script_exp *first = script_parse_exp (scan);
+  script_exp_t *first = script_parse_exp (scan);
   if (!first)
     {
       script_parse_error (curtoken, "Expected a valid first expression");
@@ -700,7 +700,7 @@ static script_op *script_parse_for (ply_scan_t *scan)
     }
   ply_scan_get_next_token (scan);
 
-  script_exp *cond = script_parse_exp (scan);
+  script_exp_t *cond = script_parse_exp (scan);
   if (!cond)
     {
       script_parse_error (curtoken, "Expected a valid condition expression");
@@ -715,7 +715,7 @@ static script_op *script_parse_for (ply_scan_t *scan)
     }
   ply_scan_get_next_token (scan);
 
-  script_exp *last = script_parse_exp (scan);
+  script_exp_t *last = script_parse_exp (scan);
   if (!last)
     {
       script_parse_error (curtoken, "Expected a valid last expression");
@@ -729,23 +729,23 @@ static script_op *script_parse_for (ply_scan_t *scan)
       return NULL;
     }
   ply_scan_get_next_token (scan);
-  script_op *op_body = script_parse_op (scan);
+  script_op_t *op_body = script_parse_op (scan);
 
-  script_op *op_first = malloc (sizeof (script_op));
+  script_op_t *op_first = malloc (sizeof (script_op_t));
   op_first->type = SCRIPT_OP_TYPE_EXPRESSION;
   op_first->data.exp = first;
 
-  script_op *op_last = malloc (sizeof (script_op));
+  script_op_t *op_last = malloc (sizeof (script_op_t));
   op_last->type = SCRIPT_OP_TYPE_EXPRESSION;
   op_last->data.exp = last;
 
-  script_op *op_for = malloc (sizeof (script_op));
+  script_op_t *op_for = malloc (sizeof (script_op_t));
   op_for->type = SCRIPT_OP_TYPE_FOR;
   op_for->data.cond_op.cond = cond;
   op_for->data.cond_op.op1 = op_body;
   op_for->data.cond_op.op2 = op_last;
 
-  script_op *op_block = malloc (sizeof (script_op));
+  script_op_t *op_block = malloc (sizeof (script_op_t));
   op_block->type = SCRIPT_OP_TYPE_OP_BLOCK;
   op_block->data.list = ply_list_new ();
   ply_list_append_data (op_block->data.list, op_first);
@@ -754,7 +754,7 @@ static script_op *script_parse_for (ply_scan_t *scan)
   return op_block;
 }
 
-static script_op *script_parse_function (ply_scan_t *scan)
+static script_op_t *script_parse_function (ply_scan_t *scan)
 {
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
 
@@ -770,7 +770,7 @@ static script_op *script_parse_function (ply_scan_t *scan)
                           "A function declaration requires a valid name");
       return NULL;
     }
-  script_exp *name = malloc (sizeof (script_exp));
+  script_exp_t *name = malloc (sizeof (script_exp_t));
   name->type = SCRIPT_EXP_TYPE_TERM_VAR;
   name->data.string = strdup (curtoken->data.string);
 
@@ -819,9 +819,9 @@ static script_op *script_parse_function (ply_scan_t *scan)
 
   curtoken = ply_scan_get_next_token (scan);
 
-  script_op *func_op = script_parse_op (scan);
+  script_op_t *func_op = script_parse_op (scan);
 
-  script_op *op = malloc (sizeof (script_op));
+  script_op_t *op = malloc (sizeof (script_op_t));
   op->type = SCRIPT_OP_TYPE_FUNCTION_DEF;
   op->data.function_def.name = name;
   op->data.function_def.function = script_function_script_new (func_op,
@@ -830,20 +830,20 @@ static script_op *script_parse_function (ply_scan_t *scan)
   return op;
 }
 
-static script_op *script_parse_return (ply_scan_t *scan)
+static script_op_t *script_parse_return (ply_scan_t *scan)
 {
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
 
   if (curtoken->type != PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
     return NULL;
-  script_op_type type;
+  script_op_type_t type;
   if      (!strcmp (curtoken->data.string, "return")) type = SCRIPT_OP_TYPE_RETURN;
   else if (!strcmp (curtoken->data.string, "break")) type = SCRIPT_OP_TYPE_BREAK;
   else if (!strcmp (curtoken->data.string, "continue")) type = SCRIPT_OP_TYPE_CONTINUE;
   else return NULL;
   curtoken = ply_scan_get_next_token (scan);
 
-  script_op *op = malloc (sizeof (script_op));
+  script_op_t *op = malloc (sizeof (script_op_t));
   if (type == SCRIPT_OP_TYPE_RETURN)
     {
       op->data.exp = script_parse_exp (scan);                  /* May be NULL */
@@ -863,10 +863,10 @@ static script_op *script_parse_return (ply_scan_t *scan)
   return op;
 }
 
-static script_op *script_parse_op (ply_scan_t *scan)
+static script_op_t *script_parse_op (ply_scan_t *scan)
 {
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
-  script_op *reply = NULL;
+  script_op_t *reply = NULL;
 
   reply = script_parse_op_block (scan);
   if (reply) return reply;
@@ -882,7 +882,7 @@ static script_op *script_parse_op (ply_scan_t *scan)
 
 /* default is expression */
   {
-    script_exp *exp = script_parse_exp (scan);
+    script_exp_t *exp = script_parse_exp (scan);
     if (!exp) return NULL;
     curtoken = ply_scan_get_current_token (scan);
 #ifdef WITH_SEMIES
@@ -895,7 +895,7 @@ static script_op *script_parse_op (ply_scan_t *scan)
     curtoken = ply_scan_get_next_token (scan);
 #endif
 
-    script_op *op = malloc (sizeof (script_op));
+    script_op_t *op = malloc (sizeof (script_op_t));
     op->type = SCRIPT_OP_TYPE_EXPRESSION;
     op->data.exp = exp;
     return op;
@@ -909,7 +909,7 @@ static ply_list_t *script_parse_op_list (ply_scan_t *scan)
 
   while (1)
     {
-      script_op *op = script_parse_op (scan);
+      script_op_t *op = script_parse_op (scan);
       if (!op) break;
       ply_list_append_data (op_list, op);
     }
@@ -917,7 +917,7 @@ static ply_list_t *script_parse_op_list (ply_scan_t *scan)
   return op_list;
 }
 
-static void script_parse_exp_free (script_exp *exp)
+static void script_parse_exp_free (script_exp_t *exp)
 {
   if (!exp) return;
   switch (exp->type)
@@ -970,7 +970,7 @@ static void script_parse_exp_free (script_exp *exp)
                node;
                node = ply_list_get_next_node (exp->data.function.parameters, node))
             {
-              script_exp *sub = ply_list_node_get_data (node);
+              script_exp_t *sub = ply_list_node_get_data (node);
               script_parse_exp_free (sub);
             }
           ply_list_free (exp->data.function.parameters);
@@ -986,7 +986,7 @@ static void script_parse_exp_free (script_exp *exp)
   free (exp);
 }
 
-void script_parse_op_free (script_op *op)
+void script_parse_op_free (script_op_t *op)
 {
   if (!op) return;
   switch (op->type)
@@ -1058,14 +1058,14 @@ static void script_parse_op_list_free (ply_list_t *op_list)
        node;
        node = ply_list_get_next_node (op_list, node))
     {
-      script_op *op = ply_list_node_get_data (node);
+      script_op_t *op = ply_list_node_get_data (node);
       script_parse_op_free (op);
     }
   ply_list_free (op_list);
   return;
 }
 
-script_op *script_parse_file (const char *filename)
+script_op_t *script_parse_file (const char *filename)
 {
   ply_scan_t *scan = ply_scan_file (filename);
 
@@ -1083,13 +1083,13 @@ script_op *script_parse_file (const char *filename)
       return NULL;
     }
   ply_scan_free (scan);
-  script_op *op = malloc (sizeof (script_op));
+  script_op_t *op = malloc (sizeof (script_op_t));
   op->type = SCRIPT_OP_TYPE_OP_BLOCK;
   op->data.list = list;
   return op;
 }
 
-script_op *script_parse_string (const char *string)
+script_op_t *script_parse_string (const char *string)
 {
   ply_scan_t *scan = ply_scan_string (string);
 
@@ -1100,7 +1100,7 @@ script_op *script_parse_string (const char *string)
     }
   ply_list_t *list = script_parse_op_list (scan);
   ply_scan_free (scan);
-  script_op *op = malloc (sizeof (script_op));
+  script_op_t *op = malloc (sizeof (script_op_t));
   op->type = SCRIPT_OP_TYPE_OP_BLOCK;
   op->data.list = list;
   return op;

@@ -37,11 +37,11 @@
 
 #include "script-lib-plymouth.string"
 
-static script_return plymouth_set_function (script_state *state,
-                                            void         *user_data)
+static script_return_t plymouth_set_function (script_state_t *state,
+                                              void           *user_data)
 {
-  script_obj **script_func = user_data;
-  script_obj *obj = script_obj_hash_get_element (state->local, "function");
+  script_obj_t **script_func = user_data;
+  script_obj_t *obj = script_obj_hash_get_element (state->local, "function");
 
   script_obj_deref (&obj);
   script_obj_unref (*script_func);
@@ -53,12 +53,12 @@ static script_return plymouth_set_function (script_state *state,
       *script_func = NULL;
       script_obj_unref (obj);
     }
-  return (script_return) {
+  return (script_return_t) {
            SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()
   };
 }
 
-script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state *state)
+script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t *state)
 {
   script_lib_plymouth_data_t *data = malloc (sizeof (script_lib_plymouth_data_t));
 
@@ -120,7 +120,7 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state *state)
                               "function",
                               NULL);
   data->script_main_op = script_parse_string (script_lib_plymouth_string);
-  script_return ret = script_execute (state, data->script_main_op);
+  script_return_t ret = script_execute (state, data->script_main_op);
   script_obj_unref (ret.object);                /* Throw anything sent back away */
 
   return data;
@@ -140,34 +140,34 @@ void script_lib_plymouth_destroy (script_lib_plymouth_data_t *data)
   free (data);
 }
 
-void script_lib_plymouth_on_refresh (script_state               *state,
+void script_lib_plymouth_on_refresh (script_state_t             *state,
                                      script_lib_plymouth_data_t *data)
 {
-  script_obj *refresh_func_obj = data->script_refresh_func;
+  script_obj_t *refresh_func_obj = data->script_refresh_func;
 
   if (refresh_func_obj
       && (refresh_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
     {
-      script_return ret = script_execute_function (state,
+      script_return_t ret = script_execute_function (state,
                                                    refresh_func_obj->data.function,
                                                    NULL);
       script_obj_unref (ret.object);
     }
 }
 
-void script_lib_plymouth_on_boot_progress (script_state               *state,
+void script_lib_plymouth_on_boot_progress (script_state_t             *state,
                                            script_lib_plymouth_data_t *data,
                                            float                       duration,
                                            float                       progress)
 {
-  script_obj *boot_progress_func_obj = data->script_boot_progress_func;
+  script_obj_t *boot_progress_func_obj = data->script_boot_progress_func;
 
   if (boot_progress_func_obj
       && (boot_progress_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
     {
-      script_obj *duration_obj = script_obj_new_float (duration);
-      script_obj *progress_obj = script_obj_new_float (progress);
-      script_return ret = script_execute_function (state,
+      script_obj_t *duration_obj = script_obj_new_float (duration);
+      script_obj_t *progress_obj = script_obj_new_float (progress);
+      script_return_t ret = script_execute_function (state,
                                                    boot_progress_func_obj->data.function,
                                                    duration_obj,
                                                    progress_obj,
@@ -178,114 +178,114 @@ void script_lib_plymouth_on_boot_progress (script_state               *state,
     }
 }
 
-void script_lib_plymouth_on_root_mounted (script_state               *state,
+void script_lib_plymouth_on_root_mounted (script_state_t             *state,
                                           script_lib_plymouth_data_t *data)
 {
-  script_obj *root_mounted_func_obj = data->script_root_mounted_func;
+  script_obj_t *root_mounted_func_obj = data->script_root_mounted_func;
 
   if (root_mounted_func_obj
       && (root_mounted_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
     {
-      script_return ret = script_execute_function (state,
-                                                   root_mounted_func_obj->data.function,
-                                                   NULL);
+      script_return_t ret = script_execute_function (state,
+                                                     root_mounted_func_obj->data.function,
+                                                     NULL);
       script_obj_unref (ret.object);
     }
 }
 
-void script_lib_plymouth_on_keyboard_input (script_state               *state,
+void script_lib_plymouth_on_keyboard_input (script_state_t             *state,
                                             script_lib_plymouth_data_t *data,
                                             const char                 *keyboard_input)
 {
-  script_obj *keyboard_input_func_obj = data->script_keyboard_input_func;
+  script_obj_t *keyboard_input_func_obj = data->script_keyboard_input_func;
 
   if (keyboard_input_func_obj
       && (keyboard_input_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
     {
-      script_obj *keyboard_input_obj = script_obj_new_string (keyboard_input);
-      script_return ret = script_execute_function (state,
-                                                   keyboard_input_func_obj->data.function,
-                                                   keyboard_input_obj,
-                                                   NULL);
+      script_obj_t *keyboard_input_obj = script_obj_new_string (keyboard_input);
+      script_return_t ret = script_execute_function (state,
+                                                     keyboard_input_func_obj->data.function,
+                                                     keyboard_input_obj,
+                                                     NULL);
       script_obj_unref (keyboard_input_obj);
       script_obj_unref (ret.object);
     }
 }
 
-void script_lib_plymouth_on_update_status (script_state               *state,
+void script_lib_plymouth_on_update_status (script_state_t             *state,
                                            script_lib_plymouth_data_t *data,
                                            const char                 *new_status)
 {
-  script_obj *update_status_func_obj = data->script_update_status_func;
+  script_obj_t *update_status_func_obj = data->script_update_status_func;
 
   if (update_status_func_obj
       && (update_status_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
     {
-      script_obj *new_status_obj = script_obj_new_string (new_status);
-      script_return ret = script_execute_function (state,
-                                                   update_status_func_obj->data.function,
-                                                   new_status_obj,
-                                                   NULL);
+      script_obj_t *new_status_obj = script_obj_new_string (new_status);
+      script_return_t ret = script_execute_function (state,
+                                                     update_status_func_obj->data.function,
+                                                     new_status_obj,
+                                                     NULL);
       script_obj_unref (new_status_obj);
       script_obj_unref (ret.object);
     }
 }
 
-void script_lib_plymouth_on_display_normal (script_state               *state,
+void script_lib_plymouth_on_display_normal (script_state_t             *state,
                                             script_lib_plymouth_data_t *data)
 {
-  script_obj *display_normal_func_obj = data->script_display_normal_func;
+  script_obj_t *display_normal_func_obj = data->script_display_normal_func;
 
   if (display_normal_func_obj
       && (display_normal_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
     {
-      script_return ret = script_execute_function (state,
-                                                   display_normal_func_obj->data.function,
-                                                   NULL);
+      script_return_t ret = script_execute_function (state,
+                                                     display_normal_func_obj->data.function,
+                                                     NULL);
       script_obj_unref (ret.object);
     }
 }
 
-void script_lib_plymouth_on_display_password (script_state               *state,
+void script_lib_plymouth_on_display_password (script_state_t             *state,
                                               script_lib_plymouth_data_t *data,
                                               const char                 *prompt,
                                               int                         bullets)
 {
-  script_obj *display_password_func_obj = data->script_display_password_func;
+  script_obj_t *display_password_func_obj = data->script_display_password_func;
 
   if (display_password_func_obj
       && (display_password_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
     {
-      script_obj *prompt_obj = script_obj_new_string (prompt);
-      script_obj *bullets_obj = script_obj_new_int (bullets);
-      script_return ret = script_execute_function (state,
-                                                   display_password_func_obj->data.function,
-                                                   prompt_obj,
-                                                   bullets_obj,
-                                                   NULL);
+      script_obj_t *prompt_obj = script_obj_new_string (prompt);
+      script_obj_t *bullets_obj = script_obj_new_int (bullets);
+      script_return_t ret = script_execute_function (state,
+                                                     display_password_func_obj->data.function,
+                                                     prompt_obj,
+                                                     bullets_obj,
+                                                     NULL);
       script_obj_unref (prompt_obj);
       script_obj_unref (bullets_obj);
       script_obj_unref (ret.object);
     }
 }
 
-void script_lib_plymouth_on_display_question (script_state               *state,
+void script_lib_plymouth_on_display_question (script_state_t             *state,
                                               script_lib_plymouth_data_t *data,
                                               const char                 *prompt,
                                               const char                 *entry_text)
 {
-  script_obj *display_question_func_obj = data->script_display_question_func;
+  script_obj_t *display_question_func_obj = data->script_display_question_func;
 
   if (display_question_func_obj
       && (display_question_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
     {
-      script_obj *prompt_obj = script_obj_new_string (prompt);
-      script_obj *entry_text_obj = script_obj_new_string (entry_text);
-      script_return ret = script_execute_function (state,
-                                                   display_question_func_obj->data.function,
-                                                   prompt_obj,
-                                                   entry_text_obj,
-                                                   NULL);
+      script_obj_t *prompt_obj = script_obj_new_string (prompt);
+      script_obj_t *entry_text_obj = script_obj_new_string (entry_text);
+      script_return_t ret = script_execute_function (state,
+                                                     display_question_func_obj->data.function,
+                                                     prompt_obj,
+                                                     entry_text_obj,
+                                                     NULL);
       script_obj_unref (prompt_obj);
       script_obj_unref (entry_text_obj);
       script_obj_unref (ret.object);

@@ -438,7 +438,16 @@ char *script_obj_as_string (script_obj_t *obj)              /* reply is strduppe
     }
 
   assert (0);       /* Abort on uncaught */
-  return false;
+  return NULL;
+}
+
+script_function_t *script_obj_as_function (script_obj_t *obj)
+{
+  obj = script_obj_deref_direct (obj);
+  if (obj->type == SCRIPT_OBJ_TYPE_FUNCTION)
+    return obj->data.function;
+  
+  return NULL;
 }
 
 void *script_obj_as_native_of_class (script_obj_t              *obj,
@@ -624,6 +633,16 @@ char *script_obj_hash_get_string (script_obj_t *hash,
 
   script_obj_unref (obj);
   return reply;
+}
+
+script_function_t *script_obj_hash_get_function (script_obj_t *hash,
+                                                 const char   *name)
+{
+  script_obj_t *obj = script_obj_hash_get_element (hash, name);
+  script_function_t *function = script_obj_as_function (obj);
+
+  script_obj_unref (obj);
+  return function;
 }
 
 void *script_obj_hash_get_native_of_class (script_obj_t              *hash,

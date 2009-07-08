@@ -54,7 +54,7 @@ int script_obj_as_int (script_obj_t *obj);
 float script_obj_as_float (script_obj_t *obj);
 bool script_obj_as_bool (script_obj_t *obj);
 char *script_obj_as_string (script_obj_t *obj);
-
+script_function_t *script_obj_as_function (script_obj_t *obj);
 void *script_obj_as_native_of_class (script_obj_t              *obj,
                                      script_obj_native_class_t *class );
 void *script_obj_as_native_of_class_name (script_obj_t *obj,
@@ -84,7 +84,8 @@ bool script_obj_hash_get_bool (script_obj_t *hash,
                                const char   *name);
 char *script_obj_hash_get_string (script_obj_t *hash,
                                   const char   *name);
-
+script_function_t *script_obj_hash_get_function (script_obj_t *hash,
+                                                 const char   *name);
 void *script_obj_hash_get_native_of_class (script_obj_t *hash,
                                            const char   *name,
                                            script_obj_native_class_t *class );

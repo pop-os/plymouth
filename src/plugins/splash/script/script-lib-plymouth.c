@@ -45,8 +45,8 @@ static script_return_t plymouth_set_function (script_state_t *state,
 
   script_obj_deref (&obj);
   script_obj_unref (*script_func);
-
-  if (obj->type == SCRIPT_OBJ_TYPE_FUNCTION)
+  
+  if (script_obj_is_function (obj))
     *script_func = obj;
   else
     {
@@ -141,13 +141,11 @@ void script_lib_plymouth_destroy (script_lib_plymouth_data_t *data)
 void script_lib_plymouth_on_refresh (script_state_t             *state,
                                      script_lib_plymouth_data_t *data)
 {
-  script_obj_t *refresh_func_obj = data->script_refresh_func;
-
-  if (refresh_func_obj
-      && (refresh_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
+  script_function_t *function = script_obj_as_function (data->script_refresh_func);
+  if (function)
     {
       script_return_t ret = script_execute_function (state,
-                                                     refresh_func_obj->data.function,
+                                                     function,
                                                      NULL);
       script_obj_unref (ret.object);
     }
@@ -158,15 +156,13 @@ void script_lib_plymouth_on_boot_progress (script_state_t             *state,
                                            float                       duration,
                                            float                       progress)
 {
-  script_obj_t *boot_progress_func_obj = data->script_boot_progress_func;
-
-  if (boot_progress_func_obj
-      && (boot_progress_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
+  script_function_t *function = script_obj_as_function (data->script_boot_progress_func);
+  if (function)
     {
       script_obj_t *duration_obj = script_obj_new_float (duration);
       script_obj_t *progress_obj = script_obj_new_float (progress);
       script_return_t ret = script_execute_function (state,
-                                                     boot_progress_func_obj->data.function,
+                                                     function,
                                                      duration_obj,
                                                      progress_obj,
                                                      NULL);
@@ -179,13 +175,11 @@ void script_lib_plymouth_on_boot_progress (script_state_t             *state,
 void script_lib_plymouth_on_root_mounted (script_state_t             *state,
                                           script_lib_plymouth_data_t *data)
 {
-  script_obj_t *root_mounted_func_obj = data->script_root_mounted_func;
-
-  if (root_mounted_func_obj
-      && (root_mounted_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
+  script_function_t *function = script_obj_as_function (data->script_root_mounted_func);
+  if (function)
     {
       script_return_t ret = script_execute_function (state,
-                                                     root_mounted_func_obj->data.function,
+                                                     function,
                                                      NULL);
       script_obj_unref (ret.object);
     }
@@ -195,14 +189,12 @@ void script_lib_plymouth_on_keyboard_input (script_state_t             *state,
                                             script_lib_plymouth_data_t *data,
                                             const char                 *keyboard_input)
 {
-  script_obj_t *keyboard_input_func_obj = data->script_keyboard_input_func;
-
-  if (keyboard_input_func_obj
-      && (keyboard_input_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
+  script_function_t *function = script_obj_as_function (data->script_keyboard_input_func);
+  if (function)
     {
       script_obj_t *keyboard_input_obj = script_obj_new_string (keyboard_input);
       script_return_t ret = script_execute_function (state,
-                                                     keyboard_input_func_obj->data.function,
+                                                     function,
                                                      keyboard_input_obj,
                                                      NULL);
       script_obj_unref (keyboard_input_obj);
@@ -214,14 +206,12 @@ void script_lib_plymouth_on_update_status (script_state_t             *state,
                                            script_lib_plymouth_data_t *data,
                                            const char                 *new_status)
 {
-  script_obj_t *update_status_func_obj = data->script_update_status_func;
-
-  if (update_status_func_obj
-      && (update_status_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
+  script_function_t *function = script_obj_as_function (data->script_update_status_func);
+  if (function)
     {
       script_obj_t *new_status_obj = script_obj_new_string (new_status);
       script_return_t ret = script_execute_function (state,
-                                                     update_status_func_obj->data.function,
+                                                     function,
                                                      new_status_obj,
                                                      NULL);
       script_obj_unref (new_status_obj);
@@ -232,13 +222,11 @@ void script_lib_plymouth_on_update_status (script_state_t             *state,
 void script_lib_plymouth_on_display_normal (script_state_t             *state,
                                             script_lib_plymouth_data_t *data)
 {
-  script_obj_t *display_normal_func_obj = data->script_display_normal_func;
-
-  if (display_normal_func_obj
-      && (display_normal_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
+  script_function_t *function = script_obj_as_function (data->script_display_normal_func);
+  if (function)
     {
       script_return_t ret = script_execute_function (state,
-                                                     display_normal_func_obj->data.function,
+                                                     function,
                                                      NULL);
       script_obj_unref (ret.object);
     }
@@ -249,15 +237,13 @@ void script_lib_plymouth_on_display_password (script_state_t             *state,
                                               const char                 *prompt,
                                               int                         bullets)
 {
-  script_obj_t *display_password_func_obj = data->script_display_password_func;
-
-  if (display_password_func_obj
-      && (display_password_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
+  script_function_t *function = script_obj_as_function (data->script_display_password_func);
+  if (function)
     {
       script_obj_t *prompt_obj = script_obj_new_string (prompt);
       script_obj_t *bullets_obj = script_obj_new_int (bullets);
       script_return_t ret = script_execute_function (state,
-                                                     display_password_func_obj->data.function,
+                                                     function,
                                                      prompt_obj,
                                                      bullets_obj,
                                                      NULL);
@@ -272,15 +258,13 @@ void script_lib_plymouth_on_display_question (script_state_t             *state,
                                               const char                 *prompt,
                                               const char                 *entry_text)
 {
-  script_obj_t *display_question_func_obj = data->script_display_question_func;
-
-  if (display_question_func_obj
-      && (display_question_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
+  script_function_t *function = script_obj_as_function (data->script_display_question_func);
+  if (function)
     {
       script_obj_t *prompt_obj = script_obj_new_string (prompt);
       script_obj_t *entry_text_obj = script_obj_new_string (entry_text);
       script_return_t ret = script_execute_function (state,
-                                                     display_question_func_obj->data.function,
+                                                     function,
                                                      prompt_obj,
                                                      entry_text_obj,
                                                      NULL);

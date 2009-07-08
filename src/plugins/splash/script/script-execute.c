@@ -464,16 +464,32 @@ static script_return_t script_execute_function_with_parlist (script_state_t    *
   ply_list_t *parameter_names = function->parameters;
   ply_list_node_t *node_name = ply_list_get_first_node (parameter_names);
   ply_list_node_t *node_data = ply_list_get_first_node (parameter_data);
-
-  while (node_name && node_data)
+  int index = 0;;
+  script_obj_t *arg_obj = script_obj_new_hash ();
+  
+  while (node_data)
     {
       script_obj_t *data_obj = ply_list_node_get_data (node_data);
-      char *name = ply_list_node_get_data (node_name);
+      char *name;
+      asprintf (&name, "%d", index);
+      index++;
+      script_obj_hash_add_element (arg_obj, data_obj, name);
+      free(name);
       
-      script_obj_hash_add_element (sub_state->local, data_obj, name);
-      node_name = ply_list_get_next_node (parameter_names, node_name);
+      if (node_name)
+        {
+          name = ply_list_node_get_data (node_name);
+          script_obj_hash_add_element (sub_state->local, data_obj, name);
+          node_name = ply_list_get_next_node (parameter_names, node_name);
+        }
       node_data = ply_list_get_next_node (parameter_data, node_data);
     }
+
+  script_obj_t *count_obj = script_obj_new_int (index);
+  script_obj_hash_add_element (arg_obj, count_obj, "count");
+  script_obj_hash_add_element (sub_state->local, arg_obj, "_args");
+  script_obj_unref (count_obj);
+  script_obj_unref (arg_obj);
 
   script_return_t reply;
   switch (function->type)

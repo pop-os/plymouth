@@ -3,14 +3,14 @@ fun MathAbs (value){
     return value;
     }
 
-fun MathMin (value, min){
-    if (value < min) return min;
-    return value;
+fun MathMin (value_a, value_b){
+    if (value_a < value_b) return value_a;
+    return value_b;
     }
 
 fun MathMax (value, max){
-    if (value > max) return max;
-    return value;
+    if (value_a > value_a) return value_a;
+    return value_b;
     }
 
 fun MathClamp (value, min, max){
@@ -18,3 +18,6 @@ fun MathClamp (value, min, max){
     if (value > max) return max;
     return value;
     }
+
+
+MathPi = 3.14159265358979323846;

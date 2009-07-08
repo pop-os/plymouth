@@ -157,207 +157,19 @@ static script_obj_t *script_evaluate_assign (script_state_t *state,
   return script_obj_a;
 }
 
-static script_obj_t *script_evaluate_cmp (script_state_t *state,
-                                          script_exp_t   *exp)
+static script_obj_t *script_evaluate_cmp (script_state_t           *state,
+                                          script_exp_t             *exp,
+                                          script_obj_cmp_result_t   condition)
 {
   script_obj_t *script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
   script_obj_t *script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
-
-  script_obj_deref (&script_obj_a);
-  script_obj_deref (&script_obj_b);
-
-  int gt = 0;
-  int lt = 0;
-  int eq = 0;
-  int ne = 0;
-
-  float val;
-  int valset = 0;
-
-  switch (script_obj_a->type)
-    {
-      case SCRIPT_OBJ_TYPE_INT:
-        {
-          switch (script_obj_b->type)
-            {
-              case SCRIPT_OBJ_TYPE_INT:
-                val = script_obj_a->data.integer - script_obj_b->data.integer;
-                valset = 1;
-                break;
-
-              case SCRIPT_OBJ_TYPE_FLOAT:
-                val = script_obj_a->data.integer -
-                      script_obj_b->data.floatpoint;
-                valset = 1;
-                break;
-
-              default:
-                ne = 1;
-                break;
-            }
-          break;
-        }
-
-      case SCRIPT_OBJ_TYPE_FLOAT:
-        {
-          switch (script_obj_b->type)
-            {
-              case SCRIPT_OBJ_TYPE_INT:
-                val = script_obj_a->data.floatpoint -
-                      script_obj_b->data.integer;
-                valset = 1;
-                break;
-
-              case SCRIPT_OBJ_TYPE_FLOAT:
-                val = script_obj_a->data.floatpoint -
-                      script_obj_b->data.floatpoint;
-                valset = 1;
-                break;
-
-              default:
-                ne = 1;
-                break;
-            }
-          break;
-        }
-
-      case SCRIPT_OBJ_TYPE_STRING:
-        {
-          switch (script_obj_b->type)
-            {
-              case SCRIPT_OBJ_TYPE_STRING:
-                val = strcmp (script_obj_a->data.string,
-                              script_obj_b->data.string);
-                valset = 1;
-                break;
-
-              default:
-                ne = 1;
-                break;
-            }
-          break;
-        }
-
-      case SCRIPT_OBJ_TYPE_HASH:
-        {
-          switch (script_obj_b->type)
-            {
-              case SCRIPT_OBJ_TYPE_HASH:
-                if (script_obj_a == script_obj_b) eq = 1;
-                else ne = 1;
-                break;
-
-              default:
-                ne = 1;
-                break;
-            }
-          break;
-        }
-
-      case SCRIPT_OBJ_TYPE_FUNCTION:
-        {
-          switch (script_obj_b->type)
-            {
-              case SCRIPT_OBJ_TYPE_FUNCTION:
-                if (script_obj_a == script_obj_b) eq = 1;
-                else ne = 1;
-                break;
-
-              default:
-                ne = 1;
-                break;
-            }
-          break;
-        }
-
-      case SCRIPT_OBJ_TYPE_NULL:
-        {
-          switch (script_obj_b->type)
-            {
-              case SCRIPT_OBJ_TYPE_NULL:
-                eq = 1;
-                break;
-
-              default:
-                ne = 1;
-                break;
-            }
-          break;
-        }
-
-      case SCRIPT_OBJ_TYPE_NATIVE:
-        {
-          switch (script_obj_b->type)
-            {
-              case SCRIPT_OBJ_TYPE_NATIVE:
-                if (script_obj_a->data.native.object_data ==
-                    script_obj_b->data.native.object_data)
-                  eq = 1;
-                else ne = 1;
-                break;
-
-              default:
-                ne = 1;
-                break;
-            }
-          break;
-        }
-
-      case SCRIPT_OBJ_TYPE_REF:
-        {
-          assert (0);
-        }
-    }
-  if (valset)
-    {
-      if (val < 0)
-        {
-          lt = 1;
-          ne = 1;
-        }
-      if (fabsf (val) == 0) eq = 1;
-      if (val > 0)
-        {
-          gt = 1;
-          ne = 1;
-        }
-    }
-  int reply = 0;
-
-  switch (exp->type)
-    {
-      case SCRIPT_EXP_TYPE_EQ:
-        if (eq) reply = 1;
-        break;
-
-      case SCRIPT_EXP_TYPE_NE:
-        if (ne) reply = 1;
-        break;
-
-      case SCRIPT_EXP_TYPE_GT:
-        if (gt) reply = 1;
-        break;
-
-      case SCRIPT_EXP_TYPE_GE:
-        if (gt || eq) reply = 1;
-        break;
-
-      case SCRIPT_EXP_TYPE_LT:
-        if (lt) reply = 1;
-        break;
-
-      case SCRIPT_EXP_TYPE_LE:
-        if (lt || eq) reply = 1;    /* CHECKME Errr so "(NULL <= NULL) is true" makes sense? */
-        break;
-
-      default:
-        assert (0);
-    }
-
+  script_obj_cmp_result_t cmp_result = script_obj_cmp(script_obj_a, script_obj_b);
   script_obj_unref (script_obj_a);
   script_obj_unref (script_obj_b);
-
-  return script_obj_new_int (reply);
+  
+  if (cmp_result & condition)
+    return script_obj_new_int (1);
+  return script_obj_new_int (0);
 }
 
 static script_obj_t *script_evaluate_logic (script_state_t *state,
@@ -485,7 +297,6 @@ static script_obj_t *script_evaluate (script_state_t *state,
         {
           return script_evaluate_apply_function (state, exp, script_obj_plus);
         }
-
       case SCRIPT_EXP_TYPE_MINUS:
         {
           return script_evaluate_apply_function (state, exp, script_obj_minus);
@@ -495,25 +306,42 @@ static script_obj_t *script_evaluate (script_state_t *state,
         {
           return script_evaluate_apply_function (state, exp, script_obj_mul);
         }
-
       case SCRIPT_EXP_TYPE_DIV:
         {
           return script_evaluate_apply_function (state, exp, script_obj_div);
         }
-
       case SCRIPT_EXP_TYPE_MOD:
         {
           return script_evaluate_apply_function (state, exp, script_obj_mod);
         }
 
       case SCRIPT_EXP_TYPE_EQ:
+        {
+          return script_evaluate_cmp (state, exp, SCRIPT_OBJ_CMP_RESULT_EQ);
+        }
       case SCRIPT_EXP_TYPE_NE:
+        {
+          return script_evaluate_cmp (state, exp, SCRIPT_OBJ_CMP_RESULT_NE |
+                                                  SCRIPT_OBJ_CMP_RESULT_LT |
+                                                  SCRIPT_OBJ_CMP_RESULT_GT);
+        }
       case SCRIPT_EXP_TYPE_GT:
+        {
+          return script_evaluate_cmp (state, exp, SCRIPT_OBJ_CMP_RESULT_GT);
+        }
       case SCRIPT_EXP_TYPE_GE:
+        {
+          return script_evaluate_cmp (state, exp, SCRIPT_OBJ_CMP_RESULT_GT |
+                                                  SCRIPT_OBJ_CMP_RESULT_EQ);
+        }
       case SCRIPT_EXP_TYPE_LT:
+        {
+          return script_evaluate_cmp (state, exp, SCRIPT_OBJ_CMP_RESULT_LT);
+        }
       case SCRIPT_EXP_TYPE_LE:
         {
-          return script_evaluate_cmp (state, exp);
+          return script_evaluate_cmp (state, exp, SCRIPT_OBJ_CMP_RESULT_LT |
+                                                  SCRIPT_OBJ_CMP_RESULT_EQ);
         }
 
       case SCRIPT_EXP_TYPE_AND:

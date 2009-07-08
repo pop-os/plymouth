@@ -752,10 +752,51 @@ script_obj_t *script_obj_mod (script_obj_t *script_obj_a,
           int value = script_obj_as_int (script_obj_a) % script_obj_as_int (script_obj_b);
           return script_obj_new_int (value);
         }
-      float value = fmodf (script_obj_as_float (
-                             script_obj_a), script_obj_as_float (script_obj_b));
+      float value = fmodf (script_obj_as_float (script_obj_a), script_obj_as_float (script_obj_b));
       return script_obj_new_float (value);
     }
   return script_obj_new_null ();
+}
+
+
+script_obj_cmp_result_t script_obj_cmp (script_obj_t *script_obj_a,
+                                        script_obj_t *script_obj_b)
+{
+  if (script_obj_is_null (script_obj_a) && script_obj_is_null (script_obj_b))
+    {
+      return SCRIPT_OBJ_CMP_RESULT_EQ;
+    }
+  else if (script_obj_is_number (script_obj_a))
+    {
+      if (script_obj_is_number (script_obj_b))
+        {
+          float diff = script_obj_as_float (script_obj_a) - script_obj_as_float (script_obj_b);
+          if (diff < 0) return SCRIPT_OBJ_CMP_RESULT_LT;
+          if (diff > 0) return SCRIPT_OBJ_CMP_RESULT_GT;
+          return SCRIPT_OBJ_CMP_RESULT_EQ;
+        }
+    }
+  else if (script_obj_is_string (script_obj_a))
+    {
+      if (script_obj_is_string (script_obj_b))
+        {
+          char* string_a = script_obj_as_string (script_obj_a);
+          char* string_b = script_obj_as_string (script_obj_b);
+          int diff = strcmp (string_a, string_b);
+          free(string_a);
+          free(string_b);
+          if (diff < 0) return SCRIPT_OBJ_CMP_RESULT_LT;
+          if (diff > 0) return SCRIPT_OBJ_CMP_RESULT_GT;
+          return SCRIPT_OBJ_CMP_RESULT_EQ;
+        }
+    }
+  else if ((script_obj_is_hash (script_obj_a) && script_obj_is_function (script_obj_b)) ||
+           (script_obj_is_function (script_obj_a) && script_obj_is_function (script_obj_b)) ||
+           (script_obj_is_native (script_obj_a) && script_obj_is_native (script_obj_b)))
+    {
+      if (script_obj_deref_direct (script_obj_a) == script_obj_deref_direct (script_obj_b))
+        return SCRIPT_OBJ_CMP_RESULT_EQ;
+    }
+  return SCRIPT_OBJ_CMP_RESULT_NE;
 }
 

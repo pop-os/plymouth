@@ -131,7 +131,6 @@ static script_obj_t *script_evaluate_assign (script_state_t *state,
   script_obj_t *script_obj_a = script_evaluate (state, exp->data.dual.sub_a);
   script_obj_t *script_obj_b = script_evaluate (state, exp->data.dual.sub_b);
 
-  script_obj_deref (&script_obj_b);
   script_obj_assign (script_obj_a, script_obj_b);
 
   script_obj_unref (script_obj_b);
@@ -173,7 +172,6 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
   script_obj_t *obj = script_evaluate (state, exp->data.sub);
   script_obj_t *new_obj;
 
-  script_obj_deref (&obj);
   if (exp->type == SCRIPT_EXP_TYPE_NOT)
     {
       new_obj = script_obj_new_int (!script_obj_as_bool (obj));
@@ -228,7 +226,7 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
 {
   script_obj_t *func_obj = script_evaluate (state, exp->data.function.name);
   script_obj_t *obj = NULL;
-  script_function_t function = script_obj_as_function (func_obj);
+  script_function_t *function = script_obj_as_function (func_obj);
 
   if (!function)
     {
@@ -460,7 +458,7 @@ static script_return_t script_execute_list (script_state_t *state,
 /* parameter_data list should be freed by caller */
 static script_return_t script_execute_function_with_parlist (script_state_t    *state,
                                                              script_function_t *function,
-                                                             ply_list_t      *parameter_data)
+                                                             ply_list_t        *parameter_data)
 {
   script_state_t *sub_state = script_state_init_sub (state);
   ply_list_t *parameter_names = function->parameters;

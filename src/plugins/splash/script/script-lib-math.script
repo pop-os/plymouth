@@ -8,8 +8,8 @@ fun MathMin (value_a, value_b){
     return value_b;
     }
 
-fun MathMax (value, max){
-    if (value_a > value_a) return value_a;
+fun MathMax (value_a, value_b){
+    if (value_a > value_b) return value_a;
     return value_b;
     }
 

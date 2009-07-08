@@ -75,38 +75,19 @@ static script_obj_t *script_evaluate_hash (script_state_t *state,
 {
   script_obj_t *hash = script_evaluate (state, exp->data.dual.sub_a);
   script_obj_t *key  = script_evaluate (state, exp->data.dual.sub_b);
-  script_obj_t *hash_dereffed = script_obj_deref_direct (hash);
   script_obj_t *obj;
-
-  script_obj_deref (&key);
-
-  if (hash_dereffed->type == SCRIPT_OBJ_TYPE_HASH)
-    script_obj_deref (&hash);
-  else
-    {
-      script_obj_reset (hash);
-      script_obj_t *newhash  = script_obj_new_hash ();
-      hash->type = SCRIPT_OBJ_TYPE_REF;
-      hash->data.obj = newhash;
-      script_obj_deref (&hash);
-    }
   char *name = script_obj_as_string (key);
-  script_vareable_t *vareable = ply_hashtable_lookup (hash->data.hash, name);
 
-  if (vareable)
+  if (!script_obj_is_hash(hash))
     {
-      obj = vareable->object;
-      free (name);
+      script_obj_t *newhash  = script_obj_new_hash ();
+      script_obj_assign (hash, newhash);
+      script_obj_unref (newhash);
     }
-  else
-    {
-      obj = script_obj_new_null ();
-      vareable = malloc (sizeof (script_vareable_t));
-      vareable->name = name;
-      vareable->object = obj;
-      ply_hashtable_insert (hash->data.hash, vareable->name, vareable);
-    }
-  script_obj_ref (obj);
+  
+  obj = script_obj_hash_get_element (hash, name);
+  free(name);
+  
   script_obj_unref (hash);
   script_obj_unref (key);
   return obj;
@@ -120,7 +101,7 @@ static script_obj_t *script_evaluate_var (script_state_t *state,
 
   script_obj_deref (&state->global);
   script_obj_deref (&state->local);
-  assert (state->global->type == SCRIPT_OBJ_TYPE_HASH);
+  assert (state->global->type == SCRIPT_OBJ_TYPE_HASH);     /*FIXME use script-object functions */
   assert (state->local->type == SCRIPT_OBJ_TYPE_HASH);
 
   script_vareable_t *vareable = ply_hashtable_lookup (state->local->data.hash,

@@ -576,6 +576,7 @@ void script_obj_assign (script_obj_t *obj_a,
 script_obj_t *script_obj_hash_get_element (script_obj_t *hash,
                                            const char   *name)
 {
+  hash = script_obj_deref_direct (hash);
   assert (hash->type == SCRIPT_OBJ_TYPE_HASH);
   script_vareable_t *vareable = ply_hashtable_lookup (hash->data.hash,
                                                       (void *) name);

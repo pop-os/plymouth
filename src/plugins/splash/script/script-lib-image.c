@@ -53,7 +53,7 @@ static script_return_t image_new (script_state_t *state,
   char *path_filename;
   char *filename = script_obj_hash_get_string (state->local, "filename");
   char *test_string = filename;
-  char *prefix_string = "special://";
+  const char *prefix_string = "special://";
 
   while (*test_string && *prefix_string && *test_string == *prefix_string)
     {

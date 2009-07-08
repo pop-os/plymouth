@@ -96,6 +96,7 @@ static void remove_handlers (ply_boot_splash_plugin_t *plugin);
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 static void stop_animation (ply_boot_splash_plugin_t *plugin);
 ply_boot_splash_plugin_t *create_plugin (ply_key_file_t *key_file);
+ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
 
 ply_boot_splash_plugin_t *
 create_plugin (ply_key_file_t *key_file)
@@ -224,7 +225,7 @@ detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
   plugin->loop = NULL;
 }
 
-void
+static void
 on_keyboard_input (ply_boot_splash_plugin_t *plugin,
                    const char               *keyboard_input,
                    size_t                    character_size)
@@ -239,16 +240,16 @@ on_keyboard_input (ply_boot_splash_plugin_t *plugin,
                                          keyboard_string);
 }
 
-void
+static void
 on_backspace (ply_boot_splash_plugin_t *plugin)
 {}
 
-void
+static void
 on_enter (ply_boot_splash_plugin_t *plugin,
           const char               *text)
 {}
 
-void
+static void
 on_draw (ply_boot_splash_plugin_t *plugin,
          int                       x,
          int                       y,
@@ -256,7 +257,7 @@ on_draw (ply_boot_splash_plugin_t *plugin,
          int                       height)
 {}
 
-void
+static void
 on_erase (ply_boot_splash_plugin_t *plugin,
           int                       x,
           int                       y,
@@ -292,21 +293,21 @@ remove_handlers (ply_boot_splash_plugin_t *plugin)
   ply_window_remove_enter_handler (plugin->window, (ply_window_enter_handler_t) on_enter);
 }
 
-void
+static void
 add_window (ply_boot_splash_plugin_t *plugin,
             ply_window_t             *window)
 {
   plugin->window = window;
 }
 
-void
+static void
 remove_window (ply_boot_splash_plugin_t *plugin,
                ply_window_t             *window)
 {
   plugin->window = NULL;
 }
 
-bool
+static bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
                     ply_buffer_t             *boot_buffer,
@@ -340,7 +341,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   return start_animation (plugin);
 }
 
-void
+static void
 update_status (ply_boot_splash_plugin_t *plugin,
                const char               *status)
 {
@@ -350,7 +351,7 @@ update_status (ply_boot_splash_plugin_t *plugin,
                                         status);
 }
 
-void
+static void
 hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop)
 {
@@ -373,27 +374,28 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
   ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_TEXT);
 }
 
-void
+static void
 on_root_mounted (ply_boot_splash_plugin_t *plugin)
 {
   script_lib_plymouth_on_root_mounted (plugin->script_state,
                                        plugin->script_plymouth_lib);
 }
 
-void
+static void
 become_idle (ply_boot_splash_plugin_t *plugin,
              ply_trigger_t            *idle_trigger)
 {
   ply_trigger_pull (idle_trigger, NULL);
 }
 
-void display_normal (ply_boot_splash_plugin_t *plugin)
+static void
+display_normal (ply_boot_splash_plugin_t *plugin)
 {
   script_lib_plymouth_on_display_normal (plugin->script_state,
                                          plugin->script_plymouth_lib);
 }
 
-void
+static void
 display_password (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   int                       bullets)
@@ -404,7 +406,7 @@ display_password (ply_boot_splash_plugin_t *plugin,
                                            bullets);
 }
 
-void
+static void
 display_question (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   const char               *entry_text)

@@ -53,6 +53,7 @@ void *script_obj_as_native_of_class_name (script_obj_t *obj,
 bool script_obj_is_null (script_obj_t *obj);
 bool script_obj_is_int (script_obj_t *obj);
 bool script_obj_is_float (script_obj_t *obj);
+bool script_obj_is_number (script_obj_t *obj);
 bool script_obj_is_string (script_obj_t *obj);
 bool script_obj_is_hash (script_obj_t *obj);
 bool script_obj_is_function (script_obj_t *obj);

@@ -44,7 +44,7 @@ static ply_list_t *script_parse_op_list (ply_scan_t *scan);
 static void script_parse_op_list_free (ply_list_t *op_list);
 
 static void script_parse_error (ply_scan_token_t *token,
-                                char             *expected)
+                                const char       *expected)
 {
   ply_error ("Parser error L:%d C:%d : %s\n",
              token->line_index,

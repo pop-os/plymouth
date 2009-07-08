@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <string.h>
 
 #define COLUMN_START_INDEX 0
 
@@ -86,11 +87,11 @@ void ply_scan_token_clean (ply_scan_token_t *token)
       case PLY_SCAN_TOKEN_TYPE_INTEGER:
       case PLY_SCAN_TOKEN_TYPE_FLOAT:
       case PLY_SCAN_TOKEN_TYPE_SYMBOL:
-      case PLY_SCAN_TOKEN_TYPE_ERROR:
         break;
       case PLY_SCAN_TOKEN_TYPE_IDENTIFIER:
       case PLY_SCAN_TOKEN_TYPE_STRING:
       case PLY_SCAN_TOKEN_TYPE_COMMENT:
+      case PLY_SCAN_TOKEN_TYPE_ERROR:
         free (token->data.string);
         break;
     }
@@ -242,13 +243,13 @@ void ply_scan_read_next_token (ply_scan_t       *scan,
         {
           if (curchar == '\0')
             {
-              token->data.string = "End of file before end of string";
+              token->data.string = strdup("End of file before end of string");
               token->type = PLY_SCAN_TOKEN_TYPE_ERROR;
               return;
             }
           if (curchar == '\n')
             {
-              token->data.string = "Line terminator before end of string";
+              token->data.string = strdup("Line terminator before end of string");
               token->type = PLY_SCAN_TOKEN_TYPE_ERROR;
               return;
             }
@@ -326,7 +327,7 @@ void ply_scan_read_next_token (ply_scan_t       *scan,
           if (nextchar == '\0')
             {
               free (token->data.string);
-              token->data.string = "End of file before end of comment";
+              token->data.string = strdup("End of file before end of comment");
               token->type = PLY_SCAN_TOKEN_TYPE_ERROR;
               return;
             }

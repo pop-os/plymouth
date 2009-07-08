@@ -220,10 +220,6 @@ char *script_obj_print (script_obj_t *obj)
                     obj->refcount);
           return reply;
         }
-
-      default:
-        printf ("unhandeled object type %d\n", obj->type);
-        assert (0);
     }
   return NULL;
 }
@@ -324,9 +320,7 @@ int script_obj_as_int (script_obj_t *obj)
       case SCRIPT_OBJ_TYPE_NULL:
         return 0;
 
-      case SCRIPT_OBJ_TYPE_REF:     /* should have been de-reffed already */
-        assert (0);
-
+      case SCRIPT_OBJ_TYPE_REF:
       case SCRIPT_OBJ_TYPE_HASH:
       case SCRIPT_OBJ_TYPE_FUNCTION:
       case SCRIPT_OBJ_TYPE_NATIVE:
@@ -335,8 +329,6 @@ int script_obj_as_int (script_obj_t *obj)
       case SCRIPT_OBJ_TYPE_STRING:
         return 0;
     }
-
-  assert (0);       /* Abort on uncaught */
   return 0;
 }
 
@@ -354,9 +346,7 @@ float script_obj_as_float (script_obj_t *obj)
       case SCRIPT_OBJ_TYPE_NULL:
         return NAN;
 
-      case SCRIPT_OBJ_TYPE_REF:     /* should have been de-reffed already */
-        assert (0);
-
+      case SCRIPT_OBJ_TYPE_REF:
       case SCRIPT_OBJ_TYPE_HASH:
       case SCRIPT_OBJ_TYPE_FUNCTION:
       case SCRIPT_OBJ_TYPE_NATIVE:
@@ -365,8 +355,6 @@ float script_obj_as_float (script_obj_t *obj)
       case SCRIPT_OBJ_TYPE_STRING:
         return NAN;
     }
-
-  assert (0);       /* Abort on uncaught */
   return NAN;
 }
 
@@ -386,9 +374,7 @@ bool script_obj_as_bool (script_obj_t *obj)
       case SCRIPT_OBJ_TYPE_NULL:
         return false;
 
-      case SCRIPT_OBJ_TYPE_REF:     /* should have been de-reffed already */
-        assert (0);
-
+      case SCRIPT_OBJ_TYPE_REF:
       case SCRIPT_OBJ_TYPE_HASH:
       case SCRIPT_OBJ_TYPE_FUNCTION:
       case SCRIPT_OBJ_TYPE_NATIVE:
@@ -398,8 +384,6 @@ bool script_obj_as_bool (script_obj_t *obj)
         if (*obj->data.string) return true;
         return false;
     }
-
-  assert (0);       /* Abort on uncaught */
   return false;
 }
 
@@ -421,23 +405,16 @@ char *script_obj_as_string (script_obj_t *obj)              /* reply is strduppe
       case SCRIPT_OBJ_TYPE_NULL:
         return NULL;
 
-      case SCRIPT_OBJ_TYPE_REF:     /* should have been de-reffed already */
-        assert (0);
-
+      case SCRIPT_OBJ_TYPE_REF:
       case SCRIPT_OBJ_TYPE_HASH:
-        return NULL;
-
       case SCRIPT_OBJ_TYPE_FUNCTION:
+      case SCRIPT_OBJ_TYPE_NATIVE:
         return NULL;
 
       case SCRIPT_OBJ_TYPE_STRING:
         return strdup (obj->data.string);
-
-      case SCRIPT_OBJ_TYPE_NATIVE:
-        return NULL;
     }
 
-  assert (0);       /* Abort on uncaught */
   return NULL;
 }
 
@@ -560,9 +537,8 @@ void script_obj_assign (script_obj_t *obj_a,
         obj_a->data.string = strdup (obj_b->data.string);
         break;
 
-      case SCRIPT_OBJ_TYPE_REF:     /* should have been de-reffed already */
-        assert (0);
-
+      case SCRIPT_OBJ_TYPE_REF:
+        break;
       case SCRIPT_OBJ_TYPE_HASH:
       case SCRIPT_OBJ_TYPE_FUNCTION:
       case SCRIPT_OBJ_TYPE_NATIVE:

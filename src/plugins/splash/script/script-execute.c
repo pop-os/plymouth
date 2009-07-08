@@ -426,7 +426,7 @@ static script_obj_t *script_evaluate (script_state_t *state,
           return script_evaluate_func (state, exp);
         }
     }
-  assert (0);
+  return script_obj_new_null ();
 }
 
 static script_return_t script_execute_list (script_state_t *state,

@@ -176,18 +176,18 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
   script_obj_deref (&obj);
   if (exp->type == SCRIPT_EXP_TYPE_NOT)
     {
-      int reply = !script_obj_as_bool (obj);
+      new_obj = script_obj_new_int (!script_obj_as_bool (obj));
       script_obj_unref (obj);
-      return script_obj_new_int (reply);
+      return new_obj;
     }
   if (exp->type == SCRIPT_EXP_TYPE_POS)     /* FIXME what should happen on non number operands? */
     return obj;                             /* Does nothing, maybe just remove at parse stage */
   if (exp->type == SCRIPT_EXP_TYPE_NEG)
     {
-      if (obj->type == SCRIPT_OBJ_TYPE_INT)
-        new_obj = script_obj_new_int (-obj->data.integer);
-      else if (obj->type == SCRIPT_OBJ_TYPE_FLOAT)
-        new_obj = script_obj_new_float (-obj->data.floatpoint);
+      if (script_obj_is_int(obj))
+        new_obj = script_obj_new_int (-script_obj_as_int (obj));
+      else if (script_obj_is_float(obj))
+        new_obj = script_obj_new_float (-script_obj_as_float (obj));
       else new_obj = script_obj_new_null ();
       script_obj_unref (obj);
       return new_obj;
@@ -195,7 +195,8 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
   int change_pre = 0;
   int change_post;
 
-  if ((exp->type == SCRIPT_EXP_TYPE_PRE_INC) || SCRIPT_EXP_TYPE_POST_INC)
+  if ((exp->type == SCRIPT_EXP_TYPE_PRE_INC) ||
+      (exp->type == SCRIPT_EXP_TYPE_POST_INC))
     change_post = 1;
   else
     change_post = -1;
@@ -203,14 +204,14 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
     change_pre = 1;
   else if (exp->type == SCRIPT_EXP_TYPE_PRE_DEC)
     change_pre = -1;
-  if (obj->type == SCRIPT_OBJ_TYPE_INT)
+  if (script_obj_is_int(obj))
     {
-      new_obj = script_obj_new_int (obj->data.integer + change_pre);
-      obj->data.integer += change_post;
+      new_obj = script_obj_new_int (script_obj_as_int(obj) + change_pre);
+      obj->data.integer += change_post;                     /* FIXME direct access */
     }
-  else if (obj->type == SCRIPT_OBJ_TYPE_FLOAT)
+  else if (script_obj_is_float(obj))
     {
-      new_obj = script_obj_new_float (obj->data.floatpoint + change_pre);
+      new_obj = script_obj_new_float (script_obj_as_float(obj) + change_pre);
       obj->data.floatpoint += change_post;
     }
   else
@@ -225,18 +226,19 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
 static script_obj_t *script_evaluate_func (script_state_t *state,
                                            script_exp_t   *exp)
 {
-  script_obj_t *func = script_evaluate (state, exp->data.function.name);
+  script_obj_t *func_obj = script_evaluate (state, exp->data.function.name);
   script_obj_t *obj = NULL;
+  script_function_t function = script_obj_as_function (func_obj);
 
-  script_obj_deref (&func);
-
-  if (func->type != SCRIPT_OBJ_TYPE_FUNCTION)
-    return script_obj_new_null ();
+  if (!function)
+    {
+      script_obj_unref (func_obj);
+      return script_obj_new_null ();
+    }
   ply_list_t *parameter_expressions = exp->data.function.parameters;
   ply_list_t *parameter_data = ply_list_new ();
 
-  ply_list_node_t *node_expression = ply_list_get_first_node (
-    parameter_expressions);
+  ply_list_node_t *node_expression = ply_list_get_first_node (parameter_expressions);
   while (node_expression)
     {
       script_exp_t *data_exp = ply_list_node_get_data (node_expression);
@@ -246,7 +248,7 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
                                                 node_expression);
     }
   script_return_t reply = script_execute_function_with_parlist (state,
-                                                                func->data.function,
+                                                                function,
                                                                 parameter_data);
   if (reply.type == SCRIPT_RETURN_TYPE_RETURN)
     obj = reply.object;
@@ -261,7 +263,7 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
     }
   ply_list_free (parameter_data);
 
-  script_obj_unref (func);
+  script_obj_unref (func_obj);
 
   return obj;
 }
@@ -593,9 +595,9 @@ script_return_t script_execute (script_state_t *state,
       case SCRIPT_OP_TYPE_FUNCTION_DEF:
         {
           script_obj_t *obj = script_evaluate (state, op->data.function_def.name);
-          script_obj_reset (obj);
-          obj->type = SCRIPT_OBJ_TYPE_FUNCTION;
-          obj->data.function = op->data.function_def.function;
+          script_obj_t *function_obj = script_obj_new_function(op->data.function_def.function);
+          script_obj_assign (obj, function_obj);
+          script_obj_unref (function_obj);
           script_obj_unref (obj);
           break;
         }

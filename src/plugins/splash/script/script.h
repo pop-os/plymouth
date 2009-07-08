@@ -214,6 +214,13 @@ typedef struct
   script_obj_t *object;
 } script_vareable_t;
 
+
+#define script_return_obj(_return_object) ((script_return_t) {SCRIPT_RETURN_TYPE_RETURN, _return_object})
+#define script_return_obj_null() ((script_return_t) {SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()})
+#define script_return_normal() ((script_return_t) {SCRIPT_RETURN_TYPE_NORMAL, NULL})
+#define script_return_break() ((script_return_t) {SCRIPT_RETURN_TYPE_BREAK, NULL})
+#define script_return_continue() ((script_return_t) {SCRIPT_RETURN_TYPE_CONTINUE, NULL})
+
 script_function_t *script_function_script_new (script_op_t  *script,
                                                void         *user_data,
                                                ply_list_t   *parameter_list);

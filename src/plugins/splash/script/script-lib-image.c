@@ -79,7 +79,7 @@ static script_return_t image_new (script_state_t *state,
     }
   free (filename);
   free (path_filename);
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN, reply};
+  return script_return_obj (reply);
 }
 
 static script_return_t image_get_width (script_state_t *state,
@@ -89,12 +89,9 @@ static script_return_t image_get_width (script_state_t *state,
   ply_image_t *image = script_obj_hash_get_native_of_class (state->local,
                                                             "image",
                                                             data->class);
-
   if (image)
-    return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                            script_obj_new_int (ply_image_get_width (image))};
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                          script_obj_new_null ()};
+    return script_return_obj (script_obj_new_int (ply_image_get_width (image)));
+  return script_return_obj_null ();
 }
 
 static script_return_t image_get_height (script_state_t *state,
@@ -104,12 +101,9 @@ static script_return_t image_get_height (script_state_t *state,
   ply_image_t *image = script_obj_hash_get_native_of_class (state->local,
                                                             "image",
                                                             data->class);
-
   if (image)
-    return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                            script_obj_new_int (ply_image_get_height (image))};
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                          script_obj_new_null ()};
+    return script_return_obj (script_obj_new_int (ply_image_get_height (image)));
+  return script_return_obj_null ();
 }
 
 static script_return_t image_rotate (script_state_t *state,
@@ -127,12 +121,9 @@ static script_return_t image_rotate (script_state_t *state,
                                                  ply_image_get_width (image) / 2,
                                                  ply_image_get_height (image) / 2,
                                                  angle);
-      return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                              script_obj_new_native (new_image,
-                                                     data->class)};
+      return script_return_obj (script_obj_new_native (new_image, data->class));
     }
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                          script_obj_new_null ()};
+  return script_return_obj_null ();
 }
 
 static script_return_t image_scale (script_state_t *state,
@@ -148,12 +139,9 @@ static script_return_t image_scale (script_state_t *state,
   if (image)
     {
       ply_image_t *new_image = ply_image_resize (image, width, height);
-      return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                              script_obj_new_native (new_image,
-                                                     data->class)};
+      return script_return_obj (script_obj_new_native (new_image, data->class));
     }
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                          script_obj_new_null ()};
+  return script_return_obj_null ();
 }
 
 script_lib_image_data_t *script_lib_image_setup (script_state_t *state,

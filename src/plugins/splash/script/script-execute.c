@@ -264,12 +264,9 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
       node_expression = ply_list_get_next_node (parameter_expressions,
                                                 node_expression);
     }
-
-  script_return_t reply = script_execute_function_with_parlist (
-    state,
-    func->data.
-    function,
-    parameter_data);
+  script_return_t reply = script_execute_function_with_parlist (state,
+                                                                func->data.function,
+                                                                parameter_data);
   if (reply.type == SCRIPT_RETURN_TYPE_RETURN)
     obj = reply.object;
   else
@@ -454,7 +451,7 @@ static script_obj_t *script_evaluate (script_state_t *state,
 static script_return_t script_execute_list (script_state_t *state,
                                             ply_list_t   *op_list)                        /* FIXME script_execute returns the return obj */
 {
-  script_return_t reply = {SCRIPT_RETURN_TYPE_NORMAL, NULL};
+  script_return_t reply = script_return_normal ();
   ply_list_node_t *node = ply_list_get_first_node (op_list);
 
   for (node = ply_list_get_first_node (op_list);
@@ -546,7 +543,7 @@ script_return_t script_execute_function (script_state_t    *state,
 script_return_t script_execute (script_state_t *state,
                                 script_op_t    *op)
 {
-  script_return_t reply = {SCRIPT_RETURN_TYPE_NORMAL, NULL};
+  script_return_t reply = script_return_normal ();
 
   if (!op) return reply;
   switch (op->type)
@@ -596,7 +593,7 @@ script_return_t script_execute (script_state_t *state,
                         return reply;
 
                       case SCRIPT_RETURN_TYPE_BREAK:
-                        return (script_return_t) {SCRIPT_RETURN_TYPE_NORMAL, NULL};
+                        return script_return_normal();
 
                       case SCRIPT_RETURN_TYPE_CONTINUE:
                         break;
@@ -627,19 +624,19 @@ script_return_t script_execute (script_state_t *state,
           script_obj_t *obj;
           if (op->data.exp) obj = script_evaluate (state, op->data.exp);
           else obj = script_obj_new_null ();
-          reply = (script_return_t) {SCRIPT_RETURN_TYPE_RETURN, obj};
+          reply = script_return_obj (obj);
           break;
         }
 
       case SCRIPT_OP_TYPE_BREAK:
         {
-          reply = (script_return_t) {SCRIPT_RETURN_TYPE_BREAK, NULL};
+          reply = script_return_break ();
           break;
         }
 
       case SCRIPT_OP_TYPE_CONTINUE:
         {
-          reply = (script_return_t) {SCRIPT_RETURN_TYPE_CONTINUE, NULL};
+          reply = script_return_continue ();
           break;
         }
     }

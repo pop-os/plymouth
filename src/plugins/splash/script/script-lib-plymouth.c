@@ -53,9 +53,7 @@ static script_return_t plymouth_set_function (script_state_t *state,
       *script_func = NULL;
       script_obj_unref (obj);
     }
-  return (script_return_t) {
-           SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()
-  };
+  return script_return_obj_null ();
 }
 
 script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t *state)
@@ -149,8 +147,8 @@ void script_lib_plymouth_on_refresh (script_state_t             *state,
       && (refresh_func_obj->type == SCRIPT_OBJ_TYPE_FUNCTION))
     {
       script_return_t ret = script_execute_function (state,
-                                                   refresh_func_obj->data.function,
-                                                   NULL);
+                                                     refresh_func_obj->data.function,
+                                                     NULL);
       script_obj_unref (ret.object);
     }
 }
@@ -168,10 +166,10 @@ void script_lib_plymouth_on_boot_progress (script_state_t             *state,
       script_obj_t *duration_obj = script_obj_new_float (duration);
       script_obj_t *progress_obj = script_obj_new_float (progress);
       script_return_t ret = script_execute_function (state,
-                                                   boot_progress_func_obj->data.function,
-                                                   duration_obj,
-                                                   progress_obj,
-                                                   NULL);
+                                                     boot_progress_func_obj->data.function,
+                                                     duration_obj,
+                                                     progress_obj,
+                                                     NULL);
       script_obj_unref (ret.object);
       script_obj_unref (duration_obj);
       script_obj_unref (progress_obj);

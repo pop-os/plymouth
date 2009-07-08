@@ -73,7 +73,7 @@ static script_return_t sprite_new (script_state_t *state,
   ply_list_append_data (data->sprite_list, sprite);
 
   reply = script_obj_new_native (sprite, data->class);
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN, reply};
+  return script_return_obj (reply);
 }
 
 static script_return_t sprite_set_image (script_state_t *state,
@@ -100,8 +100,7 @@ static script_return_t sprite_set_image (script_state_t *state,
     }
   script_obj_unref (script_obj_image);
 
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                          script_obj_new_null ()};
+  return script_return_obj_null ();
 }
 
 static script_return_t sprite_set_x (script_state_t *state,
@@ -114,8 +113,7 @@ static script_return_t sprite_set_x (script_state_t *state,
 
   if (sprite)
     sprite->x = script_obj_hash_get_int (state->local, "value");
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                          script_obj_new_null ()};
+  return script_return_obj_null ();
 }
 
 static script_return_t sprite_set_y (script_state_t *state,
@@ -128,8 +126,7 @@ static script_return_t sprite_set_y (script_state_t *state,
 
   if (sprite)
     sprite->y = script_obj_hash_get_int (state->local, "value");
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                          script_obj_new_null ()};
+  return script_return_obj_null ();
 }
 
 static script_return_t sprite_set_z (script_state_t *state,
@@ -142,8 +139,7 @@ static script_return_t sprite_set_z (script_state_t *state,
 
   if (sprite)
     sprite->z = script_obj_hash_get_int (state->local, "value");
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                          script_obj_new_null ()};
+  return script_return_obj_null ();
 }
 
 static script_return_t sprite_set_opacity (script_state_t *state,
@@ -156,8 +152,7 @@ static script_return_t sprite_set_opacity (script_state_t *state,
 
   if (sprite)
     sprite->opacity = script_obj_hash_get_float (state->local, "value");
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                          script_obj_new_null ()};
+  return script_return_obj_null ();
 }
 
 static script_return_t sprite_window_get_width (script_state_t *state,
@@ -168,8 +163,7 @@ static script_return_t sprite_window_get_width (script_state_t *state,
   ply_frame_buffer_area_t area;
 
   ply_frame_buffer_get_size (frame_buffer, &area);
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                          script_obj_new_int (area.width)};
+  return script_return_obj (script_obj_new_int (area.width));
 }
 
 static script_return_t sprite_window_get_height (script_state_t *state,
@@ -180,8 +174,7 @@ static script_return_t sprite_window_get_height (script_state_t *state,
   ply_frame_buffer_area_t area;
 
   ply_frame_buffer_get_size (frame_buffer, &area);
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                          script_obj_new_int (area.height)};
+  return script_return_obj (script_obj_new_int (area.height));
 }
 
 static uint32_t extract_rgb_color (script_state_t *state)
@@ -200,8 +193,7 @@ static script_return_t sprite_window_set_background_top_color (script_state_t *s
 
   data->background_color_start = extract_rgb_color (state);
   data->full_refresh = true;
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN, 
-                          script_obj_new_null ()};
+  return script_return_obj_null ();
 }
 
 static script_return_t sprite_window_set_background_bottom_color (script_state_t *state,
@@ -211,8 +203,7 @@ static script_return_t sprite_window_set_background_bottom_color (script_state_t
 
   data->background_color_end = extract_rgb_color (state);
   data->full_refresh = true;
-  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN,
-                          script_obj_new_null ()};
+  return script_return_obj_null ();
 }
 
 static void

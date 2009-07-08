@@ -44,9 +44,18 @@ static script_return_t script_lib_math_float_from_float_function (script_state_t
   float (*function)(float) = user_data;
   float value = script_obj_hash_get_float (state->local, "value");
   float reply_float = function (value);
-  return (script_return_t) {
-           SCRIPT_RETURN_TYPE_RETURN, script_obj_new_float (reply_float)
-  };
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN, script_obj_new_float (reply_float)};
+}
+
+
+static script_return_t script_lib_math_float_from_float_float_function (script_state_t *state,
+                                                                  void           *user_data)
+{
+  float (*function)(float, float) = user_data;
+  float value1 = script_obj_hash_get_float (state->local, "value_a");
+  float value2 = script_obj_hash_get_float (state->local, "value_b");
+  float reply_float = function (value1, value2);
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN, script_obj_new_float (reply_float)};
 }
 
 static script_return_t script_lib_math_int_from_float_function (script_state_t *state,
@@ -55,9 +64,7 @@ static script_return_t script_lib_math_int_from_float_function (script_state_t *
   int (*function)(float) = user_data;
   float value = script_obj_hash_get_float (state->local, "value");
   int reply_int = function (value);
-  return (script_return_t) {
-           SCRIPT_RETURN_TYPE_RETURN, script_obj_new_int (reply_int)
-  };
+  return (script_return_t) {SCRIPT_RETURN_TYPE_RETURN, script_obj_new_int (reply_int)};
 }
 
 static int float_to_int (float value)
@@ -86,6 +93,13 @@ script_lib_math_data_t *script_lib_math_setup (script_state_t *state)
                               script_lib_math_float_from_float_function,
                               tanf,
                               "value",
+                              NULL);
+  script_add_native_function (state->global,
+                              "MathATan2",
+                              script_lib_math_float_from_float_float_function,
+                              atan2f,
+                              "value_a",
+                              "value_b",
                               NULL);
   script_add_native_function (state->global,
                               "MathSqrt",

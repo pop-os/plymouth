@@ -52,6 +52,65 @@ static void script_parse_error (ply_scan_token_t *token,
              expected);
 }
 
+static script_function_t *script_parse_function_def (ply_scan_t *scan)
+{
+  ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
+  ply_list_t *parameter_list;
+
+  if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
+      || (curtoken->data.symbol != '('))
+    {
+      script_parse_error (curtoken,
+        "Function declaration requires parameters to be declared within '(' brackets");
+      return NULL;
+    }
+  curtoken = ply_scan_get_next_token (scan);
+  parameter_list = ply_list_new ();
+
+  while (true)
+    {
+      if ((curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL)
+          && (curtoken->data.symbol == ')')) break;
+      if (curtoken->type != PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
+        {
+          script_parse_error (curtoken,
+            "Function declaration parameters must be valid identifiers");
+          return NULL;
+        }
+      char *parameter = strdup (curtoken->data.string);
+      ply_list_append_data (parameter_list, parameter);
+
+      curtoken = ply_scan_get_next_token (scan);
+
+      if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
+        {
+          script_parse_error (curtoken,
+            "Function declaration parameters must separated with ',' and terminated with a ')'");
+          return NULL;
+        }
+      if (curtoken->data.symbol == ')') break;
+      if (curtoken->data.symbol != ',')
+        {
+          script_parse_error (curtoken,
+            "Function declaration parameters must separated with ',' and terminated with a ')'");
+          return NULL;
+        }
+      curtoken = ply_scan_get_next_token (scan);
+    }
+
+  curtoken = ply_scan_get_next_token (scan);
+
+  script_op_t *func_op = script_parse_op (scan);
+  
+  script_function_t *function = script_function_script_new (func_op,
+                                                            NULL,
+                                                            parameter_list);
+  return function;
+}
+
+
+
+
 static script_exp_t *script_parse_exp_tm (ply_scan_t *scan)
 {
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
@@ -82,6 +141,13 @@ static script_exp_t *script_parse_exp_tm (ply_scan_t *scan)
         exp->type = SCRIPT_EXP_TYPE_TERM_GLOBAL;
       else if (!strcmp (curtoken->data.string, "local"))
         exp->type = SCRIPT_EXP_TYPE_TERM_LOCAL;
+      else if (!strcmp (curtoken->data.string, "fun"))
+        {
+          exp->type = SCRIPT_EXP_TYPE_FUNCTION_DEF;
+          ply_scan_get_next_token (scan);
+          exp->data.function_def = script_parse_function_def (scan);
+          return exp;
+        }
       else
         {
           exp->type = SCRIPT_EXP_TYPE_TERM_VAR;
@@ -161,10 +227,10 @@ static script_exp_t *script_parse_exp_pi (ply_scan_t *scan)
               curtoken = ply_scan_get_next_token (scan);
             }
           ply_scan_get_next_token (scan);
-          func->data.function.name = exp;
+          func->data.function_exe.name = exp;
           exp = func;
-          exp->type = SCRIPT_EXP_TYPE_FUNCTION;
-          exp->data.function.parameters = parameters;
+          exp->type = SCRIPT_EXP_TYPE_FUNCTION_EXE;
+          exp->data.function_exe.parameters = parameters;
           continue;
         }
       script_exp_t *key;
@@ -770,7 +836,7 @@ static script_op_t *script_parse_function (ply_scan_t *scan)
                           "A function declaration requires a valid name");
       return NULL;
     }
-  script_exp_t *name = malloc (sizeof (script_exp_t));
+  script_exp_t *name = malloc (sizeof (script_exp_t));    /* parse any type of exp as target and do an assign*/
   name->type = SCRIPT_EXP_TYPE_TERM_VAR;
   name->data.string = strdup (curtoken->data.string);
 
@@ -963,18 +1029,34 @@ static void script_parse_exp_free (script_exp_t *exp)
       case SCRIPT_EXP_TYPE_TERM_GLOBAL:
         break;
 
-      case SCRIPT_EXP_TYPE_FUNCTION:
+      case SCRIPT_EXP_TYPE_FUNCTION_EXE:
         {
           ply_list_node_t *node;
-          for (node = ply_list_get_first_node (exp->data.function.parameters);
+          for (node = ply_list_get_first_node (exp->data.function_exe.parameters);
                node;
-               node = ply_list_get_next_node (exp->data.function.parameters, node))
+               node = ply_list_get_next_node (exp->data.function_exe.parameters, node))
             {
               script_exp_t *sub = ply_list_node_get_data (node);
               script_parse_exp_free (sub);
             }
-          ply_list_free (exp->data.function.parameters);
-          script_parse_exp_free (exp->data.function.name);
+          ply_list_free (exp->data.function_exe.parameters);
+          script_parse_exp_free (exp->data.function_exe.name);
+          break;
+        }
+      case SCRIPT_EXP_TYPE_FUNCTION_DEF:   /* FIXME merge the frees with one from op_free */
+        {
+          if (exp->data.function_def->type == SCRIPT_FUNCTION_TYPE_SCRIPT) 
+            script_parse_op_free (exp->data.function_def->data.script);
+          ply_list_node_t *node;
+          for (node = ply_list_get_first_node (exp->data.function_def->parameters);
+               node;
+               node = ply_list_get_next_node (exp->data.function_def->parameters, node))
+            {
+              char *arg = ply_list_node_get_data (node);
+              free (arg);
+            }
+          ply_list_free (exp->data.function_def->parameters);
+          free (exp->data.function_def);
           break;
         }
 
@@ -1012,14 +1094,10 @@ void script_parse_op_free (script_op_t *op)
           script_parse_op_free  (op->data.cond_op.op2);
           break;
         }
-        {
-          break;
-        }
 
       case SCRIPT_OP_TYPE_FUNCTION_DEF:
         {
-          if (op->data.function_def.function->type ==
-              SCRIPT_FUNCTION_TYPE_SCRIPT)
+          if (op->data.function_def.function->type == SCRIPT_FUNCTION_TYPE_SCRIPT)
             script_parse_op_free (op->data.function_def.function->data.script);
           ply_list_node_t *node;
           for (node = ply_list_get_first_node (op->data.function_def.function->parameters);

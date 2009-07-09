@@ -143,7 +143,8 @@ typedef enum
   SCRIPT_EXP_TYPE_POST_INC,
   SCRIPT_EXP_TYPE_POST_DEC,
   SCRIPT_EXP_TYPE_HASH,
-  SCRIPT_EXP_TYPE_FUNCTION,
+  SCRIPT_EXP_TYPE_FUNCTION_EXE,
+  SCRIPT_EXP_TYPE_FUNCTION_DEF,
   SCRIPT_EXP_TYPE_ASSIGN,
   SCRIPT_EXP_TYPE_ASSIGN_PLUS,
   SCRIPT_EXP_TYPE_ASSIGN_MINUS,
@@ -170,7 +171,8 @@ typedef struct script_exp_t
     {
       struct script_exp_t *name;
       ply_list_t *parameters;
-    } function;
+    } function_exe;
+    script_function_t *function_def;
   } data;
 } script_exp_t;
 

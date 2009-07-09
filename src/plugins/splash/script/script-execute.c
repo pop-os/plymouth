@@ -224,7 +224,7 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
 static script_obj_t *script_evaluate_func (script_state_t *state,
                                            script_exp_t   *exp)
 {
-  script_obj_t *func_obj = script_evaluate (state, exp->data.function.name);
+  script_obj_t *func_obj = script_evaluate (state, exp->data.function_exe.name);
   script_obj_t *obj = NULL;
   script_function_t *function = script_obj_as_function (func_obj);
 
@@ -233,7 +233,7 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
       script_obj_unref (func_obj);
       return script_obj_new_null ();
     }
-  ply_list_t *parameter_expressions = exp->data.function.parameters;
+  ply_list_t *parameter_expressions = exp->data.function_exe.parameters;
   ply_list_t *parameter_data = ply_list_new ();
 
   ply_list_node_t *node_expression = ply_list_get_first_node (parameter_expressions);
@@ -421,9 +421,13 @@ static script_obj_t *script_evaluate (script_state_t *state,
           return script_evaluate_hash (state, exp);
         }
 
-      case SCRIPT_EXP_TYPE_FUNCTION:
+      case SCRIPT_EXP_TYPE_FUNCTION_EXE:
         {
           return script_evaluate_func (state, exp);
+        }
+      case SCRIPT_EXP_TYPE_FUNCTION_DEF:
+        {
+          return script_obj_new_function (exp->data.function_def);
         }
     }
   return script_obj_new_null ();

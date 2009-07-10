@@ -38,6 +38,24 @@
 
 #define WITH_SEMIES
 
+
+typedef enum
+{
+  OP_ASSOC_INFIX_RTL,
+  OP_ASSOC_INFIX_LTR,
+  OP_ASSOC_PREFIX,
+  OP_ASSOC_POSTFIX,
+  OP_ASSOC_PREPOSTFIX,
+} script_parse_operator_associativity_t;
+
+
+typedef struct
+{
+ const char*                            symbol;
+ script_exp_type_t                      exp_type; 
+ int                                    presedence;
+}script_parse_operator_table_entry_t;
+
 static script_op_t *script_parse_op (ply_scan_t *scan);
 static script_exp_t *script_parse_exp (ply_scan_t *scan);
 static ply_list_t *script_parse_op_list (ply_scan_t *scan);
@@ -371,137 +389,62 @@ static script_exp_t *script_parse_exp_po (ply_scan_t *scan)
   return exp;
 }
 
-static script_exp_t *script_parse_exp_md (ply_scan_t *scan)
+static script_exp_t *script_parse_exp_ltr (ply_scan_t *scan, int presedence)
 {
-  script_exp_t *sub_a = script_parse_exp_po (scan);
-
-  if (!sub_a) return NULL;
-  ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
-  ply_scan_token_t *peektoken = ply_scan_peek_next_token (scan);
-  while (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL
-         && (curtoken->data.symbol == '*'
-             || curtoken->data.symbol == '/'
-             || curtoken->data.symbol == '%')
-         && !(peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL
-              && peektoken->data.symbol == '='))
+  static const script_parse_operator_table_entry_t operator_table[] =
     {
-      script_exp_t *exp = malloc (sizeof (script_exp_t));
-      if (curtoken->data.symbol == '*') exp->type = SCRIPT_EXP_TYPE_MUL;
-      else if (curtoken->data.symbol == '/') exp->type = SCRIPT_EXP_TYPE_DIV;
-      else exp->type = SCRIPT_EXP_TYPE_MOD;
-      exp->data.dual.sub_a = sub_a;
-      ply_scan_get_next_token (scan);
-      sub_a = exp;
-      exp->data.dual.sub_b = script_parse_exp_po (scan);
-      curtoken = ply_scan_get_current_token (scan);
-      peektoken = ply_scan_peek_next_token (scan);
-      if (!exp->data.dual.sub_b)
-        {
-          script_parse_error (curtoken, "An invalid RHS of an expression");
-          return NULL;
-        }
-    }
-
-  return sub_a;
-}
-
-static script_exp_t *script_parse_exp_pm (ply_scan_t *scan)
-{
-  script_exp_t *sub_a = script_parse_exp_md (scan);
-
+      {"||", SCRIPT_EXP_TYPE_OR,         0},    /* FIXME Does const imply static? */
+      {"&&", SCRIPT_EXP_TYPE_AND,        1},
+      {"==", SCRIPT_EXP_TYPE_EQ,         2},
+      {"!=", SCRIPT_EXP_TYPE_NE,         2},
+      {">=", SCRIPT_EXP_TYPE_GE,         3},
+      {"<=", SCRIPT_EXP_TYPE_LE,         3},
+      {"+=", SCRIPT_EXP_TYPE_TERM_NULL, -1},    /* A few things it shouldn't consume */
+      {"-=", SCRIPT_EXP_TYPE_TERM_NULL, -1},
+      {"*=", SCRIPT_EXP_TYPE_TERM_NULL, -1},
+      {"/=", SCRIPT_EXP_TYPE_TERM_NULL, -1},
+      {"%=", SCRIPT_EXP_TYPE_TERM_NULL, -1},
+      {">",  SCRIPT_EXP_TYPE_GT,         3},
+      {"<",  SCRIPT_EXP_TYPE_LT,         3},
+      {"+",  SCRIPT_EXP_TYPE_PLUS,       4},
+      {"-",  SCRIPT_EXP_TYPE_MINUS,      4},
+      {"*",  SCRIPT_EXP_TYPE_MUL,        5},
+      {"/",  SCRIPT_EXP_TYPE_DIV,        5},
+      {"%",  SCRIPT_EXP_TYPE_MOD,        5},
+      {NULL, SCRIPT_EXP_TYPE_TERM_NULL, -1},
+    };
+    
+  if (presedence > 5) return script_parse_exp_po (scan);
+  script_exp_t *sub_a = script_parse_exp_ltr (scan, presedence + 1);
   if (!sub_a) return NULL;
-  ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
-  ply_scan_token_t *peektoken = ply_scan_peek_next_token (scan);
-  while (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL
-         && (curtoken->data.symbol == '+'
-             || curtoken->data.symbol == '-')
-         && !(peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL
-              && peektoken->data.symbol == '='))
-    {
-      script_exp_t *exp = malloc (sizeof (script_exp_t));
-      if (curtoken->data.symbol == '+') exp->type = SCRIPT_EXP_TYPE_PLUS;
-      else exp->type = SCRIPT_EXP_TYPE_MINUS;
-      exp->data.dual.sub_a = sub_a;
-      ply_scan_get_next_token (scan);
-      exp->data.dual.sub_b = script_parse_exp_md (scan);
-      sub_a = exp;
-      curtoken = ply_scan_get_current_token (scan);
-      peektoken = ply_scan_peek_next_token (scan);
-      if (!exp->data.dual.sub_b)
-        {
-          script_parse_error (curtoken, "An invalid RHS of an expression");
-          return NULL;
-        }
-    }
-
-  return sub_a;
-}
-
-static script_exp_t *script_parse_exp_gt (ply_scan_t *scan)
-{
-  script_exp_t *sub_a = script_parse_exp_pm (scan);
-
-  if (!sub_a) return NULL;
-  ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
-  ply_scan_token_t *peektoken = ply_scan_peek_next_token (scan);
-  while (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL
-         && (curtoken->data.symbol == '<'
-             || curtoken->data.symbol == '>'))                          /* FIXME make sure we dont consume <<= or >>= */
-    {
-      int gt = (curtoken->data.symbol == '>');
-      int eq = 0;
-      curtoken = ply_scan_get_next_token (scan);
-      if ((curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL)
-          && (curtoken->data.symbol == '=')
-          && !curtoken->whitespace)
-        {
-          eq = 1;
-          curtoken = ply_scan_get_next_token (scan);
-        }
-      script_exp_t *exp = malloc (sizeof (script_exp_t));
-      if      (gt &&  eq) exp->type = SCRIPT_EXP_TYPE_GE;
-      else if (gt && !eq) exp->type = SCRIPT_EXP_TYPE_GT;
-      else if (!gt &&  eq) exp->type = SCRIPT_EXP_TYPE_LE;
-      else exp->type = SCRIPT_EXP_TYPE_LT;
-      exp->data.dual.sub_a = sub_a;
-      exp->data.dual.sub_b = script_parse_exp_pm (scan);
-      sub_a = exp;
-      curtoken = ply_scan_get_current_token (scan);
-      peektoken = ply_scan_peek_next_token (scan);
-      if (!exp->data.dual.sub_b)
-        {
-          script_parse_error (curtoken, "An invalid RHS of an expression");
-          return NULL;
-        }
-    }
-
-  return sub_a;
-}
-
-static script_exp_t *script_parse_exp_eq (ply_scan_t *scan)
-{
-  script_exp_t *sub_a = script_parse_exp_gt (scan);
-
-  if (!sub_a) return NULL;
+  
   while (1)
     {
+      const char* symbol = "";
+      int entry_index;
       ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
       ply_scan_token_t *peektoken = ply_scan_peek_next_token (scan);
       if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
-      if (peektoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
-      if (peektoken->data.symbol != '=') break;
-      if (peektoken->whitespace) break;
-      if ((curtoken->data.symbol != '=')
-          && (curtoken->data.symbol != '!')) break;
-      int ne = (curtoken->data.symbol == '!');
+      for (entry_index = 0; operator_table[entry_index].symbol; entry_index++)
+        {
+          symbol = operator_table[entry_index].symbol;
+          if (curtoken->data.symbol != symbol[0]) continue;
+          if (symbol[1])
+            {
+              if (peektoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) continue;
+              if (peektoken->data.symbol != symbol[1]) continue;
+              if (peektoken->whitespace) continue;
+            }
+          break;
+        }
+      if (operator_table[entry_index].presedence != presedence) break;
       ply_scan_get_next_token (scan);
-      ply_scan_get_next_token (scan);
-
+      if (symbol[1]) ply_scan_get_next_token (scan);
+      
       script_exp_t *exp = malloc (sizeof (script_exp_t));
-      if (ne) exp->type = SCRIPT_EXP_TYPE_NE;
-      else exp->type = SCRIPT_EXP_TYPE_EQ;
+      exp->type = operator_table[entry_index].exp_type;
       exp->data.dual.sub_a = sub_a;
-      exp->data.dual.sub_b = script_parse_exp_gt (scan);
+      exp->data.dual.sub_b = script_parse_exp_ltr (scan, presedence + 1);
       sub_a = exp;
       if (!exp->data.dual.sub_b)
         {
@@ -510,79 +453,12 @@ static script_exp_t *script_parse_exp_eq (ply_scan_t *scan)
           return NULL;
         }
     }
-
-  return sub_a;
-}
-
-static script_exp_t *script_parse_exp_an (ply_scan_t *scan)
-{
-  script_exp_t *sub_a = script_parse_exp_eq (scan);
-
-  if (!sub_a) return NULL;
-  while (1)
-    {
-      ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
-      ply_scan_token_t *peektoken = ply_scan_peek_next_token (scan);
-      if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
-      if (peektoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
-      if (curtoken->data.symbol != '&') break;
-      if (peektoken->data.symbol != '&') break;
-      if (peektoken->whitespace) break;
-      ply_scan_get_next_token (scan);
-      ply_scan_get_next_token (scan);
-
-      script_exp_t *exp = malloc (sizeof (script_exp_t));
-      exp->type = SCRIPT_EXP_TYPE_AND;
-      exp->data.dual.sub_a = sub_a;
-      exp->data.dual.sub_b = script_parse_exp_eq (scan);
-      sub_a = exp;
-      if (!exp->data.dual.sub_b)
-        {
-          script_parse_error (ply_scan_get_current_token (scan),
-                              "An invalid RHS of an expression");
-          return NULL;
-        }
-    }
-
-  return sub_a;
-}
-
-static script_exp_t *script_parse_exp_or (ply_scan_t *scan)
-{
-  script_exp_t *sub_a = script_parse_exp_an (scan);
-
-  if (!sub_a) return NULL;
-  while (1)
-    {
-      ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
-      ply_scan_token_t *peektoken = ply_scan_peek_next_token (scan);
-      if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
-      if (peektoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
-      if (peektoken->data.symbol != '|') break;
-      if (curtoken->data.symbol != '|') break;
-      if (peektoken->whitespace) break;
-      ply_scan_get_next_token (scan);
-      ply_scan_get_next_token (scan);
-
-      script_exp_t *exp = malloc (sizeof (script_exp_t));
-      exp->type = SCRIPT_EXP_TYPE_OR;
-      exp->data.dual.sub_a = sub_a;
-      exp->data.dual.sub_b = script_parse_exp_an (scan);
-      sub_a = exp;
-      if (!exp->data.dual.sub_b)
-        {
-          script_parse_error (ply_scan_get_current_token (scan),
-                              "An invalid RHS of an expression");
-          return NULL;
-        }
-    }
-
   return sub_a;
 }
 
 static script_exp_t *script_parse_exp_as (ply_scan_t *scan)
 {
-  script_exp_t *lhs = script_parse_exp_or (scan);
+  script_exp_t *lhs = script_parse_exp_ltr (scan, 0);
 
   if (!lhs) return NULL;
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);

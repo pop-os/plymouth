@@ -38,17 +38,6 @@
 
 #define WITH_SEMIES
 
-
-typedef enum
-{
-  OP_ASSOC_INFIX_RTL,
-  OP_ASSOC_INFIX_LTR,
-  OP_ASSOC_PREFIX,
-  OP_ASSOC_POSTFIX,
-  OP_ASSOC_PREPOSTFIX,
-} script_parse_operator_associativity_t;
-
-
 typedef struct
 {
  const char*                            symbol;
@@ -61,6 +50,19 @@ static script_exp_t *script_parse_exp (ply_scan_t *scan);
 static ply_list_t *script_parse_op_list (ply_scan_t *scan);
 static void script_parse_op_list_free (ply_list_t *op_list);
 
+
+
+static script_exp_t *script_parse_new_exp_dual (script_exp_type_t  type,
+                                                script_exp_t      *sub_a,
+                                                script_exp_t      *sub_b)
+{
+  script_exp_t *exp = malloc (sizeof (script_exp_t));
+  exp->type = type;
+  exp->data.dual.sub_a = sub_a;
+  exp->data.dual.sub_b = sub_b;
+  return exp;
+}
+
 static void script_parse_error (ply_scan_token_t *token,
                                 const char       *expected)
 {
@@ -69,6 +71,39 @@ static void script_parse_error (ply_scan_token_t *token,
              token->column_index,
              expected);
 }
+
+static const script_parse_operator_table_entry_t*   /* Only allows 1 or 2 character symbols */
+script_parse_operator_table_entry_lookup (ply_scan_t                                *scan,
+                                          const script_parse_operator_table_entry_t *table)
+{
+  int entry_index;
+  ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
+  ply_scan_token_t *peektoken = ply_scan_peek_next_token (scan);
+  for (entry_index = 0; table[entry_index].symbol; entry_index++)
+    {
+      if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) continue;
+      if (curtoken->data.symbol != table[entry_index].symbol[0]) continue;
+      if (table[entry_index].symbol[1])
+        {
+          if (peektoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) continue;
+          if (peektoken->data.symbol != table[entry_index].symbol[1]) continue;
+          if (peektoken->whitespace) continue;
+        }
+      break;
+    }
+  return &table[entry_index];
+}
+
+static void script_parse_advance_scan_by_string (ply_scan_t *scan,
+                                                 const char *string)
+{
+  while (*string)
+    {
+      ply_scan_get_next_token(scan);
+      string++;
+    }
+}
+
 
 static script_function_t *script_parse_function_def (ply_scan_t *scan)
 {
@@ -415,37 +450,16 @@ static script_exp_t *script_parse_exp_ltr (ply_scan_t *scan, int presedence)
     };
     
   if (presedence > 5) return script_parse_exp_po (scan);
-  script_exp_t *sub_a = script_parse_exp_ltr (scan, presedence + 1);
-  if (!sub_a) return NULL;
+  script_exp_t *exp = script_parse_exp_ltr (scan, presedence + 1);
+  if (!exp) return NULL;
   
   while (1)
     {
-      const char* symbol = "";
-      int entry_index;
-      ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
-      ply_scan_token_t *peektoken = ply_scan_peek_next_token (scan);
-      if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
-      for (entry_index = 0; operator_table[entry_index].symbol; entry_index++)
-        {
-          symbol = operator_table[entry_index].symbol;
-          if (curtoken->data.symbol != symbol[0]) continue;
-          if (symbol[1])
-            {
-              if (peektoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) continue;
-              if (peektoken->data.symbol != symbol[1]) continue;
-              if (peektoken->whitespace) continue;
-            }
-          break;
-        }
-      if (operator_table[entry_index].presedence != presedence) break;
-      ply_scan_get_next_token (scan);
-      if (symbol[1]) ply_scan_get_next_token (scan);
-      
-      script_exp_t *exp = malloc (sizeof (script_exp_t));
-      exp->type = operator_table[entry_index].exp_type;
-      exp->data.dual.sub_a = sub_a;
-      exp->data.dual.sub_b = script_parse_exp_ltr (scan, presedence + 1);
-      sub_a = exp;
+      const script_parse_operator_table_entry_t* entry;
+      entry =  script_parse_operator_table_entry_lookup(scan, operator_table);
+      if (entry->presedence != presedence) break;
+      script_parse_advance_scan_by_string(scan, entry->symbol);
+      exp = script_parse_new_exp_dual(entry->exp_type, exp, script_parse_exp_ltr (scan, presedence + 1));
       if (!exp->data.dual.sub_b)
         {
           script_parse_error (ply_scan_get_current_token (scan),
@@ -453,7 +467,7 @@ static script_exp_t *script_parse_exp_ltr (ply_scan_t *scan, int presedence)
           return NULL;
         }
     }
-  return sub_a;
+  return exp;
 }
 
 static script_exp_t *script_parse_exp_as (ply_scan_t *scan)

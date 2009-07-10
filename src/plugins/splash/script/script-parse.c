@@ -50,7 +50,14 @@ static script_exp_t *script_parse_exp (ply_scan_t *scan);
 static ply_list_t *script_parse_op_list (ply_scan_t *scan);
 static void script_parse_op_list_free (ply_list_t *op_list);
 
-
+static script_exp_t *script_parse_new_exp_single (script_exp_type_t  type,
+                                                  script_exp_t      *sub)
+{
+  script_exp_t *exp = malloc (sizeof (script_exp_t));
+  exp->type = type;
+  exp->data.sub = sub;
+  return exp;
+}
 
 static script_exp_t *script_parse_new_exp_dual (script_exp_type_t  type,
                                                 script_exp_t      *sub_a,
@@ -103,7 +110,6 @@ static void script_parse_advance_scan_by_string (ply_scan_t *scan,
       string++;
     }
 }
-
 
 static script_function_t *script_parse_function_def (ply_scan_t *scan)
 {
@@ -160,9 +166,6 @@ static script_function_t *script_parse_function_def (ply_scan_t *scan)
                                                             parameter_list);
   return function;
 }
-
-
-
 
 static script_exp_t *script_parse_exp_tm (ply_scan_t *scan)
 {
@@ -326,101 +329,48 @@ static script_exp_t *script_parse_exp_pi (ply_scan_t *scan)
           curtoken = ply_scan_get_next_token (scan);
         }
       else break;
-      script_exp_t *hash = malloc (sizeof (script_exp_t));
-      hash->type = SCRIPT_EXP_TYPE_HASH;
-      hash->data.dual.sub_a = exp;
-      hash->data.dual.sub_b = key;
-      exp = hash;                                       /* common hash lookup bit; */
+      exp = script_parse_new_exp_dual (SCRIPT_EXP_TYPE_HASH, exp, key);
     }
   return exp;
 }
 
 static script_exp_t *script_parse_exp_pr (ply_scan_t *scan)
 {
-  script_exp_type_t type;
-  ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
-  ply_scan_token_t *peektoken = ply_scan_peek_next_token (scan);
-
-  if (curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL)
+  static const script_parse_operator_table_entry_t operator_table[] =
     {
-      if (curtoken->data.symbol == '+')
-        {
-          if ((peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL)
-              && (peektoken->data.symbol == '+') && !peektoken->whitespace)
-            {
-              ply_scan_get_next_token (scan);
-              ply_scan_get_next_token (scan);
-              type = SCRIPT_EXP_TYPE_PRE_INC;
-            }
-          else
-            {
-              ply_scan_get_next_token (scan);
-              type = SCRIPT_EXP_TYPE_POS;
-            }
-        }
-      else if (curtoken->data.symbol == '-')
-        {
-          if ((peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL)
-              && (peektoken->data.symbol == '-') && !peektoken->whitespace)
-            {
-              ply_scan_get_next_token (scan);
-              ply_scan_get_next_token (scan);
-              type = SCRIPT_EXP_TYPE_PRE_DEC;
-            }
-          else
-            {
-              ply_scan_get_next_token (scan);
-              type = SCRIPT_EXP_TYPE_NEG;
-            }
-        }
-      else if (curtoken->data.symbol == '!')
-        {
-          ply_scan_get_next_token (scan);
-          type = SCRIPT_EXP_TYPE_NOT;
-        }
-      else
-        return script_parse_exp_pi (scan);
-      script_exp_t *exp = malloc (sizeof (script_exp_t));
-      exp->type = type;
-      exp->data.sub = script_parse_exp_pr (scan);
-      return exp;
-    }
-  return script_parse_exp_pi (scan);
+      {"++", SCRIPT_EXP_TYPE_PRE_INC,    0},
+      {"+",  SCRIPT_EXP_TYPE_POS,        0},
+      {"--", SCRIPT_EXP_TYPE_PRE_DEC,    0},
+      {"-",  SCRIPT_EXP_TYPE_NEG,        0},
+      {"!",  SCRIPT_EXP_TYPE_NOT,        0},
+      {NULL, SCRIPT_EXP_TYPE_TERM_NULL, -1},
+    };
+  
+  const script_parse_operator_table_entry_t* entry;
+  entry =  script_parse_operator_table_entry_lookup(scan, operator_table);
+  if (entry->presedence < 0) return script_parse_exp_pi (scan);
+  script_parse_advance_scan_by_string(scan, entry->symbol);
+  return script_parse_new_exp_single(entry->exp_type, script_parse_exp_pr (scan));
 }
 
 static script_exp_t *script_parse_exp_po (ply_scan_t *scan)
 {
+  static const script_parse_operator_table_entry_t operator_table[] =
+    {
+      {"++", SCRIPT_EXP_TYPE_POST_INC,   0},
+      {"--", SCRIPT_EXP_TYPE_POST_DEC,   0},
+      {NULL, SCRIPT_EXP_TYPE_TERM_NULL, -1},
+    };
   script_exp_t *exp = script_parse_exp_pr (scan);
 
   while (true)
     {
-      ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
-      ply_scan_token_t *peektoken = ply_scan_peek_next_token (scan);
-      if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
-      if (peektoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
-      if ((curtoken->data.symbol == '+') && (peektoken->data.symbol == '+')
-          && !peektoken->whitespace)
-        {
-          ply_scan_get_next_token (scan);
-          ply_scan_get_next_token (scan);
-          script_exp_t *new_exp = malloc (sizeof (script_exp_t));
-          new_exp->type = SCRIPT_EXP_TYPE_POST_INC;
-          new_exp->data.sub = exp;
-          exp = new_exp;
-        }
-      else if (curtoken->data.symbol == '-' && peektoken->data.symbol == '-'
-               && !peektoken->whitespace)
-        {
-          ply_scan_get_next_token (scan);
-          ply_scan_get_next_token (scan);
-          script_exp_t *new_exp = malloc (sizeof (script_exp_t));
-          new_exp->type = SCRIPT_EXP_TYPE_POST_DEC;
-          new_exp->data.sub = exp;
-          exp = new_exp;
-        }
-      else break;
+      const script_parse_operator_table_entry_t* entry;
+      entry =  script_parse_operator_table_entry_lookup(scan, operator_table);
+      if (entry->presedence < 0) break;
+      script_parse_advance_scan_by_string(scan, entry->symbol);
+      exp = script_parse_new_exp_single(entry->exp_type, exp);
     }
-
   return exp;
 }
 
@@ -472,71 +422,31 @@ static script_exp_t *script_parse_exp_ltr (ply_scan_t *scan, int presedence)
 
 static script_exp_t *script_parse_exp_as (ply_scan_t *scan)
 {
-  script_exp_t *lhs = script_parse_exp_ltr (scan, 0);
-
-  if (!lhs) return NULL;
-  ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
-  ply_scan_token_t *peektoken = ply_scan_peek_next_token (scan);
-  bool modify_assign;
-
-  modify_assign = !peektoken->whitespace
-                  && curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL
-                  && peektoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL
-                  && peektoken->data.symbol == '=';
-
-  if (modify_assign
-      || ((curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL)
-          && (curtoken->data.symbol == '=')))
+  static const script_parse_operator_table_entry_t operator_table[] =
     {
-      script_exp_type_t type;
-      if (modify_assign)
-        {
-          switch (curtoken->data.symbol)
-            {
-              case '+':
-                type = SCRIPT_EXP_TYPE_ASSIGN_PLUS;
-                break;
+      {"+=", SCRIPT_EXP_TYPE_ASSIGN_PLUS,  0},
+      {"-=", SCRIPT_EXP_TYPE_ASSIGN_MINUS, 0}, 
+      {"*=", SCRIPT_EXP_TYPE_ASSIGN_MUL,   0}, 
+      {"/=", SCRIPT_EXP_TYPE_ASSIGN_DIV,   0}, 
+      {"%=", SCRIPT_EXP_TYPE_ASSIGN_MOD,   0}, 
+      {"=",  SCRIPT_EXP_TYPE_ASSIGN,       0}, 
+      {NULL, SCRIPT_EXP_TYPE_TERM_NULL,   -1}, 
+    };
+  script_exp_t *lhs = script_parse_exp_ltr (scan, 0);
+  if (!lhs) return NULL;
 
-              case '-':
-                type = SCRIPT_EXP_TYPE_ASSIGN_MINUS;
-                break;
-
-              case '*':
-                type = SCRIPT_EXP_TYPE_ASSIGN_MUL;
-                break;
-
-              case '/':
-                type = SCRIPT_EXP_TYPE_ASSIGN_DIV;
-                break;
-
-              case '%':
-                type = SCRIPT_EXP_TYPE_ASSIGN_MOD;
-                break;
-
-              default:
-                script_parse_error (ply_scan_get_current_token (scan),
-                                    "An invalid modify assign character");
-                return NULL;
-            }
-          ply_scan_get_next_token (scan);
-        }
-      else
-        type = SCRIPT_EXP_TYPE_ASSIGN;
-      ply_scan_get_next_token (scan);
-      script_exp_t *rhs = script_parse_exp_as (scan);
-      if (!rhs)
-        {
-          script_parse_error (ply_scan_get_current_token (scan),
-                              "An invalid RHS of an expression");
-          return NULL;
-        }
-      script_exp_t *exp = malloc (sizeof (script_exp_t));
-      exp->type = type;
-      exp->data.dual.sub_a = lhs;
-      exp->data.dual.sub_b = rhs;
-      return exp;
+  const script_parse_operator_table_entry_t* entry;
+  entry =  script_parse_operator_table_entry_lookup(scan, operator_table);
+  if (entry->presedence < 0) return lhs;
+  script_parse_advance_scan_by_string(scan, entry->symbol);
+  script_exp_t *rhs = script_parse_exp_as (scan);
+  if (!rhs)
+    {
+      script_parse_error (ply_scan_get_current_token (scan),
+                          "An invalid RHS of an expression");
+      return NULL;
     }
-  return lhs;
+  return script_parse_new_exp_dual (entry->exp_type, lhs, rhs);
 }
 
 static script_exp_t *script_parse_exp (ply_scan_t *scan)
@@ -714,8 +624,6 @@ static script_op_t *script_parse_function (ply_scan_t *scan)
 {
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
 
-  ply_list_t *parameter_list;
-
   if (curtoken->type != PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
     return NULL;
   if (strcmp (curtoken->data.string, "fun")) return NULL;
@@ -726,63 +634,19 @@ static script_op_t *script_parse_function (ply_scan_t *scan)
                           "A function declaration requires a valid name");
       return NULL;
     }
-  script_exp_t *name = malloc (sizeof (script_exp_t));    /* parse any type of exp as target and do an assign*/
+  script_exp_t *name = malloc (sizeof (script_exp_t));    /* FIXME parse any type of exp as target and do an assign*/
   name->type = SCRIPT_EXP_TYPE_TERM_VAR;
   name->data.string = strdup (curtoken->data.string);
 
   curtoken = ply_scan_get_next_token (scan);
 
-  if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-      || (curtoken->data.symbol != '('))
-    {
-      script_parse_error (curtoken,
-        "Function declaration requires parameters to be declared within '(' brackets");
-      return NULL;
-    }
-  curtoken = ply_scan_get_next_token (scan);
-  parameter_list = ply_list_new ();
-
-  while (true)
-    {
-      if ((curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL)
-          && (curtoken->data.symbol == ')')) break;
-      if (curtoken->type != PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
-        {
-          script_parse_error (curtoken,
-            "Function declaration parameters must be valid identifiers");
-          return NULL;
-        }
-      char *parameter = strdup (curtoken->data.string);
-      ply_list_append_data (parameter_list, parameter);
-
-      curtoken = ply_scan_get_next_token (scan);
-
-      if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-        {
-          script_parse_error (curtoken,
-            "Function declaration parameters must separated with ',' and terminated with a ')'");
-          return NULL;
-        }
-      if (curtoken->data.symbol == ')') break;
-      if (curtoken->data.symbol != ',')
-        {
-          script_parse_error (curtoken,
-            "Function declaration parameters must separated with ',' and terminated with a ')'");
-          return NULL;
-        }
-      curtoken = ply_scan_get_next_token (scan);
-    }
-
-  curtoken = ply_scan_get_next_token (scan);
-
-  script_op_t *func_op = script_parse_op (scan);
-
+  script_function_t *function = script_parse_function_def (scan);
+  if (!function) return NULL;
+  
   script_op_t *op = malloc (sizeof (script_op_t));
   op->type = SCRIPT_OP_TYPE_FUNCTION_DEF;
   op->data.function_def.name = name;
-  op->data.function_def.function = script_function_script_new (func_op,
-                                                               NULL,
-                                                               parameter_list);
+  op->data.function_def.function = function;
   return op;
 }
 
@@ -1073,4 +937,3 @@ script_op_t *script_parse_string (const char *string)
   op->data.list = list;
   return op;
 }
-

@@ -70,6 +70,27 @@ typedef struct
   bool source_is_file;
 } ply_scan_t;
 
+
+#define ply_scan_token_is_symbol(__token) \
+      (__token->type == PLY_SCAN_TOKEN_TYPE_SYMBOL)
+#define ply_scan_token_is_symbol_of_value(__token,__value) \
+      (__token->type == PLY_SCAN_TOKEN_TYPE_SYMBOL \
+      && __token->data.symbol == __value)
+#define ply_scan_token_is_identifier(__token) \
+      (__token->type == PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
+#define ply_scan_token_is_identifier_of_value(__token,__value) \
+      (__token->type == PLY_SCAN_TOKEN_TYPE_IDENTIFIER \
+      && !strcmp(__token->data.string, __value))
+#define ply_scan_token_is_integer(__token) \
+      (__token->type == PLY_SCAN_TOKEN_TYPE_INTEGER)
+#define ply_scan_token_is_string(__token) \
+      (__token->type == PLY_SCAN_TOKEN_TYPE_STRING)
+#define ply_scan_token_is_float(__token) \
+      (__token->type == PLY_SCAN_TOKEN_TYPE_FLOAT)
+
+
+
+
 ply_scan_t *ply_scan_file (const char *filename);
 ply_scan_t *ply_scan_string (const char *string);
 void ply_scan_token_clean (ply_scan_token_t *token);
@@ -81,5 +102,6 @@ ply_scan_token_t *ply_scan_get_next_token (ply_scan_t *scan);
 ply_scan_token_t *ply_scan_peek_next_token (ply_scan_t *scan);
 void ply_scan_read_next_token (ply_scan_t       *scan,
                                ply_scan_token_t *token);
+
 
 #endif /* PLY_SCAN_H */

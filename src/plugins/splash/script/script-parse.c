@@ -88,11 +88,11 @@ script_parse_operator_table_entry_lookup (ply_scan_t                            
   ply_scan_token_t *peektoken = ply_scan_peek_next_token (scan);
   for (entry_index = 0; table[entry_index].symbol; entry_index++)
     {
-      if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) continue;
+      if (!ply_scan_token_is_symbol (curtoken)) continue;
       if (curtoken->data.symbol != table[entry_index].symbol[0]) continue;
       if (table[entry_index].symbol[1])
         {
-          if (peektoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) continue;
+          if (!ply_scan_token_is_symbol (peektoken)) continue;
           if (peektoken->data.symbol != table[entry_index].symbol[1]) continue;
           if (peektoken->whitespace) continue;
         }
@@ -116,8 +116,7 @@ static script_function_t *script_parse_function_def (ply_scan_t *scan)
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
   ply_list_t *parameter_list;
 
-  if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-      || (curtoken->data.symbol != '('))
+  if (!ply_scan_token_is_symbol_of_value (curtoken, '('))
     {
       script_parse_error (curtoken,
         "Function declaration requires parameters to be declared within '(' brackets");
@@ -128,9 +127,8 @@ static script_function_t *script_parse_function_def (ply_scan_t *scan)
 
   while (true)
     {
-      if ((curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL)
-          && (curtoken->data.symbol == ')')) break;
-      if (curtoken->type != PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
+      if (ply_scan_token_is_symbol_of_value (curtoken, ')')) break;
+      if (!ply_scan_token_is_identifier (curtoken))
         {
           script_parse_error (curtoken,
             "Function declaration parameters must be valid identifiers");
@@ -141,14 +139,8 @@ static script_function_t *script_parse_function_def (ply_scan_t *scan)
 
       curtoken = ply_scan_get_next_token (scan);
 
-      if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-        {
-          script_parse_error (curtoken,
-            "Function declaration parameters must separated with ',' and terminated with a ')'");
-          return NULL;
-        }
-      if (curtoken->data.symbol == ')') break;
-      if (curtoken->data.symbol != ',')
+      if (ply_scan_token_is_symbol_of_value (curtoken, ')')) break;
+      if (!ply_scan_token_is_symbol_of_value (curtoken, ','))
         {
           script_parse_error (curtoken,
             "Function declaration parameters must separated with ',' and terminated with a ')'");
@@ -172,7 +164,7 @@ static script_exp_t *script_parse_exp_tm (ply_scan_t *scan)
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
   script_exp_t *exp = NULL;
 
-  if (curtoken->type == PLY_SCAN_TOKEN_TYPE_INTEGER)
+  if (ply_scan_token_is_integer (curtoken))
     {
       exp = malloc (sizeof (script_exp_t));
       exp->type = SCRIPT_EXP_TYPE_TERM_INT;
@@ -180,7 +172,7 @@ static script_exp_t *script_parse_exp_tm (ply_scan_t *scan)
       ply_scan_get_next_token (scan);
       return exp;
     }
-  if (curtoken->type == PLY_SCAN_TOKEN_TYPE_FLOAT)
+  if (ply_scan_token_is_float (curtoken))
     {
       exp = malloc (sizeof (script_exp_t));
       exp->type = SCRIPT_EXP_TYPE_TERM_FLOAT;
@@ -188,16 +180,16 @@ static script_exp_t *script_parse_exp_tm (ply_scan_t *scan)
       ply_scan_get_next_token (scan);
       return exp;
     }
-  if (curtoken->type == PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
+  if (ply_scan_token_is_identifier (curtoken))
     {
       exp = malloc (sizeof (script_exp_t));
-      if (!strcmp (curtoken->data.string, "NULL"))
+      if (ply_scan_token_is_identifier_of_value (curtoken, "NULL"))
         exp->type = SCRIPT_EXP_TYPE_TERM_NULL;
-      else if (!strcmp (curtoken->data.string, "global"))
+      else if (ply_scan_token_is_identifier_of_value (curtoken, "global"))
         exp->type = SCRIPT_EXP_TYPE_TERM_GLOBAL;
-      else if (!strcmp (curtoken->data.string, "local"))
+      else if (ply_scan_token_is_identifier_of_value (curtoken, "local"))
         exp->type = SCRIPT_EXP_TYPE_TERM_LOCAL;
-      else if (!strcmp (curtoken->data.string, "fun"))
+      else if (ply_scan_token_is_identifier_of_value (curtoken, "fun"))
         {
           exp->type = SCRIPT_EXP_TYPE_FUNCTION_DEF;
           ply_scan_get_next_token (scan);
@@ -212,7 +204,7 @@ static script_exp_t *script_parse_exp_tm (ply_scan_t *scan)
       curtoken = ply_scan_get_next_token (scan);
       return exp;
     }
-  if (curtoken->type == PLY_SCAN_TOKEN_TYPE_STRING)
+  if (ply_scan_token_is_string (curtoken))
     {
       exp = malloc (sizeof (script_exp_t));
       exp->type = SCRIPT_EXP_TYPE_TERM_STRING;
@@ -220,8 +212,7 @@ static script_exp_t *script_parse_exp_tm (ply_scan_t *scan)
       ply_scan_get_next_token (scan);
       return exp;
     }
-  if ((curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL)
-      && (curtoken->data.symbol == '('))
+  if (ply_scan_token_is_symbol_of_value (curtoken, '('))
     {
       ply_scan_get_next_token (scan);
       exp = script_parse_exp (scan);
@@ -232,8 +223,7 @@ static script_exp_t *script_parse_exp_tm (ply_scan_t *scan)
                               "Expected valid contents of bracketed expression");
           return NULL;
         }
-      if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-          || (curtoken->data.symbol != ')'))
+      if (!ply_scan_token_is_symbol_of_value (curtoken, ')'))
         {
           script_parse_error (curtoken,
             "Expected bracketed block to be terminated with a ')'");
@@ -252,29 +242,28 @@ static script_exp_t *script_parse_exp_pi (ply_scan_t *scan)
 
   while (true)
     {
-      if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL) break;
-      if (curtoken->data.symbol == '(')
+      if (!ply_scan_token_is_symbol (curtoken)) break;
+      if (ply_scan_token_is_symbol_of_value (curtoken, '('))
         {
           script_exp_t *func = malloc (sizeof (script_exp_t));
           ply_list_t *parameters = ply_list_new ();
           ply_scan_get_next_token (scan);
           while (true)
             {
-              if ((curtoken->type == PLY_SCAN_TOKEN_TYPE_SYMBOL)
-                  && (curtoken->data.symbol == ')')) break;
+              if (ply_scan_token_is_symbol_of_value (curtoken, ')')) break;
               script_exp_t *parameter = script_parse_exp (scan);
 
               ply_list_append_data (parameters, parameter);
 
               curtoken = ply_scan_get_current_token (scan);
-              if (curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
+              if (!ply_scan_token_is_symbol (curtoken))
                 {
                   script_parse_error (curtoken,
                     "Function parameters should be separated with a ',' and terminated with a ')'");
                   return NULL;
                 }
-              if (curtoken->data.symbol == ')') break;
-              if (curtoken->data.symbol != ',')
+              if (ply_scan_token_is_symbol_of_value (curtoken, ')')) break;
+              if (!ply_scan_token_is_symbol_of_value (curtoken, ','))
                 {
                   script_parse_error (curtoken,
                     "Function parameters should be separated with a ',' and terminated with a ')'");
@@ -291,16 +280,16 @@ static script_exp_t *script_parse_exp_pi (ply_scan_t *scan)
         }
       script_exp_t *key;
 
-      if (curtoken->data.symbol == '.')
+      if (ply_scan_token_is_symbol_of_value (curtoken, '.'))
         {
           ply_scan_get_next_token (scan);
-          if (curtoken->type == PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
+          if (ply_scan_token_is_identifier (curtoken))
             {
               key = malloc (sizeof (script_exp_t));
               key->type = SCRIPT_EXP_TYPE_TERM_STRING;
               key->data.string = strdup (curtoken->data.string);
             }
-          else if (curtoken->type == PLY_SCAN_TOKEN_TYPE_INTEGER)       /* errrr, integer keys without being [] bracketed */
+          else if (ply_scan_token_is_integer (curtoken))       /* errrr, integer keys without being [] bracketed */
             {
               key = malloc (sizeof (script_exp_t));                       /* This is broken with floats as obj.10.6 is obj[10.6] and not obj[10][6] */
               key->type = SCRIPT_EXP_TYPE_TERM_INT;
@@ -314,13 +303,12 @@ static script_exp_t *script_parse_exp_pi (ply_scan_t *scan)
             }
           curtoken = ply_scan_get_next_token (scan);
         }
-      else if (curtoken->data.symbol == '[')
+      else if (ply_scan_token_is_symbol_of_value (curtoken, '['))
         {
           ply_scan_get_next_token (scan);
           key = script_parse_exp (scan);
           curtoken = ply_scan_get_current_token (scan);
-          if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-              || (curtoken->data.symbol != ']'))
+          if (!ply_scan_token_is_symbol_of_value (curtoken, ']'))
             {
               script_parse_error (curtoken,
                 "Expected a ']' to terminate the index expression");
@@ -403,7 +391,7 @@ static script_exp_t *script_parse_exp_ltr (ply_scan_t *scan, int presedence)
   script_exp_t *exp = script_parse_exp_ltr (scan, presedence + 1);
   if (!exp) return NULL;
   
-  while (1)
+  while (true)
     {
       const script_parse_operator_table_entry_t* entry;
       entry =  script_parse_operator_table_entry_lookup(scan, operator_table);
@@ -458,13 +446,11 @@ static script_op_t *script_parse_op_block (ply_scan_t *scan)
 {
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
 
-  if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-      || (curtoken->data.symbol != '{'))
+  if (!ply_scan_token_is_symbol_of_value (curtoken, '{'))
     return NULL;
   ply_scan_get_next_token (scan);
   ply_list_t *sublist = script_parse_op_list (scan);
-  if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-      || (curtoken->data.symbol != '}'))
+  if (!ply_scan_token_is_symbol_of_value (curtoken, '}'))
     {
       script_parse_error (ply_scan_get_current_token (scan),
                           "Expected a '}' to terminate the operation block");
@@ -483,15 +469,13 @@ static script_op_t *script_parse_if_while (ply_scan_t *scan)
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
   script_op_type_t type;
 
-  if (curtoken->type != PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
-    return NULL;
-  if       (!strcmp (curtoken->data.string, "if")) type = SCRIPT_OP_TYPE_IF;
-  else if  (!strcmp (curtoken->data.string,
-                     "while")) type = SCRIPT_OP_TYPE_WHILE;
+  if       (ply_scan_token_is_identifier_of_value (curtoken, "if"))
+    type = SCRIPT_OP_TYPE_IF;
+  else if  (ply_scan_token_is_identifier_of_value (curtoken, "while"))
+    type = SCRIPT_OP_TYPE_WHILE;
   else return NULL;
   curtoken = ply_scan_get_next_token (scan);
-  if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-      || (curtoken->data.symbol != '('))
+  if (!ply_scan_token_is_symbol_of_value (curtoken, '('))
     {
       script_parse_error (curtoken,
                           "Expected a '(' at the start of a condition block");
@@ -506,8 +490,7 @@ static script_op_t *script_parse_if_while (ply_scan_t *scan)
       script_parse_error (curtoken, "Expected a valid condition expression");
       return NULL;
     }
-  if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-      || (curtoken->data.symbol != ')'))
+  if (!ply_scan_token_is_symbol_of_value (curtoken, ')'))
     {
       script_parse_error (curtoken,
                           "Expected a ')' at the end of a condition block");
@@ -519,8 +502,7 @@ static script_op_t *script_parse_if_while (ply_scan_t *scan)
 
   curtoken = ply_scan_get_current_token (scan);
   if ((type == SCRIPT_OP_TYPE_IF)
-      && (curtoken->type == PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
-      && !strcmp (curtoken->data.string, "else"))
+      && (ply_scan_token_is_identifier_of_value (curtoken, "else")))
     {
       ply_scan_get_next_token (scan);
       else_op = script_parse_op (scan);
@@ -537,12 +519,9 @@ static script_op_t *script_parse_for (ply_scan_t *scan)
 {
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
 
-  if (curtoken->type != PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
-    return NULL;
-  if (strcmp (curtoken->data.string, "for")) return NULL;
+  if (!ply_scan_token_is_identifier_of_value (curtoken, "for")) return NULL;
   curtoken = ply_scan_get_next_token (scan);
-  if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-      || (curtoken->data.symbol != '('))
+  if (!ply_scan_token_is_symbol_of_value (curtoken, '('))
     {
       script_parse_error (curtoken,
                           "Expected a '(' at the start of a condition block");
@@ -557,8 +536,7 @@ static script_op_t *script_parse_for (ply_scan_t *scan)
       return NULL;
     }
   curtoken = ply_scan_get_current_token (scan);
-  if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-      || (curtoken->data.symbol != ';'))
+  if (!ply_scan_token_is_symbol_of_value (curtoken, ';'))
     {
       script_parse_error (curtoken,
                           "Expected a ';' after the first 'for' expression");
@@ -573,8 +551,7 @@ static script_op_t *script_parse_for (ply_scan_t *scan)
       return NULL;
     }
   curtoken = ply_scan_get_current_token (scan);
-  if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-      || (curtoken->data.symbol != ';'))
+  if (!ply_scan_token_is_symbol_of_value (curtoken, ';'))
     {
       script_parse_error (curtoken, "Expected a ';' after the 'for' condition");
       return NULL;
@@ -588,8 +565,7 @@ static script_op_t *script_parse_for (ply_scan_t *scan)
       return NULL;
     }
   curtoken = ply_scan_get_current_token (scan);
-  if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-      || (curtoken->data.symbol != ')'))
+  if (!ply_scan_token_is_symbol_of_value (curtoken, ')'))
     {
       script_parse_error (curtoken, "Expected a ')' at the end of a for block");
       return NULL;
@@ -624,11 +600,9 @@ static script_op_t *script_parse_function (ply_scan_t *scan)
 {
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
 
-  if (curtoken->type != PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
-    return NULL;
-  if (strcmp (curtoken->data.string, "fun")) return NULL;
+  if (!ply_scan_token_is_identifier_of_value (curtoken, "fun")) return NULL;
   curtoken = ply_scan_get_next_token (scan);
-  if (curtoken->type != PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
+  if (!ply_scan_token_is_identifier (curtoken))
     {
       script_parse_error (curtoken,
                           "A function declaration requires a valid name");
@@ -653,13 +627,13 @@ static script_op_t *script_parse_function (ply_scan_t *scan)
 static script_op_t *script_parse_return (ply_scan_t *scan)
 {
   ply_scan_token_t *curtoken = ply_scan_get_current_token (scan);
-
-  if (curtoken->type != PLY_SCAN_TOKEN_TYPE_IDENTIFIER)
-    return NULL;
   script_op_type_t type;
-  if      (!strcmp (curtoken->data.string, "return")) type = SCRIPT_OP_TYPE_RETURN;
-  else if (!strcmp (curtoken->data.string, "break")) type = SCRIPT_OP_TYPE_BREAK;
-  else if (!strcmp (curtoken->data.string, "continue")) type = SCRIPT_OP_TYPE_CONTINUE;
+  if      (ply_scan_token_is_identifier_of_value (curtoken, "return"))
+    type = SCRIPT_OP_TYPE_RETURN;
+  else if (ply_scan_token_is_identifier_of_value (curtoken, "break"))
+    type = SCRIPT_OP_TYPE_BREAK;
+  else if (ply_scan_token_is_identifier_of_value (curtoken, "continue"))
+    type = SCRIPT_OP_TYPE_CONTINUE;
   else return NULL;
   curtoken = ply_scan_get_next_token (scan);
 
@@ -670,8 +644,7 @@ static script_op_t *script_parse_return (ply_scan_t *scan)
       curtoken = ply_scan_get_current_token (scan);
     }
 #ifdef WITH_SEMIES
-  if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-      || (curtoken->data.symbol != ';'))
+  if (!ply_scan_token_is_symbol_of_value (curtoken, ';'))
     {
       script_parse_error (curtoken, "Expected ';' after an expression");
       return NULL;
@@ -706,8 +679,7 @@ static script_op_t *script_parse_op (ply_scan_t *scan)
     if (!exp) return NULL;
     curtoken = ply_scan_get_current_token (scan);
 #ifdef WITH_SEMIES
-    if ((curtoken->type != PLY_SCAN_TOKEN_TYPE_SYMBOL)
-        || (curtoken->data.symbol != ';'))
+    if (!ply_scan_token_is_symbol_of_value (curtoken, ';'))
       {
         script_parse_error (curtoken, "Expected ';' after an expression");
         return NULL;
@@ -727,7 +699,7 @@ static ply_list_t *script_parse_op_list (ply_scan_t *scan)
 {
   ply_list_t *op_list = ply_list_new ();
 
-  while (1)
+  while (true)
     {
       script_op_t *op = script_parse_op (scan);
       if (!op) break;

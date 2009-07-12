@@ -60,14 +60,14 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t *state)
 {
   script_lib_plymouth_data_t *data = malloc (sizeof (script_lib_plymouth_data_t));
 
-  data->script_refresh_func = NULL;
-  data->script_boot_progress_func = NULL;
-  data->script_root_mounted_func = NULL;
-  data->script_keyboard_input_func = NULL;
-  data->script_update_status_func = NULL;
-  data->script_display_normal_func = NULL;
-  data->script_display_password_func = NULL;
-  data->script_display_question_func = NULL;
+  data->script_refresh_func = script_obj_new_null ();
+  data->script_boot_progress_func = script_obj_new_null ();
+  data->script_root_mounted_func = script_obj_new_null ();
+  data->script_keyboard_input_func = script_obj_new_null ();
+  data->script_update_status_func = script_obj_new_null ();
+  data->script_display_normal_func = script_obj_new_null ();
+  data->script_display_password_func = script_obj_new_null ();
+  data->script_display_question_func = script_obj_new_null ();
 
   script_add_native_function (state->global,
                               "PlymouthSetRefreshFunction",

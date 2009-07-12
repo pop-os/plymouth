@@ -40,9 +40,9 @@
 
 typedef struct
 {
- const char*                            symbol;
- script_exp_type_t                      exp_type; 
- int                                    presedence;
+ const char        *symbol;
+ script_exp_type_t  exp_type; 
+ int                presedence;
 }script_parse_operator_table_entry_t;
 
 static script_op_t *script_parse_op (ply_scan_t *scan);
@@ -220,7 +220,7 @@ static script_exp_t *script_parse_exp_tm (ply_scan_t *scan)
       if (!exp)
         {
           script_parse_error (curtoken,
-                              "Expected valid contents of bracketed expression");
+            "Expected valid contents of bracketed expression");
           return NULL;
         }
       if (!ply_scan_token_is_symbol_of_value (curtoken, ')'))
@@ -232,7 +232,7 @@ static script_exp_t *script_parse_exp_tm (ply_scan_t *scan)
       ply_scan_get_next_token (scan);
       return exp;
     }
-  return exp;
+  return NULL;
 }
 
 static script_exp_t *script_parse_exp_pi (ply_scan_t *scan)
@@ -256,12 +256,6 @@ static script_exp_t *script_parse_exp_pi (ply_scan_t *scan)
               ply_list_append_data (parameters, parameter);
 
               curtoken = ply_scan_get_current_token (scan);
-              if (!ply_scan_token_is_symbol (curtoken))
-                {
-                  script_parse_error (curtoken,
-                    "Function parameters should be separated with a ',' and terminated with a ')'");
-                  return NULL;
-                }
               if (ply_scan_token_is_symbol_of_value (curtoken, ')')) break;
               if (!ply_scan_token_is_symbol_of_value (curtoken, ','))
                 {

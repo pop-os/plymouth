@@ -39,7 +39,6 @@ void script_obj_unref (script_obj_t *obj);
 void script_obj_reset (script_obj_t *obj);
 script_obj_t *script_obj_deref_direct (script_obj_t *obj);
 void script_obj_deref (script_obj_t **obj_ptr);
-char *script_obj_print (script_obj_t *obj);
 script_obj_t *script_obj_new_int (int number);
 script_obj_t *script_obj_new_float (float number);
 script_obj_t *script_obj_new_string (const char *string);

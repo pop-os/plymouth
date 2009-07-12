@@ -36,7 +36,6 @@
 #include "script.h"
 #include "script-object.h"
 
-char *script_obj_print (script_obj_t *obj);
 void script_obj_reset (script_obj_t *obj);
 
 void script_obj_free (script_obj_t *obj)
@@ -141,87 +140,6 @@ void script_obj_deref (script_obj_t **obj_ptr)
   script_obj_ref (obj);
   script_obj_unref (*obj_ptr);
   *obj_ptr = obj;
-}
-
-static void foreach_print_vareable (void *key,
-                                    void *data,
-                                    void *user_data)
-{
-  script_vareable_t *vareable = data;
-  char *string = script_obj_print (vareable->object);
-  char *reply;
-  char *prev = *(char **) user_data;
-
-  if (!prev) prev = strdup ("");
-  asprintf (&reply, "%s%s = %s\n", prev, vareable->name, string);
-  free (string);
-  free (prev);
-  *(char **) user_data = reply;
-}
-
-char *script_obj_print (script_obj_t *obj)
-{
-  char *reply;
-
-  switch (obj->type)
-    {
-      case SCRIPT_OBJ_TYPE_REF:
-        {
-          char *subobj = script_obj_print (obj->data.obj);
-          asprintf (&reply, "->[%d]%s", obj->refcount, subobj);
-          free (subobj);
-          return reply;
-        }
-
-      case SCRIPT_OBJ_TYPE_INT:
-        {
-          asprintf (&reply, "%d[%d]", obj->data.integer, obj->refcount);
-          return reply;
-        }
-
-      case SCRIPT_OBJ_TYPE_FLOAT:
-        {
-          asprintf (&reply, "%f[%d]", obj->data.floatpoint, obj->refcount);
-          return reply;
-        }
-
-      case SCRIPT_OBJ_TYPE_STRING:
-        {
-          asprintf (&reply, "\"%s\"[%d]", obj->data.string, obj->refcount);
-          return reply;
-        }
-
-      case SCRIPT_OBJ_TYPE_NULL:
-        {
-          asprintf (&reply, "NULL[%d]", obj->refcount);
-          return reply;
-        }
-
-      case SCRIPT_OBJ_TYPE_HASH:
-        {
-          char *sub = NULL;
-          ply_hashtable_foreach (obj->data.hash, foreach_print_vareable, &sub);
-          asprintf (&reply, "HASH{\n%s}[%d]", sub, obj->refcount);
-          free (sub);
-          return reply;
-        }
-
-      case SCRIPT_OBJ_TYPE_FUNCTION:
-        {
-          asprintf (&reply, "function()[%d]", obj->refcount);
-          return reply;
-        }
-
-      case SCRIPT_OBJ_TYPE_NATIVE:
-        {
-          asprintf (&reply,
-                    "(%s)[%d]",
-                    obj->data.native.class->name,
-                    obj->refcount);
-          return reply;
-        }
-    }
-  return NULL;
 }
 
 script_obj_t *script_obj_new_null (void)

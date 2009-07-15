@@ -236,10 +236,14 @@ process_backspace (ply_window_t *window)
   bytes = ply_buffer_get_bytes (window->line_buffer);
   size = ply_buffer_get_size (window->line_buffer);
 
-  bytes_to_remove = MIN(size, MB_CUR_MAX);
-  while ((previous_character_size = mbrlen (bytes + size - bytes_to_remove, bytes_to_remove, NULL)) < bytes_to_remove &&
-         previous_character_size > 0)
-    bytes_to_remove -= previous_character_size;
+  bytes_to_remove = MIN(size, PLY_UTF8_CHARACTER_SIZE_MAX);
+  while ((previous_character_size = ply_utf8_character_get_size (bytes + size - bytes_to_remove, bytes_to_remove)) < bytes_to_remove)
+    {
+      if (previous_character_size > 0)
+        bytes_to_remove -= previous_character_size;
+      else
+        bytes_to_remove--;
+    }
 
   if (bytes_to_remove <= size)
     {
@@ -379,7 +383,7 @@ check_buffer_for_key_events (ply_window_t *window)
       ssize_t character_size;
       char *keyboard_input;
 
-      character_size = (ssize_t) mbrlen (bytes + i, size - i, NULL);
+      character_size = (ssize_t) ply_utf8_character_get_size (bytes + i, size - i);
 
       if (character_size < 0)
         break;

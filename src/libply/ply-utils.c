@@ -891,4 +891,45 @@ ply_detach_daemon (ply_daemon_handle_t *handle,
   return true;
 }
 
+
+/*                    UTF-8 encoding
+00000000-01111111 	00-7F 	US-ASCII (single byte)
+10000000-10111111 	80-BF 	Second, third, or fourth byte of a multi-byte sequence
+11000000-11011111 	C0-DF 	Start of 2-byte sequence
+11100000-11101111 	E0-EF 	Start of 3-byte sequence
+11110000-11110100 	F0-F4 	Start of 4-byte sequence
+*/
+
+int
+ply_utf8_character_get_size (char   *string,
+                             size_t  n)
+{
+  int length;
+  if (n < 1) return -1;
+  if (string[0] == 0x00) length = 0;
+  else if ((string[0] & 0x80) == 0x00) length = 1;
+  else if ((string[0] & 0xE0) == 0xC0) length = 2;
+  else if ((string[0] & 0xF0) == 0xE0) length = 3;
+  else if ((string[0] & 0xF8) == 0xF0) length = 4;
+  else return -2;
+  if (length > n) return -1;
+  return length;
+}
+
+int
+ply_utf8_string_get_length (char   *string,
+                            size_t  n)
+{
+  size_t count = 0;
+  while (true)
+    {
+      int charlen = ply_utf8_character_get_size(string, n);
+      if (charlen <= 0) break;
+      string += charlen;
+      n -= charlen;
+      count++;
+    }
+  return count;
+}
+
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

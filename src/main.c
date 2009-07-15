@@ -774,7 +774,8 @@ update_display (state_t *state)
       ply_entry_trigger_t* entry_trigger = ply_list_node_get_data (node);
       if (entry_trigger->type == PLY_ENTRY_TRIGGER_TYPE_PASSWORD)
         {
-          int bullets = mbstowcs (NULL, ply_buffer_get_bytes (state->entry_buffer), 0);
+          int bullets = ply_utf8_string_get_length (ply_buffer_get_bytes (state->entry_buffer),
+                                                    ply_buffer_get_size (state->entry_buffer));
           bullets = MAX(0, bullets);
           ply_boot_splash_display_password (state->boot_splash, 
                                             entry_trigger->prompt,
@@ -874,10 +875,14 @@ on_backspace (state_t                  *state)
   bytes = ply_buffer_get_bytes (state->entry_buffer);
   size = ply_buffer_get_size (state->entry_buffer);
 
-  bytes_to_remove = MIN(size, MB_CUR_MAX);
-  while ((previous_character_size = mbrlen (&bytes[size - bytes_to_remove], bytes_to_remove, NULL)) < bytes_to_remove &&
-         previous_character_size > 0)
-    bytes_to_remove -= previous_character_size;
+  bytes_to_remove = MIN(size, PLY_UTF8_CHARACTER_SIZE_MAX);
+  while ((previous_character_size = ply_utf8_character_get_size (bytes + size - bytes_to_remove, bytes_to_remove)) < bytes_to_remove)
+    {
+      if (previous_character_size > 0)
+        bytes_to_remove -= previous_character_size;
+      else
+        bytes_to_remove--;
+    }
 
   ply_buffer_remove_bytes_at_end (state->entry_buffer, bytes_to_remove);
   update_display (state);

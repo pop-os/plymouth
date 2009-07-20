@@ -33,3 +33,6 @@ plymouth-log-viewer
 plymouthd
 *.pc
 tags
+*.bck
+*.string
+*.plymouth

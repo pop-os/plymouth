@@ -38,12 +38,6 @@
 #define STRINGIFY_VAR script_lib_sprite_string
 #include "script-lib-sprite.string"
 
-static void draw_area (script_lib_sprite_data_t *data,
-                       int                       x,
-                       int                       y,
-                       int                       width,
-                       int                       height);
-
 static void sprite_free (script_obj_t *obj)
 {
   sprite_t *sprite = obj->data.native.object_data;
@@ -347,10 +341,20 @@ script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
   return data;
 }
 
+static int
+sprite_compare_z(void *data_a, void *data_b)
+{
+ sprite_t *sprite_a = data_a;
+ sprite_t *sprite_b = data_b;
+ return sprite_a->z - sprite_b->z;
+}
+
 void script_lib_sprite_refresh (script_lib_sprite_data_t *data)
 {
   ply_list_node_t *node;
-
+  
+  ply_list_sort (data->sprite_list, &sprite_compare_z);
+  
   node = ply_list_get_first_node (data->sprite_list);
 
   if (data->full_refresh)
@@ -364,6 +368,7 @@ void script_lib_sprite_refresh (script_lib_sprite_data_t *data)
                  screen_area.width,
                  screen_area.height);
       data->full_refresh = false;
+      return;
     }
   while (node)
     {

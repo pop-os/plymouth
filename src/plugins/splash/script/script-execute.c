@@ -20,7 +20,6 @@
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
 #define _GNU_SOURCE
-#include "ply-scan.h"
 #include "ply-hashtable.h"
 #include "ply-list.h"
 #include <stdio.h>

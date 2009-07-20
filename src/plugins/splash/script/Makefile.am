@@ -23,6 +23,8 @@ script_la_SOURCES = $(srcdir)/plugin.c                                        \
                     $(srcdir)/plugin.h                                        \
                     $(srcdir)/script.c                                        \
                     $(srcdir)/script.h                                        \
+                    $(srcdir)/script-scan.c                                   \
+                    $(srcdir)/script-scan.h                                   \
                     $(srcdir)/script-parse.c                                  \
                     $(srcdir)/script-parse.h                                  \
                     $(srcdir)/script-execute.c                                \
@@ -40,9 +42,7 @@ script_la_SOURCES = $(srcdir)/plugin.c                                        \
                     $(srcdir)/script-lib-plymouth.script                      \
                     $(srcdir)/script-lib-math.c                               \
                     $(srcdir)/script-lib-math.h                               \
-                    $(srcdir)/script-lib-math.script                          \
-                    $(srcdir)/ply-scan.c                                      \
-                    $(srcdir)/ply-scan.h                                      
+                    $(srcdir)/script-lib-math.script
 
 MAINTAINERCLEANFILES = Makefile.in
 CLEANFILES = *.string

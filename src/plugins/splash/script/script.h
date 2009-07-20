@@ -24,7 +24,6 @@
 
 #include "ply-hashtable.h"
 #include "ply-list.h"
-#include "ply-scan.h"
 
 typedef enum                        /* FIXME add _t to all types */
 {

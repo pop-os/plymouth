@@ -1,108 +1,49 @@
+# This is an example plymouth plugin script
 
+SpriteWindowSetBackgroundTopColor(0.234, 0.43, 0.705);
+SpriteWindowSetBackgroundBottomColor(0.16, 0.25, 0.44);
 
-splash_type = "spinfinity";        # "fade_in" or "spinfinity"
+logo.image = ImageNew("special://logo");
+logo.sprite = SpriteNew();
+SpriteSetImage(logo.sprite, logo.image);
+logo.opacity_angle = 0;
 
-SpriteWindowSetBackgroundTopColor(0.2, 0.1, 0.5);
-SpriteWindowSetBackgroundBottomColor(0.2, 0.1, 0.5);
+fun refresh_callback ()
+  {
+    if (status == "normal")
+      {
+        logo.opacity_angle += ((2 * 3.14) / 50) * 0.5;  # 0.5 HZ
+        min_opacity = 0.3;
+        opacity = (MathCos(logo.opacity_angle) + 1) / 2;
+        opacity *= 1 - min_opacity;
+        opacity += min_opacity;
+        SpriteSetX (logo.sprite, SpriteWindowGetWidth()  / 2 - ImageGetWidth(logo.image)  / 2);
+        SpriteSetY (logo.sprite, SpriteWindowGetHeight() / 2 - ImageGetHeight(logo.image) / 2);
+        SpriteSetOpacity (logo.sprite, opacity);
+      }
+    else
+      {
+        SpriteSetX (logo.sprite, 0);
+        SpriteSetY (logo.sprite, 0);
+        SpriteSetOpacity (logo.sprite, 1);
+      }
+  }
+  
+PlymouthSetRefreshFunction (refresh_callback);
 
-
-
-if (splash_type == "spinfinity"){
-    logo.image = ImageNew("special://logo");
-    logo.sprite = SpriteNew();
-    SpriteSetImage(logo.sprite, logo.image);
-
-
-    index = 0;
-    while (1){
-        index_string = index;
-        if (index < 10) index_string = "0" + index_string;
-        frame_image[index] = ImageNew("../spinfinity/throbber-" + index_string + ".png");
-        if (!frame_image[index]) break;
-        index++;
-        }
-    frame_count = index + 1;
-    frame_index = 0;
-    throbber_sprite = SpriteNew();
-
-    fun refresh (){
-        if (status == "normal"){
-            frame_index += 20 / 50;
-            frame_index %= frame_count;
-            int_frame_index = MathInt(frame_index);
-            SpriteSetImage (throbber_sprite, frame_image[int_frame_index]);
-            SpriteSetX (throbber_sprite, SpriteWindowGetWidth()  / 2 - ImageGetWidth(frame_image[int_frame_index])  / 2);
-            SpriteSetY (throbber_sprite, SpriteWindowGetHeight() / 2);
-            SpriteSetOpacity (throbber_sprite, 1);
-            SpriteSetX (logo.sprite,  SpriteWindowGetWidth()  / 2 - ImageGetWidth(logo.image)  / 2);
-            SpriteSetY (logo.sprite,  SpriteWindowGetHeight() / 2 - ImageGetHeight(logo.image));
-            SpriteSetOpacity (logo.sprite, 1);
-            }
-        else{
-            SpriteSetOpacity (throbber_sprite, 0);
-            SpriteSetX (logo.sprite, 0);
-            SpriteSetY (logo.sprite, 0);
-            }
-        }
-
-    PlymouthSetRefreshFunction (refresh);
-    }
-else if (splash_type == "fade_in"){
-    logo.image = ImageNew("special://logo");
-    logo.sprite = SpriteNew();
-    SpriteSetImage(logo.sprite, logo.image);
-    SpriteSetX (logo.sprite, SpriteWindowGetWidth()  / 2 - ImageGetWidth(logo.image)  / 2);     # Place in the middle of the screen
-    SpriteSetY (logo.sprite, SpriteWindowGetHeight() / 2 - ImageGetHeight(logo.image) / 2);
-    logo.opacity_angle = 0;
-    
-    fun refresh (){
-        if (status == "normal"){
-            logo.opacity_angle = logo.opacity_angle + ((2 * 3.14) / 50) * 0.5;  # 0.5 HZ
-            
-            min_opacity = 0.3;
-            opacity = (MathCos(logo.opacity_angle) + 1) / 2;
-            opacity *= 1 - min_opacity;
-            opacity += min_opacity;
-            SpriteSetOpacity (logo.sprite, opacity);
-            }
-        else{
-            SpriteSetOpacity (logo.sprite, 0);
-            }
-        }
-
-    PlymouthSetRefreshFunction (refresh);
-    }
-else {
-    # Panic?
-    
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-#-----------------------------------------Dialogue stuff --------------------------------
-
+#----------------------------------------- Dialogue --------------------------------
 
 status = "normal";
 
-fun dialogue_setup(){
+fun dialogue_setup()
+  {
     local.box;
     local.lock;
     local.entry;
-    local.bullet_image;
     
     box.image = ImageNew("box.png");
     lock.image = ImageNew("lock.png");
     entry.image = ImageNew("entry.png");
-    bullet_image = ImageNew("bullet.png");
     
     box.sprite = SpriteNew();
     SpriteSetImage(box.sprite, box.image);
@@ -125,65 +66,57 @@ fun dialogue_setup(){
     entry.z = box.z + 1;
     SpriteSetPosition(entry.sprite, entry.x, entry.y, entry.z);
     
+    global.dialogue.box = box;
+    global.dialogue.lock = lock;
+    global.dialogue.entry = entry;
+    global.dialogue.bullet_image = ImageNew("bullet.png");
+    dialogue_opacity (1);
+  }
     
-    global.dialogue = local;
-    }
-    
-fun dialogue_opacity(opacity){
-    global.dialogue.opacity = opacity;
-    local = global.dialogue;
-    SpriteSetOpacity (box.sprite, opacity);
-    SpriteSetOpacity (lock.sprite, opacity);
-    SpriteSetOpacity (entry.sprite, opacity);
-    for (index = 0; bullet[index]; index++){
-        SpriteSetOpacity(bullet[index].sprite, opacity);
-        }
-    }
+fun dialogue_opacity(opacity)
+  {
+    SpriteSetOpacity (dialogue.box.sprite, opacity);
+    SpriteSetOpacity (dialogue.lock.sprite, opacity);
+    SpriteSetOpacity (dialogue.entry.sprite, opacity);
+    for (index = 0; dialogue.bullet[index]; index++)
+      {
+        SpriteSetOpacity(dialogue.bullet[index].sprite, opacity);
+      }
+  }
 
-fun display_normal (){
+fun display_normal_callback ()
+  {
     global.status = "normal";
-    if (global.dialogue) dialogue_opacity (0);
-    }
+    if (global.dialogue)
+      dialogue_opacity (0);
+  }
 
-PlymouthSetDisplayNormalFunction(display_normal);
-
-fun display_password (prompt, bullets){
+fun display_password_callback (prompt, bullets)
+  {
     global.status = "password";
     if (!global.dialogue) dialogue_setup();
-    dialogue_opacity (1);
-    for (index = 0; dialogue.bullet[index] || index < bullets; index++){
-        if (!dialogue.bullet[index]){
+    for (index = 0; dialogue.bullet[index] || index < bullets; index++)
+      {
+        if (!dialogue.bullet[index])
+          {
             dialogue.bullet[index].sprite = SpriteNew();
             SpriteSetImage(dialogue.bullet[index].sprite, dialogue.bullet_image);
             dialogue.bullet[index].x = dialogue.entry.x + index * ImageGetWidth(dialogue.bullet_image);
-            SpriteSetX(dialogue.bullet[index].sprite, dialogue.bullet[index].x);
             dialogue.bullet[index].y = dialogue.entry.y + ImageGetHeight(dialogue.entry.image) / 2 - ImageGetHeight(dialogue.bullet_image) / 2;
-            SpriteSetY(dialogue.bullet[index].sprite, dialogue.bullet[index].y);
             dialogue.bullet[index].z = dialogue.entry.z + 1;
-            SpriteSetZ(dialogue.bullet[index].sprite, dialogue.bullet[index].z);
-            }
-        SpriteSetOpacity(dialogue.bullet[index].sprite, 0);
-        if (index < bullets){
-            SpriteSetOpacity(dialogue.bullet[index].sprite, 1);
-            }
-        }
-    }
-PlymouthSetDisplayPasswordFunction(display_password);
+            SpriteSetPosition(dialogue.bullet[index].sprite, dialogue.bullet[index].x, dialogue.bullet[index].y, dialogue.bullet[index].z);
+          }
+        if (index < bullets)
+          SpriteSetOpacity(dialogue.bullet[index].sprite, 1);
+        else
+          SpriteSetOpacity(dialogue.bullet[index].sprite, 0);
+      }
+  }
 
+PlymouthSetDisplayNormalFunction(display_normal_callback);
+PlymouthSetDisplayPasswordFunction(display_password_callback);
 
-
-
-
-
-
-
-
-
-
-#-----------------------------------------Progress stuff --------------------------------
-
-
-
+#----------------------------------------- Progress Bar --------------------------------
 
 progress_box.image = ImageNew("progress_box.png");
 progress_box.sprite = SpriteNew();
@@ -191,29 +124,22 @@ SpriteSetImage(progress_box.sprite, progress_box.image);
 
 progress_box.x = SpriteWindowGetWidth()  / 2 -    ImageGetWidth(progress_box.image)  / 2;
 progress_box.y = SpriteWindowGetHeight() * 0.75 - ImageGetHeight(progress_box.image) / 2;
-
-SpriteSetX (progress_box.sprite, progress_box.x);
-SpriteSetY (progress_box.sprite, progress_box.y);
+SpriteSetPosition(progress_box.sprite, progress_box.x, progress_box.y, 0);
 
 progress_bar.original_image = ImageNew("progress_bar.png");
 progress_bar.sprite = SpriteNew();
 
 progress_bar.x = SpriteWindowGetWidth()  / 2 -        ImageGetWidth(progress_bar.original_image) / 2;
 progress_bar.y = SpriteWindowGetHeight() / 2 * 1.5  - ImageGetHeight(progress_box.image) / 2 + (ImageGetHeight(progress_box.image) - ImageGetHeight(progress_bar.original_image)) / 2;
-SpriteSetX (progress_bar.sprite, progress_bar.x);
-SpriteSetY (progress_bar.sprite, progress_bar.y);
+SpriteSetPosition(progress_bar.sprite, progress_bar.x, progress_bar.y, 1);
 
-
-fun progress (duration, progress){
-    if (ImageGetWidth(progress_bar.image) != MathInt(ImageGetWidth(progress_bar.original_image) * progress)){
+fun progress_callback (duration, progress)
+  {
+    if (ImageGetWidth (progress_bar.image) != MathInt (ImageGetWidth (progress_bar.original_image) * progress))
+      {
         progress_bar.image = ImageScale(progress_bar.original_image, ImageGetWidth(progress_bar.original_image) * progress, ImageGetHeight(progress_bar.original_image));
         SpriteSetImage (progress_bar.sprite, progress_bar.image);
-        }
-    }
+      }
+  }
 
-
-
-
-PlymouthSetBootProgressFunction(progress);
-
-
+PlymouthSetBootProgressFunction(progress_callback);

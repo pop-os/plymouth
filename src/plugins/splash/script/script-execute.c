@@ -103,23 +103,23 @@ static script_obj_t *script_evaluate_var (script_state_t *state,
   assert (state->global->type == SCRIPT_OBJ_TYPE_HASH);     /*FIXME use script-object functions */
   assert (state->local->type == SCRIPT_OBJ_TYPE_HASH);
 
-  script_vareable_t *vareable = ply_hashtable_lookup (state->local->data.hash,
+  script_variable_t *variable = ply_hashtable_lookup (state->local->data.hash,
                                                       name);
-  if (!vareable)
-    vareable = ply_hashtable_lookup (state->global->data.hash, name);
-  if (vareable)
+  if (!variable)
+    variable = ply_hashtable_lookup (state->global->data.hash, name);
+  if (variable)
     {
-      obj = vareable->object;
+      obj = variable->object;
       script_obj_ref (obj);
       return obj;
     }
   obj = script_obj_new_null ();
 
-  vareable = malloc (sizeof (script_vareable_t));
-  vareable->name = strdup (name);
-  vareable->object = obj;
+  variable = malloc (sizeof (script_variable_t));
+  variable->name = strdup (name);
+  variable->object = obj;
 
-  ply_hashtable_insert (state->local->data.hash, vareable->name, vareable);
+  ply_hashtable_insert (state->local->data.hash, variable->name, variable);
   script_obj_ref (obj);
   return obj;
 }

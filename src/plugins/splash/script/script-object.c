@@ -58,15 +58,15 @@ void script_obj_unref (script_obj_t *obj)
     script_obj_free (obj);
 }
 
-static void foreach_free_vareable (void *key,
+static void foreach_free_variable (void *key,
                                    void *data,
                                    void *user_data)
 {
-  script_vareable_t *vareable = data;
+  script_variable_t *variable = data;
 
-  script_obj_unref (vareable->object);
-  free (vareable->name);
-  free (vareable);
+  script_obj_unref (variable->object);
+  free (variable->name);
+  free (variable);
 }
 
 void script_obj_reset (script_obj_t *obj)
@@ -88,7 +88,7 @@ void script_obj_reset (script_obj_t *obj)
         break;
 
       case SCRIPT_OBJ_TYPE_HASH:                /* FIXME nightmare */
-        ply_hashtable_foreach (obj->data.hash, foreach_free_vareable, NULL);
+        ply_hashtable_foreach (obj->data.hash, foreach_free_variable, NULL);
         ply_hashtable_free (obj->data.hash);
         break;
 
@@ -471,19 +471,19 @@ script_obj_t *script_obj_hash_get_element (script_obj_t *hash,
 {
   hash = script_obj_deref_direct (hash);
   assert (hash->type == SCRIPT_OBJ_TYPE_HASH);
-  script_vareable_t *vareable = ply_hashtable_lookup (hash->data.hash,
+  script_variable_t *variable = ply_hashtable_lookup (hash->data.hash,
                                                       (void *) name);
   script_obj_t *obj;
 
-  if (vareable)
-    obj = vareable->object;
+  if (variable)
+    obj = variable->object;
   else
     {
       obj = script_obj_new_null ();
-      vareable = malloc (sizeof (script_vareable_t));
-      vareable->name = strdup (name);
-      vareable->object = obj;
-      ply_hashtable_insert (hash->data.hash, vareable->name, vareable);
+      variable = malloc (sizeof (script_variable_t));
+      variable->name = strdup (name);
+      variable->object = obj;
+      ply_hashtable_insert (hash->data.hash, variable->name, variable);
     }
   script_obj_ref (obj);
   return obj;

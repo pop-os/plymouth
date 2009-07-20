@@ -213,7 +213,7 @@ typedef struct
 {
   char *name;
   script_obj_t *object;
-} script_vareable_t;
+} script_variable_t;
 
 
 #define script_return_obj(_return_object) ((script_return_t) {SCRIPT_RETURN_TYPE_RETURN, _return_object})

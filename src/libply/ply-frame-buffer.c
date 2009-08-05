@@ -488,36 +488,6 @@ ply_frame_buffer_fill_area_with_pixel_value (ply_frame_buffer_t     *buffer,
 }
 
 static void
-ply_frame_buffer_area_union (ply_frame_buffer_area_t *area1,
-                             ply_frame_buffer_area_t *area2,
-                             ply_frame_buffer_area_t *result)
-{
-  unsigned long x1, y1, x2, y2;
-
-  if (area1->width == 0)
-    {
-      *result = *area2;
-      return;
-    }
-
-  if (area2->width == 0)
-    {
-      *result = *area1;
-      return;
-    }
-
-  x1 = area1->x + area1->width;
-  y1 = area1->y + area1->height;
-  x2 = area2->x + area2->width;
-  y2 = area2->y + area2->height;
-
-  result->x = MIN(area1->x, area2->x);
-  result->y = MIN(area1->y, area2->y);
-  result->width = MAX(x1, x2) - result->x;
-  result->height = MAX(y1, y2) - result->y;
-}
-
-static void
 integrate_area_with_flush_area (ply_frame_buffer_t      *buffer,
                                 ply_list_node_t         *node,
                                 ply_frame_buffer_area_t *new_area)

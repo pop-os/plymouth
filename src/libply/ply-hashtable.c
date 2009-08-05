@@ -53,14 +53,14 @@ struct _ply_hashtable
 unsigned int
 ply_hashtable_direct_hash (void *element)
 {
-  return (unsigned int) element;
+  return (unsigned int) (intptr_t) element;
 }
 
 int
 ply_hashtable_direct_compare (void *elementa,
                               void *elementb)
 {
-  return (unsigned int) elementa - (unsigned int) elementb;
+  return (int) ((intptr_t) elementa - (intptr_t) elementb);
 }
 
 unsigned int

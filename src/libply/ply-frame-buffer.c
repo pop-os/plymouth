@@ -1269,7 +1269,7 @@ ply_frame_buffer_fill_with_argb32_data_at_opacity_with_clip (ply_frame_buffer_t 
                                                    uint32_t                *data,
                                                    double                   opacity)
 {
-  long row, column;
+  unsigned long row, column;
   uint8_t opacity_as_byte;
   ply_frame_buffer_area_t cropped_area;
 
@@ -1380,7 +1380,7 @@ static void
 animate_at_time (ply_frame_buffer_t *buffer,
                  double          time)
 {
-  int x, y;
+  unsigned int x, y;
   uint32_t *data;
   ply_frame_buffer_area_t area;
 

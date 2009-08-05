@@ -872,7 +872,7 @@ ply_utf8_character_get_size (char   *string,
   else if ((string[0] & 0xF0) == 0xE0) length = 3;
   else if ((string[0] & 0xF8) == 0xF0) length = 4;
   else return -2;
-  if (length > n) return -1;
+  if (length > (int) n) return -1;
   return length;
 }
 

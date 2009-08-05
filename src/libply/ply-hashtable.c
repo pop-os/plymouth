@@ -300,8 +300,8 @@ main (int    argc,
 {
   ply_hashtable_t *hashtable;
   int i;
-  char* key[10] =  {"k1", "k2", "k3", "k4", "k5", "k6", "k7", "k8", "k9", "k10"};
-  char* data[10] = {"d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10"};
+  const char* key[10] =  {"k1", "k2", "k3", "k4", "k5", "k6", "k7", "k8", "k9", "k10"};
+  const char* data[10] = {"d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10"};
   char* reply_key = NULL;
   char* reply_data = NULL;
   
@@ -309,21 +309,21 @@ main (int    argc,
   hashtable = ply_hashtable_new (ply_hashtable_string_hash, ply_hashtable_string_compare);
   for (i=0; i<10; i++)
     {
-      ply_hashtable_insert (hashtable, key[i], data[9-i]);
+      ply_hashtable_insert (hashtable, (void *) key[i], (void *) data[9-i]);
     }
   for (i=0; i<10; i++)
     {
-      reply_data = ply_hashtable_lookup (hashtable, key[i]);
+      reply_data = ply_hashtable_lookup (hashtable, (void *) key[i]);
       printf ("got:%s\n", reply_data);
     }
   for (i=0; i<10; i++)
     {
-      ply_hashtable_remove (hashtable, key[i]);
-      ply_hashtable_insert (hashtable, key[i], data[i]);
+      ply_hashtable_remove (hashtable, (void *) key[i]);
+      ply_hashtable_insert (hashtable, (void *) key[i], (void *) data[i]);
     }
   for (i=0; i<10; i++)
     {
-      if (ply_hashtable_lookup_full (hashtable, key[i], (void**) &reply_key, (void**) &reply_data))
+      if (ply_hashtable_lookup_full (hashtable, (void *) key[i], (void**) &reply_key, (void**) &reply_data))
         printf ("got key:%s data:%s\n", reply_key, reply_data);
     }
   ply_hashtable_foreach (hashtable, foreach_func, NULL);

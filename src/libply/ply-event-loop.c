@@ -628,7 +628,7 @@ ply_event_loop_remove_source (ply_event_loop_t   *loop,
   ply_event_loop_remove_source_node (loop, source_node);
 }
 
-void
+static void
 ply_event_loop_free_sources (ply_event_loop_t *loop)
 {
   ply_list_node_t *node;

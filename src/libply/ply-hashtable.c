@@ -123,7 +123,7 @@ ply_hashtable_free (ply_hashtable_t *hashtable)
 }
 
 
-void
+static void
 ply_hashtable_insert_internal (ply_hashtable_t *hashtable,
                                void            *key,
                                void            *data)

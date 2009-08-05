@@ -286,46 +286,6 @@ ply_get_credentials_from_fd (int    fd,
   return true;
 }
 
-int
-ply_create_unix_socket (const char *path)
-{
-  struct sockaddr_un address; 
-  int fd;
-
-  assert (path != NULL);
-
-  fd = socket (PF_UNIX, SOCK_STREAM, 0);
-
-  if (fd < 0)
-    return -1;
-
-  if (fcntl (fd, F_SETFD, O_NONBLOCK | FD_CLOEXEC) < 0)
-    {
-      ply_save_errno ();
-      close (fd);
-      ply_restore_errno ();
-
-      return -1;
-    }
-
-  memset (&address, 0, sizeof (address));
-
-  address.sun_family = AF_UNIX;
-  memcpy (address.sun_path, path, strlen (path));
-
-  if (connect (fd, (struct sockaddr *) &address,
-               sizeof (struct sockaddr_un)) < 0)
-    {
-      ply_save_errno ();
-      close (fd);
-      ply_restore_errno ();
-
-      return -1;
-    }
-
-  return fd;
-}
-
 bool 
 ply_write (int         fd,
            const void *buffer,

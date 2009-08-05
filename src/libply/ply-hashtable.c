@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 #define MASKGEN(x) {x |= x >> 16; x |= x >> 8; x |= x >> 4; x |= x >> 2;  x |= x >> 1;}
 

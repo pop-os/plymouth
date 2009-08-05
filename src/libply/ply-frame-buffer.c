@@ -89,11 +89,11 @@ static bool ply_frame_buffer_open_device (ply_frame_buffer_t  *buffer);
 static void ply_frame_buffer_close_device (ply_frame_buffer_t *buffer);
 static bool ply_frame_buffer_query_device (ply_frame_buffer_t *buffer);
 static bool ply_frame_buffer_map_to_device (ply_frame_buffer_t *buffer);
-static uint_fast32_t inline ply_frame_buffer_pixel_value_to_device_pixel_value (
+static inline uint_fast32_t ply_frame_buffer_pixel_value_to_device_pixel_value (
     ply_frame_buffer_t *buffer,
     uint32_t        pixel_value);
 
-static void inline ply_frame_buffer_blend_value_at_pixel (ply_frame_buffer_t *buffer,
+static inline void ply_frame_buffer_blend_value_at_pixel (ply_frame_buffer_t *buffer,
                                                    int             x,
                                                    int             y,
                                                    uint32_t        pixel_value);

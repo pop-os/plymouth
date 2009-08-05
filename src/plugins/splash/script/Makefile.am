@@ -47,6 +47,7 @@ script_la_SOURCES = $(srcdir)/plugin.c                                        \
 MAINTAINERCLEANFILES = Makefile.in
 CLEANFILES = *.string
 
+BUILT_SOURCES = script-lib-image.c script-lib-sprite.c script-lib-math.c script-lib-plymouth.c
 
 EXTRA_DIST = stringify.pl
 

@@ -190,7 +190,7 @@ ply_hashtable_resize (ply_hashtable_t *hashtable)
   free (oldnodes);
 }
 
-inline void
+static inline void
 ply_hashtable_resize_check (ply_hashtable_t *hashtable)
 {
   if (hashtable->total_node_count < (hashtable->dirty_node_count * 2))
@@ -285,9 +285,10 @@ ply_hashtable_foreach (ply_hashtable_t              *hashtable,
 #ifdef PLY_HASHTABLE_ENABLE_TEST
 #include <stdio.h>
 
-void foreach_func (void *key,
-                   void *data,
-                   void *user_data)
+static void
+foreach_func (void *key,
+              void *data,
+              void *user_data)
 {
   printf ("foreach key:%s data:%s\n", (char*) key, (char*) data);
 }

@@ -75,7 +75,7 @@ struct _ply_command_parser
   uint32_t dispatch_is_queued : 1;
 };
 
-ply_command_option_t *
+static ply_command_option_t *
 ply_command_option_new (const char                *name,
                         const char                *description,
                         ply_command_option_type_t  type)
@@ -91,7 +91,7 @@ ply_command_option_new (const char                *name,
   return option;
 }
 
-void
+static void
 ply_command_option_free (ply_command_option_t *option)
 {
   if (option == NULL)
@@ -102,7 +102,7 @@ ply_command_option_free (ply_command_option_t *option)
   free (option);
 }
 
-ply_command_t *
+static ply_command_t *
 ply_command_new (const char *name,
                  const char *description,
                  ply_command_handler_t handler,
@@ -121,7 +121,7 @@ ply_command_new (const char *name,
   return command;
 }
 
-void
+static void
 ply_command_free (ply_command_t *command)
 {
   if (command == NULL)

@@ -362,7 +362,6 @@ on_keyboard_input (ply_boot_splash_plugin_t *plugin,
 void
 on_backspace (ply_boot_splash_plugin_t *plugin)
 {
-  ply_entry_remove_bullet (plugin->entry);
 }
 
 void

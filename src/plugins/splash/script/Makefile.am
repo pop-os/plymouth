@@ -45,16 +45,14 @@ script_la_SOURCES = $(srcdir)/plugin.c                                        \
                     $(srcdir)/script-lib-math.script
 
 MAINTAINERCLEANFILES = Makefile.in
-CLEANFILES = *.string
+CLEANFILES = *.script.h
 
-BUILT_SOURCES = script-lib-image.string script-lib-sprite.string script-lib-math.string script-lib-plymouth.string
+BUILT_SOURCES = script-lib-image.script.h script-lib-sprite.script.h script-lib-math.script.h script-lib-plymouth.script.h
 
-EXTRA_DIST = stringify.pl
-
-%.string: %.script stringify.pl
-	$(srcdir)/stringify.pl < $< > $@
-    
-script-lib-image.c : script-lib-image.string
-script-lib-sprite.c : script-lib-sprite.string
-script-lib-math.c : script-lib-math.string
-script-lib-plymouth.c : script-lib-plymouth.string
+%.script.h: %.script
+	sed -e 's/\\/\\\\/g'                                                  \
+	    -e 's/"/\\"/g'                                                    \
+	    -e 's/\(.*\)/  "\1\\n"/g'                                         \
+	    -e '1istatic const char* $(subst -,_,$(@:.script.h=_string)) ='   \
+	    -e '$$a;'                                                         \
+	    $< > $@

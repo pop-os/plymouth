@@ -35,8 +35,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define STRINGIFY_VAR script_lib_sprite_string
-#include "script-lib-sprite.string"
+#include "script-lib-sprite.script.h"
 
 static void sprite_free (script_obj_t *obj)
 {

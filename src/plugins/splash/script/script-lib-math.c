@@ -34,9 +34,7 @@
 
 #include "config.h"
 
-#define STRINGIFY_VAR script_lib_math_string
-
-#include "script-lib-math.string"
+#include "script-lib-math.script.h"
 
 static script_return_t script_lib_math_float_from_float_function (script_state_t *state,
                                                                   void           *user_data)

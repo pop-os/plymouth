@@ -33,9 +33,7 @@
 
 #include "config.h"
 
-#define STRINGIFY_VAR script_lib_plymouth_string
-
-#include "script-lib-plymouth.string"
+#include "script-lib-plymouth.script.h"
 
 static script_return_t plymouth_set_function (script_state_t *state,
                                               void           *user_data)

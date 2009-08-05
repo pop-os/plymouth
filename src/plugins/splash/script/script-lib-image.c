@@ -35,8 +35,7 @@
 
 #include "config.h"
 
-#define STRINGIFY_VAR script_lib_image_string
-#include "script-lib-image.string"
+#include "script-lib-image.script.h"
 
 static void image_free (script_obj_t *obj)
 {

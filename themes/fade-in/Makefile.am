@@ -1,5 +1,6 @@
 themedir = $(datadir)/plymouth/themes/fade-in
-dist_theme_DATA = fade-in.plymouth star.png bullet.png entry.png lock.png
+nodist_theme_DATA = fade-in.plymouth
+dist_theme_DATA = star.png bullet.png entry.png lock.png
 
 MAINTAINERCLEANFILES = Makefile.in fade-in.plymouth
 CLEANFILES = fade-in.plymouth

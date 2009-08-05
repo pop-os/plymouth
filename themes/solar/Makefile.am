@@ -1,6 +1,6 @@
 themedir = $(datadir)/plymouth/themes/solar
+nodist_theme_DATA = solar.plymouth
 dist_theme_DATA =                                                     \
-                    solar.plymouth                                    \
                     box.png                                           \
                     bullet.png                                        \
                     entry.png                                         \

@@ -1,6 +1,8 @@
 themedir = $(datadir)/plymouth/themes/script
+nodist_theme_DATA = \
+                    script.plymouth                                   
+
 dist_theme_DATA =                                                     \
-                    script.plymouth                                   \
                     script.script                                     \
                     box.png                                           \
                     bullet.png                                        \

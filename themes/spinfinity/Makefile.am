@@ -1,6 +1,6 @@
 themedir = $(datadir)/plymouth/themes/spinfinity
+nodist_theme_DATA = spinfinity.plymouth
 dist_theme_DATA =                                                     \
-                  spinfinity.plymouth                                 \
                   box.png                                             \
                   bullet.png                                          \
                   entry.png                                           \

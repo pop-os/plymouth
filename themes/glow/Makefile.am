@@ -1,6 +1,7 @@
 themedir = $(datadir)/plymouth/themes/glow
+nodist_theme_DATA = glow.plymouth
+
 dist_theme_DATA =                                                     \
-                    glow.plymouth                                     \
                     box.png                                           \
                     bullet.png                                        \
                     entry.png                                         \

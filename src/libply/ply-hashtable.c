@@ -134,9 +134,9 @@ ply_hashtable_insert_internal (ply_hashtable_t *hashtable,
 #ifdef PLY_HASHTABLE_ENABLE_TEST
     /* Make sure the counts are synchronised with bitmap */
   assert (ply_bitarray_count (hashtable->dirty_node_bitmap, hashtable->total_node_count) ==
-          hashtable->dirty_node_count);
+          (int) hashtable->dirty_node_count);
   assert (ply_bitarray_count (hashtable->live_node_bitmap, hashtable->total_node_count) ==
-          hashtable->live_node_count);
+          (int) hashtable->live_node_count);
 #endif /* PLY_HASHTABLE_ENABLE_TEST */
 
   hash_index = hashtable->hash_func (key);
@@ -162,7 +162,7 @@ void
 ply_hashtable_resize (ply_hashtable_t *hashtable)
 {
   unsigned int newsize, oldsize;
-  int i;
+  unsigned int i;
   struct _ply_hashtable_node *oldnodes;
   ply_bitarray_t *old_live_node_bitmap;
 
@@ -273,7 +273,7 @@ ply_hashtable_foreach (ply_hashtable_t              *hashtable,
 					   ply_hashtable_foreach_func_t  func,
 					   void                         *user_data)
 {
-  int i;
+  unsigned int i;
   for (i = 0; i < hashtable->total_node_count; i++)
     {
       if (ply_bitarray_lookup (hashtable->live_node_bitmap, i))

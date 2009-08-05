@@ -52,7 +52,7 @@ BUILT_SOURCES = script-lib-image.c script-lib-sprite.c script-lib-math.c script-
 EXTRA_DIST = stringify.pl
 
 %.string: %.script stringify.pl
-	./stringify.pl < $< > $@
+	$(srcdir)/stringify.pl < $< > $@
     
 script-lib-image.c : script-lib-image.string
 script-lib-sprite.c : script-lib-sprite.string

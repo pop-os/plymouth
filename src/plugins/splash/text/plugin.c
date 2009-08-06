@@ -207,24 +207,6 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
 }
 
 void
-on_keyboard_input (ply_boot_splash_plugin_t *plugin,
-                   const char               *keyboard_input,
-                   size_t                    character_size)
-{
-}
-
-void
-on_backspace (ply_boot_splash_plugin_t *plugin)
-{
-}
-
-void
-on_enter (ply_boot_splash_plugin_t *plugin,
-          const char               *line)
-{
-}
-
-void
 on_draw (ply_boot_splash_plugin_t *plugin,
          int                       x,
          int                       y,
@@ -249,15 +231,6 @@ on_erase (ply_boot_splash_plugin_t *plugin,
 static void
 add_handlers (ply_boot_splash_plugin_t *plugin)
 {
-  ply_window_add_keyboard_input_handler (plugin->window,
-                                         (ply_window_keyboard_input_handler_t)
-                                         on_keyboard_input, plugin);
-  ply_window_add_backspace_handler (plugin->window,
-                                    (ply_window_backspace_handler_t)
-                                    on_backspace, plugin);
-  ply_window_add_enter_handler (plugin->window,
-                                (ply_window_enter_handler_t)
-                                on_enter, plugin);
   ply_window_set_draw_handler (plugin->window,
                                (ply_window_draw_handler_t)
                                 on_draw, plugin);
@@ -270,9 +243,6 @@ static void
 remove_handlers (ply_boot_splash_plugin_t *plugin)
 {
 
-  ply_window_remove_keyboard_input_handler (plugin->window, (ply_window_keyboard_input_handler_t) on_keyboard_input);
-  ply_window_remove_backspace_handler (plugin->window, (ply_window_backspace_handler_t) on_backspace);
-  ply_window_remove_enter_handler (plugin->window, (ply_window_enter_handler_t) on_enter);
   ply_window_set_draw_handler (plugin->window, NULL, NULL);
   ply_window_set_erase_handler (plugin->window, NULL, NULL);
 

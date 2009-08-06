@@ -227,7 +227,7 @@ ply_window_reset_colors (ply_window_t *window)
 static void
 process_backspace (ply_window_t *window)
 {
-  ssize_t bytes_to_remove;
+  size_t bytes_to_remove;
   ssize_t previous_character_size;
   const char *bytes;
   size_t size;
@@ -237,7 +237,7 @@ process_backspace (ply_window_t *window)
   size = ply_buffer_get_size (window->line_buffer);
 
   bytes_to_remove = MIN(size, PLY_UTF8_CHARACTER_SIZE_MAX);
-  while ((previous_character_size = ply_utf8_character_get_size (bytes + size - bytes_to_remove, bytes_to_remove)) < bytes_to_remove)
+  while ((previous_character_size = ply_utf8_character_get_size (bytes + size - bytes_to_remove, bytes_to_remove)) < (ssize_t) bytes_to_remove)
     {
       if (previous_character_size > 0)
         bytes_to_remove -= previous_character_size;
@@ -787,7 +787,7 @@ ply_window_get_color_hex_value (ply_window_t       *window,
   uint32_t hex_value;
 
   assert (window != NULL);
-  assert (color >= 0 && color <= PLY_WINDOW_COLOR_WHITE);
+  assert (color <= PLY_WINDOW_COLOR_WHITE);
 
   red = (uint8_t) *(window->color_palette + 3 * color);
   green = (uint8_t) *(window->color_palette + 3 * color + 1);
@@ -806,7 +806,7 @@ ply_window_set_color_hex_value (ply_window_t       *window,
   uint8_t red, green, blue;
 
   assert (window != NULL);
-  assert (color >= 0 && color <= PLY_WINDOW_COLOR_WHITE);
+  assert (color <= PLY_WINDOW_COLOR_WHITE);
 
   red = (uint8_t) ((hex_value >> 16) & 0xff);
   green = (uint8_t) ((hex_value >> 8) & 0xff);

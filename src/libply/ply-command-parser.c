@@ -55,7 +55,7 @@ typedef struct
   char *description;
   ply_list_t *options;
 
-  int longest_option_length;
+  size_t longest_option_length;
 
   ply_command_handler_t handler;
   void       *handler_data;
@@ -70,7 +70,7 @@ struct _ply_command_parser
   ply_list_t *read_subcommands;
 
   ply_list_t *arguments;
-  int longest_command_length;
+  size_t longest_command_length;
 
   uint32_t dispatch_is_queued : 1;
 };

@@ -73,13 +73,13 @@ struct _ply_boot_splash_plugin
 
   uint32_t is_animating : 1;
 };
-void hide_splash_screen (ply_boot_splash_plugin_t *plugin,
-                         ply_event_loop_t         *loop);
 
+static void hide_splash_screen (ply_boot_splash_plugin_t *plugin,
+                                ply_event_loop_t         *loop);
 static void add_handlers (ply_boot_splash_plugin_t *plugin);
 static void remove_handlers (ply_boot_splash_plugin_t *plugin);
 
-ply_boot_splash_plugin_t *
+static ply_boot_splash_plugin_t *
 create_plugin (ply_key_file_t *key_file)
 {
   ply_boot_splash_plugin_t *plugin;
@@ -101,7 +101,7 @@ detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
   ply_trace ("detaching from event loop");
 }
 
-void
+static void
 destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
   ply_trace ("destroying plugin");
@@ -248,21 +248,21 @@ remove_handlers (ply_boot_splash_plugin_t *plugin)
 
 }
 
-void
+static void
 add_window (ply_boot_splash_plugin_t *plugin,
             ply_window_t             *window)
 {
   plugin->window = window;
 }
 
-void
+static void
 remove_window (ply_boot_splash_plugin_t *plugin,
                ply_window_t             *window)
 {
   plugin->window = NULL;
 }
 
-bool
+static bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
                     ply_buffer_t             *boot_buffer,
@@ -287,7 +287,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   return true;
 }
 
-void
+static void
 update_status (ply_boot_splash_plugin_t *plugin,
                const char               *status)
 {
@@ -296,7 +296,7 @@ update_status (ply_boot_splash_plugin_t *plugin,
   ply_trace ("status update");
 }
 
-void
+static void
 on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
                   double                    percent_done)
@@ -312,7 +312,7 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
   ply_text_progress_bar_draw (plugin->progress_bar);
 }
 
-void
+static void
 hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop)
 {
@@ -344,13 +344,15 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
   ply_show_new_kernel_messages (true);
 }
 
-void display_normal (ply_boot_splash_plugin_t *plugin)
+static void
+display_normal (ply_boot_splash_plugin_t *plugin)
 {
   start_animation(plugin);
 }
 
-void display_message (ply_boot_splash_plugin_t *plugin,
-                      const char               *message)
+static void
+display_message (ply_boot_splash_plugin_t *plugin,
+                 const char               *message)
 {
   if (plugin->message != NULL)
     free (plugin->message);
@@ -359,7 +361,7 @@ void display_message (ply_boot_splash_plugin_t *plugin,
   start_animation (plugin);
 }
 
-void
+static void
 display_password (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   int                       bullets)
@@ -395,7 +397,7 @@ display_password (ply_boot_splash_plugin_t *plugin,
       ply_window_show_text_cursor (plugin->window);
 }
 
-void
+static void
 display_question (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   const char               *entry_text)

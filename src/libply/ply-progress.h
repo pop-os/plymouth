@@ -28,7 +28,6 @@
 typedef struct _ply_progress ply_progress_t;
 
 ply_progress_t *ply_progress_new (void);
-ply_progress_t* ply_progress_new (void);
 void ply_progress_free (ply_progress_t* progress);
 void ply_progress_load_cache (ply_progress_t* progress, const char *filename);
 double ply_progress_get_percentage (ply_progress_t* progress);

@@ -1157,7 +1157,7 @@ check_for_consoles (state_t    *state,
 }
 
 static bool
-redirect_standard_io_to_device (char *device)
+redirect_standard_io_to_device (const char *device)
 {
   int fd;
   char *file;

@@ -861,8 +861,8 @@ ply_detach_daemon (ply_daemon_handle_t *handle,
 */
 
 int
-ply_utf8_character_get_size (char   *string,
-                             size_t  n)
+ply_utf8_character_get_size (const char   *string,
+                             size_t        n)
 {
   int length;
   if (n < 1) return -1;
@@ -877,8 +877,8 @@ ply_utf8_character_get_size (char   *string,
 }
 
 int
-ply_utf8_string_get_length (char   *string,
-                            size_t  n)
+ply_utf8_string_get_length (const char   *string,
+                            size_t        n)
 {
   size_t count = 0;
   while (true)

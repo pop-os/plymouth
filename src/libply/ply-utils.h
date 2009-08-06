@@ -99,10 +99,10 @@ ply_daemon_handle_t *ply_create_daemon (void);
 bool ply_detach_daemon (ply_daemon_handle_t *handle,
                         int                  exit_code);
 
-int ply_utf8_character_get_size (char   *string,
-                                 size_t  n);
-int ply_utf8_string_get_length (char   *string,
-                                size_t  n);
+int ply_utf8_character_get_size (const char   *string,
+                                 size_t        n);
+int ply_utf8_string_get_length (const char   *string,
+                                size_t        n);
 
 #endif
 

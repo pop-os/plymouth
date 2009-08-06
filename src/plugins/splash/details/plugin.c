@@ -275,7 +275,7 @@ on_boot_output (ply_boot_splash_plugin_t *plugin,
                 size_t                    size)
 {
   ply_trace ("writing '%s' to all windows (%d bytes)",
-             output, size);
+             output, (int) size);
   if (size > 0)
     for_each_window (plugin,
                      (ply_boot_splash_plugin_window_handler_t)

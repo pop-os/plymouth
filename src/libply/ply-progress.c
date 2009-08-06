@@ -205,7 +205,6 @@ ply_progress_save_cache (ply_progress_t* progress,
 double
 ply_progress_get_percentage (ply_progress_t* progress)
 {
-  char* string;
   double percentage;
   double cur_time = ply_progress_get_time (progress);
   

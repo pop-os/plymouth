@@ -10,6 +10,7 @@ plymouth-populate-initrd: $(srcdir)/plymouth-populate-initrd.in
 	sed -e 's,[@]logofile[@],$(logofile),g'                                \
 	    -e 's,[@]plymouthclientdir[@],$(plymouthclientdir),g'              \
 	    -e 's,[@]plymouthdaemondir[@],$(plymouthdaemondir),g'              \
+	    -e 's,[@]RELEASE_FILE[@],$(RELEASE_FILE),g'              \
 	    $(srcdir)/plymouth-populate-initrd.in > plymouth-populate-initrd
 
 plymouth-set-default-theme: $(srcdir)/plymouth-set-default-theme.in

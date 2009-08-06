@@ -116,6 +116,11 @@ AM_CONDITIONAL(ADD_DEFAULT_PLUGIN_LINK,
                   -o "$default_plugin_name" = "details"])
 AC_SUBST(default_plugin_name)
 
+AC_ARG_WITH(release-file, AC_HELP_STRING([--with-release-file=<path_to_release_file>], [Release File to use to detect distribution (by default /etc/system-reelase)]),RELEASE_FILE=${withval},RELEASE_FILE=/etc/system-release)
+
+AC_SUBST(RELEASE_FILE)
+AC_DEFINE_UNQUOTED(RELEASE_FILE, "$RELEASE_FILE", [Release file path])
+
 # Turn on the additional warnings last, so -Werror doesn't affect other tests.
 
 AC_DEFUN([PLYMOUTH_CC_TRY_FLAG], [

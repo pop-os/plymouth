@@ -245,7 +245,7 @@ ply_command_parser_get_help_string (ply_command_parser_t *parser)
 
       ply_buffer_append (buffer, "  %s%*s %s\n",
                          command->name,
-                         longest_subcommand + 2 - strlen (command->name),
+                         (int) (longest_subcommand + 2 - strlen (command->name)),
                          "",
                          command->description);
 

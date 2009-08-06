@@ -114,7 +114,8 @@ static void remove_handlers (ply_boot_splash_plugin_t *plugin);
 static void stop_animation (ply_boot_splash_plugin_t *plugin);
 
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
-ply_boot_splash_plugin_t *
+
+static ply_boot_splash_plugin_t *
 create_plugin (ply_key_file_t *key_file)
 {
   ply_boot_splash_plugin_t *plugin;
@@ -201,7 +202,7 @@ create_plugin (ply_key_file_t *key_file)
   return plugin;
 }
 
-void
+static void
 destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
   if (plugin == NULL)
@@ -472,21 +473,21 @@ remove_handlers (ply_boot_splash_plugin_t *plugin)
   ply_window_set_erase_handler (plugin->window, NULL, NULL);
 }
 
-void
+static void
 add_window (ply_boot_splash_plugin_t *plugin,
             ply_window_t             *window)
 {
   plugin->window = window;
 }
 
-void
+static void
 remove_window (ply_boot_splash_plugin_t *plugin,
                ply_window_t             *window)
 {
   plugin->window = NULL;
 }
 
-bool
+static bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
                     ply_buffer_t             *boot_buffer,
@@ -564,7 +565,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   return true;
 }
 
-void
+static void
 update_status (ply_boot_splash_plugin_t *plugin,
                const char               *status)
 {
@@ -582,7 +583,7 @@ on_animation_stopped (ply_boot_splash_plugin_t *plugin)
   plugin->is_idle = true;
 }
 
-void
+static void
 on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
                   double                    percent_done)
@@ -620,7 +621,7 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
   ply_progress_animation_draw (plugin->progress_animation);
 }
 
-void
+static void
 hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop)
 {
@@ -709,13 +710,13 @@ show_password_prompt (ply_boot_splash_plugin_t *plugin,
     }
 }
 
-void
+static void
 on_root_mounted (ply_boot_splash_plugin_t *plugin)
 {
   plugin->root_is_mounted = true;
 }
 
-void
+static void
 become_idle (ply_boot_splash_plugin_t *plugin,
              ply_trigger_t            *idle_trigger)
 {
@@ -739,7 +740,8 @@ become_idle (ply_boot_splash_plugin_t *plugin,
     }
 }
 
-void display_normal (ply_boot_splash_plugin_t *plugin)
+static void
+display_normal (ply_boot_splash_plugin_t *plugin)
 {
   if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_NORMAL)
     {
@@ -749,7 +751,7 @@ void display_normal (ply_boot_splash_plugin_t *plugin)
     }
 }
 
-void
+static void
 display_password (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   int                       bullets)
@@ -763,7 +765,7 @@ display_password (ply_boot_splash_plugin_t *plugin,
   ply_entry_set_bullet_count (plugin->entry, bullets);
 }
 
-void
+static void
 display_question (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   const char               *entry_text)

@@ -1078,7 +1078,7 @@ main (int    argc,
   ply_event_loop_t *loop;
   ply_window_t *window;
   int exit_code;
-  char *tty_name;
+  const char *tty_name;
 
   exit_code = 0;
 

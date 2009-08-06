@@ -719,9 +719,16 @@ ply_event_loop_stop_watching_fd (ply_event_loop_t *loop,
   assert (watch != NULL);
 
   destination = ply_event_loop_get_destination_from_fd_watch (loop, watch);
+
   assert (destination != NULL);
 
   source = destination->source;
+
+  if (source == NULL) 
+    ply_trace ("NULL source when stopping watching fd");
+  else
+    ply_trace ("stopping watching fd %d", source->fd);
+
   assert (source != NULL);
   assert (source->fd >= 0);
 
@@ -730,11 +737,13 @@ ply_event_loop_stop_watching_fd (ply_event_loop_t *loop,
    */
   if (source->is_disconnected)
     {
+      ply_trace ("source for fd %d is already disconnected", source->fd);
       ply_list_remove_data (source->fd_watches, watch);
       ply_fd_watch_free (watch);
       return;
     }
 
+  ply_trace ("removing destination for fd %d", source->fd);
   ply_event_loop_remove_destination_by_fd_watch (loop, watch);
 
   ply_list_remove_data (source->fd_watches, watch);
@@ -743,7 +752,9 @@ ply_event_loop_stop_watching_fd (ply_event_loop_t *loop,
 
   if (ply_list_get_length (source->destinations) == 0)
     {
+      ply_trace ("no more destinations remaing for fd %d, removing source", source->fd);
       ply_event_loop_remove_source (loop, source);
+      ply_trace ("freeing source for fd %d", source->fd);
       ply_event_source_free (source);
     }
 }
@@ -1015,7 +1026,14 @@ ply_event_loop_handle_disconnect_for_source (ply_event_loop_t   *loop,
       next_node = ply_list_get_next_node (source->destinations, node);
 
       if (destination->disconnected_handler != NULL)
-        destination->disconnected_handler (destination->user_data, source->fd);
+        {
+          ply_trace ("calling disconnected_handler %p for fd %d",
+                     destination->disconnected_handler, source->fd);
+          destination->disconnected_handler (destination->user_data, source->fd);
+
+          ply_trace ("done calling disconnected_handler %p for fd %d",
+                     destination->disconnected_handler, source->fd);
+        }
 
       node = next_node;
     }
@@ -1096,7 +1114,11 @@ ply_event_loop_free_destinations_for_source (ply_event_loop_t   *loop,
           (ply_event_destination_t *) ply_list_node_get_data (node);
 
       assert (destination != NULL);
+      ply_trace ("freeing destination (%u, %p, %p) of fd %d",
+                 destination->status, destination->status_met_handler,
+                 destination->disconnected_handler, source->fd);
       ply_event_destination_free (destination);
+
       ply_list_remove_node (source->destinations, node);
       node = next_node;
     }
@@ -1106,17 +1128,27 @@ static void
 ply_event_loop_disconnect_source (ply_event_loop_t           *loop,
                                   ply_event_source_t         *source)
 {
+  ply_trace ("disconnecting source with fd %d", source->fd);
   ply_event_loop_handle_disconnect_for_source (loop, source);
+  ply_trace ("done disconnecting source with fd %d", source->fd);
 
   /* at this point, we've told the event loop users about the
    * fd disconnection, so we can invalidate any outstanding
    * watches and free the destinations.
    */
+  ply_trace ("freeing watches for source with fd %d", source->fd);
   ply_event_loop_free_watches_for_source (loop, source);
+  ply_trace ("done freeing watches for source with fd %d", source->fd);
+  ply_trace ("freeing destinations for source with fd %d", source->fd);
   ply_event_loop_free_destinations_for_source (loop, source);
+  ply_trace ("done freeing destinations for source with fd %d", source->fd);
   assert (ply_list_get_length (source->destinations) == 0);
 
+  ply_trace ("removing source with fd %d from event loop", source->fd);
   ply_event_loop_remove_source (loop, source);
+  ply_trace ("done removing source with fd %d from event loop", source->fd);
+
+  ply_trace ("freeing source with fd %d", source->fd);
   ply_event_source_free (source);
 }
 

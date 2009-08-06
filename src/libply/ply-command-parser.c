@@ -124,9 +124,21 @@ ply_command_new (const char *name,
 static void
 ply_command_free (ply_command_t *command)
 {
+  ply_list_node_t *option_node;
+
   if (command == NULL)
     return;
 
+  option_node = ply_list_get_first_node (command->options);
+  while (option_node != NULL)
+    {
+      ply_command_option_t *option;
+
+      option = (ply_command_option_t *) ply_list_node_get_data (option_node);
+      ply_command_option_free (option);
+
+      option_node = ply_list_get_next_node (command->options, option_node);
+    }
   ply_list_free (command->options);
   free (command);
 }
@@ -341,9 +353,21 @@ ply_command_parser_new (const char *name,
 void
 ply_command_parser_free (ply_command_parser_t *command_parser)
 {
+  ply_list_node_t *command_node;
+
   if (command_parser == NULL)
     return;
 
+  command_node = ply_list_get_first_node (command_parser->available_subcommands);
+  while (command_node != NULL)
+    {
+      ply_command_t *command;
+
+      command = (ply_command_t *) ply_list_node_get_data (command_node);
+      ply_command_free (command);
+
+      command_node = ply_list_get_next_node (command_parser->available_subcommands, command_node);
+    }
   ply_list_free (command_parser->available_subcommands);
   ply_list_free (command_parser->read_subcommands);
 

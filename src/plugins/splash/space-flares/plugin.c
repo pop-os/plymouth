@@ -1072,8 +1072,8 @@ on_draw (ply_boot_splash_plugin_t *plugin,
           sprite_area.width =  ply_image_get_width (sprite->image);
           sprite_area.height = ply_image_get_height (sprite->image);
 
-          if ((sprite_area.x+sprite_area.width)<=x) continue;
-          if ((sprite_area.y+sprite_area.height)<=y) continue;
+          if ((int) (sprite_area.x+sprite_area.width)<=x) continue;
+          if ((int) (sprite_area.y+sprite_area.height)<=y) continue;
 
           if (single_pixel)
             {
@@ -1259,7 +1259,7 @@ setup_scene (ply_boot_splash_plugin_t *plugin)
       sprite->z = -10000;
       
       uint32_t* image_data = ply_image_get_data (plugin->scaled_background_image);
-      for (y=0; y<screen_area.height; y++) for (x=0; x<screen_area.width; x++){
+      for (y=0; y< (int) screen_area.height; y++) for (x=0; x< (int) screen_area.width; x++){
           image_data[x + y * screen_area.width] = star_bg_gradient_colour(x, y, screen_area.width, screen_area.height, false, 0);
         }
       
@@ -1275,7 +1275,7 @@ setup_scene (ply_boot_splash_plugin_t *plugin)
           star_bg->star_y[i] = y;
           image_data[x + y * screen_area.width] = 0xFFFFFFFF;
         }
-      for (i=0; i<(screen_area.width * screen_area.height)/400; i++){
+      for (i=0; i<(int) (screen_area.width * screen_area.height)/400; i++){
         x = rand()%screen_area.width;
         y = rand()%screen_area.height;
         image_data[x + y * screen_area.width] = star_bg_gradient_colour(x, y, screen_area.width, screen_area.height, true, ((float)x*y*13/10000));

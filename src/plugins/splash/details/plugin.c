@@ -83,7 +83,7 @@ struct _ply_boot_splash_plugin
 
 };
 
-ply_boot_splash_plugin_t *
+static ply_boot_splash_plugin_t *
 create_plugin (ply_key_file_t *key_file)
 {
   ply_boot_splash_plugin_t *plugin;
@@ -96,7 +96,7 @@ create_plugin (ply_key_file_t *key_file)
   return plugin;
 }
 
-void
+static void
 destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
   ply_trace ("destroying plugin");
@@ -181,14 +181,14 @@ on_enter (ply_boot_splash_plugin_t *plugin,
 {
 }
 
-void
+static void
 add_window (ply_boot_splash_plugin_t *plugin,
             ply_window_t             *window)
 {
   ply_list_append_data (plugin->windows, window);
 }
 
-void
+static void
 remove_window (ply_boot_splash_plugin_t *plugin,
                ply_window_t             *window)
 {
@@ -221,7 +221,7 @@ uninitialize_window (ply_window_t             *window,
   ply_window_remove_enter_handler (window, (ply_window_enter_handler_t) on_enter);
 }
 
-bool
+static bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
                     ply_buffer_t             *boot_buffer,
@@ -251,7 +251,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   return true;
 }
 
-void
+static void
 update_status (ply_boot_splash_plugin_t *plugin,
                const char               *status)
 {
@@ -260,7 +260,7 @@ update_status (ply_boot_splash_plugin_t *plugin,
   ply_trace ("status update");
 }
 
-void
+static void
 on_boot_output (ply_boot_splash_plugin_t *plugin,
                 const char               *output,
                 size_t                    size)
@@ -274,7 +274,7 @@ on_boot_output (ply_boot_splash_plugin_t *plugin,
                      (void *) output, (void *) size);
 }
 
-void
+static void
 hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop)
 {
@@ -293,7 +293,8 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
   detach_from_event_loop (plugin);
 }
 
-void display_normal (ply_boot_splash_plugin_t *plugin)
+static void
+display_normal (ply_boot_splash_plugin_t *plugin)
 {
   if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_NORMAL)
     {
@@ -306,7 +307,7 @@ void display_normal (ply_boot_splash_plugin_t *plugin)
 }
 
 
-void
+static void
 display_password (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   int                       bullets)
@@ -355,7 +356,7 @@ display_password (ply_boot_splash_plugin_t *plugin,
              (void *) strlen ("*"));
 }
 
-void
+static void
 display_question (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   const char               *entry_text)

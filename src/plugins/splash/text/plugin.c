@@ -127,7 +127,6 @@ static void
 show_message (ply_boot_splash_plugin_t *plugin)
 {
       int window_width, window_height;
-      int i;
 
       window_width = ply_window_get_number_of_text_columns (plugin->window);
       window_height = ply_window_get_number_of_text_rows (plugin->window);

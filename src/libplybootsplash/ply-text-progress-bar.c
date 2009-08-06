@@ -57,8 +57,7 @@
 
 #define NUMBER_OF_INDICATOR_COLUMNS 6
 
-#define OS_STRING " "
-char *os_string = OS_STRING;
+static char *os_string;
 
 struct _ply_text_progress_bar
 {

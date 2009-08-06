@@ -302,7 +302,7 @@ main (int    argc,
   int slowness;
   double time;
   int i;
-  char* strings[10]={"foobar", "barfoo", "barbar", "foo", "foo", "bar", "foo", "more", "even more", "even even more"};
+  const char* strings[10]={"foobar", "barfoo", "barbar", "foo", "foo", "bar", "foo", "more", "even more", "even even more"};
   ply_progress_t* progress = ply_progress_new ();
   
   progress->scalar = 1.0/5;  /* Original time estimate is 5 sec*/

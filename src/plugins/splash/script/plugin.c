@@ -90,15 +90,13 @@ struct _ply_boot_splash_plugin
   uint32_t is_animating : 1;
 };
 
-void destroy_plugin (ply_boot_splash_plugin_t *plugin);
 static void add_handlers (ply_boot_splash_plugin_t *plugin);
 static void remove_handlers (ply_boot_splash_plugin_t *plugin);
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 static void stop_animation (ply_boot_splash_plugin_t *plugin);
-ply_boot_splash_plugin_t *create_plugin (ply_key_file_t *key_file);
 ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
 
-ply_boot_splash_plugin_t *
+static ply_boot_splash_plugin_t *
 create_plugin (ply_key_file_t *key_file)
 {
   ply_boot_splash_plugin_t *plugin;
@@ -110,7 +108,7 @@ create_plugin (ply_key_file_t *key_file)
   return plugin;
 }
 
-void
+static void
 destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
   if (plugin == NULL)

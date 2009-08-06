@@ -135,8 +135,6 @@ static void
 append_usage_line_to_buffer (ply_command_parser_t *parser,
                              ply_buffer_t *buffer)
 {
-  ply_list_node_t *option_node;
-
   ply_buffer_append (buffer, "%s\n",
                      parser->main_command->description);
   ply_buffer_append (buffer, "USAGE: %s [OPTION...]", parser->main_command->name);
@@ -185,7 +183,6 @@ append_command_options_to_buffer (ply_command_parser_t *parser,
     {
       ply_command_option_t *option;
       int option_width;
-      int description_width;
       const char *option_type_string;
 
       option = (ply_command_option_t *) ply_list_node_get_data (option_node);

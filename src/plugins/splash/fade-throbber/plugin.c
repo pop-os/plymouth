@@ -66,8 +66,8 @@ typedef enum {
 
 typedef struct
 {
-  int x; 
-  int y;
+  unsigned int x;
+  unsigned int y;
   double start_time;
   double speed;
 } star_t;
@@ -571,8 +571,8 @@ add_star (ply_boot_splash_plugin_t *plugin)
 {
   ply_frame_buffer_area_t area, logo_area;
   star_t *star;
-  int x, y;
-  int width, height;
+  unsigned int x, y;
+  unsigned int width, height;
   ply_list_node_t *node;
 
   assert (plugin != NULL);

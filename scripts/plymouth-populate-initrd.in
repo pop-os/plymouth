@@ -70,7 +70,7 @@ inst ${LIBDIR}/plymouth/text.so $INITRDDIR
 inst ${DATADIR}/plymouth/themes/details/details.plymouth $INITRDDIR
 inst ${LIBDIR}/plymouth/details.so $INITRDDIR
 inst ${PLYMOUTH_LOGO_FILE} $INITRDDIR
-inst /etc/system-release $INITRDDIR
+inst @RELEASE_FILE@ $INITRDDIR
 
 if [ -z "$PLYMOUTH_THEME_NAME" ]; then
     echo "No default plymouth plugin is set" > /dev/stderr

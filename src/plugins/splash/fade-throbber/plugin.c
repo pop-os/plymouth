@@ -92,7 +92,7 @@ struct _ply_boot_splash_plugin
   uint32_t is_animating : 1;
 };
 
-ply_boot_splash_plugin_t *
+static ply_boot_splash_plugin_t *
 create_plugin (ply_key_file_t *key_file)
 {
   ply_boot_splash_plugin_t *plugin;
@@ -174,7 +174,7 @@ static void remove_handlers (ply_boot_splash_plugin_t *plugin);
 
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 
-void
+static void
 destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
   if (plugin == NULL)
@@ -499,21 +499,21 @@ remove_handlers (ply_boot_splash_plugin_t *plugin)
   ply_window_set_erase_handler (plugin->window, NULL, NULL);
 }
 
-void
+static void
 add_window (ply_boot_splash_plugin_t *plugin,
             ply_window_t             *window)
 {
   plugin->window = window;
 }
 
-void
+static void
 remove_window (ply_boot_splash_plugin_t *plugin,
                ply_window_t             *window)
 {
   plugin->window = NULL;
 }
 
-bool
+static bool
 show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop,
                     ply_buffer_t             *boot_buffer,
@@ -635,7 +635,7 @@ add_star (ply_boot_splash_plugin_t *plugin)
   ply_list_append_data (plugin->stars, star);
 }
 
-void
+static void
 update_status (ply_boot_splash_plugin_t *plugin,
                const char               *status)
 {
@@ -644,7 +644,7 @@ update_status (ply_boot_splash_plugin_t *plugin,
   add_star (plugin);
 }
 
-void
+static void
 hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop)
 {
@@ -708,7 +708,8 @@ show_password_entry (ply_boot_splash_plugin_t *plugin)
     }
 }
 
-void display_normal (ply_boot_splash_plugin_t *plugin)
+static void
+display_normal (ply_boot_splash_plugin_t *plugin)
 {
   if (plugin->state ==  PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY ||
       plugin->state ==  PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY)
@@ -719,7 +720,7 @@ void display_normal (ply_boot_splash_plugin_t *plugin)
     }
 }
 
-void
+static void
 display_password (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   int                       bullets)
@@ -733,7 +734,7 @@ display_password (ply_boot_splash_plugin_t *plugin,
   ply_entry_set_bullet_count (plugin->entry, bullets);
 }
 
-void
+static void
 display_question (ply_boot_splash_plugin_t *plugin,
                   const char               *prompt,
                   const char               *entry_text)

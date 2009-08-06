@@ -163,15 +163,6 @@ write_text_on_window (ply_window_t             *window,
   write (fd, text, size);
 }
 
-static void
-clear_line_on_window (ply_window_t             *window,
-                      ply_boot_splash_plugin_t *plugin,
-                      void                     *user_data,
-                      void                     *more_user_data)
-{
-  ply_window_clear_text_line (window);
-}
-
 void
 on_keyboard_input (ply_boot_splash_plugin_t *plugin,
                    const char               *keyboard_input,

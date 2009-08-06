@@ -31,6 +31,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
+#include <values.h>
 
 #include "script.h"
 #include "script-object.h"
@@ -285,7 +286,7 @@ bool script_obj_as_bool (script_obj_t *obj)
         return false;
 
       case SCRIPT_OBJ_TYPE_FLOAT:
-        if (obj->data.floatpoint) return true;
+        if (fabs (obj->data.floatpoint) > FLT_MIN) return true;
         return false;
 
       case SCRIPT_OBJ_TYPE_NULL:

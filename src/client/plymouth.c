@@ -619,7 +619,7 @@ main (int    argc,
 {
   state_t state = { 0 };
   bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash, should_wait, should_be_verbose, report_error;
-  char *status, *chroot_dir, *ignore_keystroke, *message;
+  char *status, *chroot_dir, *ignore_keystroke;
   int exit_code;
 
   exit_code = 0;

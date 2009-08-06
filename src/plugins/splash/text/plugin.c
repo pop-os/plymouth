@@ -206,7 +206,7 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
   ply_text_progress_bar_hide (plugin->progress_bar);
 }
 
-void
+static void
 on_draw (ply_boot_splash_plugin_t *plugin,
          int                       x,
          int                       y,
@@ -217,7 +217,7 @@ on_draw (ply_boot_splash_plugin_t *plugin,
   ply_window_clear_screen (plugin->window);
 }
 
-void
+static void
 on_erase (ply_boot_splash_plugin_t *plugin,
           int                       x,
           int                       y,

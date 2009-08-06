@@ -141,13 +141,6 @@ switch_to_vt (int vt_number)
 }
 
 static void
-on_session_begin (state_t                *state,
-                  ply_terminal_session_t *session)
-{
-  ply_trace ("got begin on terminal session fd");
-}
-
-static void
 on_session_output (state_t    *state,
                    const char *output,
                    size_t      size)

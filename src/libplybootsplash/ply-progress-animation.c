@@ -316,8 +316,8 @@ ply_progress_animation_add_frame (ply_progress_animation_t *progress_animation,
 
   ply_array_add_element (progress_animation->frames, image);
 
-  progress_animation->area.width = MAX (progress_animation->area.width, ply_image_get_width (image));
-  progress_animation->area.height = MAX (progress_animation->area.height, ply_image_get_height (image));
+  progress_animation->area.width = MAX (progress_animation->area.width, (size_t) ply_image_get_width (image));
+  progress_animation->area.height = MAX (progress_animation->area.height, (size_t) ply_image_get_height (image));
 
   return true;
 }

@@ -12,7 +12,7 @@ plymouthdbindir = $(plymouthdaemondir)
 plymouthdbin_PROGRAMS = plymouthd
 
 plymouthd_CFLAGS = $(PLYMOUTH_CFLAGS)                                         \
-		   -DPLYMOUTH_PLUGIN_PATH=\"$(libdir)/plymouth/\"             \
+		   -DPLYMOUTH_PLUGIN_PATH=\"$(PLYMOUTH_PLUGIN_PATH)\"         \
 		   -DPLYMOUTH_THEME_PATH=\"$(PLYMOUTH_THEME_PATH)/\"
 plymouthd_LDADD = $(PLYMOUTH_LIBS) libply/libply.la libplybootsplash/libplybootsplash.la
 plymouthd_SOURCES =                                                            \

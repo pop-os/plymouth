@@ -196,6 +196,9 @@ PLYMOUTH_CFLAGS="$PLYMOUTH_CFLAGS $WARN_CFLAGS"
 PLYMOUTH_THEME_PATH=$datadir/plymouth/themes
 AC_SUBST(PLYMOUTH_THEME_PATH)
 
+PLYMOUTH_PLUGIN_PATH=$libdir/plymouth/
+AC_SUBST(PLYMOUTH_PLUGIN_PATH)
+
 AC_OUTPUT([Makefile
            src/libply/Makefile
            src/libplybootsplash/Makefile

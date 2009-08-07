@@ -13,7 +13,7 @@ libplybootsplash_la_CFLAGS = $(PLYMOUTH_CFLAGS)                               \
                              -DPLYMOUTH_BACKGROUND_COLOR=$(background_color)   \
                        -DPLYMOUTH_BACKGROUND_END_COLOR=$(background_end_color) \
                        -DPLYMOUTH_BACKGROUND_START_COLOR=$(background_start_color) \
-                       -DPLYMOUTH_PLUGIN_PATH=\"$(libdir)/plymouth/\"
+                       -DPLYMOUTH_PLUGIN_PATH=\"$(PLYMOUTH_PLUGIN_PATH)\"
 libplybootsplash_la_LIBADD = $(PLYMOUTH_LIBS) $(IMAGE_LIBS) ../libply/libply.la
 libplybootsplash_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
 		    -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \

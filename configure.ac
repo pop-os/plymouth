@@ -193,11 +193,11 @@ AC_CACHE_CHECK([for supported warning flags], plymouth_cv_warn_cflags, [
 WARN_CFLAGS="$plymouth_cv_warn_cflags"
 PLYMOUTH_CFLAGS="$PLYMOUTH_CFLAGS $WARN_CFLAGS"
 
-PLYMOUTH_THEME_PATH=$datadir/plymouth/themes
-AC_SUBST(PLYMOUTH_THEME_PATH)
+plymouththemedir=$datadir/plymouth/themes
+AS_AC_EXPAND(PLYMOUTH_THEME_PATH, $plymouththemedir)
 
-PLYMOUTH_PLUGIN_PATH=$libdir/plymouth/
-AC_SUBST(PLYMOUTH_PLUGIN_PATH)
+plymouthplugindir=$libdir/plymouth/
+AS_AC_EXPAND(PLYMOUTH_PLUGIN_PATH, $plymouthplugindir)
 
 AC_OUTPUT([Makefile
            src/libply/Makefile

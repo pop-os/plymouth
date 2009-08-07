@@ -103,6 +103,7 @@ typedef struct
   uint32_t should_retain_splash : 1;
 
   char *console;
+  char *override_splash_path;
 
   int number_of_errors;
 } state_t;
@@ -187,14 +188,54 @@ show_detailed_splash (state_t *state)
 }
 
 static void
+find_override_splash (state_t *state)
+{
+  char *splash_string;
+
+  if (state->override_splash_path != NULL)
+      return;
+
+  splash_string = strstr (state->kernel_command_line, "plymouth:splash=");
+
+  if (splash_string != NULL)
+    {
+      char *end;
+      splash_string = strdup (splash_string + strlen ("plymouth:splash="));
+
+      end = strstr (splash_string, " ");
+
+      if (end != NULL)
+        *end = '\0';
+
+      ply_trace ("Splash is configured to be '%s'", splash_string);
+
+      asprintf (&state->override_splash_path,
+                PLYMOUTH_THEME_PATH "%s/%s.plymouth",
+                splash_string, splash_string);
+    }
+}
+
+static void
 show_default_splash (state_t *state)
 {
   if (state->boot_splash != NULL)
     return;
 
   ply_trace ("Showing splash screen");
-  state->boot_splash = start_boot_splash (state,
-                                          PLYMOUTH_THEME_PATH "default.plymouth");
+  find_override_splash (state);
+  if (state->override_splash_path != NULL)
+    {
+      ply_trace ("Starting override splash at '%s'", state->override_splash_path);
+      state->boot_splash = start_boot_splash (state,
+                                              state->override_splash_path);
+    }
+
+  if (state->boot_splash == NULL)
+    {
+      ply_trace ("Starting default splash");
+      state->boot_splash = start_boot_splash (state,
+                                              PLYMOUTH_THEME_PATH "default.plymouth");
+    }
 
   if (state->boot_splash == NULL)
     {

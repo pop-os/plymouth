@@ -371,6 +371,8 @@ ply_command_parser_free (ply_command_parser_t *command_parser)
   ply_list_free (command_parser->available_subcommands);
   ply_list_free (command_parser->read_subcommands);
 
+  ply_command_free (command_parser->main_command);
+
   free (command_parser);
 }
 

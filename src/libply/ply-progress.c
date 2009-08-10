@@ -90,6 +90,32 @@ ply_progress_new (void)
 void
 ply_progress_free (ply_progress_t* progress)
 {
+  ply_list_node_t *node;
+  node = ply_list_get_first_node (progress->current_message_list);
+
+  while (node)
+   {
+      ply_list_node_t *next_node;
+      ply_progress_message_t *message = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (progress->current_message_list, node);
+
+      free (message->string);
+      node = next_node;
+    }
+  ply_list_free (progress->current_message_list);
+
+  node = ply_list_get_first_node (progress->previous_message_list);
+
+  while (node)
+   {
+      ply_list_node_t *next_node;
+      ply_progress_message_t *message = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (progress->previous_message_list, node);
+
+      free (message->string);
+      node = next_node;
+    }
+  ply_list_free (progress->previous_message_list);
   free(progress);
   return;
 }

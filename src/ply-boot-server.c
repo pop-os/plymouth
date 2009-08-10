@@ -329,6 +329,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
     {
       if (server->update_handler != NULL)
         server->update_handler (server->user_data, argument, server);
+      free (argument);
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_SYSTEM_INITIALIZED) == 0)
     {
@@ -369,6 +370,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (server->quit_handler != NULL)
         server->quit_handler (server->user_data, retain_splash, quit_trigger, server);
 
+      free(argument);
       free(command);
       return;
     }

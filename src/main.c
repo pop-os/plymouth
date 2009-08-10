@@ -1105,6 +1105,7 @@ get_kernel_command_line (state_t *state)
     }
 
   ply_trace ("Kernel command line is: '%s'", state->kernel_command_line);
+  close (fd);
   return true;
 }
 

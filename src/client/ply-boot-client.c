@@ -224,6 +224,8 @@ ply_boot_client_request_free (ply_boot_client_request_t *request)
   if (request == NULL)
     return;
   free (request->command);
+  if (request->argument != NULL)
+    free (request->argument);
   free (request);
 }
 

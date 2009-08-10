@@ -417,6 +417,13 @@ on_key_event (ply_window_t *window)
   check_buffer_for_key_events (window);
 }
 
+static void
+on_tty_disconnected (ply_window_t *window)
+{
+  ply_trace ("tty disconnected (fd %d)", window->tty_fd);
+  window->tty_fd_watch = NULL;
+}
+
 static bool
 ply_window_set_unbuffered_input (ply_window_t *window)
 {
@@ -573,7 +580,8 @@ ply_window_open (ply_window_t *window)
     window->tty_fd_watch = ply_event_loop_watch_fd (window->loop, window->tty_fd,
                                                     PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
                                                     (ply_event_handler_t) on_key_event,
-                                                    NULL, window);
+                                                    (ply_event_handler_t) on_tty_disconnected,
+                                                    window);
 
   /* We try to open the frame buffer, but it may fail. splash plugins can check
    * to see if it's open and react accordingly

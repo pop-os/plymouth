@@ -126,6 +126,7 @@ create_plugin (ply_key_file_t *key_file)
   plugin->throbber = ply_throbber_new (image_dir, "throbber-");
   plugin->label = ply_label_new ();
   plugin->progress_bar = ply_progress_bar_new ();
+  free(image_dir);
 
   return plugin;
 }

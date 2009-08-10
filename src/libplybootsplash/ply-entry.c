@@ -113,6 +113,7 @@ ply_entry_free (ply_entry_t *entry)
   ply_image_free (entry->text_field_image);
   ply_image_free (entry->bullet_image);
   ply_label_free (entry->label);
+  free (entry->text);
 
   free (entry);
 }

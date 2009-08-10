@@ -269,6 +269,7 @@ create_plugin (ply_key_file_t *key_file)
   plugin->sprites = ply_list_new();
   plugin->progress = 0;
   plugin->progress_target = -1;
+  free(image_dir);
   return plugin;
 }
 

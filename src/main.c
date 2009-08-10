@@ -119,7 +119,11 @@ static void on_escape_pressed (state_t *state);
 static void dump_details_and_quit_splash (state_t *state);
 static void update_display (state_t *state);
 
+static void on_error_message (ply_buffer_t *debug_buffer,
+                              const void   *bytes,
+                              size_t        number_of_bytes);
 static ply_buffer_t *debug_buffer;
+static char *debug_buffer_path;
 
 static void
 switch_to_vt (int vt_number)
@@ -1107,11 +1111,15 @@ get_kernel_command_line (state_t *state)
 static void
 check_verbosity (state_t *state)
 {
+  char *path;
+
   ply_trace ("checking if tracing should be enabled");
 
+  path = NULL;
   if ((strstr (state->kernel_command_line, " plymouth:debug ") != NULL)
      || (strstr (state->kernel_command_line, "plymouth:debug ") != NULL)
-     || (strstr (state->kernel_command_line, " plymouth:debug") != NULL))
+     || (strstr (state->kernel_command_line, " plymouth:debug") != NULL)
+     || (path = strstr (state->kernel_command_line, " plymouth:debug=file:")) != NULL)
     {
 #ifdef LOG_TO_DEBUG_FILE
       int fd;
@@ -1121,6 +1129,26 @@ check_verbosity (state_t *state)
       if (!ply_is_tracing ())
         ply_toggle_tracing ();
 
+      if (path != NULL)
+        {
+          char *end;
+
+          path += strlen (" plymouth:debug=file:");
+          debug_buffer_path = strdup (path);
+          end = strstr (debug_buffer_path, " ");
+
+          if (end != NULL)
+            *end = '\0';
+
+          debug_buffer_path = path;
+        }
+
+        if (debug_buffer_path == NULL)
+          debug_buffer_path = strdup (PLYMOUTH_LOG_DIRECTORY "/plymouth-debug.log");
+
+        if (debug_buffer != NULL)
+          debug_buffer = ply_buffer_new ();
+
 #ifdef LOG_TO_DEBUG_FILE
       fd = open ("/dev/console", O_RDWR);
       ply_logger_set_output_fd (ply_logger_get_error_default (), fd);
@@ -1128,6 +1156,15 @@ check_verbosity (state_t *state)
     }
   else
     ply_trace ("tracing shouldn't be enabled!");
+
+  if (debug_buffer != NULL)
+    {
+      ply_logger_add_filter (ply_logger_get_error_default (),
+                             (ply_logger_filter_handler_t)
+                             on_error_message,
+                             debug_buffer);
+
+    }
 }
 
 static void
@@ -1284,11 +1321,24 @@ on_error_message (ply_buffer_t *debug_buffer,
 }
 
 static void
+dump_debug_buffer_to_file (void)
+{
+  int fd;
+  const char *bytes;
+  size_t size;
+
+  fd = open (debug_buffer_path,
+             O_WRONLY | O_CREAT, 0600);
+  size = ply_buffer_get_size (debug_buffer);
+  bytes = ply_buffer_get_bytes (debug_buffer);
+  ply_write (fd, bytes, size);
+  close (fd);
+}
+
+static void
 on_crash (int signum)
 {
     int fd;
-    const char *bytes;
-    size_t size;
 
     fd = open ("/dev/tty1", O_RDWR | O_NOCTTY);
 
@@ -1296,16 +1346,11 @@ on_crash (int signum)
 
     close (fd);
 
-    if (debug_buffer != NULL) {
-            fd = open (PLYMOUTH_LOG_DIRECTORY "/plymouth-crash.log",
-                       O_WRONLY | O_CREAT, 0600);
-            size = ply_buffer_get_size (debug_buffer);
-            bytes = ply_buffer_get_bytes (debug_buffer);
-            ply_write (fd, bytes, size);
-            close (fd);
-
-            pause ();
-    }
+    if (debug_buffer != NULL)
+      {
+        dump_debug_buffer_to_file ();
+        pause ();
+      }
 
     signal (signum, SIG_DFL);
     raise(signum);
@@ -1405,14 +1450,7 @@ main (int    argc,
     }
 
   if (debug)
-    {
-      debug_buffer = ply_buffer_new ();
-
-      ply_logger_add_filter (ply_logger_get_error_default (),
-                             (ply_logger_filter_handler_t)
-                             on_error_message,
-                             debug_buffer);
-    }
+    debug_buffer = ply_buffer_new ();
 
   signal (SIGABRT, on_crash);
   signal (SIGSEGV, on_crash);
@@ -1503,7 +1541,11 @@ main (int    argc,
 
   ply_trace ("exiting with code %d", exit_code);
   
-  ply_buffer_free (debug_buffer);
+  if (debug_buffer != NULL)
+    {
+      dump_debug_buffer_to_file ();
+      ply_buffer_free (debug_buffer);
+    }
 
   ply_free_error_log();
 

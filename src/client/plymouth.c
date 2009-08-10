@@ -870,6 +870,8 @@ main (int    argc,
 
   ply_boot_client_free (state.client);
 
+  ply_event_loop_free (state.loop);
+
   return exit_code;
 }
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

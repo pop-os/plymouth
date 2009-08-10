@@ -43,7 +43,7 @@
 #endif
 
 #ifndef PLY_BUFFER_MAX_BUFFER_CAPACITY
-#define PLY_BUFFER_MAX_BUFFER_CAPACITY (8 * 4096)
+#define PLY_BUFFER_MAX_BUFFER_CAPACITY (255 * 4096)
 #endif
 
 struct _ply_buffer

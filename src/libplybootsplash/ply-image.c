@@ -352,7 +352,7 @@ ply_image_resize (ply_image_t *image,
         {
           old_x = x * scale_x;
           new_image->layout.as_pixels[x + y * width] =
-                    ply_image_interpolate (image, width, height, old_x, old_y);
+                    ply_image_interpolate (image, old_width, old_height, old_x, old_y);
         }
     }
   return new_image;

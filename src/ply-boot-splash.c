@@ -519,15 +519,14 @@ main (int    argc,
   else
     theme_path = PLYMOUTH_THEME_PATH "/fade-in/fade-in.plymouth";
 
-  tty_name = strdup("tty");
-  if (argc > 2) {
-      strncat(tty_name, argv[2], strlen(argv[2]));
-  } else {
-      strncat(tty_name, "0", 1);
-  }
+  if (argc > 2)
+    asprintf(&tty_name, "tty%s", argv[2]);
+  else
+    tty_name = strdup("tty0");
 
   state.window = ply_window_new (tty_name);
   free(tty_name);
+  ply_window_attach_to_event_loop (state.window, state.loop);
 
   if (!ply_window_open (state.window))
     {

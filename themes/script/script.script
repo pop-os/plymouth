@@ -94,7 +94,10 @@ fun display_normal_callback ()
 fun display_password_callback (prompt, bullets)
   {
     global.status = "password";
-    if (!global.dialogue) dialogue_setup();
+    if (!global.dialogue)
+	dialogue_setup();
+    else
+	dialog_opacity(1);
     for (index = 0; dialogue.bullet[index] || index < bullets; index++)
       {
         if (!dialogue.bullet[index])

@@ -415,6 +415,15 @@ display_question (ply_boot_splash_plugin_t *plugin,
                                            entry_text);
 }
 
+static void
+display_message (ply_boot_splash_plugin_t *plugin,
+                 const char               *message)
+{
+  script_lib_plymouth_on_message (plugin->script_state,
+                                  plugin->script_plymouth_lib,
+                                  message);
+}
+
 ply_boot_splash_plugin_interface_t *
 ply_boot_splash_plugin_get_interface (void)
 {
@@ -433,6 +442,7 @@ ply_boot_splash_plugin_get_interface (void)
     .display_normal = display_normal,
     .display_password = display_password,
     .display_question = display_question,
+    .display_message = display_message,
   };
 
   return &plugin_interface;

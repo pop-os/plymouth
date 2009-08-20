@@ -14,6 +14,7 @@ libplybootsplash_HEADERS = \
 		    ply-image.h                                               \
 		    ply-label.h                                               \
 		    ply-label-plugin.h                                        \
+		    ply-pixel-buffer.h                                        \
 		    ply-progress-animation.h                                  \
 		    ply-progress-bar.h                                        \
 		    ply-text-progress-bar.h                                   \
@@ -40,6 +41,7 @@ libplybootsplash_la_SOURCES = \
 		    ply-animation.c                                          \
 		    ply-progress-animation.c                                 \
 		    ply-text-progress-bar.c                                  \
+		    ply-pixel-buffer.c                                       \
 		    ply-window.c                                             \
 		    ply-boot-splash.c
 

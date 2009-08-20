@@ -24,6 +24,7 @@ libply_HEADERS = \
 		    ply-key-file.h                                            \
 		    ply-progress.h                                            \
 		    ply-rectangle.h                                           \
+		    ply-region.h                                              \
 		    ply-terminal-session.h                                    \
 		    ply-trigger.h                                             \
 		    ply-utils.h
@@ -46,6 +47,7 @@ libply_la_SOURCES = ply-event-loop.c                                          \
 		    ply-key-file.c                                            \
 		    ply-progress.c                                            \
 		    ply-rectangle.c                                           \
+		    ply-region.c                                              \
 		    ply-terminal-session.c                                    \
 		    ply-trigger.c                                             \
 		    ply-utils.c

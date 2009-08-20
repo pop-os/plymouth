@@ -14,7 +14,6 @@ libplydir = $(includedir)/plymouth-1/ply
 libply_HEADERS = \
 		    ply-event-loop.h                                          \
 		    ply-command-parser.h                                      \
-		    ply-frame-buffer.h                                        \
 		    ply-buffer.h                                              \
 		    ply-array.h                                               \
 		    ply-bitarray.h                                            \
@@ -37,7 +36,6 @@ libply_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
 libply_la_SOURCES = ply-event-loop.c                                          \
 		    $(libply_HEADERS)                                         \
 		    ply-command-parser.c                                      \
-		    ply-frame-buffer.c                                        \
 		    ply-buffer.c                                              \
 		    ply-array.c                                               \
 		    ply-bitarray.c                                            \

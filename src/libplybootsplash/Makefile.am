@@ -12,6 +12,7 @@ libplybootsplash_HEADERS = \
 		    ply-boot-splash-plugin.h                                  \
 		    ply-entry.h                                               \
 		    ply-image.h                                               \
+		    ply-keyboard.h                                            \
 		    ply-label.h                                               \
 		    ply-label-plugin.h                                        \
 		    ply-pixel-buffer.h                                        \
@@ -35,6 +36,7 @@ libplybootsplash_la_SOURCES = \
 		    $(libplybootsplash_HEADERS)                              \
 		    ply-entry.c                                              \
 		    ply-image.c                                              \
+		    ply-keyboard.c                                           \
 		    ply-label.c                                              \
 		    ply-progress-bar.c                                       \
 		    ply-throbber.c                                           \

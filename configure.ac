@@ -209,6 +209,8 @@ AC_OUTPUT([Makefile
            src/libplybootsplash/Makefile
            src/plymouth-1.pc
            src/plugins/Makefile
+           src/plugins/renderers/Makefile
+           src/plugins/renderers/frame-buffer/Makefile
            src/plugins/splash/Makefile
            src/plugins/splash/throbgress/Makefile
            src/plugins/splash/fade-throbber/Makefile

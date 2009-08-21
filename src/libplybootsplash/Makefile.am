@@ -10,6 +10,7 @@ libplybootsplash_HEADERS = \
 		    ply-animation.h                                           \
 		    ply-boot-splash.h                                         \
 		    ply-boot-splash-plugin.h                                  \
+		    ply-console.h                                             \
 		    ply-entry.h                                               \
 		    ply-image.h                                               \
 		    ply-keyboard.h                                            \
@@ -18,6 +19,8 @@ libplybootsplash_HEADERS = \
 		    ply-pixel-buffer.h                                        \
 		    ply-progress-animation.h                                  \
 		    ply-progress-bar.h                                        \
+		    ply-renderer.h                                            \
+		    ply-renderer-plugin.h                                     \
 		    ply-terminal.h                                            \
 		    ply-text-progress-bar.h                                   \
 		    ply-throbber.h                                            \
@@ -35,6 +38,7 @@ libplybootsplash_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
 		    -no-undefined
 libplybootsplash_la_SOURCES = \
 		    $(libplybootsplash_HEADERS)                              \
+		    ply-console.c                                            \
 		    ply-entry.c                                              \
 		    ply-image.c                                              \
 		    ply-keyboard.c                                           \
@@ -46,6 +50,7 @@ libplybootsplash_la_SOURCES = \
 		    ply-text-progress-bar.c                                  \
 		    ply-terminal.c                                           \
 		    ply-pixel-buffer.c                                       \
+		    ply-renderer.c                                           \
 		    ply-window.c                                             \
 		    ply-boot-splash.c
 

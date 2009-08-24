@@ -1330,6 +1330,10 @@ dump_debug_buffer_to_file (void)
 
   fd = open (debug_buffer_path,
              O_WRONLY | O_CREAT, 0600);
+
+  if (fd < 0)
+    return;
+
   size = ply_buffer_get_size (debug_buffer);
   bytes = ply_buffer_get_bytes (debug_buffer);
   ply_write (fd, bytes, size);

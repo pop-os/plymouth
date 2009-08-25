@@ -134,6 +134,8 @@ on_timeout (ply_boot_splash_plugin_t *plugin)
 {
   double sleep_time;
 
+  ply_window_set_mode (plugin->window, PLY_WINDOW_MODE_GRAPHICS);
+
   script_lib_plymouth_on_refresh (plugin->script_state,
                                   plugin->script_plymouth_lib);
   script_lib_sprite_refresh (plugin->script_sprite_lib);

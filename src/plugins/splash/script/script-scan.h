@@ -27,15 +27,15 @@
 
 typedef enum
 {
-  script_scan_TOKEN_TYPE_EMPTY,
-  script_scan_TOKEN_TYPE_EOF,
-  script_scan_TOKEN_TYPE_INTEGER,
-  script_scan_TOKEN_TYPE_FLOAT,
-  script_scan_TOKEN_TYPE_IDENTIFIER,
-  script_scan_TOKEN_TYPE_STRING,
-  script_scan_TOKEN_TYPE_SYMBOL,
-  script_scan_TOKEN_TYPE_COMMENT,
-  script_scan_TOKEN_TYPE_ERROR,
+  SCRIPT_SCAN_TOKEN_TYPE_EMPTY,
+  SCRIPT_SCAN_TOKEN_TYPE_EOF,
+  SCRIPT_SCAN_TOKEN_TYPE_INTEGER,
+  SCRIPT_SCAN_TOKEN_TYPE_FLOAT,
+  SCRIPT_SCAN_TOKEN_TYPE_IDENTIFIER,
+  SCRIPT_SCAN_TOKEN_TYPE_STRING,
+  SCRIPT_SCAN_TOKEN_TYPE_SYMBOL,
+  SCRIPT_SCAN_TOKEN_TYPE_COMMENT,
+  SCRIPT_SCAN_TOKEN_TYPE_ERROR,
 } script_scan_token_type_t;
 
 typedef struct
@@ -72,21 +72,21 @@ typedef struct
 
 
 #define script_scan_token_is_symbol(__token) \
-      (__token->type == script_scan_TOKEN_TYPE_SYMBOL)
+      (__token->type == SCRIPT_SCAN_TOKEN_TYPE_SYMBOL)
 #define script_scan_token_is_symbol_of_value(__token,__value) \
-      (__token->type == script_scan_TOKEN_TYPE_SYMBOL \
+      (__token->type == SCRIPT_SCAN_TOKEN_TYPE_SYMBOL \
       && __token->data.symbol == __value)
 #define script_scan_token_is_identifier(__token) \
-      (__token->type == script_scan_TOKEN_TYPE_IDENTIFIER)
+      (__token->type == SCRIPT_SCAN_TOKEN_TYPE_IDENTIFIER)
 #define script_scan_token_is_identifier_of_value(__token,__value) \
-      (__token->type == script_scan_TOKEN_TYPE_IDENTIFIER \
+      (__token->type == SCRIPT_SCAN_TOKEN_TYPE_IDENTIFIER \
       && !strcmp(__token->data.string, __value))
 #define script_scan_token_is_integer(__token) \
-      (__token->type == script_scan_TOKEN_TYPE_INTEGER)
+      (__token->type == SCRIPT_SCAN_TOKEN_TYPE_INTEGER)
 #define script_scan_token_is_string(__token) \
-      (__token->type == script_scan_TOKEN_TYPE_STRING)
+      (__token->type == SCRIPT_SCAN_TOKEN_TYPE_STRING)
 #define script_scan_token_is_float(__token) \
-      (__token->type == script_scan_TOKEN_TYPE_FLOAT)
+      (__token->type == SCRIPT_SCAN_TOKEN_TYPE_FLOAT)
 
 
 

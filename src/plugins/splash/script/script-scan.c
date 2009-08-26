@@ -83,20 +83,20 @@ void script_scan_token_clean (script_scan_token_t *token)
 {
   switch (token->type)
     {
-      case script_scan_TOKEN_TYPE_EMPTY:
-      case script_scan_TOKEN_TYPE_EOF:
-      case script_scan_TOKEN_TYPE_INTEGER:
-      case script_scan_TOKEN_TYPE_FLOAT:
-      case script_scan_TOKEN_TYPE_SYMBOL:
+      case SCRIPT_SCAN_TOKEN_TYPE_EMPTY:
+      case SCRIPT_SCAN_TOKEN_TYPE_EOF:
+      case SCRIPT_SCAN_TOKEN_TYPE_INTEGER:
+      case SCRIPT_SCAN_TOKEN_TYPE_FLOAT:
+      case SCRIPT_SCAN_TOKEN_TYPE_SYMBOL:
         break;
-      case script_scan_TOKEN_TYPE_IDENTIFIER:
-      case script_scan_TOKEN_TYPE_STRING:
-      case script_scan_TOKEN_TYPE_COMMENT:
-      case script_scan_TOKEN_TYPE_ERROR:
+      case SCRIPT_SCAN_TOKEN_TYPE_IDENTIFIER:
+      case SCRIPT_SCAN_TOKEN_TYPE_STRING:
+      case SCRIPT_SCAN_TOKEN_TYPE_COMMENT:
+      case SCRIPT_SCAN_TOKEN_TYPE_ERROR:
         free (token->data.string);
         break;
     }
-  token->type = script_scan_TOKEN_TYPE_EMPTY;
+  token->type = SCRIPT_SCAN_TOKEN_TYPE_EMPTY;
   token->whitespace = 0;
 }
 
@@ -178,7 +178,7 @@ void script_scan_read_next_token (script_scan_t       *scan,
   if (ply_bitarray_lookup (scan->identifier_1st_char, curchar))
     {
       int index = 1;
-      token->type = script_scan_TOKEN_TYPE_IDENTIFIER;
+      token->type = SCRIPT_SCAN_TOKEN_TYPE_IDENTIFIER;
       token->data.string =  malloc (2 * sizeof (char));
       token->data.string[0] = curchar;
       token->data.string[1] = '\0';
@@ -217,24 +217,24 @@ void script_scan_read_next_token (script_scan_t       *scan,
               floatpoint += scalar * (curchar - '0');
               curchar = script_scan_get_next_char (scan);
             }
-          token->type = script_scan_TOKEN_TYPE_FLOAT;
+          token->type = SCRIPT_SCAN_TOKEN_TYPE_FLOAT;
           token->data.floatpoint = floatpoint;
         }
       else
         {
-          token->type = script_scan_TOKEN_TYPE_INTEGER;
+          token->type = SCRIPT_SCAN_TOKEN_TYPE_INTEGER;
           token->data.integer = int_value;
         }
       return;
     }
   if (!curchar)
     {
-      token->type = script_scan_TOKEN_TYPE_EOF;
+      token->type = SCRIPT_SCAN_TOKEN_TYPE_EOF;
       return;
     }
   if (curchar == '\"')
     {
-      token->type = script_scan_TOKEN_TYPE_STRING;
+      token->type = SCRIPT_SCAN_TOKEN_TYPE_STRING;
       int index = 0;
       token->data.string = malloc (sizeof (char));
       token->data.string[0] = '\0';
@@ -245,13 +245,13 @@ void script_scan_read_next_token (script_scan_t       *scan,
           if (curchar == '\0')
             {
               token->data.string = strdup("End of file before end of string");
-              token->type = script_scan_TOKEN_TYPE_ERROR;
+              token->type = SCRIPT_SCAN_TOKEN_TYPE_ERROR;
               return;
             }
           if (curchar == '\n')
             {
               token->data.string = strdup("Line terminator before end of string");
-              token->type = script_scan_TOKEN_TYPE_ERROR;
+              token->type = SCRIPT_SCAN_TOKEN_TYPE_ERROR;
               return;
             }
           if (curchar == '\\')
@@ -309,7 +309,7 @@ void script_scan_read_next_token (script_scan_t       *scan,
             token->data.string[index + 1] = '\0';
             index++;
           }
-        token->type = script_scan_TOKEN_TYPE_COMMENT;
+        token->type = SCRIPT_SCAN_TOKEN_TYPE_COMMENT;
         return;
       }
   }
@@ -329,7 +329,7 @@ void script_scan_read_next_token (script_scan_t       *scan,
             {
               free (token->data.string);
               token->data.string = strdup("End of file before end of comment");
-              token->type = script_scan_TOKEN_TYPE_ERROR;
+              token->type = SCRIPT_SCAN_TOKEN_TYPE_ERROR;
               return;
             }
           if ((curchar == '/') && (nextchar == '*'))
@@ -348,11 +348,11 @@ void script_scan_read_next_token (script_scan_t       *scan,
           nextchar = script_scan_get_next_char (scan);
         }
       script_scan_get_next_char (scan);
-      token->type = script_scan_TOKEN_TYPE_COMMENT;
+      token->type = SCRIPT_SCAN_TOKEN_TYPE_COMMENT;
       return;
     }
   /* all other */
-  token->type = script_scan_TOKEN_TYPE_SYMBOL;
+  token->type = SCRIPT_SCAN_TOKEN_TYPE_SYMBOL;
   token->data.symbol = curchar;
   return;
 }
@@ -369,20 +369,20 @@ static script_scan_token_t *script_scan_peek_token (script_scan_t *scan,
       for (i = scan->tokencount; i <= n; i++)                                   /* FIXME warning about possibely inifnite loop */
         {
           scan->tokens[i] = malloc (sizeof (script_scan_token_t));
-          scan->tokens[i]->type = script_scan_TOKEN_TYPE_EMPTY;
+          scan->tokens[i]->type = SCRIPT_SCAN_TOKEN_TYPE_EMPTY;
         }
       scan->tokencount = n + 1;
     }
-  if (scan->tokens[n]->type == script_scan_TOKEN_TYPE_EMPTY)
+  if (scan->tokens[n]->type == SCRIPT_SCAN_TOKEN_TYPE_EMPTY)
     {
-      if ((n > 0) && (scan->tokens[n - 1]->type == script_scan_TOKEN_TYPE_EMPTY))
+      if ((n > 0) && (scan->tokens[n - 1]->type == SCRIPT_SCAN_TOKEN_TYPE_EMPTY))
         script_scan_peek_token (scan, n - 1);
       do
         {
           script_scan_token_clean (scan->tokens[n]);
           script_scan_read_next_token (scan, scan->tokens[n]);                     /* FIXME if skipping comments, add whitespace to next token */
         }
-      while (scan->tokens[n]->type == script_scan_TOKEN_TYPE_COMMENT);             /* FIXME optionally pass comments back */
+      while (scan->tokens[n]->type == SCRIPT_SCAN_TOKEN_TYPE_COMMENT);             /* FIXME optionally pass comments back */
     }
   return scan->tokens[n];
 }
@@ -393,7 +393,7 @@ script_scan_token_t *script_scan_get_next_token (script_scan_t *scan)
   script_scan_token_clean (scan->tokens[0]);
   for (i = 0; i < (scan->tokencount - 1); i++)
     *scan->tokens[i] = *scan->tokens[i + 1];
-  scan->tokens[(scan->tokencount - 1)]->type = script_scan_TOKEN_TYPE_EMPTY;
+  scan->tokens[(scan->tokencount - 1)]->type = SCRIPT_SCAN_TOKEN_TYPE_EMPTY;
   return script_scan_peek_token (scan, 0);
 }
 

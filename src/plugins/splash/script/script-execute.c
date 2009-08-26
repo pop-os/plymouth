@@ -147,8 +147,8 @@ static script_obj_t *script_evaluate_cmp (script_state_t           *state,
   script_obj_unref (script_obj_b);
   
   if (cmp_result & condition)
-    return script_obj_new_int (1);
-  return script_obj_new_int (0);
+    return script_obj_new_number (1);
+  return script_obj_new_number (0);
 }
 
 static script_obj_t *script_evaluate_logic (script_state_t *state,
@@ -173,7 +173,7 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
 
   if (exp->type == SCRIPT_EXP_TYPE_NOT)
     {
-      new_obj = script_obj_new_int (!script_obj_as_bool (obj));
+      new_obj = script_obj_new_number (!script_obj_as_bool (obj));
       script_obj_unref (obj);
       return new_obj;
     }
@@ -181,10 +181,8 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
     return obj;                             /* Does nothing, maybe just remove at parse stage */
   if (exp->type == SCRIPT_EXP_TYPE_NEG)
     {
-      if (script_obj_is_int(obj))
-        new_obj = script_obj_new_int (-script_obj_as_int (obj));
-      else if (script_obj_is_float(obj))
-        new_obj = script_obj_new_float (-script_obj_as_float (obj));
+      if (script_obj_is_number(obj))
+        new_obj = script_obj_new_number (-script_obj_as_number (obj));
       else new_obj = script_obj_new_null ();
       script_obj_unref (obj);
       return new_obj;
@@ -201,15 +199,10 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
     change_pre = 1;
   else if (exp->type == SCRIPT_EXP_TYPE_PRE_DEC)
     change_pre = -1;
-  if (script_obj_is_int(obj))
+  if (script_obj_is_number(obj))
     {
-      new_obj = script_obj_new_int (script_obj_as_int(obj) + change_pre);
-      obj->data.integer += change_post;                     /* FIXME direct access */
-    }
-  else if (script_obj_is_float(obj))
-    {
-      new_obj = script_obj_new_float (script_obj_as_float(obj) + change_pre);
-      obj->data.floatpoint += change_post;
+      new_obj = script_obj_new_number (script_obj_as_number(obj) + change_pre);
+      obj->data.number += change_post;
     }
   else
     {
@@ -338,14 +331,9 @@ static script_obj_t *script_evaluate (script_state_t *state,
           return script_evaluate_unary (state, exp);
         }
 
-      case SCRIPT_EXP_TYPE_TERM_INT:
+      case SCRIPT_EXP_TYPE_TERM_NUMBER:
         {
-          return script_obj_new_int (exp->data.integer);
-        }
-
-      case SCRIPT_EXP_TYPE_TERM_FLOAT:
-        {
-          return script_obj_new_float (exp->data.floatpoint);
+          return script_obj_new_number (exp->data.number);
         }
 
       case SCRIPT_EXP_TYPE_TERM_STRING:
@@ -488,7 +476,7 @@ static script_return_t script_execute_function_with_parlist (script_state_t    *
       node_data = ply_list_get_next_node (parameter_data, node_data);
     }
 
-  script_obj_t *count_obj = script_obj_new_int (index);
+  script_obj_t *count_obj = script_obj_new_number (index);
   script_obj_hash_add_element (arg_obj, count_obj, "count");
   script_obj_hash_add_element (sub_state->local, arg_obj, "_args");
   script_obj_unref (count_obj);

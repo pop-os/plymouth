@@ -167,16 +167,16 @@ static script_exp_t *script_parse_exp_tm (script_scan_t *scan)
   if (script_scan_token_is_integer (curtoken))
     {
       exp = malloc (sizeof (script_exp_t));
-      exp->type = SCRIPT_EXP_TYPE_TERM_INT;
-      exp->data.integer = curtoken->data.integer;
+      exp->type = SCRIPT_EXP_TYPE_TERM_NUMBER;
+      exp->data.number = curtoken->data.integer;
       script_scan_get_next_token (scan);
       return exp;
     }
   if (script_scan_token_is_float (curtoken))
     {
       exp = malloc (sizeof (script_exp_t));
-      exp->type = SCRIPT_EXP_TYPE_TERM_FLOAT;
-      exp->data.floatpoint = curtoken->data.floatpoint;
+      exp->type = SCRIPT_EXP_TYPE_TERM_NUMBER;
+      exp->data.number = curtoken->data.floatpoint;
       script_scan_get_next_token (scan);
       return exp;
     }
@@ -282,12 +282,6 @@ static script_exp_t *script_parse_exp_pi (script_scan_t *scan)
               key = malloc (sizeof (script_exp_t));
               key->type = SCRIPT_EXP_TYPE_TERM_STRING;
               key->data.string = strdup (curtoken->data.string);
-            }
-          else if (script_scan_token_is_integer (curtoken))       /* errrr, integer keys without being [] bracketed */
-            {
-              key = malloc (sizeof (script_exp_t));                       /* This is broken with floats as obj.10.6 is obj[10.6] and not obj[10][6] */
-              key->type = SCRIPT_EXP_TYPE_TERM_INT;
-              key->data.integer = curtoken->data.integer;
             }
           else
             {
@@ -742,8 +736,7 @@ static void script_parse_exp_free (script_exp_t *exp)
         script_parse_exp_free (exp->data.sub);
         break;
 
-      case SCRIPT_EXP_TYPE_TERM_INT:
-      case SCRIPT_EXP_TYPE_TERM_FLOAT:
+      case SCRIPT_EXP_TYPE_TERM_NUMBER:
       case SCRIPT_EXP_TYPE_TERM_NULL:
       case SCRIPT_EXP_TYPE_TERM_LOCAL:
       case SCRIPT_EXP_TYPE_TERM_GLOBAL:
@@ -875,7 +868,7 @@ script_op_t *script_parse_file (const char *filename)
   ply_list_t *list = script_parse_op_list (scan);
 
   script_scan_token_t *curtoken = script_scan_get_current_token (scan);
-  if (curtoken->type != script_scan_TOKEN_TYPE_EOF)
+  if (curtoken->type != SCRIPT_SCAN_TOKEN_TYPE_EOF)
     {
       script_parse_error (curtoken, "Unparsed characters at end of file");
       return NULL;

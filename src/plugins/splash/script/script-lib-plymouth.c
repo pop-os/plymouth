@@ -159,14 +159,14 @@ void script_lib_plymouth_on_refresh (script_state_t             *state,
 
 void script_lib_plymouth_on_boot_progress (script_state_t             *state,
                                            script_lib_plymouth_data_t *data,
-                                           float                       duration,
-                                           float                       progress)
+                                           double                     duration,
+                                           double                     progress)
 {
   script_function_t *function = script_obj_as_function (data->script_boot_progress_func);
   if (function)
     {
-      script_obj_t *duration_obj = script_obj_new_float (duration);
-      script_obj_t *progress_obj = script_obj_new_float (progress);
+      script_obj_t *duration_obj = script_obj_new_number (duration);
+      script_obj_t *progress_obj = script_obj_new_number (progress);
       script_return_t ret = script_execute_function (state,
                                                      function,
                                                      duration_obj,
@@ -247,7 +247,7 @@ void script_lib_plymouth_on_display_password (script_state_t             *state,
   if (function)
     {
       script_obj_t *prompt_obj = script_obj_new_string (prompt);
-      script_obj_t *bullets_obj = script_obj_new_int (bullets);
+      script_obj_t *bullets_obj = script_obj_new_number (bullets);
       script_return_t ret = script_execute_function (state,
                                                      function,
                                                      prompt_obj,

@@ -78,6 +78,8 @@ typedef struct
   void *user_data;
 } script_obj_native_class_t;
 
+typedef double script_number_t;
+
 typedef struct
 {
   void *object_data;
@@ -88,8 +90,7 @@ typedef enum
 {
   SCRIPT_OBJ_TYPE_NULL,
   SCRIPT_OBJ_TYPE_REF,
-  SCRIPT_OBJ_TYPE_INT,
-  SCRIPT_OBJ_TYPE_FLOAT,
+  SCRIPT_OBJ_TYPE_NUMBER,
   SCRIPT_OBJ_TYPE_STRING,
   SCRIPT_OBJ_TYPE_HASH,
   SCRIPT_OBJ_TYPE_FUNCTION,
@@ -102,8 +103,7 @@ typedef struct script_obj_t
   int refcount;
   union
   {
-    int integer;
-    float floatpoint;
+    script_number_t number;
     char *string;
     struct script_obj_t *obj;
     script_function_t *function;
@@ -115,8 +115,7 @@ typedef struct script_obj_t
 typedef enum
 {
   SCRIPT_EXP_TYPE_TERM_NULL,
-  SCRIPT_EXP_TYPE_TERM_INT,
-  SCRIPT_EXP_TYPE_TERM_FLOAT,
+  SCRIPT_EXP_TYPE_TERM_NUMBER,
   SCRIPT_EXP_TYPE_TERM_STRING,
   SCRIPT_EXP_TYPE_TERM_VAR,
   SCRIPT_EXP_TYPE_TERM_LOCAL,
@@ -164,8 +163,7 @@ typedef struct script_exp_t
     } dual;
     struct script_exp_t *sub;
     char *string;
-    int integer;
-    float floatpoint;
+    script_number_t number;
     struct
     {
       struct script_exp_t *name;

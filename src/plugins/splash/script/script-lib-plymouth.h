@@ -45,8 +45,8 @@ void script_lib_plymouth_on_refresh (script_state_t             *state,
                                      script_lib_plymouth_data_t *data);
 void script_lib_plymouth_on_boot_progress (script_state_t             *state,
                                            script_lib_plymouth_data_t *data,
-                                           float                       duration,
-                                           float                       progress);
+                                           double                     duration,
+                                           double                     progress);
 void script_lib_plymouth_on_root_mounted (script_state_t             *state,
                                           script_lib_plymouth_data_t *data);
 void script_lib_plymouth_on_keyboard_input (script_state_t             *state,

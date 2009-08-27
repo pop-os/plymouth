@@ -577,8 +577,6 @@ script_obj_cmp_result_t script_obj_cmp (script_obj_t *script_obj_a,
         {
           script_number_t num_a = script_obj_as_number (script_obj_a);
           script_number_t num_b = script_obj_as_number (script_obj_b);
-          if (num_b == 21)
-            printf("%f-%f ", num_a, num_b);
 
           if (num_a < num_b) return SCRIPT_OBJ_CMP_RESULT_LT;
           if (num_a > num_b) return SCRIPT_OBJ_CMP_RESULT_GT;

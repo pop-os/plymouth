@@ -123,7 +123,7 @@ static void on_error_message (ply_buffer_t *debug_buffer,
                               const void   *bytes,
                               size_t        number_of_bytes);
 static ply_buffer_t *debug_buffer;
-static char *debug_buffer_path;
+static char *debug_buffer_path = NULL;
 
 static void
 switch_to_vt (int vt_number)
@@ -1130,7 +1130,7 @@ check_verbosity (state_t *state)
       if (!ply_is_tracing ())
         ply_toggle_tracing ();
 
-      if (path != NULL)
+      if (path != NULL && debug_buffer_path == NULL)
         {
           char *end;
 
@@ -1383,6 +1383,7 @@ main (int    argc,
                                   "attach-to-session", "Redirect console messages from screen to log", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "no-daemon", "Do not daemonize", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "debug", "Output debugging information", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "debug-file", "File to output debugging information to", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "mode", "Mode is one of: boot, shutdown", PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
@@ -1404,6 +1405,7 @@ main (int    argc,
                                   "mode", &mode_string,
                                   "no-daemon", &no_daemon,
                                   "debug", &debug,
+                                  "debug-file", &debug_buffer_path,
                                   NULL);
 
   if (should_help)

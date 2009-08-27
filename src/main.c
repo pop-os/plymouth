@@ -1359,7 +1359,7 @@ main (int    argc,
 
   state.command_parser = ply_command_parser_new ("plymouthd", "Boot splash control server");
 
-  state.loop = ply_event_loop_new ();
+  state.loop = ply_event_loop_get_default ();
 
   ply_command_parser_add_options (state.command_parser,
                                   "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
@@ -1525,9 +1525,6 @@ main (int    argc,
 
   ply_buffer_free (state.boot_buffer);
   ply_progress_free (state.progress);
-
-  ply_trace ("freeing event loop");
-  ply_event_loop_free (state.loop);
 
   ply_trace ("exiting with code %d", exit_code);
   

@@ -489,6 +489,17 @@ ply_event_loop_new (void)
   return loop;
 }
 
+ply_event_loop_t *
+ply_event_loop_get_default (void)
+{
+  static ply_event_loop_t *loop = NULL;
+
+  if (loop == NULL)
+    loop = ply_event_loop_new ();
+
+  return loop;
+}
+
 static void
 ply_event_loop_free_exit_closures (ply_event_loop_t *loop)
 {

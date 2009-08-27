@@ -150,7 +150,6 @@ script_obj_t *script_obj_new_null (void)
 
 script_obj_t *script_obj_new_number (script_number_t number)
 {
-  if (isnan (number)) return script_obj_new_null ();
   script_obj_t *obj = malloc (sizeof (script_obj_t));
   obj->type = SCRIPT_OBJ_TYPE_NUMBER;
   obj->refcount = 1;
@@ -220,14 +219,10 @@ script_number_t script_obj_as_number (script_obj_t *obj)
         return obj->data.number;
 
       case SCRIPT_OBJ_TYPE_NULL:
-        return NAN;
-
       case SCRIPT_OBJ_TYPE_REF:
       case SCRIPT_OBJ_TYPE_HASH:
       case SCRIPT_OBJ_TYPE_FUNCTION:
       case SCRIPT_OBJ_TYPE_NATIVE:
-        return NAN;
-
       case SCRIPT_OBJ_TYPE_STRING:
         return NAN;
     }
@@ -580,10 +575,15 @@ script_obj_cmp_result_t script_obj_cmp (script_obj_t *script_obj_a,
     {
       if (script_obj_is_number (script_obj_b))
         {
-          script_number_t diff = script_obj_as_number (script_obj_a) - script_obj_as_number (script_obj_b);
-          if (diff < 0) return SCRIPT_OBJ_CMP_RESULT_LT;
-          if (diff > 0) return SCRIPT_OBJ_CMP_RESULT_GT;
-          return SCRIPT_OBJ_CMP_RESULT_EQ;
+          script_number_t num_a = script_obj_as_number (script_obj_a);
+          script_number_t num_b = script_obj_as_number (script_obj_b);
+          if (num_b == 21)
+            printf("%f-%f ", num_a, num_b);
+
+          if (num_a < num_b) return SCRIPT_OBJ_CMP_RESULT_LT;
+          if (num_a > num_b) return SCRIPT_OBJ_CMP_RESULT_GT;
+          if (num_a == num_b) return SCRIPT_OBJ_CMP_RESULT_EQ;
+          return SCRIPT_OBJ_CMP_RESULT_NE;
         }
     }
   else if (script_obj_is_string (script_obj_a))

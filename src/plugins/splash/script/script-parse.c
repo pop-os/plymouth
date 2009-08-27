@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <math.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdbool.h>
@@ -185,6 +186,16 @@ static script_exp_t *script_parse_exp_tm (script_scan_t *scan)
       exp = malloc (sizeof (script_exp_t));
       if (script_scan_token_is_identifier_of_value (curtoken, "NULL"))
         exp->type = SCRIPT_EXP_TYPE_TERM_NULL;
+      else if (script_scan_token_is_identifier_of_value (curtoken, "INFINITY"))
+        {
+          exp->type = SCRIPT_EXP_TYPE_TERM_NUMBER;
+          exp->data.number = INFINITY;
+        }
+      else if (script_scan_token_is_identifier_of_value (curtoken, "NAN"))
+        {
+          exp->type = SCRIPT_EXP_TYPE_TERM_NUMBER;
+          exp->data.number = NAN;
+        }
       else if (script_scan_token_is_identifier_of_value (curtoken, "global"))
         exp->type = SCRIPT_EXP_TYPE_TERM_GLOBAL;
       else if (script_scan_token_is_identifier_of_value (curtoken, "local"))

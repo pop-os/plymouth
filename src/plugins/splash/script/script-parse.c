@@ -51,11 +51,17 @@ static script_exp_t *script_parse_exp (script_scan_t *scan);
 static ply_list_t *script_parse_op_list (script_scan_t *scan);
 static void script_parse_op_list_free (ply_list_t *op_list);
 
-static script_exp_t *script_parse_new_exp_single (script_exp_type_t  type,
-                                                  script_exp_t      *sub)
+static script_exp_t *script_parse_new_exp (script_exp_type_t  type)
 {
   script_exp_t *exp = malloc (sizeof (script_exp_t));
   exp->type = type;
+  return exp;
+}
+
+static script_exp_t *script_parse_new_exp_single (script_exp_type_t  type,
+                                                  script_exp_t      *sub)
+{
+  script_exp_t *exp = script_parse_new_exp(type);
   exp->data.sub = sub;
   return exp;
 }
@@ -64,10 +70,46 @@ static script_exp_t *script_parse_new_exp_dual (script_exp_type_t  type,
                                                 script_exp_t      *sub_a,
                                                 script_exp_t      *sub_b)
 {
-  script_exp_t *exp = malloc (sizeof (script_exp_t));
-  exp->type = type;
+  script_exp_t *exp = script_parse_new_exp(type);
   exp->data.dual.sub_a = sub_a;
   exp->data.dual.sub_b = sub_b;
+  return exp;
+}
+
+static script_exp_t *script_parse_new_exp_number (script_number_t   number)
+{
+  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_NUMBER);
+  exp->data.number = number;
+  return exp;
+}
+
+static script_exp_t *script_parse_new_exp_string (char *string)
+{
+  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_STRING);
+  exp->data.string = strdup(string);
+  return exp;
+}
+
+static script_exp_t *script_parse_new_exp_var (char *string)
+{
+  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_VAR);
+  exp->data.string = strdup(string);
+  return exp;
+}
+
+static script_exp_t *script_parse_new_exp_function_exe (script_exp_t *name,
+                                                        ply_list_t   *parameters)
+{
+  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_FUNCTION_EXE);
+  exp->data.function_exe.name = name;
+  exp->data.function_exe.parameters = parameters;
+  return exp;
+}
+
+static script_exp_t *script_parse_new_exp_function_def (script_function_t *function_def)
+{
+  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_FUNCTION_DEF);
+  exp->data.function_def = function_def;
   return exp;
 }
 
@@ -167,59 +209,44 @@ static script_exp_t *script_parse_exp_tm (script_scan_t *scan)
 
   if (script_scan_token_is_integer (curtoken))
     {
-      exp = malloc (sizeof (script_exp_t));
-      exp->type = SCRIPT_EXP_TYPE_TERM_NUMBER;
-      exp->data.number = curtoken->data.integer;
+      exp = script_parse_new_exp_number (curtoken->data.integer);
       script_scan_get_next_token (scan);
       return exp;
     }
   if (script_scan_token_is_float (curtoken))
     {
-      exp = malloc (sizeof (script_exp_t));
-      exp->type = SCRIPT_EXP_TYPE_TERM_NUMBER;
-      exp->data.number = curtoken->data.floatpoint;
+      exp = script_parse_new_exp_number (curtoken->data.floatpoint);
       script_scan_get_next_token (scan);
       return exp;
     }
   if (script_scan_token_is_identifier (curtoken))
     {
-      exp = malloc (sizeof (script_exp_t));
       if (script_scan_token_is_identifier_of_value (curtoken, "NULL"))
-        exp->type = SCRIPT_EXP_TYPE_TERM_NULL;
+        exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_NULL);
       else if (script_scan_token_is_identifier_of_value (curtoken, "INFINITY"))
-        {
-          exp->type = SCRIPT_EXP_TYPE_TERM_NUMBER;
-          exp->data.number = INFINITY;
-        }
+        exp = script_parse_new_exp_number (INFINITY);
       else if (script_scan_token_is_identifier_of_value (curtoken, "NAN"))
-        {
-          exp->type = SCRIPT_EXP_TYPE_TERM_NUMBER;
-          exp->data.number = NAN;
-        }
+        exp = script_parse_new_exp_number (NAN);
       else if (script_scan_token_is_identifier_of_value (curtoken, "global"))
-        exp->type = SCRIPT_EXP_TYPE_TERM_GLOBAL;
+        exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_GLOBAL);
       else if (script_scan_token_is_identifier_of_value (curtoken, "local"))
-        exp->type = SCRIPT_EXP_TYPE_TERM_LOCAL;
+        exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_LOCAL);
       else if (script_scan_token_is_identifier_of_value (curtoken, "fun"))
         {
-          exp->type = SCRIPT_EXP_TYPE_FUNCTION_DEF;
           script_scan_get_next_token (scan);
-          exp->data.function_def = script_parse_function_def (scan);
+          exp = script_parse_new_exp_function_def (script_parse_function_def (scan));
           return exp;
         }
       else
         {
-          exp->type = SCRIPT_EXP_TYPE_TERM_VAR;
-          exp->data.string = strdup (curtoken->data.string);
+          exp = script_parse_new_exp_var (curtoken->data.string);
         }
       curtoken = script_scan_get_next_token (scan);
       return exp;
     }
   if (script_scan_token_is_string (curtoken))
     {
-      exp = malloc (sizeof (script_exp_t));
-      exp->type = SCRIPT_EXP_TYPE_TERM_STRING;
-      exp->data.string = strdup (curtoken->data.string);
+      exp = script_parse_new_exp_string (curtoken->data.string);
       script_scan_get_next_token (scan);
       return exp;
     }
@@ -256,7 +283,6 @@ static script_exp_t *script_parse_exp_pi (script_scan_t *scan)
       if (!script_scan_token_is_symbol (curtoken)) break;
       if (script_scan_token_is_symbol_of_value (curtoken, '('))
         {
-          script_exp_t *func = malloc (sizeof (script_exp_t));
           ply_list_t *parameters = ply_list_new ();
           script_scan_get_next_token (scan);
           while (true)
@@ -277,10 +303,7 @@ static script_exp_t *script_parse_exp_pi (script_scan_t *scan)
               curtoken = script_scan_get_next_token (scan);
             }
           script_scan_get_next_token (scan);
-          func->data.function_exe.name = exp;
-          exp = func;
-          exp->type = SCRIPT_EXP_TYPE_FUNCTION_EXE;
-          exp->data.function_exe.parameters = parameters;
+          exp = script_parse_new_exp_function_exe (exp, parameters);
           continue;
         }
       script_exp_t *key;
@@ -290,9 +313,7 @@ static script_exp_t *script_parse_exp_pi (script_scan_t *scan)
           script_scan_get_next_token (scan);
           if (script_scan_token_is_identifier (curtoken))
             {
-              key = malloc (sizeof (script_exp_t));
-              key->type = SCRIPT_EXP_TYPE_TERM_STRING;
-              key->data.string = strdup (curtoken->data.string);
+              key = script_parse_new_exp_string (curtoken->data.string);
             }
           else
             {
@@ -607,11 +628,9 @@ static script_op_t *script_parse_function (script_scan_t *scan)
                           "A function declaration requires a valid name");
       return NULL;
     }
-  script_exp_t *name = malloc (sizeof (script_exp_t));    /* FIXME parse any type of exp as target and do an assign*/
-  name->type = SCRIPT_EXP_TYPE_TERM_VAR;
-  name->data.string = strdup (curtoken->data.string);
-
-  curtoken = script_scan_get_next_token (scan);
+  script_exp_t *name = script_parse_new_exp_var (curtoken->data.string);
+  
+  curtoken = script_scan_get_next_token (scan);     /* FIXME parse any type of exp as target and do an assign*/
 
   script_function_t *function = script_parse_function_def (scan);
   if (!function) return NULL;

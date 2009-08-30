@@ -31,4 +31,9 @@ typedef struct
 } script_debug_location_t;
 
 
+void script_debug_add_element (void                    *element,
+                               script_debug_location_t *location);
+void script_debug_remove_element (void *element);
+script_debug_location_t *script_debug_lookup_element (void *element);
+
 #endif /* SCRIPT_DEBUG_H */

@@ -56,6 +56,7 @@ static script_exp_t *script_parse_new_exp (script_exp_type_t        type,
 {
   script_exp_t *exp = malloc (sizeof (script_exp_t));
   exp->type = type;
+  script_debug_add_element (exp, location);
   return exp;
 }
 
@@ -126,6 +127,7 @@ static script_op_t *script_parse_new_op (script_op_type_t         type,
 {
   script_op_t *op = malloc (sizeof (script_op_t));
   op->type = type;
+  script_debug_add_element (op, location);
   return op;
 }
 
@@ -849,6 +851,7 @@ static void script_parse_exp_free (script_exp_t *exp)
         free (exp->data.string);
         break;
     }
+  script_debug_remove_element (exp);
   free (exp);
 }
 
@@ -909,6 +912,7 @@ void script_parse_op_free (script_op_t *op)
           break;
         }
     }
+  script_debug_remove_element (op);
   free (op);
 }
 

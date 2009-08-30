@@ -19,4 +19,51 @@
  *
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
+#include "ply-hashtable.h"
+#include <stdlib.h>
+#include <string.h>
+
 #include "script-debug.h"
+
+static ply_hashtable_t *script_debug_location_hash = NULL;
+static ply_hashtable_t *script_debug_name_hash = NULL;
+
+static void script_debug_setup (void)
+{
+  if (script_debug_location_hash) return;
+  script_debug_location_hash = ply_hashtable_new(NULL, NULL);
+  script_debug_name_hash = ply_hashtable_new(ply_hashtable_string_hash,
+                                             ply_hashtable_string_compare);
+}
+
+void script_debug_add_element (void                    *element,
+                               script_debug_location_t *location)
+{
+  script_debug_setup();
+  script_debug_location_t *new_location = malloc (sizeof(script_debug_location_t));
+  new_location->line_index = location->line_index;
+  new_location->column_index = location->column_index;
+  new_location->name = ply_hashtable_lookup (script_debug_name_hash, location->name);
+  if (!new_location->name)
+    {
+      new_location->name = strdup(location->name);
+      ply_hashtable_insert (script_debug_name_hash, new_location->name, new_location->name);
+    }
+  ply_hashtable_insert (script_debug_location_hash, element, new_location);
+}
+
+void script_debug_remove_element (void *element)
+{
+  script_debug_setup();
+  script_debug_location_t *old_location = ply_hashtable_remove (script_debug_location_hash,
+                                                                element);
+  free(old_location);
+}
+
+script_debug_location_t *script_debug_lookup_element (void *element)
+{
+  script_debug_setup();
+  script_debug_location_t *location = ply_hashtable_remove (script_debug_location_hash,
+                                                            element);
+  return NULL;
+}

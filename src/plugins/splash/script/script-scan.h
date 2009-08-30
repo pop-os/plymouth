@@ -60,6 +60,7 @@ typedef struct
     int fd;
     const char *string;
   } source;
+  char* name;
   unsigned char cur_char;
   ply_bitarray_t *identifier_1st_char;
   ply_bitarray_t *identifier_nth_char;
@@ -92,7 +93,8 @@ typedef struct
 
 
 script_scan_t *script_scan_file (const char *filename);
-script_scan_t *script_scan_string (const char *string);
+script_scan_t *script_scan_string (const char *string,
+                                   const char *name);
 void script_scan_token_clean (script_scan_token_t *token);
 void script_scan_free (script_scan_t *scan);
 unsigned char script_scan_get_current_char (script_scan_t *scan);
@@ -101,7 +103,7 @@ script_scan_token_t *script_scan_get_current_token (script_scan_t *scan);
 script_scan_token_t *script_scan_get_next_token (script_scan_t *scan);
 script_scan_token_t *script_scan_peek_next_token (script_scan_t *scan);
 void script_scan_read_next_token (script_scan_t       *scan,
-                               script_scan_token_t *token);
+                                  script_scan_token_t *token);
 
 
 #endif /* script_scan_H */

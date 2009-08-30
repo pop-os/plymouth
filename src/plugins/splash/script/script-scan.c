@@ -64,15 +64,18 @@ script_scan_t *script_scan_file (const char *filename)
   int fd = open (filename, O_RDONLY);
   if (fd < 0) return NULL;
   script_scan_t *scan = script_scan_new ();
+  scan->name = strdup (filename);
   scan->source.fd = fd;
   scan->source_is_file = true;
   script_scan_get_next_char (scan);
   return scan;
 }
 
-script_scan_t *script_scan_string (const char *string)
+script_scan_t *script_scan_string (const char *string,
+                                   const char *name)
 {
   script_scan_t *scan = script_scan_new ();
+  scan->name = strdup (name);
   scan->source.string = string;
   scan->source_is_file = false;
   script_scan_get_next_char (scan);
@@ -111,6 +114,7 @@ void script_scan_free (script_scan_t *scan)
     }
   ply_bitarray_free (scan->identifier_1st_char);
   ply_bitarray_free (scan->identifier_nth_char);
+  free (scan->name);
   free (scan->tokens);
   free (scan);
 }
@@ -173,6 +177,7 @@ void script_scan_read_next_token (script_scan_t       *scan,
     }
   token->location.line_index = scan->line_index;
   token->location.column_index = scan->column_index;
+  token->location.name = scan->name;
   nextchar = script_scan_get_next_char (scan);
 
   if (ply_bitarray_lookup (scan->identifier_1st_char, curchar))

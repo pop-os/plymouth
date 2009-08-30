@@ -33,7 +33,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "script.h"
+#include "script-debug.h"
 #include "script-scan.h"
 #include "script-parse.h"
 
@@ -146,13 +146,14 @@ static script_op_t *script_parse_new_op_cond (script_op_type_t  type,
   return op;
 }
 
-static void script_parse_error (script_scan_token_t *token,
-                                const char       *expected)
+static void script_parse_error (script_debug_source_location_t *location,
+                                const char                     *message)
 {
-  ply_error ("Parser error L:%d C:%d : %s\n",
-             token->location.line_index,
-             token->location.column_index,
-             expected);
+  ply_error ("Parser error \"%s\" L:%d C:%d : %s\n",
+             location->name,
+             location->line_index,
+             location->column_index,
+             message);
 }
 
 static const script_parse_operator_table_entry_t*   /* Only allows 1 or 2 character symbols */
@@ -194,7 +195,7 @@ static script_function_t *script_parse_function_def (script_scan_t *scan)
 
   if (!script_scan_token_is_symbol_of_value (curtoken, '('))
     {
-      script_parse_error (curtoken,
+      script_parse_error (&curtoken->location,
         "Function declaration requires parameters to be declared within '(' brackets");
       return NULL;
     }
@@ -206,7 +207,7 @@ static script_function_t *script_parse_function_def (script_scan_t *scan)
       if (script_scan_token_is_symbol_of_value (curtoken, ')')) break;
       if (!script_scan_token_is_identifier (curtoken))
         {
-          script_parse_error (curtoken,
+          script_parse_error (&curtoken->location,
             "Function declaration parameters must be valid identifiers");
           return NULL;
         }
@@ -218,7 +219,7 @@ static script_function_t *script_parse_function_def (script_scan_t *scan)
       if (script_scan_token_is_symbol_of_value (curtoken, ')')) break;
       if (!script_scan_token_is_symbol_of_value (curtoken, ','))
         {
-          script_parse_error (curtoken,
+          script_parse_error (&curtoken->location,
             "Function declaration parameters must separated with ',' and terminated with a ')'");
           return NULL;
         }
@@ -290,13 +291,13 @@ static script_exp_t *script_parse_exp_tm (script_scan_t *scan)
       curtoken = script_scan_get_current_token (scan);
       if (!exp)
         {
-          script_parse_error (curtoken,
+          script_parse_error (&curtoken->location,
             "Expected valid contents of bracketed expression");
           return NULL;
         }
       if (!script_scan_token_is_symbol_of_value (curtoken, ')'))
         {
-          script_parse_error (curtoken,
+          script_parse_error (&curtoken->location,
             "Expected bracketed block to be terminated with a ')'");
           return NULL;
         }
@@ -329,7 +330,7 @@ static script_exp_t *script_parse_exp_pi (script_scan_t *scan)
               if (script_scan_token_is_symbol_of_value (curtoken, ')')) break;
               if (!script_scan_token_is_symbol_of_value (curtoken, ','))
                 {
-                  script_parse_error (curtoken,
+                  script_parse_error (&curtoken->location,
                     "Function parameters should be separated with a ',' and terminated with a ')'");
                   return NULL;
                 }
@@ -350,7 +351,7 @@ static script_exp_t *script_parse_exp_pi (script_scan_t *scan)
             }
           else
             {
-              script_parse_error (curtoken,
+              script_parse_error (&curtoken->location,
                 "A dot based hash index must be an identifier (or a integer)");
               return NULL;
             }
@@ -363,7 +364,7 @@ static script_exp_t *script_parse_exp_pi (script_scan_t *scan)
           curtoken = script_scan_get_current_token (scan);
           if (!script_scan_token_is_symbol_of_value (curtoken, ']'))
             {
-              script_parse_error (curtoken,
+              script_parse_error (&curtoken->location,
                 "Expected a ']' to terminate the index expression");
               return NULL;
             }
@@ -453,7 +454,7 @@ static script_exp_t *script_parse_exp_ltr (script_scan_t *scan, int presedence)
       exp = script_parse_new_exp_dual(entry->exp_type, exp, script_parse_exp_ltr (scan, presedence + 1));
       if (!exp->data.dual.sub_b)
         {
-          script_parse_error (script_scan_get_current_token (scan),
+          script_parse_error (&script_scan_get_current_token (scan)->location,
                               "An invalid RHS of an expression");
           return NULL;
         }
@@ -483,7 +484,7 @@ static script_exp_t *script_parse_exp_as (script_scan_t *scan)
   script_exp_t *rhs = script_parse_exp_as (scan);
   if (!rhs)
     {
-      script_parse_error (script_scan_get_current_token (scan),
+      script_parse_error (&script_scan_get_current_token (scan)->location,
                           "An invalid RHS of an expression");
       return NULL;
     }
@@ -503,9 +504,11 @@ static script_op_t *script_parse_op_block (script_scan_t *scan)
     return NULL;
   script_scan_get_next_token (scan);
   ply_list_t *sublist = script_parse_op_list (scan);
+
+  curtoken = script_scan_get_current_token (scan);
   if (!script_scan_token_is_symbol_of_value (curtoken, '}'))
     {
-      script_parse_error (script_scan_get_current_token (scan),
+      script_parse_error (&curtoken->location,
                           "Expected a '}' to terminate the operation block");
       return NULL;
     }
@@ -528,7 +531,7 @@ static script_op_t *script_parse_if_while (script_scan_t *scan)
   curtoken = script_scan_get_next_token (scan);
   if (!script_scan_token_is_symbol_of_value (curtoken, '('))
     {
-      script_parse_error (curtoken,
+      script_parse_error (&curtoken->location,
                           "Expected a '(' at the start of a condition block");
       return NULL;
     }
@@ -538,12 +541,12 @@ static script_op_t *script_parse_if_while (script_scan_t *scan)
   curtoken = script_scan_get_current_token (scan);
   if (!cond)
     {
-      script_parse_error (curtoken, "Expected a valid condition expression");
+      script_parse_error (&curtoken->location, "Expected a valid condition expression");
       return NULL;
     }
   if (!script_scan_token_is_symbol_of_value (curtoken, ')'))
     {
-      script_parse_error (curtoken,
+      script_parse_error (&curtoken->location,
                           "Expected a ')' at the end of a condition block");
       return NULL;
     }
@@ -570,7 +573,7 @@ static script_op_t *script_parse_for (script_scan_t *scan)
   curtoken = script_scan_get_next_token (scan);
   if (!script_scan_token_is_symbol_of_value (curtoken, '('))
     {
-      script_parse_error (curtoken,
+      script_parse_error (&curtoken->location,
                           "Expected a '(' at the start of a condition block");
       return NULL;
     }
@@ -579,13 +582,13 @@ static script_op_t *script_parse_for (script_scan_t *scan)
   script_exp_t *first = script_parse_exp (scan);
   if (!first)
     {
-      script_parse_error (curtoken, "Expected a valid first expression");
+      script_parse_error (&curtoken->location, "Expected a valid first expression");
       return NULL;
     }
   curtoken = script_scan_get_current_token (scan);
   if (!script_scan_token_is_symbol_of_value (curtoken, ';'))
     {
-      script_parse_error (curtoken,
+      script_parse_error (&curtoken->location,
                           "Expected a ';' after the first 'for' expression");
       return NULL;
     }
@@ -594,13 +597,13 @@ static script_op_t *script_parse_for (script_scan_t *scan)
   script_exp_t *cond = script_parse_exp (scan);
   if (!cond)
     {
-      script_parse_error (curtoken, "Expected a valid condition expression");
+      script_parse_error (&curtoken->location, "Expected a valid condition expression");
       return NULL;
     }
   curtoken = script_scan_get_current_token (scan);
   if (!script_scan_token_is_symbol_of_value (curtoken, ';'))
     {
-      script_parse_error (curtoken, "Expected a ';' after the 'for' condition");
+      script_parse_error (&curtoken->location, "Expected a ';' after the 'for' condition");
       return NULL;
     }
   script_scan_get_next_token (scan);
@@ -608,13 +611,13 @@ static script_op_t *script_parse_for (script_scan_t *scan)
   script_exp_t *last = script_parse_exp (scan);
   if (!last)
     {
-      script_parse_error (curtoken, "Expected a valid last expression");
+      script_parse_error (&curtoken->location, "Expected a valid last expression");
       return NULL;
     }
   curtoken = script_scan_get_current_token (scan);
   if (!script_scan_token_is_symbol_of_value (curtoken, ')'))
     {
-      script_parse_error (curtoken, "Expected a ')' at the end of a for block");
+      script_parse_error (&curtoken->location, "Expected a ')' at the end of a for block");
       return NULL;
     }
   script_scan_get_next_token (scan);
@@ -641,7 +644,7 @@ static script_op_t *script_parse_function (script_scan_t *scan)
   curtoken = script_scan_get_next_token (scan);
   if (!script_scan_token_is_identifier (curtoken))
     {
-      script_parse_error (curtoken,
+      script_parse_error (&curtoken->location,
                           "A function declaration requires a valid name");
       return NULL;
     }
@@ -681,7 +684,7 @@ static script_op_t *script_parse_return (script_scan_t *scan)
 #ifdef WITH_SEMIES
   if (!script_scan_token_is_symbol_of_value (curtoken, ';'))
     {
-      script_parse_error (curtoken, "Expected ';' after an expression");
+      script_parse_error (&curtoken->location, "Expected ';' after an expression");
       return NULL;
     }
   curtoken = script_scan_get_next_token (scan);
@@ -715,7 +718,7 @@ static script_op_t *script_parse_op (script_scan_t *scan)
 #ifdef WITH_SEMIES
     if (!script_scan_token_is_symbol_of_value (curtoken, ';'))
       {
-        script_parse_error (curtoken, "Expected ';' after an expression");
+        script_parse_error (&curtoken->location, "Expected ';' after an expression");
         return NULL;
       }
     curtoken = script_scan_get_next_token (scan);
@@ -914,7 +917,7 @@ script_op_t *script_parse_file (const char *filename)
   script_scan_token_t *curtoken = script_scan_get_current_token (scan);
   if (curtoken->type != SCRIPT_SCAN_TOKEN_TYPE_EOF)
     {
-      script_parse_error (curtoken, "Unparsed characters at end of file");
+      script_parse_error (&curtoken->location, "Unparsed characters at end of file");
       return NULL;
     }
   script_scan_free (scan);
@@ -922,9 +925,10 @@ script_op_t *script_parse_file (const char *filename)
   return op;
 }
 
-script_op_t *script_parse_string (const char *string)
+script_op_t *script_parse_string (const char *string,
+                                  const char *name)
 {
-  script_scan_t *scan = script_scan_string (string);
+  script_scan_t *scan = script_scan_string (string, name);
 
   if (!scan)
     {

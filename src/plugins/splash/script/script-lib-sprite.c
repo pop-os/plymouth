@@ -331,7 +331,7 @@ script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
                               "blue",
                               NULL);
 
-  data->script_main_op = script_parse_string (script_lib_sprite_string);
+  data->script_main_op = script_parse_string (script_lib_sprite_string, "script-lib-sprite.script");
   data->background_color_start = 0x000000;
   data->background_color_end   = 0x000000;
   data->full_refresh = true;

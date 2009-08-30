@@ -122,7 +122,7 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t *state)
                               &data->script_message_func,
                               "function",
                               NULL);
-  data->script_main_op = script_parse_string (script_lib_plymouth_string);
+  data->script_main_op = script_parse_string (script_lib_plymouth_string, "script-lib-plymouth.script");
   script_return_t ret = script_execute (state, data->script_main_op);
   script_obj_unref (ret.object);                /* Throw anything sent back away */
 

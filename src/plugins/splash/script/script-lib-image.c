@@ -185,7 +185,7 @@ script_lib_image_data_t *script_lib_image_setup (script_state_t *state,
                               "image",
                               NULL);
 
-  data->script_main_op = script_parse_string (script_lib_image_string);
+  data->script_main_op = script_parse_string (script_lib_image_string, "script-lib-image.script");
   script_return_t ret = script_execute (state, data->script_main_op);
   script_obj_unref (ret.object);
 

@@ -103,7 +103,7 @@ script_lib_math_data_t *script_lib_math_setup (script_state_t *state)
                               "value",
                               NULL);
 
-  data->script_main_op = script_parse_string (script_lib_math_string);
+  data->script_main_op = script_parse_string (script_lib_math_string, "script-lib-math.script");
   script_return_t ret = script_execute (state, data->script_main_op);
   script_obj_unref (ret.object);
 

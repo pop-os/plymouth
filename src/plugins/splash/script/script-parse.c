@@ -51,64 +51,72 @@ static script_exp_t *script_parse_exp (script_scan_t *scan);
 static ply_list_t *script_parse_op_list (script_scan_t *scan);
 static void script_parse_op_list_free (ply_list_t *op_list);
 
-static script_exp_t *script_parse_new_exp (script_exp_type_t  type)
+static script_exp_t *script_parse_new_exp (script_exp_type_t        type,
+                                           script_debug_location_t *location)
 {
   script_exp_t *exp = malloc (sizeof (script_exp_t));
   exp->type = type;
   return exp;
 }
 
-static script_exp_t *script_parse_new_exp_single (script_exp_type_t  type,
-                                                  script_exp_t      *sub)
+static script_exp_t *script_parse_new_exp_single (script_exp_type_t        type,
+                                                  script_exp_t            *sub,
+                                                  script_debug_location_t *location)
 {
-  script_exp_t *exp = script_parse_new_exp(type);
+  script_exp_t *exp = script_parse_new_exp(type, location);
   exp->data.sub = sub;
   return exp;
 }
 
-static script_exp_t *script_parse_new_exp_dual (script_exp_type_t  type,
-                                                script_exp_t      *sub_a,
-                                                script_exp_t      *sub_b)
+static script_exp_t *script_parse_new_exp_dual (script_exp_type_t        type,
+                                                script_exp_t            *sub_a,
+                                                script_exp_t            *sub_b,
+                                                script_debug_location_t *location)
 {
-  script_exp_t *exp = script_parse_new_exp(type);
+  script_exp_t *exp = script_parse_new_exp(type, location);
   exp->data.dual.sub_a = sub_a;
   exp->data.dual.sub_b = sub_b;
   return exp;
 }
 
-static script_exp_t *script_parse_new_exp_number (script_number_t   number)
+static script_exp_t *script_parse_new_exp_number (script_number_t          number,
+                                                  script_debug_location_t *location)
 {
-  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_NUMBER);
+  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_NUMBER, location);
   exp->data.number = number;
   return exp;
 }
 
-static script_exp_t *script_parse_new_exp_string (char *string)
+static script_exp_t *script_parse_new_exp_string (char                    *string,
+                                                  script_debug_location_t *location)
 {
-  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_STRING);
+  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_STRING, location);
   exp->data.string = strdup(string);
   return exp;
 }
 
-static script_exp_t *script_parse_new_exp_var (char *string)
+static script_exp_t *script_parse_new_exp_var (char                    *string,
+                                               script_debug_location_t *location)
 {
-  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_VAR);
+  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_VAR, location);
   exp->data.string = strdup(string);
   return exp;
 }
 
-static script_exp_t *script_parse_new_exp_function_exe (script_exp_t *name,
-                                                        ply_list_t   *parameters)
+static script_exp_t *script_parse_new_exp_function_exe (script_exp_t            *name,
+                                                        ply_list_t              *parameters,
+                                                        script_debug_location_t *location)
 {
-  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_FUNCTION_EXE);
+  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_FUNCTION_EXE, location);
   exp->data.function_exe.name = name;
   exp->data.function_exe.parameters = parameters;
   return exp;
 }
 
-static script_exp_t *script_parse_new_exp_function_def (script_function_t *function_def)
+static script_exp_t *script_parse_new_exp_function_def (script_function_t       *function_def,
+                                                        script_debug_location_t *location)
 {
-  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_FUNCTION_DEF);
+  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_FUNCTION_DEF, location);
   exp->data.function_def = function_def;
   return exp;
 }
@@ -146,8 +154,8 @@ static script_op_t *script_parse_new_op_cond (script_op_type_t  type,
   return op;
 }
 
-static void script_parse_error (script_debug_source_location_t *location,
-                                const char                     *message)
+static void script_parse_error (script_debug_location_t *location,
+                                const char              *message)
 {
   ply_error ("Parser error \"%s\" L:%d C:%d : %s\n",
              location->name,
@@ -243,44 +251,45 @@ static script_exp_t *script_parse_exp_tm (script_scan_t *scan)
 
   if (script_scan_token_is_integer (curtoken))
     {
-      exp = script_parse_new_exp_number (curtoken->data.integer);
+      exp = script_parse_new_exp_number (curtoken->data.integer, &curtoken->location);
       script_scan_get_next_token (scan);
       return exp;
     }
   if (script_scan_token_is_float (curtoken))
     {
-      exp = script_parse_new_exp_number (curtoken->data.floatpoint);
+      exp = script_parse_new_exp_number (curtoken->data.floatpoint, &curtoken->location);
       script_scan_get_next_token (scan);
       return exp;
     }
   if (script_scan_token_is_identifier (curtoken))
     {
       if (script_scan_token_is_identifier_of_value (curtoken, "NULL"))
-        exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_NULL);
+        exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_NULL, &curtoken->location);
       else if (script_scan_token_is_identifier_of_value (curtoken, "INFINITY"))
-        exp = script_parse_new_exp_number (INFINITY);
+        exp = script_parse_new_exp_number (INFINITY, &curtoken->location);
       else if (script_scan_token_is_identifier_of_value (curtoken, "NAN"))
-        exp = script_parse_new_exp_number (NAN);
+        exp = script_parse_new_exp_number (NAN, &curtoken->location);
       else if (script_scan_token_is_identifier_of_value (curtoken, "global"))
-        exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_GLOBAL);
+        exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_GLOBAL, &curtoken->location);
       else if (script_scan_token_is_identifier_of_value (curtoken, "local"))
-        exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_LOCAL);
+        exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_LOCAL, &curtoken->location);
       else if (script_scan_token_is_identifier_of_value (curtoken, "fun"))
         {
+          script_debug_location_t location = curtoken->location;
           script_scan_get_next_token (scan);
-          exp = script_parse_new_exp_function_def (script_parse_function_def (scan));
+          exp = script_parse_new_exp_function_def (script_parse_function_def (scan), &location);
           return exp;
         }
       else
         {
-          exp = script_parse_new_exp_var (curtoken->data.string);
+          exp = script_parse_new_exp_var (curtoken->data.string, &curtoken->location);
         }
       curtoken = script_scan_get_next_token (scan);
       return exp;
     }
   if (script_scan_token_is_string (curtoken))
     {
-      exp = script_parse_new_exp_string (curtoken->data.string);
+      exp = script_parse_new_exp_string (curtoken->data.string, &curtoken->location);
       script_scan_get_next_token (scan);
       return exp;
     }
@@ -314,6 +323,7 @@ static script_exp_t *script_parse_exp_pi (script_scan_t *scan)
 
   while (true)
     {
+      script_debug_location_t location = curtoken->location;
       if (!script_scan_token_is_symbol (curtoken)) break;
       if (script_scan_token_is_symbol_of_value (curtoken, '('))
         {
@@ -337,7 +347,7 @@ static script_exp_t *script_parse_exp_pi (script_scan_t *scan)
               curtoken = script_scan_get_next_token (scan);
             }
           script_scan_get_next_token (scan);
-          exp = script_parse_new_exp_function_exe (exp, parameters);
+          exp = script_parse_new_exp_function_exe (exp, parameters, &location);
           continue;
         }
       script_exp_t *key;
@@ -347,12 +357,12 @@ static script_exp_t *script_parse_exp_pi (script_scan_t *scan)
           script_scan_get_next_token (scan);
           if (script_scan_token_is_identifier (curtoken))
             {
-              key = script_parse_new_exp_string (curtoken->data.string);
+              key = script_parse_new_exp_string (curtoken->data.string, &curtoken->location);
             }
           else
             {
               script_parse_error (&curtoken->location,
-                "A dot based hash index must be an identifier (or a integer)");
+                "A dot based hash index must be an identifier");
               return NULL;
             }
           curtoken = script_scan_get_next_token (scan);
@@ -371,7 +381,7 @@ static script_exp_t *script_parse_exp_pi (script_scan_t *scan)
           curtoken = script_scan_get_next_token (scan);
         }
       else break;
-      exp = script_parse_new_exp_dual (SCRIPT_EXP_TYPE_HASH, exp, key);
+      exp = script_parse_new_exp_dual (SCRIPT_EXP_TYPE_HASH, exp, key, &location);
     }
   return exp;
 }
@@ -387,12 +397,12 @@ static script_exp_t *script_parse_exp_pr (script_scan_t *scan)
       {"!",  SCRIPT_EXP_TYPE_NOT,        0},
       {NULL, SCRIPT_EXP_TYPE_TERM_NULL, -1},
     };
-  
   const script_parse_operator_table_entry_t* entry;
   entry =  script_parse_operator_table_entry_lookup(scan, operator_table);
   if (entry->presedence < 0) return script_parse_exp_pi (scan);
+  script_debug_location_t location = script_scan_get_current_token (scan)->location;
   script_parse_advance_scan_by_string(scan, entry->symbol);
-  return script_parse_new_exp_single(entry->exp_type, script_parse_exp_pr (scan));
+  return script_parse_new_exp_single(entry->exp_type, script_parse_exp_pr (scan), &location);
 }
 
 static script_exp_t *script_parse_exp_po (script_scan_t *scan)
@@ -410,8 +420,8 @@ static script_exp_t *script_parse_exp_po (script_scan_t *scan)
       const script_parse_operator_table_entry_t* entry;
       entry =  script_parse_operator_table_entry_lookup(scan, operator_table);
       if (entry->presedence < 0) break;
+      exp = script_parse_new_exp_single(entry->exp_type, exp, &script_scan_get_current_token (scan)->location);
       script_parse_advance_scan_by_string(scan, entry->symbol);
-      exp = script_parse_new_exp_single(entry->exp_type, exp);
     }
   return exp;
 }
@@ -450,8 +460,9 @@ static script_exp_t *script_parse_exp_ltr (script_scan_t *scan, int presedence)
       const script_parse_operator_table_entry_t* entry;
       entry =  script_parse_operator_table_entry_lookup(scan, operator_table);
       if (entry->presedence != presedence) break;
+      script_debug_location_t location = script_scan_get_current_token (scan)->location;
       script_parse_advance_scan_by_string(scan, entry->symbol);
-      exp = script_parse_new_exp_dual(entry->exp_type, exp, script_parse_exp_ltr (scan, presedence + 1));
+      exp = script_parse_new_exp_dual(entry->exp_type, exp, script_parse_exp_ltr (scan, presedence + 1), &location);
       if (!exp->data.dual.sub_b)
         {
           script_parse_error (&script_scan_get_current_token (scan)->location,
@@ -480,6 +491,7 @@ static script_exp_t *script_parse_exp_as (script_scan_t *scan)
   const script_parse_operator_table_entry_t* entry;
   entry =  script_parse_operator_table_entry_lookup(scan, operator_table);
   if (entry->presedence < 0) return lhs;
+  script_debug_location_t location = script_scan_get_current_token (scan)->location;
   script_parse_advance_scan_by_string(scan, entry->symbol);
   script_exp_t *rhs = script_parse_exp_as (scan);
   if (!rhs)
@@ -488,7 +500,7 @@ static script_exp_t *script_parse_exp_as (script_scan_t *scan)
                           "An invalid RHS of an expression");
       return NULL;
     }
-  return script_parse_new_exp_dual (entry->exp_type, lhs, rhs);
+  return script_parse_new_exp_dual (entry->exp_type, lhs, rhs, &location);
 }
 
 static script_exp_t *script_parse_exp (script_scan_t *scan)
@@ -648,7 +660,7 @@ static script_op_t *script_parse_function (script_scan_t *scan)
                           "A function declaration requires a valid name");
       return NULL;
     }
-  script_exp_t *name = script_parse_new_exp_var (curtoken->data.string);
+  script_exp_t *name = script_parse_new_exp_var (curtoken->data.string, &curtoken->location);
   
   curtoken = script_scan_get_next_token (scan);     /* FIXME parse any type of exp as target and do an assign*/
 

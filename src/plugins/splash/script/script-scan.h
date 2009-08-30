@@ -50,7 +50,7 @@ typedef struct
     double floatpoint;
   } data;
   int whitespace;
-  script_debug_source_location_t location;
+  script_debug_location_t location;
 } script_scan_token_t;
 
 typedef struct

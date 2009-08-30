@@ -28,7 +28,7 @@ typedef struct
   int line_index;
   int column_index;
   char* name;
-} script_debug_source_location_t;
+} script_debug_location_t;
 
 
 #endif /* SCRIPT_DEBUG_H */

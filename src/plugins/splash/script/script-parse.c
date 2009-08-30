@@ -113,6 +113,39 @@ static script_exp_t *script_parse_new_exp_function_def (script_function_t *funct
   return exp;
 }
 
+static script_op_t *script_parse_new_op (script_op_type_t type)
+{
+  script_op_t *op = malloc (sizeof (script_op_t));
+  op->type = type;
+  return op;
+}
+
+static script_op_t *script_parse_new_op_exp (script_exp_t *exp)
+{
+  script_op_t *op = script_parse_new_op (SCRIPT_OP_TYPE_EXPRESSION);
+  op->data.exp = exp;
+  return op;
+}
+
+static script_op_t *script_parse_new_op_block (ply_list_t *list)
+{
+  script_op_t *op = script_parse_new_op (SCRIPT_OP_TYPE_OP_BLOCK);
+  op->data.list = list;
+  return op;
+}
+
+static script_op_t *script_parse_new_op_cond (script_op_type_t  type,
+                                              script_exp_t     *cond,
+                                              script_op_t      *op1,
+                                              script_op_t      *op2)
+{
+  script_op_t *op = script_parse_new_op (type);
+  op->data.cond_op.cond = cond;
+  op->data.cond_op.op1 = op1;
+  op->data.cond_op.op2 = op2;
+  return op;
+}
+
 static void script_parse_error (script_scan_token_t *token,
                                 const char       *expected)
 {
@@ -478,9 +511,7 @@ static script_op_t *script_parse_op_block (script_scan_t *scan)
     }
   curtoken = script_scan_get_next_token (scan);
 
-  script_op_t *op = malloc (sizeof (script_op_t));
-  op->type = SCRIPT_OP_TYPE_OP_BLOCK;
-  op->data.list = sublist;
+  script_op_t *op = script_parse_new_op_block (sublist);
   return op;
 }
 
@@ -527,11 +558,7 @@ static script_op_t *script_parse_if_while (script_scan_t *scan)
       script_scan_get_next_token (scan);
       else_op = script_parse_op (scan);
     }
-  script_op_t *op = malloc (sizeof (script_op_t));
-  op->type = type;
-  op->data.cond_op.cond = cond;
-  op->data.cond_op.op1 = cond_op;
-  op->data.cond_op.op2 = else_op;
+  script_op_t *op = script_parse_new_op_cond (type, cond, cond_op, else_op);
   return op;
 }
 
@@ -593,25 +620,15 @@ static script_op_t *script_parse_for (script_scan_t *scan)
   script_scan_get_next_token (scan);
   script_op_t *op_body = script_parse_op (scan);
 
-  script_op_t *op_first = malloc (sizeof (script_op_t));
-  op_first->type = SCRIPT_OP_TYPE_EXPRESSION;
-  op_first->data.exp = first;
+  script_op_t *op_first = script_parse_new_op_exp (first);
+  script_op_t *op_last = script_parse_new_op_exp (last);
+  script_op_t *op_for = script_parse_new_op_cond (SCRIPT_OP_TYPE_FOR, cond, op_body, op_last);
 
-  script_op_t *op_last = malloc (sizeof (script_op_t));
-  op_last->type = SCRIPT_OP_TYPE_EXPRESSION;
-  op_last->data.exp = last;
+  ply_list_t *op_list = ply_list_new ();
+  ply_list_append_data (op_list, op_first);
+  ply_list_append_data (op_list, op_for);
 
-  script_op_t *op_for = malloc (sizeof (script_op_t));
-  op_for->type = SCRIPT_OP_TYPE_FOR;
-  op_for->data.cond_op.cond = cond;
-  op_for->data.cond_op.op1 = op_body;
-  op_for->data.cond_op.op2 = op_last;
-
-  script_op_t *op_block = malloc (sizeof (script_op_t));
-  op_block->type = SCRIPT_OP_TYPE_OP_BLOCK;
-  op_block->data.list = ply_list_new ();
-  ply_list_append_data (op_block->data.list, op_first);
-  ply_list_append_data (op_block->data.list, op_for);
+  script_op_t *op_block = script_parse_new_op_block (op_list)
 
   return op_block;
 }
@@ -655,7 +672,7 @@ static script_op_t *script_parse_return (script_scan_t *scan)
   else return NULL;
   curtoken = script_scan_get_next_token (scan);
 
-  script_op_t *op = malloc (sizeof (script_op_t));
+  script_op_t *op = script_parse_new_op (type);
   if (type == SCRIPT_OP_TYPE_RETURN)
     {
       op->data.exp = script_parse_exp (scan);                  /* May be NULL */
@@ -670,7 +687,6 @@ static script_op_t *script_parse_return (script_scan_t *scan)
   curtoken = script_scan_get_next_token (scan);
 #endif
 
-  op->type = type;
   return op;
 }
 
@@ -705,9 +721,7 @@ static script_op_t *script_parse_op (script_scan_t *scan)
     curtoken = script_scan_get_next_token (scan);
 #endif
 
-    script_op_t *op = malloc (sizeof (script_op_t));
-    op->type = SCRIPT_OP_TYPE_EXPRESSION;
-    op->data.exp = exp;
+    script_op_t *op = script_parse_new_op_exp (exp)
     return op;
   }
   return NULL;
@@ -904,9 +918,7 @@ script_op_t *script_parse_file (const char *filename)
       return NULL;
     }
   script_scan_free (scan);
-  script_op_t *op = malloc (sizeof (script_op_t));
-  op->type = SCRIPT_OP_TYPE_OP_BLOCK;
-  op->data.list = list;
+  script_op_t *op = script_parse_new_op_block (list);
   return op;
 }
 
@@ -921,8 +933,6 @@ script_op_t *script_parse_string (const char *string)
     }
   ply_list_t *list = script_parse_op_list (scan);
   script_scan_free (scan);
-  script_op_t *op = malloc (sizeof (script_op_t));
-  op->type = SCRIPT_OP_TYPE_OP_BLOCK;
-  op->data.list = list;
+  script_op_t *op = script_parse_new_op_block (list);
   return op;
 }

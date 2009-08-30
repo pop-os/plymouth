@@ -22,6 +22,7 @@
 #ifndef script_scan_H
 #define script_scan_H
 
+#include "script-debug.h"
 #include "ply-bitarray.h"
 #include <stdbool.h>
 
@@ -49,8 +50,7 @@ typedef struct
     double floatpoint;
   } data;
   int whitespace;
-  int line_index;
-  int column_index;
+  script_debug_source_location_t location;
 } script_scan_token_t;
 
 typedef struct

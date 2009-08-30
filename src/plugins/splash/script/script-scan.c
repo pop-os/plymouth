@@ -171,8 +171,8 @@ void script_scan_read_next_token (script_scan_t       *scan,
         }
       break;
     }
-  token->line_index = scan->line_index;
-  token->column_index = scan->column_index;
+  token->location.line_index = scan->line_index;
+  token->location.column_index = scan->column_index;
   nextchar = script_scan_get_next_char (scan);
 
   if (ply_bitarray_lookup (scan->identifier_1st_char, curchar))

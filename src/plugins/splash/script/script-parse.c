@@ -150,8 +150,8 @@ static void script_parse_error (script_scan_token_t *token,
                                 const char       *expected)
 {
   ply_error ("Parser error L:%d C:%d : %s\n",
-             token->line_index,
-             token->column_index,
+             token->location.line_index,
+             token->location.column_index,
              expected);
 }
 
@@ -628,7 +628,7 @@ static script_op_t *script_parse_for (script_scan_t *scan)
   ply_list_append_data (op_list, op_first);
   ply_list_append_data (op_list, op_for);
 
-  script_op_t *op_block = script_parse_new_op_block (op_list)
+  script_op_t *op_block = script_parse_new_op_block (op_list);
 
   return op_block;
 }
@@ -721,7 +721,7 @@ static script_op_t *script_parse_op (script_scan_t *scan)
     curtoken = script_scan_get_next_token (scan);
 #endif
 
-    script_op_t *op = script_parse_new_op_exp (exp)
+    script_op_t *op = script_parse_new_op_exp (exp);
     return op;
   }
   return NULL;

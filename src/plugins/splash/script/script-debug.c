@@ -30,10 +30,12 @@ static ply_hashtable_t *script_debug_name_hash = NULL;
 
 static void script_debug_setup (void)
 {
-  if (script_debug_location_hash) return;
-  script_debug_location_hash = ply_hashtable_new(NULL, NULL);
-  script_debug_name_hash = ply_hashtable_new(ply_hashtable_string_hash,
-                                             ply_hashtable_string_compare);
+  if (!script_debug_location_hash)
+  {
+    script_debug_location_hash = ply_hashtable_new(NULL, NULL);
+    script_debug_name_hash = ply_hashtable_new(ply_hashtable_string_hash,
+                                               ply_hashtable_string_compare);
+  }
 }
 
 void script_debug_add_element (void                    *element,
@@ -63,7 +65,7 @@ void script_debug_remove_element (void *element)
 script_debug_location_t *script_debug_lookup_element (void *element)
 {
   script_debug_setup();
-  script_debug_location_t *location = ply_hashtable_remove (script_debug_location_hash,
+  script_debug_location_t *location = ply_hashtable_lookup (script_debug_location_hash,
                                                             element);
-  return NULL;
+  return location;
 }

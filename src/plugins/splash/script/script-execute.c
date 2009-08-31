@@ -22,6 +22,7 @@
 #define _GNU_SOURCE
 #include "ply-hashtable.h"
 #include "ply-list.h"
+#include "ply-logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -33,6 +34,7 @@
 #include <math.h>
 
 #include "script.h"
+#include "script-debug.h"
 #include "script-execute.h"
 #include "script-object.h"
 
@@ -41,6 +43,22 @@ static script_obj_t *script_evaluate (script_state_t *state,
 static script_return_t script_execute_function_with_parlist (script_state_t    *state,
                                                              script_function_t *function,
                                                              ply_list_t        *parameter_data);
+
+
+static void script_execute_error (void       *element,
+                                  const char *message)
+{
+  script_debug_location_t *location = script_debug_lookup_element (element);
+  if (location)
+    ply_error ("Execution error \"%s\" L:%d C:%d : %s\n",
+               location->name,
+               location->line_index,
+               location->column_index,
+               message);
+  else
+    ply_error ("Execution error: %s\n", message);
+}
+
 
 static script_obj_t *script_evaluate_apply_function (script_state_t *state,
                                                      script_exp_t   *exp,
@@ -183,7 +201,11 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
     {
       if (script_obj_is_number(obj))
         new_obj = script_obj_new_number (-script_obj_as_number (obj));
-      else new_obj = script_obj_new_null ();
+      else
+        {
+          script_execute_error(exp, "Cannot negate non number objects");
+          new_obj = script_obj_new_null ();
+        }
       script_obj_unref (obj);
       return new_obj;
     }
@@ -206,6 +228,7 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
     }
   else
     {
+      script_execute_error(exp, "Cannot increment/decrement non number objects");
       new_obj = script_obj_new_null (); /* If performeing something like a=hash++; a and hash become NULL */
       script_obj_reset (obj);
     }
@@ -222,6 +245,7 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
 
   if (!function)
     {
+      script_execute_error(exp, "Call operated on an object with is not a function");
       script_obj_unref (func_obj);
       return script_obj_new_null ();
     }

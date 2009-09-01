@@ -180,7 +180,6 @@ typedef enum
   SCRIPT_OP_TYPE_IF,
   SCRIPT_OP_TYPE_WHILE,
   SCRIPT_OP_TYPE_FOR,
-  SCRIPT_OP_TYPE_FUNCTION_DEF,
   SCRIPT_OP_TYPE_RETURN,
   SCRIPT_OP_TYPE_BREAK,
   SCRIPT_OP_TYPE_CONTINUE,
@@ -199,11 +198,6 @@ typedef struct script_op_t
       struct script_op_t *op1;
       struct script_op_t *op2;
     } cond_op;
-    struct
-    {
-      script_exp_t *name;
-      script_function_t *function;
-    } function_def;
   } data;
 } script_op_t;
 

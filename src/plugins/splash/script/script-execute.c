@@ -621,16 +621,6 @@ script_return_t script_execute (script_state_t *state,
           break;
         }
 
-      case SCRIPT_OP_TYPE_FUNCTION_DEF:
-        {
-          script_obj_t *obj = script_evaluate (state, op->data.function_def.name);
-          script_obj_t *function_obj = script_obj_new_function(op->data.function_def.function);
-          script_obj_assign (obj, function_obj);
-          script_obj_unref (function_obj);
-          script_obj_unref (obj);
-          break;
-        }
-
       case SCRIPT_OP_TYPE_RETURN:
         {
           script_obj_t *obj;

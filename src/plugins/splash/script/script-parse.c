@@ -666,6 +666,7 @@ static script_op_t *script_parse_function (script_scan_t *scan)
   script_scan_token_t *curtoken = script_scan_get_current_token (scan);
 
   if (!script_scan_token_is_identifier_of_value (curtoken, "fun")) return NULL;
+  script_debug_location_t location = curtoken->location;
   curtoken = script_scan_get_next_token (scan);
   if (!script_scan_token_is_identifier (curtoken))
     {
@@ -679,11 +680,10 @@ static script_op_t *script_parse_function (script_scan_t *scan)
 
   script_function_t *function = script_parse_function_def (scan);
   if (!function) return NULL;
-  
-  script_op_t *op = malloc (sizeof (script_op_t));
-  op->type = SCRIPT_OP_TYPE_FUNCTION_DEF;
-  op->data.function_def.name = name;
-  op->data.function_def.function = function;
+  script_exp_t *func_exp = script_parse_new_exp_function_def (function, &location);
+  script_exp_t *func_def = script_parse_new_exp_dual (SCRIPT_EXP_TYPE_ASSIGN, name, func_exp, &location);
+    
+  script_op_t *op = script_parse_new_op_exp (func_def, &location);
   return op;
 }
 
@@ -879,24 +879,6 @@ void script_parse_op_free (script_op_t *op)
           script_parse_exp_free (op->data.cond_op.cond);
           script_parse_op_free  (op->data.cond_op.op1);
           script_parse_op_free  (op->data.cond_op.op2);
-          break;
-        }
-
-      case SCRIPT_OP_TYPE_FUNCTION_DEF:
-        {
-          if (op->data.function_def.function->type == SCRIPT_FUNCTION_TYPE_SCRIPT)
-            script_parse_op_free (op->data.function_def.function->data.script);
-          ply_list_node_t *node;
-          for (node = ply_list_get_first_node (op->data.function_def.function->parameters);
-               node;
-               node = ply_list_get_next_node (op->data.function_def.function->parameters, node))
-            {
-              char *arg = ply_list_node_get_data (node);
-              free (arg);
-            }
-          ply_list_free (op->data.function_def.function->parameters);
-          script_parse_exp_free (op->data.function_def.name);
-          free (op->data.function_def.function);
           break;
         }
 

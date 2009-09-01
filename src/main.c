@@ -562,7 +562,7 @@ plymouth_should_show_default_splash (state_t *state)
         }
     }
 
-  return strstr (state->kernel_command_line, "rhgb") != NULL || strstr (state->kernel_command_line, "splash") != NULL;
+  return strstr (state->kernel_command_line, "rhgb") != NULL || (strstr (state->kernel_command_line, "splash") != NULL && strstr(state->kernel_command_line, "splash=verbose") == NULL);
 }
 
 static void

@@ -395,27 +395,33 @@ void script_obj_assign (script_obj_t *obj_a,
     }
 }
 
-script_obj_t *script_obj_hash_get_element (script_obj_t *hash,
-                                           const char   *name)
+script_obj_t *script_obj_hash_peek_element (script_obj_t *hash,
+                                            const char   *name)
 {
   hash = script_obj_deref_direct (hash);
   assert (hash->type == SCRIPT_OBJ_TYPE_HASH);
   script_variable_t *variable = ply_hashtable_lookup (hash->data.hash,
                                                       (void *) name);
-  script_obj_t *obj;
+  if (!variable) return NULL;
+  
+  script_obj_ref (variable->object);
+  return variable->object;
+}
 
-  if (variable)
-    obj = variable->object;
-  else
-    {
-      obj = script_obj_new_null ();
-      variable = malloc (sizeof (script_variable_t));
-      variable->name = strdup (name);
-      variable->object = obj;
-      ply_hashtable_insert (hash->data.hash, variable->name, variable);
-    }
-  script_obj_ref (obj);
-  return obj;
+script_obj_t *script_obj_hash_get_element (script_obj_t *hash,
+                                           const char   *name)
+{
+  script_obj_t *obj = script_obj_hash_peek_element (hash, name);
+  if (obj) return obj;
+
+  hash = script_obj_deref_direct (hash);
+  script_variable_t *variable = malloc (sizeof (script_variable_t));
+  variable->name = strdup (name);
+  variable->object = script_obj_new_null ();
+  ply_hashtable_insert (hash->data.hash, variable->name, variable);
+
+  script_obj_ref (variable->object);
+  return variable->object;
 }
 
 script_number_t script_obj_hash_get_number (script_obj_t *hash,

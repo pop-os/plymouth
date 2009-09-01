@@ -114,31 +114,11 @@ static script_obj_t *script_evaluate_var (script_state_t *state,
                                           script_exp_t   *exp)
 {
   char *name = exp->data.string;
-  script_obj_t *obj;
-
-  script_obj_deref (&state->global);
-  script_obj_deref (&state->local);
-  assert (state->global->type == SCRIPT_OBJ_TYPE_HASH);     /*FIXME use script-object functions */
-  assert (state->local->type == SCRIPT_OBJ_TYPE_HASH);
-
-  script_variable_t *variable = ply_hashtable_lookup (state->local->data.hash,
-                                                      name);
-  if (!variable)
-    variable = ply_hashtable_lookup (state->global->data.hash, name);
-  if (variable)
-    {
-      obj = variable->object;
-      script_obj_ref (obj);
-      return obj;
-    }
-  obj = script_obj_new_null ();
-
-  variable = malloc (sizeof (script_variable_t));
-  variable->name = strdup (name);
-  variable->object = obj;
-
-  ply_hashtable_insert (state->local->data.hash, variable->name, variable);
-  script_obj_ref (obj);
+  script_obj_t *obj = script_obj_hash_peek_element (state->local, name);
+  if (obj) return obj;
+  obj = script_obj_hash_peek_element (state->global, name);
+  if (obj) return obj;
+  obj = script_obj_hash_get_element (state->local, name);
   return obj;
 }
 

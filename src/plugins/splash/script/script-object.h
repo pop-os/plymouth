@@ -69,6 +69,8 @@ bool script_obj_is_native_of_class_name (script_obj_t *obj,
                                          const char   *class_name);
 void script_obj_assign (script_obj_t *obj_a,
                         script_obj_t *obj_b);
+script_obj_t *script_obj_hash_peek_element (script_obj_t *hash,
+                                            const char   *name);
 script_obj_t *script_obj_hash_get_element (script_obj_t *hash,
                                            const char   *name);
 script_number_t script_obj_hash_get_number (script_obj_t *hash,

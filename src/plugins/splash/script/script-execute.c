@@ -42,6 +42,7 @@ static script_obj_t *script_evaluate (script_state_t *state,
                                       script_exp_t   *exp);
 static script_return_t script_execute_function_with_parlist (script_state_t    *state,
                                                              script_function_t *function,
+                                                             script_obj_t      *this,
                                                              ply_list_t        *parameter_data);
 
 
@@ -219,14 +220,35 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
 static script_obj_t *script_evaluate_func (script_state_t *state,
                                            script_exp_t   *exp)
 {
-  script_obj_t *func_obj = script_evaluate (state, exp->data.function_exe.name);
-  script_obj_t *obj = NULL;
+  script_obj_t *this_obj;
+  script_obj_t *func_obj;
+  script_exp_t *name_exp = exp->data.function_exe.name;
+  
+  if (name_exp->type == SCRIPT_EXP_TYPE_HASH)
+    {
+      script_obj_t *this_key  = script_evaluate (state, name_exp->data.dual.sub_b);
+      this_obj = script_evaluate (state, name_exp->data.dual.sub_a);
+      char *this_key_name = script_obj_as_string (this_key);
+      script_obj_unref (this_key);
+      if (script_obj_is_hash(this_obj))
+        {
+          func_obj = script_obj_hash_get_element (this_obj, this_key_name);
+        }
+      free(this_key_name);
+    }
+  else
+    {
+      func_obj = script_evaluate (state, exp->data.function_exe.name);
+      this_obj = NULL; 
+    }
+  
   script_function_t *function = script_obj_as_function (func_obj);
 
   if (!function)
     {
       script_execute_error(exp, "Call operated on an object with is not a function");
       script_obj_unref (func_obj);
+      if (this_obj) script_obj_unref (this_obj);
       return script_obj_new_null ();
     }
   ply_list_t *parameter_expressions = exp->data.function_exe.parameters;
@@ -243,7 +265,9 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
     }
   script_return_t reply = script_execute_function_with_parlist (state,
                                                                 function,
+                                                                this_obj,
                                                                 parameter_data);
+  script_obj_t *obj;
   if (reply.type == SCRIPT_RETURN_TYPE_RETURN)
     obj = reply.object;
   else
@@ -258,6 +282,7 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
   ply_list_free (parameter_data);
 
   script_obj_unref (func_obj);
+  if (this_obj) script_obj_unref (this_obj);
 
   return obj;
 }
@@ -453,6 +478,7 @@ static script_return_t script_execute_list (script_state_t *state,
 /* parameter_data list should be freed by caller */
 static script_return_t script_execute_function_with_parlist (script_state_t    *state,
                                                              script_function_t *function,
+                                                             script_obj_t      *this,
                                                              ply_list_t        *parameter_data)
 {
   script_state_t *sub_state = script_state_init_sub (state);
@@ -486,6 +512,9 @@ static script_return_t script_execute_function_with_parlist (script_state_t    *
   script_obj_unref (count_obj);
   script_obj_unref (arg_obj);
 
+  if (this)
+    script_obj_hash_add_element (sub_state->local, this, "this");
+
   script_return_t reply;
   switch (function->type)
     {
@@ -509,6 +538,7 @@ static script_return_t script_execute_function_with_parlist (script_state_t    *
 
 script_return_t script_execute_function (script_state_t    *state,
                                          script_function_t *function,
+                                         script_obj_t      *this,
                                          script_obj_t      *first_arg,
                                          ...)
 {
@@ -526,7 +556,7 @@ script_return_t script_execute_function (script_state_t    *state,
     }
   va_end (args);
 
-  reply = script_execute_function_with_parlist (state, function, parameter_data);
+  reply = script_execute_function_with_parlist (state, function, this, parameter_data);
   ply_list_free (parameter_data);
 
   return reply;

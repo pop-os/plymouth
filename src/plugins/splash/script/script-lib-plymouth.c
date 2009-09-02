@@ -152,6 +152,7 @@ void script_lib_plymouth_on_refresh (script_state_t             *state,
     {
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      NULL);
       script_obj_unref (ret.object);
     }
@@ -169,6 +170,7 @@ void script_lib_plymouth_on_boot_progress (script_state_t             *state,
       script_obj_t *progress_obj = script_obj_new_number (progress);
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      duration_obj,
                                                      progress_obj,
                                                      NULL);
@@ -186,6 +188,7 @@ void script_lib_plymouth_on_root_mounted (script_state_t             *state,
     {
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      NULL);
       script_obj_unref (ret.object);
     }
@@ -201,6 +204,7 @@ void script_lib_plymouth_on_keyboard_input (script_state_t             *state,
       script_obj_t *keyboard_input_obj = script_obj_new_string (keyboard_input);
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      keyboard_input_obj,
                                                      NULL);
       script_obj_unref (keyboard_input_obj);
@@ -218,6 +222,7 @@ void script_lib_plymouth_on_update_status (script_state_t             *state,
       script_obj_t *new_status_obj = script_obj_new_string (new_status);
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      new_status_obj,
                                                      NULL);
       script_obj_unref (new_status_obj);
@@ -233,6 +238,7 @@ void script_lib_plymouth_on_display_normal (script_state_t             *state,
     {
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      NULL);
       script_obj_unref (ret.object);
     }
@@ -250,6 +256,7 @@ void script_lib_plymouth_on_display_password (script_state_t             *state,
       script_obj_t *bullets_obj = script_obj_new_number (bullets);
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      prompt_obj,
                                                      bullets_obj,
                                                      NULL);
@@ -271,6 +278,7 @@ void script_lib_plymouth_on_display_question (script_state_t             *state,
       script_obj_t *entry_text_obj = script_obj_new_string (entry_text);
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      prompt_obj,
                                                      entry_text_obj,
                                                      NULL);
@@ -290,6 +298,7 @@ void script_lib_plymouth_on_message (script_state_t             *state,
       script_obj_t *new_message_obj = script_obj_new_string (message);
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      new_message_obj,
                                                      NULL);
       script_obj_unref (new_message_obj);

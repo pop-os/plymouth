@@ -22,23 +22,26 @@
 #ifndef SCRIPT_LIB_PLYMOUTH
 #define SCRIPT_LIB_PLYMOUTH
 
+#include "ply-boot-splash-plugin.h"
 #include "script.h"
 
 typedef struct
 {
-  script_op_t      *script_main_op;
-  script_obj_t     *script_refresh_func;
-  script_obj_t     *script_boot_progress_func;
-  script_obj_t     *script_root_mounted_func;
-  script_obj_t     *script_keyboard_input_func;
-  script_obj_t     *script_update_status_func;
-  script_obj_t     *script_display_normal_func;
-  script_obj_t     *script_display_password_func;
-  script_obj_t     *script_display_question_func;
-  script_obj_t     *script_message_func;
+  script_op_t            *script_main_op;               
+  script_obj_t           *script_refresh_func;          
+  script_obj_t           *script_boot_progress_func;    
+  script_obj_t           *script_root_mounted_func;     
+  script_obj_t           *script_keyboard_input_func;   
+  script_obj_t           *script_update_status_func;    
+  script_obj_t           *script_display_normal_func;   
+  script_obj_t           *script_display_password_func; 
+  script_obj_t           *script_display_question_func; 
+  script_obj_t           *script_message_func;          
+  ply_boot_splash_mode_t  mode;
 } script_lib_plymouth_data_t;
 
-script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t *state);
+script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t         *state,
+                                                       ply_boot_splash_mode_t  mode);
 void script_lib_plymouth_destroy (script_lib_plymouth_data_t *data);
 
 void script_lib_plymouth_on_refresh (script_state_t             *state,

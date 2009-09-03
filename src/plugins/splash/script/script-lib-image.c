@@ -89,7 +89,7 @@ static script_return_t image_get_width (script_state_t *state,
                                                             "image",
                                                             data->class);
   if (image)
-    return script_return_obj (script_obj_new_int (ply_image_get_width (image)));
+    return script_return_obj (script_obj_new_number (ply_image_get_width (image)));
   return script_return_obj_null ();
 }
 
@@ -101,7 +101,7 @@ static script_return_t image_get_height (script_state_t *state,
                                                             "image",
                                                             data->class);
   if (image)
-    return script_return_obj (script_obj_new_int (ply_image_get_height (image)));
+    return script_return_obj (script_obj_new_number (ply_image_get_height (image)));
   return script_return_obj_null ();
 }
 
@@ -112,7 +112,7 @@ static script_return_t image_rotate (script_state_t *state,
   ply_image_t *image = script_obj_hash_get_native_of_class (state->local,
                                                             "image",
                                                             data->class);
-  float angle = script_obj_hash_get_float (state->local, "angle");
+  float angle = script_obj_hash_get_number (state->local, "angle");
 
   if (image)
     {
@@ -132,8 +132,8 @@ static script_return_t image_scale (script_state_t *state,
   ply_image_t *image = script_obj_hash_get_native_of_class (state->local,
                                                             "image",
                                                             data->class);
-  int width = script_obj_hash_get_int (state->local, "width");
-  int height = script_obj_hash_get_int (state->local, "height");
+  int width = script_obj_hash_get_number (state->local, "width");
+  int height = script_obj_hash_get_number (state->local, "height");
 
   if (image)
     {
@@ -185,7 +185,7 @@ script_lib_image_data_t *script_lib_image_setup (script_state_t *state,
                               "image",
                               NULL);
 
-  data->script_main_op = script_parse_string (script_lib_image_string);
+  data->script_main_op = script_parse_string (script_lib_image_string, "script-lib-image.script");
   script_return_t ret = script_execute (state, data->script_main_op);
   script_obj_unref (ret.object);
 

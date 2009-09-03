@@ -1,4 +1,4 @@
-/* script-parse.h - parser for reading in script files
+/* script-debug.h - Debug handling matching memory loaded data to source locations
  *
  * Copyright (C) 2009 Charlie Brej <cbrej@cs.man.ac.uk>
  *
@@ -19,14 +19,21 @@
  *
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
-#ifndef SCRIPT_PARSE
-#define SCRIPT_PARSE
+#ifndef SCRIPT_DEBUG_H
+#define SCRIPT_DEBUG_H
 
-#include "script.h"
 
-script_op_t *script_parse_file (const char *filename);
-script_op_t *script_parse_string (const char *string,
-                                  const char *name);
-void script_parse_op_free (script_op_t *op);
+typedef struct
+{
+  int line_index;
+  int column_index;
+  char* name;
+} script_debug_location_t;
 
-#endif /* SCRIPT_PARSE */
+
+void script_debug_add_element (void                    *element,
+                               script_debug_location_t *location);
+void script_debug_remove_element (void *element);
+script_debug_location_t *script_debug_lookup_element (void *element);
+
+#endif /* SCRIPT_DEBUG_H */

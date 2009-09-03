@@ -40,13 +40,13 @@ typedef struct
   int           x;
   int           y;
   int           z;
-  float         opacity;
+  double        opacity;
   int           old_x;
   int           old_y;
   int           old_z;
   int           old_width;
   int           old_height;
-  float         old_opacity;
+  double        old_opacity;
   bool          refresh_me;
   bool          remove_me;
   ply_image_t  *image;

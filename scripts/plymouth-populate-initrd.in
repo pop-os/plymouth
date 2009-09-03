@@ -4,17 +4,7 @@
 
 [ -z "$LIBEXECDIR" ] && LIBEXECDIR="/usr/libexec"
 [ -z "$DATADIR" ] && DATADIR="/usr/share"
-[ -z "$SYSTEMMAP" ] && SYSTEM_MAP="/boot/System.map-$(/bin/uname -r)"
-if [ -z "$LIB" ]; then
-  if $(echo nash-showelfinterp /proc/$$/exe | /sbin/nash --forcequiet | grep -q lib64); then
-    LIB="lib64"
-  else
-    LIB="lib"
-  fi
-fi
-[ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
-[ -z "$BINDIR" ] && BINDIR="/usr/bin"
-[ -z "$GRUB_MENU_TITLE" ] && GRUB_MENU_TITLE="Graphical Bootup"
+[ -z "$PLYMOUTH_PLUGIN_PATH" ] && PLYMOUTH_PLUGIN_PATH="$(plymouth --get-splash-plugin-path)"
 [ -z "$PLYMOUTH_LOGO_FILE" ] && PLYMOUTH_LOGO_FILE="@logofile@"
 [ -z "$PLYMOUTH_THEME_NAME" ] && PLYMOUTH_THEME_NAME=$(plymouth-set-default-theme)
 
@@ -66,9 +56,9 @@ mkdir -p ${INITRDDIR}${DATADIR}/plymouth/themes
 inst /sbin/plymouthd $INITRDDIR /bin/plymouthd
 inst /bin/plymouth $INITRDDIR
 inst ${DATADIR}/plymouth/themes/text/text.plymouth $INITRDDIR
-inst ${LIBDIR}/plymouth/text.so $INITRDDIR
+inst ${PLYMOUTH_PLUGIN_PATH}/text.so $INITRDDIR
 inst ${DATADIR}/plymouth/themes/details/details.plymouth $INITRDDIR
-inst ${LIBDIR}/plymouth/details.so $INITRDDIR
+inst ${PLYMOUTH_PLUGIN_PATH}/details.so $INITRDDIR
 inst ${PLYMOUTH_LOGO_FILE} $INITRDDIR
 inst @RELEASE_FILE@ $INITRDDIR
 
@@ -79,12 +69,12 @@ fi
 
 PLYMOUTH_MODULE_NAME=$(grep "ModuleName *= *" ${DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME}/${PLYMOUTH_THEME_NAME}.plymouth | sed 's/ModuleName *= *//')
 
-if [ ! -f ${LIBDIR}/plymouth/${PLYMOUTH_MODULE_NAME}.so ]; then
+if [ ! -f ${PLYMOUTH_PLUGIN_PATH}/${PLYMOUTH_MODULE_NAME}.so ]; then
     echo "The default plymouth plugin (${PLYMOUTH_MODULE_NAME}) doesn't exist" > /dev/stderr
     exit 1
 fi
 
-inst ${LIBDIR}/plymouth/${PLYMOUTH_MODULE_NAME}.so $INITRDDIR
+inst ${PLYMOUTH_PLUGIN_PATH}/${PLYMOUTH_MODULE_NAME}.so $INITRDDIR
 
 if [ -d ${DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME} ]; then
     for x in ${DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME}/* ; do

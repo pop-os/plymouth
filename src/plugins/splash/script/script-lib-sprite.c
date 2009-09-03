@@ -105,7 +105,7 @@ static script_return_t sprite_set_x (script_state_t *state,
                                                           data->class);
 
   if (sprite)
-    sprite->x = script_obj_hash_get_int (state->local, "value");
+    sprite->x = script_obj_hash_get_number (state->local, "value");
   return script_return_obj_null ();
 }
 
@@ -118,7 +118,7 @@ static script_return_t sprite_set_y (script_state_t *state,
                                                           data->class);
 
   if (sprite)
-    sprite->y = script_obj_hash_get_int (state->local, "value");
+    sprite->y = script_obj_hash_get_number (state->local, "value");
   return script_return_obj_null ();
 }
 
@@ -131,7 +131,7 @@ static script_return_t sprite_set_z (script_state_t *state,
                                                           data->class);
 
   if (sprite)
-    sprite->z = script_obj_hash_get_int (state->local, "value");
+    sprite->z = script_obj_hash_get_number (state->local, "value");
   return script_return_obj_null ();
 }
 
@@ -144,7 +144,7 @@ static script_return_t sprite_set_opacity (script_state_t *state,
                                                           data->class);
 
   if (sprite)
-    sprite->opacity = script_obj_hash_get_float (state->local, "value");
+    sprite->opacity = script_obj_hash_get_number (state->local, "value");
   return script_return_obj_null ();
 }
 
@@ -156,7 +156,7 @@ static script_return_t sprite_window_get_width (script_state_t *state,
   ply_frame_buffer_area_t area;
 
   ply_frame_buffer_get_size (frame_buffer, &area);
-  return script_return_obj (script_obj_new_int (area.width));
+  return script_return_obj (script_obj_new_number (area.width));
 }
 
 static script_return_t sprite_window_get_height (script_state_t *state,
@@ -167,14 +167,14 @@ static script_return_t sprite_window_get_height (script_state_t *state,
   ply_frame_buffer_area_t area;
 
   ply_frame_buffer_get_size (frame_buffer, &area);
-  return script_return_obj (script_obj_new_int (area.height));
+  return script_return_obj (script_obj_new_number (area.height));
 }
 
 static uint32_t extract_rgb_color (script_state_t *state)
 {
-  uint8_t red =   CLAMP (255 * script_obj_hash_get_float (state->local, "red"),   0, 255);
-  uint8_t green = CLAMP (255 * script_obj_hash_get_float (state->local, "green"), 0, 255);
-  uint8_t blue =  CLAMP (255 * script_obj_hash_get_float (state->local, "blue"),  0, 255);
+  uint8_t red =   CLAMP (255 * script_obj_hash_get_number (state->local, "red"),   0, 255);
+  uint8_t green = CLAMP (255 * script_obj_hash_get_number (state->local, "green"), 0, 255);
+  uint8_t blue =  CLAMP (255 * script_obj_hash_get_number (state->local, "blue"),  0, 255);
 
   return (uint32_t) red << 16 | green << 8 | blue;
 }
@@ -331,7 +331,7 @@ script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
                               "blue",
                               NULL);
 
-  data->script_main_op = script_parse_string (script_lib_sprite_string);
+  data->script_main_op = script_parse_string (script_lib_sprite_string, "script-lib-sprite.script");
   data->background_color_start = 0x000000;
   data->background_color_end   = 0x000000;
   data->full_refresh = true;

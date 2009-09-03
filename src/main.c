@@ -123,7 +123,7 @@ static void on_error_message (ply_buffer_t *debug_buffer,
                               const void   *bytes,
                               size_t        number_of_bytes);
 static ply_buffer_t *debug_buffer;
-static char *debug_buffer_path;
+static char *debug_buffer_path = NULL;
 
 static void
 switch_to_vt (int vt_number)
@@ -562,7 +562,7 @@ plymouth_should_show_default_splash (state_t *state)
         }
     }
 
-  return strstr (state->kernel_command_line, "rhgb") != NULL || strstr (state->kernel_command_line, "splash") != NULL;
+  return strstr (state->kernel_command_line, "rhgb") != NULL || (strstr (state->kernel_command_line, "splash") != NULL && strstr(state->kernel_command_line, "splash=verbose") == NULL);
 }
 
 static void
@@ -1130,7 +1130,7 @@ check_verbosity (state_t *state)
       if (!ply_is_tracing ())
         ply_toggle_tracing ();
 
-      if (path != NULL)
+      if (path != NULL && debug_buffer_path == NULL)
         {
           char *end;
 
@@ -1143,9 +1143,6 @@ check_verbosity (state_t *state)
 
           debug_buffer_path = path;
         }
-
-        if (debug_buffer_path == NULL)
-          debug_buffer_path = strdup (PLYMOUTH_LOG_DIRECTORY "/plymouth-debug.log");
 
         if (debug_buffer != NULL)
           debug_buffer = ply_buffer_new ();
@@ -1160,6 +1157,9 @@ check_verbosity (state_t *state)
 
   if (debug_buffer != NULL)
     {
+      if (debug_buffer_path == NULL)
+        debug_buffer_path = strdup (PLYMOUTH_LOG_DIRECTORY "/plymouth-debug.log");
+
       ply_logger_add_filter (ply_logger_get_error_default (),
                              (ply_logger_filter_handler_t)
                              on_error_message,
@@ -1330,6 +1330,10 @@ dump_debug_buffer_to_file (void)
 
   fd = open (debug_buffer_path,
              O_WRONLY | O_CREAT, 0600);
+
+  if (fd < 0)
+    return;
+
   size = ply_buffer_get_size (debug_buffer);
   bytes = ply_buffer_get_bytes (debug_buffer);
   ply_write (fd, bytes, size);
@@ -1379,6 +1383,7 @@ main (int    argc,
                                   "attach-to-session", "Redirect console messages from screen to log", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "no-daemon", "Do not daemonize", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "debug", "Output debugging information", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "debug-file", "File to output debugging information to", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "mode", "Mode is one of: boot, shutdown", PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
@@ -1400,6 +1405,7 @@ main (int    argc,
                                   "mode", &mode_string,
                                   "no-daemon", &no_daemon,
                                   "debug", &debug,
+                                  "debug-file", &debug_buffer_path,
                                   NULL);
 
   if (should_help)

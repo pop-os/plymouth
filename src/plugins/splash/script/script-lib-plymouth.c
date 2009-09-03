@@ -66,6 +66,7 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t *state)
   data->script_display_normal_func = script_obj_new_null ();
   data->script_display_password_func = script_obj_new_null ();
   data->script_display_question_func = script_obj_new_null ();
+  data->script_message_func = script_obj_new_null ();
 
   script_add_native_function (state->global,
                               "PlymouthSetRefreshFunction",
@@ -115,7 +116,13 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t *state)
                               &data->script_display_question_func,
                               "function",
                               NULL);
-  data->script_main_op = script_parse_string (script_lib_plymouth_string);
+  script_add_native_function (state->global,
+                              "PlymouthSetMessageFunction",
+                              plymouth_set_function,
+                              &data->script_message_func,
+                              "function",
+                              NULL);
+  data->script_main_op = script_parse_string (script_lib_plymouth_string, "script-lib-plymouth.script");
   script_return_t ret = script_execute (state, data->script_main_op);
   script_obj_unref (ret.object);                /* Throw anything sent back away */
 
@@ -133,6 +140,7 @@ void script_lib_plymouth_destroy (script_lib_plymouth_data_t *data)
   script_obj_unref (data->script_display_normal_func);
   script_obj_unref (data->script_display_password_func);
   script_obj_unref (data->script_display_question_func);
+  script_obj_unref (data->script_message_func);
   free (data);
 }
 
@@ -144,6 +152,7 @@ void script_lib_plymouth_on_refresh (script_state_t             *state,
     {
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      NULL);
       script_obj_unref (ret.object);
     }
@@ -151,16 +160,17 @@ void script_lib_plymouth_on_refresh (script_state_t             *state,
 
 void script_lib_plymouth_on_boot_progress (script_state_t             *state,
                                            script_lib_plymouth_data_t *data,
-                                           float                       duration,
-                                           float                       progress)
+                                           double                     duration,
+                                           double                     progress)
 {
   script_function_t *function = script_obj_as_function (data->script_boot_progress_func);
   if (function)
     {
-      script_obj_t *duration_obj = script_obj_new_float (duration);
-      script_obj_t *progress_obj = script_obj_new_float (progress);
+      script_obj_t *duration_obj = script_obj_new_number (duration);
+      script_obj_t *progress_obj = script_obj_new_number (progress);
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      duration_obj,
                                                      progress_obj,
                                                      NULL);
@@ -178,6 +188,7 @@ void script_lib_plymouth_on_root_mounted (script_state_t             *state,
     {
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      NULL);
       script_obj_unref (ret.object);
     }
@@ -193,6 +204,7 @@ void script_lib_plymouth_on_keyboard_input (script_state_t             *state,
       script_obj_t *keyboard_input_obj = script_obj_new_string (keyboard_input);
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      keyboard_input_obj,
                                                      NULL);
       script_obj_unref (keyboard_input_obj);
@@ -210,6 +222,7 @@ void script_lib_plymouth_on_update_status (script_state_t             *state,
       script_obj_t *new_status_obj = script_obj_new_string (new_status);
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      new_status_obj,
                                                      NULL);
       script_obj_unref (new_status_obj);
@@ -225,6 +238,7 @@ void script_lib_plymouth_on_display_normal (script_state_t             *state,
     {
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      NULL);
       script_obj_unref (ret.object);
     }
@@ -239,9 +253,10 @@ void script_lib_plymouth_on_display_password (script_state_t             *state,
   if (function)
     {
       script_obj_t *prompt_obj = script_obj_new_string (prompt);
-      script_obj_t *bullets_obj = script_obj_new_int (bullets);
+      script_obj_t *bullets_obj = script_obj_new_number (bullets);
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      prompt_obj,
                                                      bullets_obj,
                                                      NULL);
@@ -263,11 +278,30 @@ void script_lib_plymouth_on_display_question (script_state_t             *state,
       script_obj_t *entry_text_obj = script_obj_new_string (entry_text);
       script_return_t ret = script_execute_function (state,
                                                      function,
+                                                     NULL,
                                                      prompt_obj,
                                                      entry_text_obj,
                                                      NULL);
       script_obj_unref (prompt_obj);
       script_obj_unref (entry_text_obj);
+      script_obj_unref (ret.object);
+    }
+}
+
+void script_lib_plymouth_on_message (script_state_t             *state,
+                                     script_lib_plymouth_data_t *data,
+                                     const char                 *message)
+{
+  script_function_t *function = script_obj_as_function (data->script_message_func);
+  if (function)
+    {
+      script_obj_t *new_message_obj = script_obj_new_string (message);
+      script_return_t ret = script_execute_function (state,
+                                                     function,
+                                                     NULL,
+                                                     new_message_obj,
+                                                     NULL);
+      script_obj_unref (new_message_obj);
       script_obj_unref (ret.object);
     }
 }

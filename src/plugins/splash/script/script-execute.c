@@ -22,6 +22,7 @@
 #define _GNU_SOURCE
 #include "ply-hashtable.h"
 #include "ply-list.h"
+#include "ply-logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -33,6 +34,7 @@
 #include <math.h>
 
 #include "script.h"
+#include "script-debug.h"
 #include "script-execute.h"
 #include "script-object.h"
 
@@ -40,7 +42,24 @@ static script_obj_t *script_evaluate (script_state_t *state,
                                       script_exp_t   *exp);
 static script_return_t script_execute_function_with_parlist (script_state_t    *state,
                                                              script_function_t *function,
+                                                             script_obj_t      *this,
                                                              ply_list_t        *parameter_data);
+
+
+static void script_execute_error (void       *element,
+                                  const char *message)
+{
+  script_debug_location_t *location = script_debug_lookup_element (element);
+  if (location)
+    ply_error ("Execution error \"%s\" L:%d C:%d : %s\n",
+               location->name,
+               location->line_index,
+               location->column_index,
+               message);
+  else
+    ply_error ("Execution error: %s\n", message);
+}
+
 
 static script_obj_t *script_evaluate_apply_function (script_state_t *state,
                                                      script_exp_t   *exp,
@@ -96,31 +115,11 @@ static script_obj_t *script_evaluate_var (script_state_t *state,
                                           script_exp_t   *exp)
 {
   char *name = exp->data.string;
-  script_obj_t *obj;
-
-  script_obj_deref (&state->global);
-  script_obj_deref (&state->local);
-  assert (state->global->type == SCRIPT_OBJ_TYPE_HASH);     /*FIXME use script-object functions */
-  assert (state->local->type == SCRIPT_OBJ_TYPE_HASH);
-
-  script_variable_t *variable = ply_hashtable_lookup (state->local->data.hash,
-                                                      name);
-  if (!variable)
-    variable = ply_hashtable_lookup (state->global->data.hash, name);
-  if (variable)
-    {
-      obj = variable->object;
-      script_obj_ref (obj);
-      return obj;
-    }
-  obj = script_obj_new_null ();
-
-  variable = malloc (sizeof (script_variable_t));
-  variable->name = strdup (name);
-  variable->object = obj;
-
-  ply_hashtable_insert (state->local->data.hash, variable->name, variable);
-  script_obj_ref (obj);
+  script_obj_t *obj = script_obj_hash_peek_element (state->local, name);
+  if (obj) return obj;
+  obj = script_obj_hash_peek_element (state->global, name);
+  if (obj) return obj;
+  obj = script_obj_hash_get_element (state->local, name);
   return obj;
 }
 
@@ -147,8 +146,8 @@ static script_obj_t *script_evaluate_cmp (script_state_t           *state,
   script_obj_unref (script_obj_b);
   
   if (cmp_result & condition)
-    return script_obj_new_int (1);
-  return script_obj_new_int (0);
+    return script_obj_new_number (1);
+  return script_obj_new_number (0);
 }
 
 static script_obj_t *script_evaluate_logic (script_state_t *state,
@@ -173,7 +172,7 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
 
   if (exp->type == SCRIPT_EXP_TYPE_NOT)
     {
-      new_obj = script_obj_new_int (!script_obj_as_bool (obj));
+      new_obj = script_obj_new_number (!script_obj_as_bool (obj));
       script_obj_unref (obj);
       return new_obj;
     }
@@ -181,11 +180,13 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
     return obj;                             /* Does nothing, maybe just remove at parse stage */
   if (exp->type == SCRIPT_EXP_TYPE_NEG)
     {
-      if (script_obj_is_int(obj))
-        new_obj = script_obj_new_int (-script_obj_as_int (obj));
-      else if (script_obj_is_float(obj))
-        new_obj = script_obj_new_float (-script_obj_as_float (obj));
-      else new_obj = script_obj_new_null ();
+      if (script_obj_is_number(obj))
+        new_obj = script_obj_new_number (-script_obj_as_number (obj));
+      else
+        {
+          script_execute_error(exp, "Cannot negate non number objects");
+          new_obj = script_obj_new_null ();
+        }
       script_obj_unref (obj);
       return new_obj;
     }
@@ -201,18 +202,14 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
     change_pre = 1;
   else if (exp->type == SCRIPT_EXP_TYPE_PRE_DEC)
     change_pre = -1;
-  if (script_obj_is_int(obj))
+  if (script_obj_is_number(obj))
     {
-      new_obj = script_obj_new_int (script_obj_as_int(obj) + change_pre);
-      obj->data.integer += change_post;                     /* FIXME direct access */
-    }
-  else if (script_obj_is_float(obj))
-    {
-      new_obj = script_obj_new_float (script_obj_as_float(obj) + change_pre);
-      obj->data.floatpoint += change_post;
+      new_obj = script_obj_new_number (script_obj_as_number(obj) + change_pre);
+      obj->data.number += change_post;
     }
   else
     {
+      script_execute_error(exp, "Cannot increment/decrement non number objects");
       new_obj = script_obj_new_null (); /* If performeing something like a=hash++; a and hash become NULL */
       script_obj_reset (obj);
     }
@@ -223,13 +220,35 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
 static script_obj_t *script_evaluate_func (script_state_t *state,
                                            script_exp_t   *exp)
 {
-  script_obj_t *func_obj = script_evaluate (state, exp->data.function_exe.name);
-  script_obj_t *obj = NULL;
+  script_obj_t *this_obj;
+  script_obj_t *func_obj;
+  script_exp_t *name_exp = exp->data.function_exe.name;
+  
+  if (name_exp->type == SCRIPT_EXP_TYPE_HASH)
+    {
+      script_obj_t *this_key  = script_evaluate (state, name_exp->data.dual.sub_b);
+      this_obj = script_evaluate (state, name_exp->data.dual.sub_a);
+      char *this_key_name = script_obj_as_string (this_key);
+      script_obj_unref (this_key);
+      if (script_obj_is_hash(this_obj))
+        {
+          func_obj = script_obj_hash_get_element (this_obj, this_key_name);
+        }
+      free(this_key_name);
+    }
+  else
+    {
+      func_obj = script_evaluate (state, exp->data.function_exe.name);
+      this_obj = NULL; 
+    }
+  
   script_function_t *function = script_obj_as_function (func_obj);
 
   if (!function)
     {
+      script_execute_error(exp, "Call operated on an object with is not a function");
       script_obj_unref (func_obj);
+      if (this_obj) script_obj_unref (this_obj);
       return script_obj_new_null ();
     }
   ply_list_t *parameter_expressions = exp->data.function_exe.parameters;
@@ -246,7 +265,9 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
     }
   script_return_t reply = script_execute_function_with_parlist (state,
                                                                 function,
+                                                                this_obj,
                                                                 parameter_data);
+  script_obj_t *obj;
   if (reply.type == SCRIPT_RETURN_TYPE_RETURN)
     obj = reply.object;
   else
@@ -261,6 +282,7 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
   ply_list_free (parameter_data);
 
   script_obj_unref (func_obj);
+  if (this_obj) script_obj_unref (this_obj);
 
   return obj;
 }
@@ -338,14 +360,9 @@ static script_obj_t *script_evaluate (script_state_t *state,
           return script_evaluate_unary (state, exp);
         }
 
-      case SCRIPT_EXP_TYPE_TERM_INT:
+      case SCRIPT_EXP_TYPE_TERM_NUMBER:
         {
-          return script_obj_new_int (exp->data.integer);
-        }
-
-      case SCRIPT_EXP_TYPE_TERM_FLOAT:
-        {
-          return script_obj_new_float (exp->data.floatpoint);
+          return script_obj_new_number (exp->data.number);
         }
 
       case SCRIPT_EXP_TYPE_TERM_STRING:
@@ -461,6 +478,7 @@ static script_return_t script_execute_list (script_state_t *state,
 /* parameter_data list should be freed by caller */
 static script_return_t script_execute_function_with_parlist (script_state_t    *state,
                                                              script_function_t *function,
+                                                             script_obj_t      *this,
                                                              ply_list_t        *parameter_data)
 {
   script_state_t *sub_state = script_state_init_sub (state);
@@ -488,11 +506,14 @@ static script_return_t script_execute_function_with_parlist (script_state_t    *
       node_data = ply_list_get_next_node (parameter_data, node_data);
     }
 
-  script_obj_t *count_obj = script_obj_new_int (index);
+  script_obj_t *count_obj = script_obj_new_number (index);
   script_obj_hash_add_element (arg_obj, count_obj, "count");
   script_obj_hash_add_element (sub_state->local, arg_obj, "_args");
   script_obj_unref (count_obj);
   script_obj_unref (arg_obj);
+
+  if (this)
+    script_obj_hash_add_element (sub_state->local, this, "this");
 
   script_return_t reply;
   switch (function->type)
@@ -517,6 +538,7 @@ static script_return_t script_execute_function_with_parlist (script_state_t    *
 
 script_return_t script_execute_function (script_state_t    *state,
                                          script_function_t *function,
+                                         script_obj_t      *this,
                                          script_obj_t      *first_arg,
                                          ...)
 {
@@ -534,7 +556,7 @@ script_return_t script_execute_function (script_state_t    *state,
     }
   va_end (args);
 
-  reply = script_execute_function_with_parlist (state, function, parameter_data);
+  reply = script_execute_function_with_parlist (state, function, this, parameter_data);
   ply_list_free (parameter_data);
 
   return reply;
@@ -606,16 +628,6 @@ script_return_t script_execute (script_state_t *state,
                   break;
                 }
             }
-          break;
-        }
-
-      case SCRIPT_OP_TYPE_FUNCTION_DEF:
-        {
-          script_obj_t *obj = script_evaluate (state, op->data.function_def.name);
-          script_obj_t *function_obj = script_obj_new_function(op->data.function_def.function);
-          script_obj_assign (obj, function_obj);
-          script_obj_unref (function_obj);
-          script_obj_unref (obj);
           break;
         }
 

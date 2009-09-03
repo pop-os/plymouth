@@ -20,6 +20,7 @@
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
 #define _GNU_SOURCE
+#include "ply-boot-splash-plugin.h"
 #include "ply-utils.h"
 #include "script.h"
 #include "script-parse.h"
@@ -54,7 +55,34 @@ static script_return_t plymouth_set_function (script_state_t *state,
   return script_return_obj_null ();
 }
 
-script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t *state)
+static script_return_t plymouth_get_mode (script_state_t *state,
+                                          void           *user_data)
+{
+  script_lib_plymouth_data_t *data = user_data;
+  script_obj_t *obj;
+  switch (data->mode)
+    {
+      case PLY_BOOT_SPLASH_MODE_BOOT_UP:
+        obj = script_obj_new_string ("boot");
+        break;
+      case PLY_BOOT_SPLASH_MODE_SHUTDOWN:
+        obj = script_obj_new_string ("shutdown");
+        break;
+      case PLY_BOOT_SPLASH_MODE_SUSPEND:
+        obj = script_obj_new_string ("suspend");
+        break;
+      case PLY_BOOT_SPLASH_MODE_RESUME:
+        obj = script_obj_new_string ("resume");
+        break;
+      default:
+        obj = script_obj_new_string ("unknown");
+        break;
+    }
+  return script_return_obj (obj);
+}
+
+script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t         *state,
+                                                       ply_boot_splash_mode_t  mode)
 {
   script_lib_plymouth_data_t *data = malloc (sizeof (script_lib_plymouth_data_t));
 
@@ -67,7 +95,8 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t *state)
   data->script_display_password_func = script_obj_new_null ();
   data->script_display_question_func = script_obj_new_null ();
   data->script_message_func = script_obj_new_null ();
-
+  data->mode = mode;
+  
   script_add_native_function (state->global,
                               "PlymouthSetRefreshFunction",
                               plymouth_set_function,
@@ -121,6 +150,11 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t *state)
                               plymouth_set_function,
                               &data->script_message_func,
                               "function",
+                              NULL);
+  script_add_native_function (state->global,
+                              "PlymouthGetMode",
+                              plymouth_get_mode,
+                              data,
                               NULL);
   data->script_main_op = script_parse_string (script_lib_plymouth_string, "script-lib-plymouth.script");
   script_return_t ret = script_execute (state, data->script_main_op);

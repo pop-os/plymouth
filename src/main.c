@@ -126,26 +126,6 @@ static ply_buffer_t *debug_buffer;
 static char *debug_buffer_path = NULL;
 
 static void
-switch_to_vt (int vt_number)
-{
-    int fd;
-
-    fd = open ("/dev/tty0", O_RDWR | O_NOCTTY);
-
-    if (fd < 0)
-      return;
-
-  if (ioctl (fd, VT_ACTIVATE, vt_number) < 0)
-    {
-      close (fd);
-      return;
-    }
-
-  ioctl (fd, VT_WAITACTIVE, vt_number);
-  close (fd);
-}
-
-static void
 on_session_output (state_t    *state,
                    const char *output,
                    size_t      size)
@@ -1277,7 +1257,7 @@ initialize_environment (state_t *state)
   if (state->mode == PLY_MODE_SHUTDOWN)
     {
       default_tty = "tty63";
-      switch_to_vt (63);
+      ply_switch_to_vt (63);
     }
   else
     default_tty = "tty1";

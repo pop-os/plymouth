@@ -211,32 +211,24 @@ script_obj_t *script_obj_new_native (void                      *object_data,
 }
 
 script_number_t script_obj_as_number (script_obj_t *obj)
-{                                                     /* If in then reply contents, otherwise reply 0 */
+{                                                     /* If in then reply contents, otherwise reply NAN */
   obj = script_obj_deref_direct (obj);
-  switch (obj->type)
-    {
-      case SCRIPT_OBJ_TYPE_NUMBER:
-        return obj->data.number;
-
-      case SCRIPT_OBJ_TYPE_NULL:
-      case SCRIPT_OBJ_TYPE_REF:
-      case SCRIPT_OBJ_TYPE_HASH:
-      case SCRIPT_OBJ_TYPE_FUNCTION:
-      case SCRIPT_OBJ_TYPE_NATIVE:
-      case SCRIPT_OBJ_TYPE_STRING:
-        return NAN;
-    }
+  if (obj->type == SCRIPT_OBJ_TYPE_NUMBER)
+    return obj->data.number;
   return NAN;
 }
 
 bool script_obj_as_bool (script_obj_t *obj)
-{                                                 /* False objects are NULL, 0, "" */
+{                                                 /* False objects are NULL, 0, NAN, "" */
   obj = script_obj_deref_direct (obj);
   switch (obj->type)
     {
       case SCRIPT_OBJ_TYPE_NUMBER:
-        if (fabs (obj->data.number) > FLT_MIN) return true;
-        return false;
+        {
+          int num_type = fpclassify(obj->data.number);
+          if (num_type == FP_ZERO || num_type == FP_NAN) return false;
+          return true;
+        }
 
       case SCRIPT_OBJ_TYPE_NULL:
         return false;

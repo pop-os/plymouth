@@ -19,8 +19,8 @@
  *
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
-#ifndef SCRIPT_LIB_MATH
-#define SCRIPT_LIB_MATH
+#ifndef SCRIPT_LIB_MATH_H
+#define SCRIPT_LIB_MATH_H
 
 #include "script.h"
 
@@ -32,4 +32,4 @@ typedef struct
 script_lib_math_data_t *script_lib_math_setup (script_state_t *state);
 void script_lib_math_destroy (script_lib_math_data_t *data);
 
-#endif /* SCRIPT_LIB_MATH */
+#endif /* SCRIPT_LIB_MATH_H */

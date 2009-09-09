@@ -19,8 +19,8 @@
  *
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
-#ifndef script_scan_H
-#define script_scan_H
+#ifndef SCRIPT_SCAN_H
+#define SCRIPT_SCAN_H
 
 #include "script-debug.h"
 #include "ply-bitarray.h"
@@ -106,4 +106,4 @@ void script_scan_read_next_token (script_scan_t       *scan,
                                   script_scan_token_t *token);
 
 
-#endif /* script_scan_H */
+#endif /* SCRIPT_SCAN_H */

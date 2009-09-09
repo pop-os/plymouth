@@ -19,8 +19,8 @@
  *
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
-#ifndef SCRIPT_LIB_PLYMOUTH
-#define SCRIPT_LIB_PLYMOUTH
+#ifndef SCRIPT_LIB_PLYMOUTH_H
+#define SCRIPT_LIB_PLYMOUTH_H
 
 #include "ply-boot-splash-plugin.h"
 #include "script.h"
@@ -72,4 +72,4 @@ void script_lib_plymouth_on_message (script_state_t             *state,
                                      script_lib_plymouth_data_t *data,
                                      const char                 *new_message);
 
-#endif /* SCRIPT_LIB_PLYMOUTH */
+#endif /* SCRIPT_LIB_PLYMOUTH_H */

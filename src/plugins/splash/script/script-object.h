@@ -19,10 +19,11 @@
  *
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
-#ifndef SCRIPT_OBJECT
-#define SCRIPT_OBJECT
+#ifndef SCRIPT_OBJECT_H
+#define SCRIPT_OBJECT_H
 
 #include "script.h"
+#include <stdbool.h>
 
 
 typedef enum
@@ -102,4 +103,4 @@ script_obj_t *script_obj_mod (script_obj_t *script_obj_a_in,
                               script_obj_t *script_obj_b_in);
 script_obj_cmp_result_t script_obj_cmp (script_obj_t *script_obj_a,
                                         script_obj_t *script_obj_b);
-#endif /* SCRIPT_OBJECT */
+#endif /* SCRIPT_OBJECT_H */

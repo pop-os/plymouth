@@ -191,7 +191,8 @@ script_obj_t *script_obj_new_function (script_function_t *function)
 script_obj_t *script_obj_new_ref (script_obj_t *sub_obj)
 {
   script_obj_t *obj = malloc (sizeof (script_obj_t));
-
+  sub_obj = script_obj_deref_direct (sub_obj);
+  script_obj_ref (sub_obj);
   obj->type = SCRIPT_OBJ_TYPE_REF;
   obj->data.obj = sub_obj;
   obj->refcount = 1;

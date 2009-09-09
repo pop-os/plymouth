@@ -20,7 +20,6 @@
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
 #define _GNU_SOURCE
-#include "ply-utils.h"
 #include "script.h"
 #include "script-parse.h"
 #include "script-execute.h"
@@ -65,43 +64,45 @@ script_lib_math_data_t *script_lib_math_setup (script_state_t *state)
 {
   script_lib_math_data_t *data = malloc (sizeof (script_lib_math_data_t));
 
-  script_add_native_function (state->global,
-                              "MathCos",
+  script_obj_t *math_hash = script_obj_hash_get_element (state->global, "Math");
+  script_add_native_function (math_hash,
+                              "Cos",
                               script_lib_math_double_from_double_function,
                               cos,
                               "value",
                               NULL);
-  script_add_native_function (state->global,
-                              "MathSin",
+  script_add_native_function (math_hash,
+                              "Sin",
                               script_lib_math_double_from_double_function,
                               sin,
                               "value",
                               NULL);
-  script_add_native_function (state->global,
-                              "MathTan",
+  script_add_native_function (math_hash,
+                              "Tan",
                               script_lib_math_double_from_double_function,
                               tan,
                               "value",
                               NULL);
-  script_add_native_function (state->global,
-                              "MathATan2",
+  script_add_native_function (math_hash,
+                              "ATan2",
                               script_lib_math_double_from_double_double_function,
                               atan2,
                               "value_a",
                               "value_b",
                               NULL);
-  script_add_native_function (state->global,
-                              "MathSqrt",
+  script_add_native_function (math_hash,
+                              "Sqrt",
                               script_lib_math_double_from_double_function,
                               sqrt,
                               "value",
                               NULL);
-  script_add_native_function (state->global,
-                              "MathInt",
+  script_add_native_function (math_hash,
+                              "Int",
                               script_lib_math_double_from_double_function,
                               double_to_int,
                               "value",
                               NULL);
+  script_obj_unref (math_hash);
 
   data->script_main_op = script_parse_string (script_lib_math_string, "script-lib-math.script");
   script_return_t ret = script_execute (state, data->script_main_op);

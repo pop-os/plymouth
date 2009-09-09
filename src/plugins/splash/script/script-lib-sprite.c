@@ -73,12 +73,9 @@ static script_return_t sprite_set_image (script_state_t *state,
                                          void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
-  sprite_t *sprite = script_obj_hash_get_native_of_class (state->local,
-                                                          "sprite",
-                                                          data->class);
+  sprite_t *sprite = script_obj_as_native_of_class (state->this, data->class);
   script_obj_t *script_obj_image = script_obj_hash_get_element (state->local,
                                                               "image");
-
   script_obj_deref (&script_obj_image);
   ply_image_t *image = script_obj_as_native_of_class_name (script_obj_image,
                                                            "image");
@@ -100,9 +97,7 @@ static script_return_t sprite_set_x (script_state_t *state,
                                      void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
-  sprite_t *sprite = script_obj_hash_get_native_of_class (state->local,
-                                                          "sprite",
-                                                          data->class);
+  sprite_t *sprite = script_obj_as_native_of_class (state->this, data->class);
 
   if (sprite)
     sprite->x = script_obj_hash_get_number (state->local, "value");
@@ -113,9 +108,7 @@ static script_return_t sprite_set_y (script_state_t *state,
                                      void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
-  sprite_t *sprite = script_obj_hash_get_native_of_class (state->local,
-                                                          "sprite",
-                                                          data->class);
+  sprite_t *sprite = script_obj_as_native_of_class (state->this, data->class);
 
   if (sprite)
     sprite->y = script_obj_hash_get_number (state->local, "value");
@@ -126,9 +119,7 @@ static script_return_t sprite_set_z (script_state_t *state,
                                      void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
-  sprite_t *sprite = script_obj_hash_get_native_of_class (state->local,
-                                                          "sprite",
-                                                          data->class);
+  sprite_t *sprite = script_obj_as_native_of_class (state->this, data->class);
 
   if (sprite)
     sprite->z = script_obj_hash_get_number (state->local, "value");
@@ -139,9 +130,7 @@ static script_return_t sprite_set_opacity (script_state_t *state,
                                            void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
-  sprite_t *sprite = script_obj_hash_get_native_of_class (state->local,
-                                                          "sprite",
-                                                          data->class);
+  sprite_t *sprite = script_obj_as_native_of_class (state->this, data->class);
 
   if (sprite)
     sprite->opacity = script_obj_hash_get_number (state->local, "value");
@@ -264,72 +253,73 @@ script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
   data->sprite_list = ply_list_new ();
   data->window = window;
 
-  script_add_native_function (state->global,
-                              "SpriteNew",
+  script_obj_t *sprite_hash = script_obj_hash_get_element (state->global, "Sprite");
+  script_add_native_function (sprite_hash,
+                              "_New",
                               sprite_new,
                               data,
                               NULL);
-  script_add_native_function (state->global,
-                              "SpriteSetImage",
+  script_add_native_function (sprite_hash,
+                              "SetImage",
                               sprite_set_image,
                               data,
-                              "sprite",
                               "image",
                               NULL);
-  script_add_native_function (state->global,
-                              "SpriteSetX",
+  script_add_native_function (sprite_hash,
+                              "SetX",
                               sprite_set_x,
                               data,
-                              "sprite",
                               "value",
                               NULL);
-  script_add_native_function (state->global,
-                              "SpriteSetY",
+  script_add_native_function (sprite_hash,
+                              "SetY",
                               sprite_set_y,
                               data,
-                              "sprite",
                               "value",
                               NULL);
-  script_add_native_function (state->global,
-                              "SpriteSetZ",
+  script_add_native_function (sprite_hash,
+                              "SetZ",
                               sprite_set_z,
                               data,
-                              "sprite",
                               "value",
                               NULL);
-  script_add_native_function (state->global,
-                              "SpriteSetOpacity",
+  script_add_native_function (sprite_hash,
+                              "SetOpacity",
                               sprite_set_opacity,
                               data,
-                              "sprite",
                               "value",
                               NULL);
-  script_add_native_function (state->global,
-                              "SpriteWindowGetWidth",
+  script_obj_unref (sprite_hash);
+
+  
+  script_obj_t *window_hash = script_obj_hash_get_element (state->global, "Window");
+  script_add_native_function (window_hash,
+                              "GetWidth",
                               sprite_window_get_width,
                               data,
                               NULL);
-  script_add_native_function (state->global,
-                              "SpriteWindowGetHeight",
+  script_add_native_function (window_hash,
+                              "GetHeight",
                               sprite_window_get_height,
                               data,
                               NULL);
-  script_add_native_function (state->global,
-                              "SpriteWindowSetBackgroundTopColor",
+  script_add_native_function (window_hash,
+                              "SetBackgroundTopColor",
                               sprite_window_set_background_top_color,
                               data,
                               "red",
                               "green",
                               "blue",
                               NULL);
-  script_add_native_function (state->global,
-                              "SpriteWindowSetBackgroundBottomColor",
+  script_add_native_function (window_hash,
+                              "SetBackgroundBottomColor",
                               sprite_window_set_background_bottom_color,
                               data,
                               "red",
                               "green",
                               "blue",
                               NULL);
+  script_obj_unref (window_hash);
 
   data->script_main_op = script_parse_string (script_lib_sprite_string, "script-lib-sprite.script");
   data->background_color_start = 0x000000;

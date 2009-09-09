@@ -438,28 +438,30 @@ static script_exp_t *script_parse_exp_ltr (script_scan_t *scan, int presedence)
 {
   static const script_parse_operator_table_entry_t operator_table[] =
     {
-      {"||", SCRIPT_EXP_TYPE_OR,         0},    /* FIXME Does const imply static? */
-      {"&&", SCRIPT_EXP_TYPE_AND,        1},
-      {"==", SCRIPT_EXP_TYPE_EQ,         2},
-      {"!=", SCRIPT_EXP_TYPE_NE,         2},
-      {">=", SCRIPT_EXP_TYPE_GE,         3},
-      {"<=", SCRIPT_EXP_TYPE_LE,         3},
+      {"||", SCRIPT_EXP_TYPE_OR,         1},    /* FIXME Does const imply static? */
+      {"&&", SCRIPT_EXP_TYPE_AND,        2},
+      {"==", SCRIPT_EXP_TYPE_EQ,         3},
+      {"!=", SCRIPT_EXP_TYPE_NE,         3},
+      {">=", SCRIPT_EXP_TYPE_GE,         4},
+      {"<=", SCRIPT_EXP_TYPE_LE,         4},
       {"+=", SCRIPT_EXP_TYPE_TERM_NULL, -1},    /* A few things it shouldn't consume */
       {"-=", SCRIPT_EXP_TYPE_TERM_NULL, -1},
       {"*=", SCRIPT_EXP_TYPE_TERM_NULL, -1},
       {"/=", SCRIPT_EXP_TYPE_TERM_NULL, -1},
       {"%=", SCRIPT_EXP_TYPE_TERM_NULL, -1},
-      {">",  SCRIPT_EXP_TYPE_GT,         3},
-      {"<",  SCRIPT_EXP_TYPE_LT,         3},
-      {"+",  SCRIPT_EXP_TYPE_PLUS,       4},
-      {"-",  SCRIPT_EXP_TYPE_MINUS,      4},
-      {"*",  SCRIPT_EXP_TYPE_MUL,        5},
-      {"/",  SCRIPT_EXP_TYPE_DIV,        5},
-      {"%",  SCRIPT_EXP_TYPE_MOD,        5},
+      {"|=", SCRIPT_EXP_TYPE_TERM_NULL, -1},
+      {"|",  SCRIPT_EXP_TYPE_EXTEND,     0},
+      {">",  SCRIPT_EXP_TYPE_GT,         4},
+      {"<",  SCRIPT_EXP_TYPE_LT,         4},
+      {"+",  SCRIPT_EXP_TYPE_PLUS,       5},
+      {"-",  SCRIPT_EXP_TYPE_MINUS,      5},
+      {"*",  SCRIPT_EXP_TYPE_MUL,        6},
+      {"/",  SCRIPT_EXP_TYPE_DIV,        6},
+      {"%",  SCRIPT_EXP_TYPE_MOD,        6},    /* Put this number into the "presedence > ?" line below*/
       {NULL, SCRIPT_EXP_TYPE_TERM_NULL, -1},
     };
     
-  if (presedence > 5) return script_parse_exp_po (scan);
+  if (presedence > 6) return script_parse_exp_po (scan);
   script_exp_t *exp = script_parse_exp_ltr (scan, presedence + 1);
   if (!exp) return NULL;
   
@@ -474,7 +476,7 @@ static script_exp_t *script_parse_exp_ltr (script_scan_t *scan, int presedence)
       if (!exp->data.dual.sub_b)
         {
           script_parse_error (&script_scan_get_current_token (scan)->location,
-                              "An invalid RHS of an expression");
+                              "An invalid RHS of an operation");
           return NULL;
         }
     }
@@ -490,6 +492,7 @@ static script_exp_t *script_parse_exp_as (script_scan_t *scan)
       {"*=", SCRIPT_EXP_TYPE_ASSIGN_MUL,   0}, 
       {"/=", SCRIPT_EXP_TYPE_ASSIGN_DIV,   0}, 
       {"%=", SCRIPT_EXP_TYPE_ASSIGN_MOD,   0}, 
+      {"|=", SCRIPT_EXP_TYPE_ASSIGN_EXTEND,0},
       {"=",  SCRIPT_EXP_TYPE_ASSIGN,       0}, 
       {NULL, SCRIPT_EXP_TYPE_TERM_NULL,   -1}, 
     };
@@ -505,7 +508,7 @@ static script_exp_t *script_parse_exp_as (script_scan_t *scan)
   if (!rhs)
     {
       script_parse_error (&script_scan_get_current_token (scan)->location,
-                          "An invalid RHS of an expression");
+                          "An invalid RHS of an assign");
       return NULL;
     }
   return script_parse_new_exp_dual (entry->exp_type, lhs, rhs, &location);
@@ -695,6 +698,8 @@ static script_op_t *script_parse_return (script_scan_t *scan)
   script_op_type_t type;
   if      (script_scan_token_is_identifier_of_value (curtoken, "return"))
     type = SCRIPT_OP_TYPE_RETURN;
+  else if (script_scan_token_is_identifier_of_value (curtoken, "fail"))
+    type = SCRIPT_OP_TYPE_FAIL;
   else if (script_scan_token_is_identifier_of_value (curtoken, "break"))
     type = SCRIPT_OP_TYPE_BREAK;
   else if (script_scan_token_is_identifier_of_value (curtoken, "continue"))
@@ -790,12 +795,14 @@ static void script_parse_exp_free (script_exp_t *exp)
       case SCRIPT_EXP_TYPE_LE:
       case SCRIPT_EXP_TYPE_AND:
       case SCRIPT_EXP_TYPE_OR:
+      case SCRIPT_EXP_TYPE_EXTEND:
       case SCRIPT_EXP_TYPE_ASSIGN:
       case SCRIPT_EXP_TYPE_ASSIGN_PLUS:
       case SCRIPT_EXP_TYPE_ASSIGN_MINUS:
       case SCRIPT_EXP_TYPE_ASSIGN_MUL:
       case SCRIPT_EXP_TYPE_ASSIGN_DIV:
       case SCRIPT_EXP_TYPE_ASSIGN_MOD:
+      case SCRIPT_EXP_TYPE_ASSIGN_EXTEND:
       case SCRIPT_EXP_TYPE_HASH:
         script_parse_exp_free (exp->data.dual.sub_a);
         script_parse_exp_free (exp->data.dual.sub_b);
@@ -864,38 +871,29 @@ void script_parse_op_free (script_op_t *op)
   switch (op->type)
     {
       case SCRIPT_OP_TYPE_EXPRESSION:
-        {
-          script_parse_exp_free (op->data.exp);
-          break;
-        }
+        script_parse_exp_free (op->data.exp);
+        break;
 
       case SCRIPT_OP_TYPE_OP_BLOCK:
-        {
-          script_parse_op_list_free (op->data.list);
-          break;
-        }
+        script_parse_op_list_free (op->data.list);
+        break;
 
       case SCRIPT_OP_TYPE_IF:
       case SCRIPT_OP_TYPE_WHILE:
       case SCRIPT_OP_TYPE_FOR:
-        {
-          script_parse_exp_free (op->data.cond_op.cond);
-          script_parse_op_free  (op->data.cond_op.op1);
-          script_parse_op_free  (op->data.cond_op.op2);
-          break;
-        }
+        script_parse_exp_free (op->data.cond_op.cond);
+        script_parse_op_free  (op->data.cond_op.op1);
+        script_parse_op_free  (op->data.cond_op.op2);
+        break;
 
       case SCRIPT_OP_TYPE_RETURN:
-        {
-          if (op->data.exp) script_parse_exp_free (op->data.exp);
-          break;
-        }
+        if (op->data.exp) script_parse_exp_free (op->data.exp);
+        break;
 
+      case SCRIPT_OP_TYPE_FAIL:
       case SCRIPT_OP_TYPE_BREAK:
       case SCRIPT_OP_TYPE_CONTINUE:
-        {
-          break;
-        }
+        break;
     }
   script_debug_remove_element (op);
   free (op);

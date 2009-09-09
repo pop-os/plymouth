@@ -227,11 +227,49 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
   script_obj_unref (obj);
   return new_obj;
 }
+typedef struct 
+{
+  script_state_t    *state;
+  script_obj_t      *this;
+  ply_list_t        *parameter_data;
+} script_obj_execute_data_t;
+
+static void *script_obj_execute (script_obj_t *obj,
+                                 void         *user_data)
+{
+  script_obj_execute_data_t *execute_data = user_data;
+  if (obj->type == SCRIPT_OBJ_TYPE_FUNCTION){
+      script_function_t *function = obj->data.function;
+      script_return_t reply = script_execute_function_with_parlist (execute_data->state,
+                                                                    function,
+                                                                    execute_data->this,
+                                                                    execute_data->parameter_data);
+      if (reply.type != SCRIPT_RETURN_TYPE_FAIL)
+        return reply.object ? reply.object : script_obj_new_null ();
+    }
+  return NULL;
+}
+
+static script_return_t script_execute_object_with_parlist (script_state_t    *state,
+                                                           script_obj_t      *obj,
+                                                           script_obj_t      *this,
+                                                           ply_list_t        *parameter_data)
+{
+  script_obj_execute_data_t execute_data;
+  execute_data.state = state;
+  execute_data.this = this;
+  execute_data.parameter_data = parameter_data;
+
+  obj = script_obj_as_custom (obj, script_obj_execute, &execute_data);
+
+  if (obj) return script_return_obj(obj);
+  return script_return_fail();
+}
 
 static script_obj_t *script_evaluate_func (script_state_t *state,
                                            script_exp_t   *exp)
 {
-  script_obj_t *this_obj;
+  script_obj_t *this_obj = NULL; ;
   script_obj_t *func_obj;
   script_exp_t *name_exp = exp->data.function_exe.name;
   
@@ -241,27 +279,30 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
       this_obj = script_evaluate (state, name_exp->data.dual.sub_a);
       char *this_key_name = script_obj_as_string (this_key);
       script_obj_unref (this_key);
-      if (script_obj_is_hash(this_obj))
-        {
-          func_obj = script_obj_hash_get_element (this_obj, this_key_name);
-        }
+      func_obj = script_obj_hash_get_element (this_obj, this_key_name);
       free(this_key_name);
+    }
+  else if (name_exp->type == SCRIPT_EXP_TYPE_TERM_VAR)
+    {
+      char *name = name_exp->data.string;
+      func_obj = script_obj_hash_peek_element (state->local, name);
+      if (!func_obj)
+        {
+          func_obj = script_obj_hash_peek_element (state->this, name);
+          if (func_obj)
+            this_obj = state->this;
+          else
+            {
+              func_obj = script_obj_hash_peek_element (state->global, name);
+              if (!func_obj) func_obj = script_obj_new_null ();
+            }
+        }
     }
   else
     {
       func_obj = script_evaluate (state, exp->data.function_exe.name);
-      this_obj = NULL; 
     }
   
-  script_function_t *function = script_obj_as_function (func_obj);
-
-  if (!function)
-    {
-      script_execute_error(exp, "Call operated on an object with is not a function");
-      script_obj_unref (func_obj);
-      if (this_obj) script_obj_unref (this_obj);
-      return script_obj_new_null ();
-    }
   ply_list_t *parameter_expressions = exp->data.function_exe.parameters;
   ply_list_t *parameter_data = ply_list_new ();
 
@@ -274,15 +315,9 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
       node_expression = ply_list_get_next_node (parameter_expressions,
                                                 node_expression);
     }
-  script_return_t reply = script_execute_function_with_parlist (state,
-                                                                function,
-                                                                this_obj,
-                                                                parameter_data);
-  script_obj_t *obj;
-  if (reply.type == SCRIPT_RETURN_TYPE_RETURN)
-    obj = reply.object;
-  else
-    obj = script_obj_new_null ();
+
+  script_return_t reply = script_execute_object_with_parlist (state, func_obj, this_obj, parameter_data);
+    
   ply_list_node_t *node_data = ply_list_get_first_node (parameter_data);
   while (node_data)
     {
@@ -295,7 +330,7 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
   script_obj_unref (func_obj);
   if (this_obj) script_obj_unref (this_obj);
 
-  return obj;
+  return reply.object ? reply.object : script_obj_new_null ();
 }
 
 static script_obj_t *script_evaluate (script_state_t *state,
@@ -358,6 +393,11 @@ static script_obj_t *script_evaluate (script_state_t *state,
       case SCRIPT_EXP_TYPE_OR:
         {
           return script_evaluate_logic (state, exp);
+        }
+
+      case SCRIPT_EXP_TYPE_EXTEND:
+        {
+          return script_evaluate_apply_function (state, exp, script_obj_new_extend);
         }
 
       case SCRIPT_EXP_TYPE_NOT:
@@ -449,6 +489,13 @@ static script_obj_t *script_evaluate (script_state_t *state,
                                                             script_obj_mod);
         }
 
+      case SCRIPT_EXP_TYPE_ASSIGN_EXTEND:
+        {
+          return script_evaluate_apply_function_and_assign (state,
+                                                            exp,
+                                                            script_obj_new_extend);
+        }
+
       case SCRIPT_EXP_TYPE_HASH:
         {
           return script_evaluate_hash (state, exp);
@@ -477,13 +524,14 @@ static script_return_t script_execute_list (script_state_t *state,
        node = ply_list_get_next_node (op_list, node))
     {
       script_op_t *op = ply_list_node_get_data (node);
+      script_obj_unref (reply.object);
       reply = script_execute (state, op);
       switch (reply.type)
         {
           case SCRIPT_RETURN_TYPE_NORMAL:
             break;
-
           case SCRIPT_RETURN_TYPE_RETURN:
+          case SCRIPT_RETURN_TYPE_FAIL:
           case SCRIPT_RETURN_TYPE_BREAK:
           case SCRIPT_RETURN_TYPE_CONTINUE:
             return reply;
@@ -548,16 +596,17 @@ static script_return_t script_execute_function_with_parlist (script_state_t    *
           break;
         }
     }
-
   script_state_destroy (sub_state);
+  if (reply.type != SCRIPT_RETURN_TYPE_FAIL)
+    reply.type = SCRIPT_RETURN_TYPE_RETURN;
   return reply;
 }
 
-script_return_t script_execute_function (script_state_t    *state,
-                                         script_function_t *function,
-                                         script_obj_t      *this,
-                                         script_obj_t      *first_arg,
-                                         ...)
+script_return_t script_execute_object (script_state_t    *state,
+                                       script_obj_t      *function,
+                                       script_obj_t      *this,
+                                       script_obj_t      *first_arg,
+                                       ...)
 {
   script_return_t reply;
   va_list args;
@@ -573,7 +622,7 @@ script_return_t script_execute_function (script_state_t    *state,
     }
   va_end (args);
 
-  reply = script_execute_function_with_parlist (state, function, this, parameter_data);
+  reply = script_execute_object_with_parlist (state, function, this, parameter_data);
   ply_list_free (parameter_data);
 
   return reply;
@@ -583,21 +632,18 @@ script_return_t script_execute (script_state_t *state,
                                 script_op_t    *op)
 {
   script_return_t reply = script_return_normal ();
-
   if (!op) return reply;
   switch (op->type)
     {
       case SCRIPT_OP_TYPE_EXPRESSION:
         {
-          script_obj_t *obj = script_evaluate (state, op->data.exp);
-          script_obj_unref (obj);  /* there is always a reply from all expressions (even assigns) which we chuck away */
+          reply.object = script_evaluate (state, op->data.exp);
           break;
         }
 
       case SCRIPT_OP_TYPE_OP_BLOCK:
         {
           reply = script_execute_list (state, op->data.list);
-          /* FIXME blocks should normall reply a NULL , but if they replied something else then that was a return */
           break;
         }
 
@@ -621,6 +667,7 @@ script_return_t script_execute (script_state_t *state,
               obj = script_evaluate (state, op->data.cond_op.cond);
               if (script_obj_as_bool (obj))
                 {
+                  script_obj_unref (reply.object);
                   reply = script_execute (state, op->data.cond_op.op1);
                   script_obj_unref (obj);
                   switch (reply.type)
@@ -629,6 +676,7 @@ script_return_t script_execute (script_state_t *state,
                         break;
 
                       case SCRIPT_RETURN_TYPE_RETURN:
+                      case SCRIPT_RETURN_TYPE_FAIL:
                         return reply;
 
                       case SCRIPT_RETURN_TYPE_BREAK:
@@ -637,7 +685,11 @@ script_return_t script_execute (script_state_t *state,
                       case SCRIPT_RETURN_TYPE_CONTINUE:
                         break;
                     }
-                  script_execute (state, op->data.cond_op.op2);
+                  if (op->data.cond_op.op2)
+                    {
+                      script_obj_unref (reply.object);
+                      reply = script_execute (state, op->data.cond_op.op2);
+                    }
                 }
               else
                 {
@@ -654,6 +706,12 @@ script_return_t script_execute (script_state_t *state,
           if (op->data.exp) obj = script_evaluate (state, op->data.exp);
           else obj = script_obj_new_null ();
           reply = script_return_obj (obj);
+          break;
+        }
+
+      case SCRIPT_OP_TYPE_FAIL:
+        {
+          reply = script_return_fail ();
           break;
         }
 

@@ -30,6 +30,7 @@ typedef enum                        /* FIXME add _t to all types */
 {
   SCRIPT_RETURN_TYPE_NORMAL,
   SCRIPT_RETURN_TYPE_RETURN,
+  SCRIPT_RETURN_TYPE_FAIL,
   SCRIPT_RETURN_TYPE_BREAK,
   SCRIPT_RETURN_TYPE_CONTINUE,
 } script_return_type_t;
@@ -92,6 +93,7 @@ typedef enum
 {
   SCRIPT_OBJ_TYPE_NULL,
   SCRIPT_OBJ_TYPE_REF,
+  SCRIPT_OBJ_TYPE_EXTEND,
   SCRIPT_OBJ_TYPE_NUMBER,
   SCRIPT_OBJ_TYPE_STRING,
   SCRIPT_OBJ_TYPE_HASH,
@@ -108,6 +110,11 @@ typedef struct script_obj_t
     script_number_t number;
     char *string;
     struct script_obj_t *obj;
+    struct
+      {
+        struct script_obj_t *obj_a;
+        struct script_obj_t *obj_b;
+      } dual_obj;
     script_function_t *function;
     ply_hashtable_t *hash;
     script_obj_native_t native;
@@ -136,6 +143,7 @@ typedef enum
   SCRIPT_EXP_TYPE_NE,
   SCRIPT_EXP_TYPE_AND,
   SCRIPT_EXP_TYPE_OR,
+  SCRIPT_EXP_TYPE_EXTEND,
   SCRIPT_EXP_TYPE_NOT,
   SCRIPT_EXP_TYPE_POS,
   SCRIPT_EXP_TYPE_NEG,
@@ -152,6 +160,7 @@ typedef enum
   SCRIPT_EXP_TYPE_ASSIGN_MUL,
   SCRIPT_EXP_TYPE_ASSIGN_DIV,
   SCRIPT_EXP_TYPE_ASSIGN_MOD,
+  SCRIPT_EXP_TYPE_ASSIGN_EXTEND,
 } script_exp_type_t;
 
 typedef struct script_exp_t
@@ -184,6 +193,7 @@ typedef enum
   SCRIPT_OP_TYPE_WHILE,
   SCRIPT_OP_TYPE_FOR,
   SCRIPT_OP_TYPE_RETURN,
+  SCRIPT_OP_TYPE_FAIL,
   SCRIPT_OP_TYPE_BREAK,
   SCRIPT_OP_TYPE_CONTINUE,
 } script_op_type_t;
@@ -213,7 +223,9 @@ typedef struct
 
 #define script_return_obj(_return_object) ((script_return_t) {SCRIPT_RETURN_TYPE_RETURN, _return_object})
 #define script_return_obj_null() ((script_return_t) {SCRIPT_RETURN_TYPE_RETURN, script_obj_new_null ()})
+#define script_return_fail() ((script_return_t) {SCRIPT_RETURN_TYPE_FAIL, NULL})
 #define script_return_normal() ((script_return_t) {SCRIPT_RETURN_TYPE_NORMAL, NULL})
+#define script_return_normal_obj(_return_object) ((script_return_t) {SCRIPT_RETURN_TYPE_NORMAL, _return_object})
 #define script_return_break() ((script_return_t) {SCRIPT_RETURN_TYPE_BREAK, NULL})
 #define script_return_continue() ((script_return_t) {SCRIPT_RETURN_TYPE_CONTINUE, NULL})
 

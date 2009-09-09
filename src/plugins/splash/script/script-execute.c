@@ -193,21 +193,30 @@ static script_obj_t *script_evaluate_unary (script_state_t *state,
       return new_obj;
     }
   int change_pre = 0;
-  int change_post;
+  int change = -1;
 
   if ((exp->type == SCRIPT_EXP_TYPE_PRE_INC) ||
       (exp->type == SCRIPT_EXP_TYPE_POST_INC))
-    change_post = 1;
-  else
-    change_post = -1;
-  if (exp->type == SCRIPT_EXP_TYPE_PRE_INC)
+    change = 1;
+  if ((exp->type == SCRIPT_EXP_TYPE_PRE_INC) ||
+      (exp->type == SCRIPT_EXP_TYPE_PRE_DEC))
     change_pre = 1;
-  else if (exp->type == SCRIPT_EXP_TYPE_PRE_DEC)
-    change_pre = -1;
+
   if (script_obj_is_number(obj))
     {
-      new_obj = script_obj_new_number (script_obj_as_number(obj) + change_pre);
-      obj->data.number += change_post;
+      if (change_pre)
+        {
+          new_obj = script_obj_new_number (script_obj_as_number(obj) + change);
+          script_obj_assign (obj, new_obj);
+        }
+      else
+        {
+          new_obj = script_obj_deref_direct (obj);
+          script_obj_ref (new_obj);
+          script_obj_t *new_obj2 = script_obj_new_number (script_obj_as_number(obj) + change);
+          script_obj_assign (obj, new_obj2);
+          script_obj_unref (new_obj2);
+        }
     }
   else
     {

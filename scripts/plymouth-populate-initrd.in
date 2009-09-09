@@ -8,10 +8,23 @@
 [ -z "$PLYMOUTH_LOGO_FILE" ] && PLYMOUTH_LOGO_FILE="@logofile@"
 [ -z "$PLYMOUTH_THEME_NAME" ] && PLYMOUTH_THEME_NAME=$(plymouth-set-default-theme)
 
-if [ -f "${LIBEXECDIR}/initrd-functions" ]; then
-    . "${LIBEXECDIR}/initrd-functions"
-else
-    echo "Couldn't import initrd functions." > /dev/stderr
+if [ -z "$PLYMOUTH_POPULATE_SOURCE_FUNCTIONS" ]; then
+
+    if [ -f "${LIBEXECDIR}/initrd-functions" ]; then
+        PLYMOUTH_POPULATE_SOURCE_FUNCTIONS="${LIBEXECDIR}/initrd-functions"
+    fi
+
+    if [ -f "${DATADIR}/dracut/dracut-functions" ]; then
+        PLYMOUTH_POPULATE_SOURCE_FUNCTIONS="${DATADIR}/dracut/dracut-functions"
+    fi
+fi
+
+if [ -n "$PLYMOUTH_POPULATE_SOURCE_FUNCTIONS" ]; then
+    source $PLYMOUTH_POPULATE_SOURCE_FUNCTIONS
+fi
+
+if [ " $(type -t inst) " != " function " ]; then
+    echo "Need 'inst' function, try setting PLYMOUTH_POPULATE_SOURCE_FUNCTIONS to a file that defines it" 1>&2
     exit 1
 fi
 
@@ -48,7 +61,7 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
-set_verbose $verbose
+set_verbose $verbose || :
 
 [ -z "$INITRDDIR" ] && usage error
 

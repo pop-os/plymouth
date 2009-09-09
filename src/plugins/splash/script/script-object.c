@@ -392,7 +392,7 @@ script_obj_t *script_obj_hash_peek_element (script_obj_t *hash,
                                             const char   *name)
 {
   hash = script_obj_deref_direct (hash);
-  assert (hash->type == SCRIPT_OBJ_TYPE_HASH);
+  if (hash->type != SCRIPT_OBJ_TYPE_HASH) return NULL;
   script_variable_t *variable = ply_hashtable_lookup (hash->data.hash,
                                                       (void *) name);
   if (!variable) return NULL;
@@ -483,7 +483,6 @@ void script_obj_hash_add_element (script_obj_t *hash,
                                   script_obj_t *element,
                                   const char   *name)
 {
-  assert (hash->type == SCRIPT_OBJ_TYPE_HASH);
   script_obj_t *obj = script_obj_hash_get_element (hash, name);
   script_obj_assign (obj, element);
   script_obj_unref (obj);

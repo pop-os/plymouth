@@ -47,6 +47,7 @@ typedef struct
   void *user_data;
   struct script_obj_t *global;
   struct script_obj_t *local;
+  struct script_obj_t *this;
 } script_state_t;
 
 typedef enum
@@ -121,6 +122,7 @@ typedef enum
   SCRIPT_EXP_TYPE_TERM_VAR,
   SCRIPT_EXP_TYPE_TERM_LOCAL,
   SCRIPT_EXP_TYPE_TERM_GLOBAL,
+  SCRIPT_EXP_TYPE_TERM_THIS,
   SCRIPT_EXP_TYPE_PLUS,
   SCRIPT_EXP_TYPE_MINUS,
   SCRIPT_EXP_TYPE_MUL,
@@ -233,7 +235,7 @@ script_obj_native_class_t *script_obj_native_class_new (script_obj_function_t fr
 
 void script_obj_native_class_destroy (script_obj_native_class_t * class);
 script_state_t *script_state_new (void *user_data);
-script_state_t *script_state_init_sub (script_state_t *oldstate);
+script_state_t *script_state_init_sub (script_state_t *oldstate, script_obj_t *this);
 void script_state_destroy (script_state_t *state);
 
 #endif /* SCRIPT_H */

@@ -117,6 +117,8 @@ static script_obj_t *script_evaluate_var (script_state_t *state,
   char *name = exp->data.string;
   script_obj_t *obj = script_obj_hash_peek_element (state->local, name);
   if (obj) return obj;
+  obj = script_obj_hash_peek_element (state->this, name);
+  if (obj) return obj;
   obj = script_obj_hash_peek_element (state->global, name);
   if (obj) return obj;
   obj = script_obj_hash_get_element (state->local, name);
@@ -387,6 +389,12 @@ static script_obj_t *script_evaluate (script_state_t *state,
           return state->global;
         }
 
+      case SCRIPT_EXP_TYPE_TERM_THIS:
+        {
+          script_obj_ref (state->this);
+          return state->this;
+        }
+
       case SCRIPT_EXP_TYPE_TERM_VAR:
         {
           return script_evaluate_var (state, exp);
@@ -481,7 +489,7 @@ static script_return_t script_execute_function_with_parlist (script_state_t    *
                                                              script_obj_t      *this,
                                                              ply_list_t        *parameter_data)
 {
-  script_state_t *sub_state = script_state_init_sub (state);
+  script_state_t *sub_state = script_state_init_sub (state, this);
   ply_list_t *parameter_names = function->parameters;
   ply_list_node_t *node_name = ply_list_get_first_node (parameter_names);
   ply_list_node_t *node_data = ply_list_get_first_node (parameter_data);

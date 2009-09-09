@@ -171,7 +171,7 @@ static void script_parse_error (script_debug_location_t *location,
 }
 
 static const script_parse_operator_table_entry_t*   /* Only allows 1 or 2 character symbols */
-script_parse_operator_table_entry_lookup (script_scan_t                                *scan,
+script_parse_operator_table_entry_lookup (script_scan_t                             *scan,
                                           const script_parse_operator_table_entry_t *table)
 {
   int entry_index;
@@ -279,6 +279,8 @@ static script_exp_t *script_parse_exp_tm (script_scan_t *scan)
         exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_GLOBAL, &curtoken->location);
       else if (script_scan_token_is_identifier_of_value (curtoken, "local"))
         exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_LOCAL, &curtoken->location);
+      else if (script_scan_token_is_identifier_of_value (curtoken, "this"))
+        exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_THIS, &curtoken->location);
       else if (script_scan_token_is_identifier_of_value (curtoken, "fun"))
         {
           script_debug_location_t location = curtoken->location;
@@ -813,6 +815,7 @@ static void script_parse_exp_free (script_exp_t *exp)
       case SCRIPT_EXP_TYPE_TERM_NULL:
       case SCRIPT_EXP_TYPE_TERM_LOCAL:
       case SCRIPT_EXP_TYPE_TERM_GLOBAL:
+      case SCRIPT_EXP_TYPE_TERM_THIS:
         break;
 
       case SCRIPT_EXP_TYPE_FUNCTION_EXE:

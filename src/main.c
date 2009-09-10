@@ -514,11 +514,11 @@ plymouth_should_show_default_splash (state_t *state)
   ply_trace ("checking if plymouth should show default splash");
 
   const char const *strings[] = {
-      " single ", " single", "^single ",
-      " 1 ", " 1", "^1 ",
-      " s ", " s", "^s ",
-      " S ", " S", "^S ",
-      " -s ", " -s", "^-s ",
+      " single ", " single\n", "^single ",
+      " 1 ", " 1\n", "^1 ",
+      " s ", " s\n", "^s ",
+      " S ", " S\n", "^S ",
+      " -s ", " -s\n", "^-s ",
       NULL
   };
   int i;

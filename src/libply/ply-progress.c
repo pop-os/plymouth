@@ -80,7 +80,7 @@ ply_progress_new (void)
   progress->last_percentage=0.0;
   progress->last_percentage_time=0.0;
   progress->dead_time=0.0;
-  progress->next_message_percentage=1.0;
+  progress->next_message_percentage=0.25;
   progress->current_message_list = ply_list_new ();
   progress->previous_message_list = ply_list_new ();
   progress->paused = false;

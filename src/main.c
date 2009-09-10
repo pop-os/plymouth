@@ -516,6 +516,9 @@ plymouth_should_show_default_splash (state_t *state)
   const char const *strings[] = {
       " single ", " single", "^single ",
       " 1 ", " 1", "^1 ",
+      " s ", " s", "^s ",
+      " S ", " S", "^S ",
+      " -s ", " -s", "^-s ",
       NULL
   };
   int i;

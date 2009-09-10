@@ -28,6 +28,10 @@ if [ " $(type -t inst) " != " function " ]; then
     exit 1
 fi
 
+if [ " $(type -t set_verbose) " != " function " ]; then
+    function set_verbose { true; }
+fi
+
 function usage() {
     local output="/dev/stdout"
     local rc=0

@@ -27,9 +27,8 @@
 #include <unistd.h>
 
 #include "ply-event-loop.h"
-#include "ply-frame-buffer.h"
+#include "ply-pixel-display.h"
 #include "ply-trigger.h"
-#include "ply-window.h"
 
 typedef struct _ply_animation ply_animation_t;
 
@@ -41,12 +40,19 @@ void ply_animation_free (ply_animation_t *animation);
 bool ply_animation_load (ply_animation_t *animation);
 bool ply_animation_start (ply_animation_t    *animation,
                           ply_event_loop_t   *loop,
-                          ply_window_t       *window,
+                          ply_pixel_display_t *display,
                           ply_trigger_t      *stop_trigger,
                           long                x,
                           long                y);
 void ply_animation_stop (ply_animation_t *animation);
 bool ply_animation_is_stopped (ply_animation_t *animation);
+
+void ply_animation_draw_area (ply_animation_t    *animation,
+                              ply_pixel_buffer_t *buffer,
+                              long                x,
+                              long                y,
+                              unsigned long       width,
+                              unsigned long       height);
 
 long ply_animation_get_width (ply_animation_t *animation);
 long ply_animation_get_height (ply_animation_t *animation);

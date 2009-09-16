@@ -44,10 +44,9 @@
 #include "ply-event-loop.h"
 #include "ply-array.h"
 #include "ply-logger.h"
-#include "ply-frame-buffer.h"
 #include "ply-image.h"
+#include "ply-pixel-buffer.h"
 #include "ply-utils.h"
-#include "ply-window.h"
 
 #include <linux/kd.h>
 
@@ -62,9 +61,8 @@ struct _ply_animation
   char *image_dir;
   char *frames_prefix;
 
-  ply_window_t            *window;
-  ply_frame_buffer_t      *frame_buffer;
-  ply_frame_buffer_area_t  frame_area;
+  ply_pixel_display_t     *display;
+  ply_rectangle_t          frame_area;
   ply_trigger_t *stop_trigger;
 
   int frame_number;
@@ -128,25 +126,13 @@ ply_animation_free (ply_animation_t *animation)
   free (animation);
 }
 
-static void
-draw_background (ply_animation_t *animation)
-{
-  ply_window_erase_area (animation->window,
-                         animation->x, animation->y,
-                         animation->frame_area.width,
-                         animation->frame_area.height);
-}
-
 static bool
 animate_at_time (ply_animation_t *animation,
                  double           time)
 {
   int number_of_frames;
   ply_image_t * const * frames;
-  uint32_t *frame_data;
   bool should_continue;
-
-  ply_window_set_mode (animation->window, PLY_WINDOW_MODE_GRAPHICS);
 
   number_of_frames = ply_array_get_size (animation->frames);
 
@@ -161,22 +147,17 @@ animate_at_time (ply_animation_t *animation,
   if (animation->stop_requested)
     should_continue = false;
 
-  ply_frame_buffer_pause_updates (animation->frame_buffer);
-  if (animation->frame_area.width > 0)
-    draw_background (animation);
-
   frames = (ply_image_t * const *) ply_array_get_elements (animation->frames);
 
   animation->frame_area.x = animation->x;
   animation->frame_area.y = animation->y;
   animation->frame_area.width = ply_image_get_width (frames[animation->frame_number]);
   animation->frame_area.height = ply_image_get_height (frames[animation->frame_number]);
-  frame_data = ply_image_get_data (frames[animation->frame_number]);
 
-  ply_frame_buffer_fill_with_argb32_data (animation->frame_buffer,
-                                          &animation->frame_area, 0, 0,
-                                          frame_data);
-  ply_frame_buffer_unpause_updates (animation->frame_buffer);
+  ply_pixel_display_draw_area (animation->display,
+                               animation->x, animation->y,
+                               animation->frame_area.width,
+                               animation->frame_area.height);
 
   animation->frame_number++;
 
@@ -314,7 +295,7 @@ ply_animation_load (ply_animation_t *animation)
 bool
 ply_animation_start (ply_animation_t    *animation,
                      ply_event_loop_t   *loop,
-                     ply_window_t       *window,
+                     ply_pixel_display_t *display,
                      ply_trigger_t      *stop_trigger,
                      long                x,
                      long                y)
@@ -323,9 +304,8 @@ ply_animation_start (ply_animation_t    *animation,
   assert (animation->loop == NULL);
 
   animation->loop = loop;
-  animation->window = window;
+  animation->display = display;
   animation->stop_trigger = stop_trigger;
-  animation->frame_buffer = ply_window_get_frame_buffer (window);;
   animation->is_stopped = false;
   animation->stop_requested = false;
 
@@ -345,8 +325,6 @@ ply_animation_start (ply_animation_t    *animation,
 static void
 ply_animation_stop_now (ply_animation_t *animation)
 {
-  animation->frame_buffer = NULL;
-  animation->window = NULL;
   animation->is_stopped = true;
 
   if (animation->loop != NULL)
@@ -356,6 +334,8 @@ ply_animation_stop_now (ply_animation_t *animation)
                                                 on_timeout, animation);
       animation->loop = NULL;
     }
+
+  animation->display = NULL;
 }
 
 void
@@ -374,6 +354,28 @@ bool
 ply_animation_is_stopped (ply_animation_t *animation)
 {
   return animation->is_stopped;
+}
+
+void
+ply_animation_draw_area (ply_animation_t    *animation,
+                         ply_pixel_buffer_t *buffer,
+                         long                x,
+                         long                y,
+                         unsigned long       width,
+                         unsigned long       height)
+{
+  ply_image_t * const * frames;
+  uint32_t *frame_data;
+
+  if (animation->is_stopped)
+    return;
+
+  frames = (ply_image_t * const *) ply_array_get_elements (animation->frames);
+  frame_data = ply_image_get_data (frames[animation->frame_number]);
+
+  ply_pixel_buffer_fill_with_argb32_data (buffer,
+                                          &animation->frame_area, 0, 0,
+                                          frame_data);
 }
 
 long

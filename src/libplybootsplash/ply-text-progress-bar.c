@@ -43,11 +43,11 @@
 #include <unistd.h>
 #include <wchar.h>
 
+#include "ply-text-display.h"
 #include "ply-text-progress-bar.h"
 #include "ply-array.h"
 #include "ply-logger.h"
 #include "ply-utils.h"
-#include "ply-window.h"
 
 #include <linux/kd.h>
 
@@ -61,7 +61,7 @@ static char *os_string;
 
 struct _ply_text_progress_bar
 {
-  ply_window_t            *window;
+  ply_text_display_t *display;
 
   int column, row;
   int number_of_rows;
@@ -124,16 +124,15 @@ out:
 void
 ply_text_progress_bar_draw (ply_text_progress_bar_t *progress_bar)
 {
-    int i, width = progress_bar->number_of_columns - 2 - strlen(os_string);
+    int i, width = progress_bar->number_of_columns - 2 - strlen (os_string);
     double brown_fraction, blue_fraction, white_fraction;
 
     if (progress_bar->is_hidden)
       return;
 
-    ply_window_set_mode (progress_bar->window, PLY_WINDOW_MODE_TEXT);
-    ply_window_set_text_cursor_position(progress_bar->window,
-                                        progress_bar->column,
-                                        progress_bar->row);
+    ply_text_display_set_cursor_position (progress_bar->display,
+                                          progress_bar->column,
+                                          progress_bar->row);
 
     brown_fraction = - (progress_bar->percent_done * progress_bar->percent_done) + 2 * progress_bar->percent_done;
     blue_fraction  = progress_bar->percent_done;
@@ -144,56 +143,56 @@ ply_text_progress_bar_draw (ply_text_progress_bar_t *progress_bar)
 
         f = (double) i / (double) width;
         if (f < white_fraction)
-            ply_window_set_background_color (progress_bar->window,
-                                             PLY_WINDOW_COLOR_WHITE);
+            ply_text_display_set_background_color (progress_bar->display,
+                                                   PLY_TERMINAL_COLOR_WHITE);
         else if (f < blue_fraction)
-            ply_window_set_background_color (progress_bar->window,
-                                             PLY_WINDOW_COLOR_BLUE);
+            ply_text_display_set_background_color (progress_bar->display,
+                                             PLY_TERMINAL_COLOR_BLUE);
         else if (f < brown_fraction)
-            ply_window_set_background_color (progress_bar->window,
-                                             PLY_WINDOW_COLOR_BROWN);
+            ply_text_display_set_background_color (progress_bar->display,
+                                             PLY_TERMINAL_COLOR_BROWN);
         else
           break;
 
-        write (STDOUT_FILENO, " ", strlen (" "));
+        ply_text_display_write (progress_bar->display, "%c", ' ');
     }
 
-    ply_window_set_background_color (progress_bar->window, PLY_WINDOW_COLOR_BLACK);
+    ply_text_display_set_background_color (progress_bar->display,
+                                           PLY_TERMINAL_COLOR_BLACK);
 
     if (brown_fraction > 0.5) {
         if (white_fraction > 0.875)
-            ply_window_set_foreground_color (progress_bar->window,
-                                             PLY_WINDOW_COLOR_WHITE);
+            ply_text_display_set_foreground_color (progress_bar->display,
+                                                   PLY_TERMINAL_COLOR_WHITE);
         else if (blue_fraction > 0.66)
-            ply_window_set_foreground_color (progress_bar->window,
-                                             PLY_WINDOW_COLOR_BLUE);
+            ply_text_display_set_foreground_color (progress_bar->display,
+                                                   PLY_TERMINAL_COLOR_BLUE);
         else
-            ply_window_set_foreground_color (progress_bar->window,
-                                             PLY_WINDOW_COLOR_BROWN);
+            ply_text_display_set_foreground_color (progress_bar->display,
+                                                   PLY_TERMINAL_COLOR_BROWN);
 
-        ply_window_set_text_cursor_position(progress_bar->window,
-                                            progress_bar->column + width,
-                                            progress_bar->row);
+        ply_text_display_set_cursor_position (progress_bar->display,
+                                              progress_bar->column + width,
+                                              progress_bar->row);
 
+        ply_text_display_write (progress_bar->display, "%s", os_string);
 
-        write (STDOUT_FILENO, os_string, strlen(os_string));
-
-        ply_window_set_foreground_color (progress_bar->window,
-                                         PLY_WINDOW_COLOR_DEFAULT);
+        ply_text_display_set_foreground_color (progress_bar->display,
+                                               PLY_TERMINAL_COLOR_DEFAULT);
     }
 }
 
 void
 ply_text_progress_bar_show (ply_text_progress_bar_t  *progress_bar,
-                            ply_window_t       *window)
+                            ply_text_display_t       *display)
 {
   assert (progress_bar != NULL);
 
-  progress_bar->window = window;
+  progress_bar->display = display;
 
-  progress_bar->number_of_rows = ply_window_get_number_of_text_rows(window);
+  progress_bar->number_of_rows = ply_text_display_get_number_of_rows (display);
   progress_bar->row = progress_bar->number_of_rows - 1;
-  progress_bar->number_of_columns = ply_window_get_number_of_text_columns(window);
+  progress_bar->number_of_columns = ply_text_display_get_number_of_columns (display);
   progress_bar->column = 2;
 
   get_os_string ();
@@ -206,7 +205,7 @@ ply_text_progress_bar_show (ply_text_progress_bar_t  *progress_bar,
 void
 ply_text_progress_bar_hide (ply_text_progress_bar_t *progress_bar)
 {
-  progress_bar->window = NULL;
+  progress_bar->display = NULL;
   progress_bar->is_hidden = true;
 }
 

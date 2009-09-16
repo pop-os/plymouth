@@ -29,7 +29,7 @@
 #include <unistd.h>
 
 #include "ply-event-loop.h"
-#include "ply-window.h"
+#include "ply-text-display.h"
 
 typedef struct _ply_text_progress_bar ply_text_progress_bar_t;
 
@@ -39,7 +39,7 @@ void ply_text_progress_bar_free (ply_text_progress_bar_t *progress_bar);
 
 void ply_text_progress_bar_draw (ply_text_progress_bar_t *progress_bar);
 void ply_text_progress_bar_show (ply_text_progress_bar_t  *progress_bar,
-                                 ply_window_t       *window);
+                                 ply_text_display_t       *display);
 void ply_text_progress_bar_hide (ply_text_progress_bar_t *progress_bar);
 
 void ply_text_progress_bar_set_percent_done (ply_text_progress_bar_t  *progress_bar,

@@ -50,6 +50,7 @@ struct _ply_renderer
   ply_renderer_backend_t *backend;
 
   char *device_name;
+  ply_terminal_t *terminal;
   ply_console_t *console;
 };
 

@@ -79,8 +79,11 @@ typedef struct
 typedef struct
 {
   ply_event_loop_t *loop;
+  ply_console_t *console;
   ply_boot_server_t *boot_server;
-  ply_list_t *windows;
+  ply_list_t *pixel_displays;
+  ply_list_t *text_displays;
+  ply_keyboard_t *keyboard;
   ply_boot_splash_t *boot_splash;
   ply_terminal_session_t *session;
   ply_buffer_t *boot_buffer;
@@ -90,6 +93,7 @@ typedef struct
   ply_buffer_t *entry_buffer;
   ply_command_parser_t *command_parser;
   ply_mode_t mode;
+  ply_renderer_t *renderer;
 
   ply_trigger_t *quit_trigger;
 
@@ -104,6 +108,7 @@ typedef struct
 
   char *kernel_console_tty;
   char *override_splash_path;
+  const char *default_tty;
 
   int number_of_errors;
 } state_t;
@@ -111,8 +116,10 @@ typedef struct
 static ply_boot_splash_t *start_boot_splash (state_t    *state,
                                              const char *theme_path);
 
-static ply_window_t *create_window (state_t    *state,
-                                    const char *tty_name);
+static void add_display_and_keyboard_for_terminal (state_t    *state,
+                                                   const char *tty_name);
+
+static void add_default_displays_and_keyboard (state_t *state);
 
 static bool attach_to_running_session (state_t *state);
 static void on_escape_pressed (state_t *state);
@@ -461,47 +468,6 @@ on_error (state_t *state)
 }
 
 static bool
-has_open_window (state_t *state)
-{
-  ply_list_node_t *node;
-
-  ply_trace ("checking for open windows");
-
-  node = ply_list_get_first_node (state->windows);
-  while (node != NULL)
-    {
-      ply_list_node_t *next_node;
-      ply_window_t *window;
-
-      next_node = ply_list_get_next_node (state->windows, node);
-
-      window = ply_list_node_get_data (node);
-
-      if (ply_window_is_open (window))
-        {
-          int fd;
-          const char *name;
-
-          fd = ply_window_get_tty_fd (window);
-
-          if (fd >= 0)
-            name = ttyname (fd);
-          else
-            name = NULL;
-
-          ply_trace ("window %s%sis open",
-                     name != NULL? name : "",
-                     name != NULL? " " : "");
-          return true;
-        }
-
-      node = next_node;
-    }
-
-  return false;
-}
-
-static bool
 plymouth_should_ignore_show_splash_calls (state_t *state)
 {
   ply_trace ("checking if plymouth should be running");
@@ -526,9 +492,6 @@ plymouth_should_show_default_splash (state_t *state)
   if (state->kernel_console_tty != NULL)
     return false;
 
-  if (!has_open_window (state))
-    return false;
-
   for (i = 0; strings[i] != NULL; i++)
     {
       int cmp;
@@ -549,53 +512,47 @@ plymouth_should_show_default_splash (state_t *state)
 }
 
 static void
-open_windows (state_t *state)
+remove_displays_and_keyboard (state_t *state)
 {
   ply_list_node_t *node;
 
-  node = ply_list_get_first_node (state->windows);
+  node = ply_list_get_first_node (state->pixel_displays);
   while (node != NULL)
     {
       ply_list_node_t *next_node;
-      ply_window_t *window;
+      ply_pixel_display_t *display;
 
-      next_node = ply_list_get_next_node (state->windows, node);
+      next_node = ply_list_get_next_node (state->pixel_displays, node);
+      display = ply_list_node_get_data (node);
+      ply_pixel_display_free (display);
 
-      window = ply_list_node_get_data (node);
-
-      if (!ply_window_is_open (window))
-        ply_window_open (window);
+      ply_list_remove_node (state->pixel_displays, node);
 
       node = next_node;
     }
-}
 
-static void
-close_windows (state_t *state)
-{
-  ply_list_node_t *node;
-
-  node = ply_list_get_first_node (state->windows);
+  node = ply_list_get_first_node (state->text_displays);
   while (node != NULL)
     {
       ply_list_node_t *next_node;
-      ply_window_t *window;
+      ply_text_display_t *display;
 
-      next_node = ply_list_get_next_node (state->windows, node);
+      next_node = ply_list_get_next_node (state->text_displays, node);
+      display = ply_list_node_get_data (node);
+      ply_text_display_free (display);
 
-      window = ply_list_node_get_data (node);
-
-      if (ply_window_is_open (window))
-        ply_window_close (window);
+      ply_list_remove_node (state->text_displays, node);
 
       node = next_node;
     }
+
+  state->keyboard = NULL;
 }
 
 static void
 on_show_splash (state_t *state)
 {
-  bool has_window;
+  bool has_display;
 
   if (plymouth_should_ignore_show_splash_calls (state))
     {
@@ -603,16 +560,15 @@ on_show_splash (state_t *state)
       return;
     }
 
-  open_windows (state);
+  has_display = ply_list_get_length (state->pixel_displays) > 0 ||
+                ply_list_get_length (state->text_displays) > 0;
 
-  has_window = has_open_window (state);
-
-  if (!state->is_attached && state->should_be_attached && has_window)
+  if (!state->is_attached && state->should_be_attached && has_display)
     attach_to_running_session (state);
 
-  if (!has_window && state->is_attached)
+  if (!has_display && state->is_attached)
     {
-      ply_trace ("no open windows, detaching session");
+      ply_trace ("no open seats, detaching session");
       ply_terminal_session_detach (state->session);
       state->is_redirected = false;
       state->is_attached = false;
@@ -641,8 +597,15 @@ quit_splash (state_t *state)
       state->boot_splash = NULL;
     }
 
-  ply_trace ("closing windows");
-  close_windows (state);
+  ply_trace ("removing displays and keyboard");
+  remove_displays_and_keyboard (state);
+
+  if (state->renderer != NULL)
+    {
+      ply_renderer_close (state->renderer);
+      ply_renderer_free (state->renderer);
+      state->renderer = NULL;
+    }
 
   if (state->session != NULL)
     {
@@ -927,43 +890,160 @@ on_enter (state_t                  *state,
     }
 }
 
-static ply_window_t *
-create_window (state_t    *state,
-               const char *tty_name)
+static void
+set_keyboard (state_t        *state,
+              ply_keyboard_t *keyboard)
 {
-  ply_window_t *window;
+  state->keyboard = keyboard;
 
-  ply_trace ("creating window on %s", tty_name != NULL? tty_name : "active vt");
-  window = ply_window_new (tty_name);
+  ply_keyboard_add_escape_handler (keyboard, (ply_keyboard_escape_handler_t)
+                                   on_escape_pressed, state);
+  ply_trace ("listening for keystrokes");
+  ply_keyboard_add_input_handler (keyboard,
+                                  (ply_keyboard_input_handler_t)
+                                  on_keyboard_input, state);
+  ply_trace ("listening for backspace");
+  ply_keyboard_add_backspace_handler (keyboard,
+                                      (ply_keyboard_backspace_handler_t)
+                                      on_backspace, state);
+  ply_trace ("listening for enter");
+  ply_keyboard_add_enter_handler (keyboard,
+                                  (ply_keyboard_enter_handler_t)
+                                  on_enter, state);
+  ply_keyboard_watch_for_input (keyboard);
+}
+static void
+add_display_and_keyboard_for_terminal (state_t    *state,
+                                       const char *tty_name)
+{
+  ply_terminal_t *terminal;
+  ply_text_display_t *display;
+  ply_keyboard_t *keyboard;
 
-  ply_window_attach_to_event_loop (window, state->loop);
+  ply_trace ("adding display and keyboard for %s", tty_name);
 
-  return window;
+  terminal = ply_terminal_new (tty_name);
+
+  if (!ply_terminal_open (terminal))
+    {
+      ply_trace ("could not open terminal '%s': %m", tty_name);
+      ply_terminal_free (terminal);
+      return;
+    }
+
+  keyboard = ply_keyboard_new_for_terminal (terminal);
+  display = ply_text_display_new (terminal, state->console);
+
+  ply_list_append_data (state->text_displays, display);
+  state->keyboard = keyboard;
+  set_keyboard (state, keyboard);
 }
 
 static void
-add_windows_to_boot_splash (state_t           *state,
-                            ply_boot_splash_t *splash)
+add_pixel_displays_from_renderer (state_t        *state,
+                                  ply_renderer_t *renderer)
 {
+  ply_list_t *heads;
   ply_list_node_t *node;
 
-  ply_trace ("There are %d windows in list",
-             ply_list_get_length (state->windows));
-  node = ply_list_get_first_node (state->windows);
+  heads = ply_renderer_get_heads (renderer);
+
+  node = ply_list_get_first_node (heads);
   while (node != NULL)
     {
       ply_list_node_t *next_node;
-      ply_window_t *window;
+      ply_renderer_head_t *head;
+      ply_pixel_display_t *display;
 
-      next_node = ply_list_get_next_node (state->windows, node);
+      head = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (heads, node);
 
-      window = ply_list_node_get_data (node);
+      display = ply_pixel_display_new (renderer, head);
 
-      if (ply_window_is_open (window))
-        {
-          ply_trace ("adding window to boot splash");
-          ply_boot_splash_add_window (splash, window);
-        }
+      ply_list_append_data (state->pixel_displays, display);
+
+      node = next_node;
+    }
+
+}
+
+static void
+add_default_displays_and_keyboard (state_t *state)
+{
+  ply_renderer_t *renderer;
+  ply_keyboard_t *keyboard;
+  ply_terminal_t *terminal;
+  ply_text_display_t *text_display;
+
+  ply_trace ("adding default displays and keyboard");
+
+  terminal = ply_terminal_new (state->default_tty);
+
+  if (!ply_terminal_open (terminal))
+    {
+      ply_trace ("could not open terminal '%s': %m", state->default_tty);
+      ply_terminal_free (terminal);
+      return;
+    }
+
+  renderer = ply_renderer_new (NULL, terminal, state->console);
+
+  if (!ply_renderer_open (renderer))
+    {
+      ply_trace ("could not open renderer /dev/fb");
+      ply_renderer_free (renderer);
+      ply_terminal_free (terminal);
+
+      add_display_and_keyboard_for_terminal (state, state->default_tty);
+      return;
+    }
+
+  keyboard = ply_keyboard_new_for_renderer (renderer);
+  set_keyboard (state, keyboard);
+
+  add_pixel_displays_from_renderer (state, renderer);
+
+  text_display = ply_text_display_new (terminal, state->console);
+  ply_list_append_data (state->text_displays, text_display);
+
+  state->renderer = renderer;
+}
+
+static void
+add_displays_and_keyboard_to_boot_splash (state_t           *state,
+                                          ply_boot_splash_t *splash)
+{
+  ply_list_node_t *node;
+
+  ply_trace ("setting keyboard on boot splash");
+  ply_boot_splash_set_keyboard (splash, state->keyboard);
+
+  node = ply_list_get_first_node (state->pixel_displays);
+  while (node != NULL)
+    {
+      ply_pixel_display_t *display;
+      ply_list_node_t *next_node;
+
+      display = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (state->pixel_displays, node);
+      ply_trace ("adding pixel display on boot splash");
+      ply_boot_splash_add_pixel_display (splash, display);
+
+      node = next_node;
+    }
+
+  node = ply_list_get_first_node (state->text_displays);
+  while (node != NULL)
+    {
+      ply_text_display_t *display;
+      ply_list_node_t *next_node;
+
+      display = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (state->text_displays, node);
+
+      ply_trace ("adding text display on boot splash");
+      ply_boot_splash_add_text_display (splash, display);
+
       node = next_node;
     }
 }
@@ -978,7 +1058,10 @@ start_boot_splash (state_t    *state,
   ply_trace ("Loading boot splash theme '%s'",
              theme_path);
 
-  splash = ply_boot_splash_new (theme_path, PLYMOUTH_PLUGIN_PATH, state->boot_buffer);
+  splash = ply_boot_splash_new (theme_path,
+                                PLYMOUTH_PLUGIN_PATH,
+                                state->boot_buffer,
+                                state->console);
 
   if (!ply_boot_splash_load (splash))
     {
@@ -994,8 +1077,8 @@ start_boot_splash (state_t    *state,
   ply_trace ("attaching progress to plugin");
   ply_boot_splash_attach_progress (splash, state->progress);
 
-  ply_trace ("adding windows to boot splash");
-  add_windows_to_boot_splash (state, splash);
+  add_displays_and_keyboard_to_boot_splash (state, splash);
+
   ply_trace ("showing plugin");
   if (state->mode == PLY_MODE_SHUTDOWN)
     splash_mode = PLY_BOOT_SPLASH_MODE_SHUTDOWN;
@@ -1179,6 +1262,16 @@ check_for_consoles (state_t    *state,
 
   ply_trace ("checking if splash screen should be disabled");
 
+  state->console = ply_console_new ();
+
+  if (!ply_console_open (state->console))
+    {
+      ply_trace ("could not open /dev/tty0");
+      ply_console_free (state->console);
+      state->console = NULL;
+      return;
+    }
+
   remaining_command_line = state->kernel_command_line;
   while ((console_key = strstr (remaining_command_line, " console=")) != NULL)
     {
@@ -1204,11 +1297,11 @@ check_for_consoles (state_t    *state,
           state->kernel_console_tty = strdup (default_tty);
         }
 
-      ply_list_append_data (state->windows, create_window (state, state->kernel_console_tty));
+      add_display_and_keyboard_for_terminal (state, state->kernel_console_tty);
     }
 
-    if (ply_list_get_length (state->windows) == 0)
-      ply_list_append_data (state->windows, create_window (state, default_tty));
+    if (ply_list_get_length (state->text_displays) == 0)
+      add_default_displays_and_keyboard (state);
 }
 
 static bool
@@ -1241,10 +1334,7 @@ redirect_standard_io_to_device (const char *device)
 static bool
 initialize_environment (state_t *state)
 {
-  const char *default_tty;
-
   ply_trace ("initializing minimal work environment");
-  ply_list_node_t *node;
 
   if (!get_kernel_command_line (state))
     return false;
@@ -1252,46 +1342,28 @@ initialize_environment (state_t *state)
   check_verbosity (state);
   check_logging (state);
 
-  state->windows = ply_list_new ();
   state->keystroke_triggers = ply_list_new ();
   state->entry_triggers = ply_list_new ();
   state->entry_buffer = ply_buffer_new();
+  state->pixel_displays = ply_list_new ();
+  state->text_displays = ply_list_new ();
+  state->keyboard = NULL;
 
   if (state->mode == PLY_MODE_SHUTDOWN)
     {
-      default_tty = "tty63";
+      state->default_tty = "tty63";
       ply_switch_to_vt (63);
     }
   else
-    default_tty = "tty1";
+    state->default_tty = "tty1";
 
-  check_for_consoles (state, default_tty);
+  check_for_consoles (state, state->default_tty);
 
   if (state->kernel_console_tty != NULL)
     redirect_standard_io_to_device (state->kernel_console_tty);
   else
-    redirect_standard_io_to_device (default_tty);
+    redirect_standard_io_to_device (state->default_tty);
 
-  for (node = ply_list_get_first_node (state->windows); node;
-                    node = ply_list_get_next_node (state->windows, node))
-    {
-      ply_window_t *window = ply_list_node_get_data (node);
-      
-      ply_trace ("listening for escape key");
-      ply_window_add_escape_handler (window, (ply_window_escape_handler_t)
-                                     on_escape_pressed, state);
-      ply_trace ("listening for keystrokes");
-      ply_window_add_keyboard_input_handler (window,
-           (ply_window_keyboard_input_handler_t) on_keyboard_input, state);
-      ply_trace ("listening for backspace");
-      ply_window_add_backspace_handler (window,
-           (ply_window_backspace_handler_t) on_backspace, state);
-      ply_trace ("listening for enter");
-      ply_window_add_enter_handler (window,
-           (ply_window_enter_handler_t) on_enter, state);
-    }
-  
-  
   ply_trace ("initialized minimal work environment");
   return true;
 }
@@ -1515,7 +1587,6 @@ main (int    argc,
   state.boot_splash = NULL;
 
   ply_command_parser_free (state.command_parser);
-  ply_list_free (state.windows);
 
   ply_boot_server_free (state.boot_server);
   state.boot_server = NULL;

@@ -9,7 +9,19 @@ ply_boot_splash_test_LDADD = $(PLYMOUTH_LIBS) ../libply/libply.la
 
 ply_boot_splash_test_SOURCES =                                                   \
                           $(srcdir)/../libplybootsplash/ply-boot-splash-plugin.h \
-                          $(srcdir)/../libplybootsplash/ply-window.h             \
-                          $(srcdir)/../libplybootsplash/ply-window.c             \
+                          $(srcdir)/../libplybootsplash/ply-console.h            \
+                          $(srcdir)/../libplybootsplash/ply-console.c            \
+                          $(srcdir)/../libplybootsplash/ply-keyboard.h           \
+                          $(srcdir)/../libplybootsplash/ply-keyboard.c           \
+                          $(srcdir)/../libplybootsplash/ply-pixel-buffer.h       \
+                          $(srcdir)/../libplybootsplash/ply-pixel-buffer.c       \
+                          $(srcdir)/../libplybootsplash/ply-pixel-display.h      \
+                          $(srcdir)/../libplybootsplash/ply-pixel-display.c      \
+                          $(srcdir)/../libplybootsplash/ply-renderer.h           \
+                          $(srcdir)/../libplybootsplash/ply-renderer.c           \
+                          $(srcdir)/../libplybootsplash/ply-terminal.h           \
+                          $(srcdir)/../libplybootsplash/ply-terminal.c           \
+                          $(srcdir)/../libplybootsplash/ply-text-display.h       \
+                          $(srcdir)/../libplybootsplash/ply-text-display.c       \
                           $(srcdir)/../libplybootsplash/ply-boot-splash.h        \
                           $(srcdir)/../libplybootsplash/ply-boot-splash.c

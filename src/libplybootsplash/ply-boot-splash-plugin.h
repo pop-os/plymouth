@@ -28,9 +28,11 @@
 
 #include "ply-buffer.h"
 #include "ply-event-loop.h"
+#include "ply-keyboard.h"
+#include "ply-pixel-display.h"
+#include "ply-text-display.h"
 #include "ply-trigger.h"
 #include "ply-key-file.h"
-#include "ply-window.h"
 
 typedef enum
 {
@@ -47,11 +49,18 @@ typedef struct
   ply_boot_splash_plugin_t * (* create_plugin) (ply_key_file_t *key_file);
   void (* destroy_plugin) (ply_boot_splash_plugin_t *plugin);
 
-  void (* add_window) (ply_boot_splash_plugin_t *plugin,
-                       ply_window_t             *window);
-
-  void (* remove_window) (ply_boot_splash_plugin_t *plugin,
-                          ply_window_t             *window);
+  void (* set_keyboard) (ply_boot_splash_plugin_t *plugin,
+                         ply_keyboard_t           *keyboard);
+  void (* unset_keyboard) (ply_boot_splash_plugin_t *plugin,
+                           ply_keyboard_t           *keyboard);
+  void (* add_pixel_display) (ply_boot_splash_plugin_t *plugin,
+                              ply_pixel_display_t      *display);
+  void (* remove_pixel_display) (ply_boot_splash_plugin_t *plugin,
+                                 ply_pixel_display_t      *display);
+  void (* add_text_display) (ply_boot_splash_plugin_t *plugin,
+                             ply_text_display_t       *display);
+  void (* remove_text_display) (ply_boot_splash_plugin_t *plugin,
+                                ply_text_display_t       *display);
   bool (* show_splash_screen) (ply_boot_splash_plugin_t *plugin,
                                ply_event_loop_t         *loop,
                                ply_buffer_t             *boot_buffer,

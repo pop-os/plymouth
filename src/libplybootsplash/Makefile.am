@@ -25,8 +25,7 @@ libplybootsplash_HEADERS = \
 		    ply-terminal.h                                            \
 		    ply-text-display.h                                        \
 		    ply-text-progress-bar.h                                   \
-		    ply-throbber.h                                            \
-		    ply-window.h
+		    ply-throbber.h
 
 libplybootsplash_la_CFLAGS = $(PLYMOUTH_CFLAGS)                               \
 			     $(IMAGE_CFLAGS)                                  \
@@ -55,7 +54,6 @@ libplybootsplash_la_SOURCES = \
 		    ply-terminal.c                                           \
 		    ply-pixel-buffer.c                                       \
 		    ply-renderer.c                                           \
-		    ply-window.c                                             \
 		    ply-boot-splash.c
 
 MAINTAINERCLEANFILES = Makefile.in

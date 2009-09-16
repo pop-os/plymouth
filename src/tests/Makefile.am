@@ -9,7 +9,6 @@ TESTS =
 if ENABLE_TESTS
 include $(srcdir)/ply-boot-server-test.am
 include $(srcdir)/ply-boot-splash-test.am
-include $(srcdir)/ply-window-test.am
 endif
 
 noinst_PROGRAMS = $(TESTS)

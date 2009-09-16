@@ -883,7 +883,7 @@ on_keyboard_input (state_t                  *state,
     }
 }
 
-void
+static void
 on_backspace (state_t                  *state)
 {
   ssize_t bytes_to_remove;
@@ -909,7 +909,7 @@ on_backspace (state_t                  *state)
   update_display (state);
 }
 
-void
+static void
 on_enter (state_t                  *state,
           const char               *line)
 {

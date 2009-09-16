@@ -21,10 +21,10 @@
  */
 #include "ply-image.h"
 #include "ply-utils.h"
-#include "ply-window.h"
-#include "ply-frame-buffer.h"
 #include "ply-logger.h"
 #include "ply-key-file.h"
+#include "ply-pixel-buffer.h"
+#include "ply-pixel-display.h"
 #include "script.h"
 #include "script-parse.h"
 #include "script-execute.h"
@@ -141,22 +141,16 @@ static script_return_t sprite_window_get_width (script_state_t *state,
                                                 void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
-  ply_frame_buffer_t *frame_buffer = ply_window_get_frame_buffer (data->window);
-  ply_frame_buffer_area_t area;
 
-  ply_frame_buffer_get_size (frame_buffer, &area);
-  return script_return_obj (script_obj_new_number (area.width));
+  return script_return_obj (script_obj_new_number (ply_pixel_display_get_width (data->display)));
 }
 
 static script_return_t sprite_window_get_height (script_state_t *state,
                                                  void           *user_data)
 {
   script_lib_sprite_data_t *data = user_data;
-  ply_frame_buffer_t *frame_buffer = ply_window_get_frame_buffer (data->window);
-  ply_frame_buffer_area_t area;
 
-  ply_frame_buffer_get_size (frame_buffer, &area);
-  return script_return_obj (script_obj_new_number (area.height));
+  return script_return_obj (script_obj_new_number (ply_pixel_display_get_height (data->display)));
 }
 
 static uint32_t extract_rgb_color (script_state_t *state)
@@ -188,29 +182,26 @@ static script_return_t sprite_window_set_background_bottom_color (script_state_t
   return script_return_obj_null ();
 }
 
-static void
-draw_area (script_lib_sprite_data_t *data,
-           int                       x,
-           int                       y,
-           int                       width,
-           int                       height)
+void script_lib_sprite_draw_area (script_lib_sprite_data_t *data,
+                                 ply_pixel_buffer_t       *pixel_buffer,
+                                 int                       x,
+                                 int                       y,
+                                 int                       width,
+                                 int                       height)
 {
-  ply_frame_buffer_area_t clip_area;
+  ply_rectangle_t clip_area;
 
   clip_area.x = x;
   clip_area.y = y;
   clip_area.width = width;
   clip_area.height = height;
-  ply_frame_buffer_t *frame_buffer = ply_window_get_frame_buffer (data->window);
-
-  ply_frame_buffer_pause_updates (frame_buffer);
 
   if (data->background_color_start == data->background_color_end)
-    ply_frame_buffer_fill_with_hex_color (frame_buffer,
+    ply_pixel_buffer_fill_with_hex_color (pixel_buffer,
                                           &clip_area,
                                           data->background_color_start);
   else
-    ply_frame_buffer_fill_with_gradient (frame_buffer,
+    ply_pixel_buffer_fill_with_gradient (pixel_buffer,
                                          &clip_area,
                                          data->background_color_start,
                                          data->background_color_end);
@@ -220,7 +211,7 @@ draw_area (script_lib_sprite_data_t *data,
        node = ply_list_get_next_node (data->sprite_list, node))
     {
       sprite_t *sprite = ply_list_node_get_data (node);
-      ply_frame_buffer_area_t sprite_area;
+      ply_rectangle_t sprite_area;
       if (!sprite->image) continue;
       if (sprite->remove_me) continue;
       if (sprite->opacity < 0.011) continue;
@@ -234,24 +225,32 @@ draw_area (script_lib_sprite_data_t *data,
 
       if ((sprite_area.x + (int) sprite_area.width) <= x) continue;
       if ((sprite_area.y + (int) sprite_area.height) <= y) continue;
-      ply_frame_buffer_fill_with_argb32_data_at_opacity_with_clip (frame_buffer,
+      ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (pixel_buffer,
                                                                    &sprite_area,
                                                                    &clip_area,
                                                                    0, 0,
                                                                    ply_image_get_data (sprite->image),
                                                                    sprite->opacity);
     }
-  ply_frame_buffer_unpause_updates (frame_buffer);
 }
 
-script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
-                                                   ply_window_t   *window)
+void draw_area (script_lib_sprite_data_t *data,
+                int                       x,
+                int                       y,
+                int                       width,
+                int                       height)
+{
+  ply_pixel_display_draw_area (data->display, x, y, width, height);
+}
+
+script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t      *state,
+                                                   ply_pixel_display_t *display)
 {
   script_lib_sprite_data_t *data = malloc (sizeof (script_lib_sprite_data_t));
 
   data->class = script_obj_native_class_new (sprite_free, "sprite", data);
   data->sprite_list = ply_list_new ();
-  data->window = window;
+  data->display = display;
 
   script_obj_t *sprite_hash = script_obj_hash_get_element (state->global, "Sprite");
   script_add_native_function (sprite_hash,
@@ -348,14 +347,9 @@ void script_lib_sprite_refresh (script_lib_sprite_data_t *data)
 
   if (data->full_refresh)
     {
-      ply_frame_buffer_area_t screen_area;
-      ply_frame_buffer_t *frame_buffer = ply_window_get_frame_buffer (data->window);
-      ply_frame_buffer_get_size (frame_buffer, &screen_area);
-      draw_area (data,
-                 screen_area.x,
-                 screen_area.y,
-                 screen_area.width,
-                 screen_area.height);
+      draw_area (data, 0, 0,
+                 ply_pixel_display_get_width (data->display),
+                 ply_pixel_display_get_height (data->display));
       data->full_refresh = false;
       return;
     }

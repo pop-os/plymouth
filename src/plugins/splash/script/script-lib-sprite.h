@@ -23,10 +23,11 @@
 #define SCRIPT_LIB_SPRITE_H
 
 #include "script.h"
+#include "ply-pixel-display.h"
 
 typedef struct
 {
-  ply_window_t              *window;
+  ply_pixel_display_t       *display;
   ply_list_t                *sprite_list;
   script_obj_native_class_t *class;
   script_op_t               *script_main_op;
@@ -53,9 +54,15 @@ typedef struct
   script_obj_t *image_obj;
 } sprite_t;
 
-script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
-                                                   ply_window_t   *window);
+script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t      *state,
+                                                   ply_pixel_display_t *display);
 void script_lib_sprite_refresh (script_lib_sprite_data_t *data);
 void script_lib_sprite_destroy (script_lib_sprite_data_t *data);
+void script_lib_sprite_draw_area (script_lib_sprite_data_t *data,
+                                  ply_pixel_buffer_t       *pixel_buffer,
+                                  int                       x,
+                                  int                       y,
+                                  int                       width,
+                                  int                       height);
 
 #endif /* SCRIPT_LIB_SPRITE_H */

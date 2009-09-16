@@ -220,6 +220,7 @@ ply_renderer_open (ply_renderer_t *renderer)
    */
   const char *known_plugins[] =
     {
+      PLYMOUTH_PLUGIN_PATH "renderers/drm.so",
       PLYMOUTH_PLUGIN_PATH "renderers/frame-buffer.so",
       NULL
     };

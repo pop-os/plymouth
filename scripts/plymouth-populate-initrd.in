@@ -93,6 +93,7 @@ fi
 
 inst ${PLYMOUTH_PLUGIN_PATH}/${PLYMOUTH_MODULE_NAME}.so $INITRDDIR
 
+inst ${PLYMOUTH_PLUGIN_PATH}/renderers/drm.so $INITRDDIR
 inst ${PLYMOUTH_PLUGIN_PATH}/renderers/frame-buffer.so $INITRDDIR
 
 if [ -d ${DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME} ]; then

@@ -27,7 +27,8 @@
 #include <unistd.h>
 
 #include "ply-event-loop.h"
-#include "ply-window.h"
+#include "ply-pixel-buffer.h"
+#include "ply-pixel-display.h"
 
 typedef struct _ply_label_plugin ply_label_plugin_t;
 typedef struct _ply_label_plugin_control ply_label_plugin_control_t;
@@ -37,11 +38,16 @@ typedef struct
   ply_label_plugin_control_t * (* create_control) (void);
   void (* destroy_control) (ply_label_plugin_control_t        *label);
   bool (* show_control) (ply_label_plugin_control_t        *label,
-                         ply_window_t       *window,
-                         long                x,
-                         long                y);
+                         ply_pixel_display_t               *display,
+                         long                               x,
+                         long                               y);
   void (* hide_control) (ply_label_plugin_control_t        *label);
-  void (* draw_control) (ply_label_plugin_control_t        *label);
+  void (* draw_control) (ply_label_plugin_control_t        *label,
+                         ply_pixel_buffer_t                *pixel_buffer,
+                         long                               x,
+                         long                               y,
+                         unsigned long                      width,
+                         unsigned long                      height);
   bool (* is_control_hidden) (ply_label_plugin_control_t        *label);
 
   void (* set_text_for_control) (ply_label_plugin_control_t        *label,

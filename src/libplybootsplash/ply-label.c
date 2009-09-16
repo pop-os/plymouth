@@ -136,10 +136,10 @@ ply_label_unload_plugin (ply_label_t *label)
 }
 
 bool
-ply_label_show (ply_label_t      *label,
-                ply_window_t     *window,
-                long              x,
-                long              y)
+ply_label_show (ply_label_t        *label,
+                ply_pixel_display_t *display,
+                long                x,
+                long                y)
 {
   if (label->plugin_interface == NULL)
     {
@@ -148,7 +148,7 @@ ply_label_show (ply_label_t      *label,
     }
 
   return label->plugin_interface->show_control (label->control,
-                                                window, x, y);
+                                                display, x, y);
 }
 
 void
@@ -156,8 +156,22 @@ ply_label_draw (ply_label_t *label)
 {
   if (label->plugin_interface == NULL)
     return;
+}
 
-  label->plugin_interface->draw_control (label->control);
+void
+ply_label_draw_area (ply_label_t        *label,
+                     ply_pixel_buffer_t *buffer,
+                     long                x,
+                     long                y,
+                     unsigned long       width,
+                     unsigned long       height)
+{
+  if (label->plugin_interface == NULL)
+    return;
+
+  label->plugin_interface->draw_control (label->control,
+                                         buffer,
+                                         x, y, width, height);
 }
 
 void

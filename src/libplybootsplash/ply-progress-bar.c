@@ -45,12 +45,10 @@
 #include "ply-event-loop.h"
 #include "ply-array.h"
 #include "ply-logger.h"
-#include "ply-frame-buffer.h"
+#include "ply-pixel-buffer.h"
+#include "ply-pixel-display.h"
 #include "ply-image.h"
 #include "ply-utils.h"
-#include "ply-window.h"
-
-#include <linux/kd.h>
 
 #ifndef FRAMES_PER_SECOND
 #define FRAMES_PER_SECOND 30
@@ -62,9 +60,8 @@
 
 struct _ply_progress_bar
 {
-  ply_window_t            *window;
-  ply_frame_buffer_t      *frame_buffer;
-  ply_frame_buffer_area_t  area;
+  ply_pixel_display_t    *display;
+  ply_rectangle_t  area;
 
   double percent_done;
 
@@ -97,54 +94,67 @@ ply_progress_bar_free (ply_progress_bar_t *progress_bar)
 }
 
 static void
-erase_progress_bar_area (ply_progress_bar_t *progress_bar)
-{
-  ply_window_erase_area (progress_bar->window,
-                         progress_bar->area.x, progress_bar->area.y,
-                         progress_bar->area.width, progress_bar->area.height);
-}
-
-static void
 ply_progress_bar_update_area (ply_progress_bar_t *progress_bar,
                               long                x,
                               long                y)
 {
-
-  ply_frame_buffer_get_size (progress_bar->frame_buffer, &progress_bar->area);
+  unsigned long display_width;
 
   progress_bar->area.x = x;
   progress_bar->area.y = y;
   progress_bar->area.height = BAR_HEIGHT;
 
-  progress_bar->area.width = (long) (progress_bar->area.width * progress_bar->percent_done);
+  display_width = ply_pixel_display_get_width (progress_bar->display);
+  progress_bar->area.width = (long) (display_width * progress_bar->percent_done);
+}
+
+void
+ply_progress_bar_draw_area (ply_progress_bar_t *progress_bar,
+                            ply_pixel_buffer_t *buffer,
+                            long                x,
+                            long                y,
+                            unsigned long       width,
+                            unsigned long       height)
+{
+  ply_rectangle_t paint_area;
+
+  if (progress_bar->is_hidden)
+    return;
+
+  paint_area.x = x;
+  paint_area.y = y;
+  paint_area.width = width;
+  paint_area.height = height;
+
+  ply_rectangle_intersect (&progress_bar->area, &paint_area, &paint_area);
+  ply_pixel_buffer_fill_with_hex_color (buffer,
+                                        &paint_area,
+                                        0xffffff); /* white */
 }
 
 void
 ply_progress_bar_draw (ply_progress_bar_t *progress_bar)
 {
-
   if (progress_bar->is_hidden)
     return;
 
-  ply_frame_buffer_pause_updates (progress_bar->frame_buffer);
-  erase_progress_bar_area (progress_bar);
   ply_progress_bar_update_area (progress_bar, progress_bar->area.x, progress_bar->area.y);
-  ply_frame_buffer_fill_with_hex_color (progress_bar->frame_buffer,
-                                        &progress_bar->area,
-                                        0xffffff); /* white */
-  ply_frame_buffer_unpause_updates (progress_bar->frame_buffer);
+  ply_pixel_display_draw_area (progress_bar->display,
+                               progress_bar->area.x,
+                               progress_bar->area.y,
+                               progress_bar->area.width,
+                               progress_bar->area.height);
 }
 
 void
-ply_progress_bar_show (ply_progress_bar_t *progress_bar,
-                       ply_window_t       *window,
-                       long                x,
-                       long                y)
+ply_progress_bar_show (ply_progress_bar_t  *progress_bar,
+                       ply_pixel_display_t *display,
+                       long                 x,
+                       long                 y)
 {
   assert (progress_bar != NULL);
 
-  progress_bar->window = window;
-  progress_bar->frame_buffer = ply_window_get_frame_buffer (window);;
+  progress_bar->display = display;
 
   ply_progress_bar_update_area (progress_bar, x, y);
 
@@ -155,12 +165,16 @@ ply_progress_bar_show (ply_progress_bar_t *progress_bar,
 void
 ply_progress_bar_hide (ply_progress_bar_t *progress_bar)
 {
-  erase_progress_bar_area (progress_bar);
-
-  progress_bar->frame_buffer = NULL;
-  progress_bar->window = NULL;
+  if (progress_bar->is_hidden)
+    return;
 
   progress_bar->is_hidden = true;
+  ply_pixel_display_draw_area (progress_bar->display,
+                               progress_bar->area.x, progress_bar->area.y,
+                               progress_bar->area.width, progress_bar->area.height);
+
+  progress_bar->display = NULL;
+
 }
 
 bool

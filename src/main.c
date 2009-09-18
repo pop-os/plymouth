@@ -1127,7 +1127,7 @@ check_verbosity (state_t *state)
           debug_buffer_path = path;
         }
 
-        if (debug_buffer != NULL)
+        if (debug_buffer == NULL)
           debug_buffer = ply_buffer_new ();
 
 #ifdef LOG_TO_DEBUG_FILE

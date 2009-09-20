@@ -59,6 +59,7 @@
 #include "ply-renderer-driver.h"
 #include "ply-renderer-i915-driver.h"
 #include "ply-renderer-radeon-driver.h"
+#include "ply-renderer-nouveau-driver.h"
 
 #define BYTES_PER_PIXEL (4)
 
@@ -412,6 +413,10 @@ load_driver (ply_renderer_backend_t *backend)
   else if (strcmp (driver_name, "radeon") == 0)
     {
       backend->driver_interface = ply_renderer_radeon_driver_get_interface ();
+    }
+  else if (strcmp (driver_name, "nouveau") == 0)
+    {
+      backend->driver_interface = ply_renderer_nouveau_driver_get_interface ();
     }
   free (driver_name);
 

@@ -56,7 +56,7 @@ PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.12.0 ])
 AC_SUBST(GTK_CFLAGS)
 AC_SUBST(GTK_LIBS)
 
-PKG_CHECK_MODULES(DRM, [libdrm libdrm_intel libdrm_radeon])
+PKG_CHECK_MODULES(DRM, [libdrm libdrm_intel libdrm_radeon libdrm_nouveau])
 AC_SUBST(DRM_CFLAGS)
 AC_SUBST(DRM_LIBS)
 

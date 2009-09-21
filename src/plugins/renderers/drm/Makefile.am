@@ -16,6 +16,8 @@ drm_la_LIBADD = $(PLYMOUTH_LIBS) $(DRM_LIBS)                                  \
                          ../../../libply/libply.la                            \
                          ../../../libplybootsplash/libplybootsplash.la
 drm_la_SOURCES = $(srcdir)/plugin.c                                           \
-		 $(srcdir)/ply-renderer-driver.h
+		 $(srcdir)/ply-renderer-driver.h                              \
+		 $(srcdir)/ply-renderer-i915-driver.h                         \
+		 $(srcdir)/ply-renderer-i915-driver.c
 
 MAINTAINERCLEANFILES = Makefile.in

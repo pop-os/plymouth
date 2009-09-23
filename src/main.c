@@ -102,7 +102,7 @@ typedef struct
   uint32_t should_be_attached : 1;
   uint32_t should_retain_splash : 1;
 
-  char *console;
+  char *kernel_console_tty;
   char *override_splash_path;
 
   int number_of_errors;
@@ -523,7 +523,7 @@ plymouth_should_show_default_splash (state_t *state)
   };
   int i;
 
-  if (state->console != NULL)
+  if (state->kernel_console_tty != NULL)
     return false;
 
   if (!has_open_window (state))
@@ -1185,26 +1185,26 @@ check_for_consoles (state_t    *state,
       char *end;
       ply_trace ("serial console found!");
 
-      free (state->console);
-      state->console = strdup (console_key + strlen (" console="));
+      free (state->kernel_console_tty);
+      state->kernel_console_tty = strdup (console_key + strlen (" console="));
 
       remaining_command_line = console_key + strlen (" console=");
 
-      end = strpbrk (state->console, " \n\t\v,");
+      end = strpbrk (state->kernel_console_tty, " \n\t\v,");
 
       if (end != NULL)
         {
           *end = '\0';
-          remaining_command_line += end - state->console;
+          remaining_command_line += end - state->kernel_console_tty;
         }
 
-      if (strcmp (state->console, "tty0") == 0 || strcmp (state->console, "/dev/tty0") == 0)
+      if (strcmp (state->kernel_console_tty, "tty0") == 0 || strcmp (state->kernel_console_tty, "/dev/tty0") == 0)
         {
-          free (state->console);
-          state->console = strdup (default_tty);
+          free (state->kernel_console_tty);
+          state->kernel_console_tty = strdup (default_tty);
         }
 
-      ply_list_append_data (state->windows, create_window (state, state->console));
+      ply_list_append_data (state->windows, create_window (state, state->kernel_console_tty));
     }
 
     if (ply_list_get_length (state->windows) == 0)
@@ -1267,8 +1267,8 @@ initialize_environment (state_t *state)
 
   check_for_consoles (state, default_tty);
 
-  if (state->console != NULL)
-    redirect_standard_io_to_device (state->console);
+  if (state->kernel_console_tty != NULL)
+    redirect_standard_io_to_device (state->kernel_console_tty);
   else
     redirect_standard_io_to_device (default_tty);
 

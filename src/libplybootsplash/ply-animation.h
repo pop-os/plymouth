@@ -39,7 +39,6 @@ void ply_animation_free (ply_animation_t *animation);
 
 bool ply_animation_load (ply_animation_t *animation);
 bool ply_animation_start (ply_animation_t    *animation,
-                          ply_event_loop_t   *loop,
                           ply_pixel_display_t *display,
                           ply_trigger_t      *stop_trigger,
                           long                x,

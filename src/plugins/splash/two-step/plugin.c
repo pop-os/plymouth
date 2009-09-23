@@ -290,7 +290,6 @@ view_start_end_animation (view_t         *view,
   y = plugin->animation_vertical_alignment * screen_height - height / 2.0;
 
   ply_animation_start (view->end_animation,
-                       plugin->loop,
                        view->display,
                        trigger, x, y);
 }

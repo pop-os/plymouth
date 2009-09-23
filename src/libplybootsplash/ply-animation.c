@@ -301,6 +301,9 @@ ply_animation_start (ply_animation_t    *animation,
 {
   assert (animation != NULL);
 
+  if (!animation->is_stopped)
+    return true;
+
   animation->loop = ply_event_loop_get_default ();
   animation->display = display;
   animation->stop_trigger = stop_trigger;

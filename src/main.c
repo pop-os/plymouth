@@ -931,6 +931,9 @@ add_display_and_keyboard_for_terminal (state_t    *state,
       return;
     }
 
+  ply_console_set_active_vt (state->console,
+                             ply_terminal_get_vt_number (terminal));
+
   keyboard = ply_keyboard_new_for_terminal (terminal);
   display = ply_text_display_new (terminal, state->console);
 
@@ -985,6 +988,9 @@ add_default_displays_and_keyboard (state_t *state)
       ply_terminal_free (terminal);
       return;
     }
+
+  ply_console_set_active_vt (state->console,
+                             ply_terminal_get_vt_number (terminal));
 
   renderer = ply_renderer_new (NULL, terminal, state->console);
 
@@ -1352,7 +1358,6 @@ initialize_environment (state_t *state)
   if (state->mode == PLY_MODE_SHUTDOWN)
     {
       state->default_tty = "tty63";
-      ply_switch_to_vt (63);
     }
   else
     state->default_tty = "tty1";

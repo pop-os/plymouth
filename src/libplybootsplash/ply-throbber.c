@@ -68,7 +68,7 @@ struct _ply_throbber
 
   long x, y;
   long width, height;
-  double start_time, previous_time, now;
+  double start_time, now;
 
   int frame_number;
   uint32_t is_stopped : 1;
@@ -145,9 +145,8 @@ animate_at_time (ply_throbber_t *throbber,
 
   if (throbber->stop_trigger != NULL)
     {
-      if ((time - throbber->previous_time) >= 2 * M_PI)
-        throbber->frame_number = number_of_frames - 1;
-      should_continue = false;
+      if (throbber->frame_number == number_of_frames - 1)
+        should_continue = false;
     }
 
   frames = (ply_image_t * const *) ply_array_get_elements (throbber->frames);
@@ -169,7 +168,6 @@ on_timeout (ply_throbber_t *throbber)
 {
   double sleep_time;
   bool should_continue;
-  throbber->previous_time = throbber->now;
   throbber->now = ply_get_timestamp ();
 
 #ifdef REAL_TIME_ANIMATION

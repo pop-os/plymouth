@@ -27,9 +27,13 @@
 #include <unistd.h>
 
 #include "ply-event-loop.h"
-#include "ply-window.h"
 #include "ply-buffer.h"
+#include "ply-console.h"
+#include "ply-keyboard.h"
+#include "ply-pixel-display.h"
+#include "ply-text-display.h"
 #include "ply-progress.h"
+
 #include "ply-boot-splash-plugin.h"
 
 typedef struct _ply_boot_splash ply_boot_splash_t;
@@ -39,13 +43,21 @@ typedef void (* ply_boot_splash_on_idle_handler_t) (void *user_data);
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 ply_boot_splash_t *ply_boot_splash_new (const char   *theme_path,
                                         const char   *plugin_dir,
-                                        ply_buffer_t *boot_buffer);
+                                        ply_buffer_t *boot_buffer,
+                                        ply_console_t *console);
 bool ply_boot_splash_load (ply_boot_splash_t *splash);
 void ply_boot_splash_unload (ply_boot_splash_t *splash);
-void ply_boot_splash_add_window (ply_boot_splash_t *splash,
-                                 ply_window_t      *window);
-void ply_boot_splash_remove_window (ply_boot_splash_t *splash,
-                                    ply_window_t      *window);
+void ply_boot_splash_set_keyboard (ply_boot_splash_t *splash,
+                                   ply_keyboard_t *keyboard);
+void ply_boot_splash_unset_keyboard (ply_boot_splash_t *splash);
+void ply_boot_splash_add_pixel_display (ply_boot_splash_t   *splash,
+                                        ply_pixel_display_t *display);
+void ply_boot_splash_remove_pixel_display (ply_boot_splash_t   *splash,
+                                           ply_pixel_display_t *display);
+void ply_boot_splash_add_text_display (ply_boot_splash_t   *splash,
+                                        ply_text_display_t *display);
+void ply_boot_splash_remove_text_display (ply_boot_splash_t   *splash,
+                                           ply_text_display_t *display);
 void ply_boot_splash_free (ply_boot_splash_t *splash);
 bool ply_boot_splash_show (ply_boot_splash_t *splash,
                            ply_boot_splash_mode_t mode);

@@ -28,8 +28,8 @@
 #include <unistd.h>
 
 #include "ply-event-loop.h"
-#include "ply-frame-buffer.h"
-#include "ply-window.h"
+#include "ply-pixel-buffer.h"
+#include "ply-pixel-display.h"
 
 typedef struct _ply_progress_bar ply_progress_bar_t;
 
@@ -38,11 +38,17 @@ ply_progress_bar_t *ply_progress_bar_new (void);
 void ply_progress_bar_free (ply_progress_bar_t *bar);
 
 void ply_progress_bar_show (ply_progress_bar_t  *bar,
-                            ply_window_t        *window,
+                            ply_pixel_display_t *display,
                             long                 x,
                             long                 y);
 void ply_progress_bar_hide (ply_progress_bar_t *bar);
 void ply_progress_bar_draw (ply_progress_bar_t *bar);
+void ply_progress_bar_draw_area (ply_progress_bar_t *bar,
+                                 ply_pixel_buffer_t *buffer,
+                                 long                x,
+                                 long                y,
+                                 unsigned long       width,
+                                 unsigned long       height);
 bool ply_progress_bar_is_hidden (ply_progress_bar_t *bar);
 
 long ply_progress_bar_get_width (ply_progress_bar_t *bar);

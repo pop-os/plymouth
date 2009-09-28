@@ -45,10 +45,10 @@
 #include "ply-array.h"
 #include "ply-label.h"
 #include "ply-logger.h"
-#include "ply-frame-buffer.h"
 #include "ply-image.h"
+#include "ply-pixel-buffer.h"
+#include "ply-pixel-display.h"
 #include "ply-utils.h"
-#include "ply-window.h"
 
 #include <linux/kd.h>
 
@@ -60,9 +60,8 @@ struct _ply_entry
 {
   ply_event_loop_t *loop;
 
-  ply_window_t            *window;
-  ply_frame_buffer_t      *frame_buffer;
-  ply_frame_buffer_area_t  area;
+  ply_pixel_display_t     *display;
+  ply_rectangle_t          area;
   ply_image_t             *text_field_image;
   ply_image_t             *bullet_image;
   ply_label_t             *label;
@@ -148,33 +147,36 @@ ply_entry_load (ply_entry_t *entry)
 }
 
 static void
-erase_entry_area (ply_entry_t *entry)
+ply_entry_draw (ply_entry_t *entry)
 {
-  ply_window_erase_area (entry->window,
-                         entry->area.x, entry->area.y,
-                         entry->area.width, entry->area.height);
+  ply_pixel_display_draw_area (entry->display,
+                               entry->area.x,
+                               entry->area.y,
+                               entry->area.width,
+                               entry->area.height);
 }
 
 void
-ply_entry_draw (ply_entry_t *entry)
+ply_entry_draw_area (ply_entry_t        *entry,
+                     ply_pixel_buffer_t *pixel_buffer,
+                     long                x,
+                     long                y,
+                     unsigned long       width,
+                     unsigned long       height)
 {
-  ply_frame_buffer_area_t bullet_area;
+  ply_rectangle_t     bullet_area;
   uint32_t *text_field_data, *bullet_data;
   int i, number_of_visible_bullets;
 
   if (entry->is_hidden)
     return;
 
-  ply_frame_buffer_pause_updates (entry->frame_buffer);
-
   text_field_data = ply_image_get_data (entry->text_field_image);
 
-  erase_entry_area (entry);
-
-  ply_frame_buffer_fill_with_argb32_data (entry->frame_buffer,
+  ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
                                           &entry->area, 0, 0,
                                           text_field_data);
-  
+
   if (entry->is_password)
     {
       bullet_data = ply_image_get_data (entry->bullet_image);
@@ -193,7 +195,7 @@ ply_entry_draw (ply_entry_t *entry)
           bullet_area.x = entry->area.x;
           bullet_area.y = entry->area.y + entry->area.height / 2.0 - bullet_area.height / 2.0;
 
-          ply_frame_buffer_fill_with_argb32_data (entry->frame_buffer,
+          ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
                                                   &bullet_area, bullet_area.width / 2.0, 0,
                                                   bullet_data);
         }
@@ -203,7 +205,7 @@ ply_entry_draw (ply_entry_t *entry)
           bullet_area.x = entry->area.x + i * bullet_area.width + bullet_area.width / 2.0;
           bullet_area.y = entry->area.y + entry->area.height / 2.0 - bullet_area.height / 2.0;
 
-          ply_frame_buffer_fill_with_argb32_data (entry->frame_buffer,
+          ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
                                                   &bullet_area, 0, 0,
                                                   bullet_data);
         }
@@ -211,10 +213,10 @@ ply_entry_draw (ply_entry_t *entry)
   else
     {
       ply_label_set_text (entry->label, entry->text);
-      ply_label_show (entry->label, entry->window, entry->area.x, entry->area.y);
-      
+      ply_label_draw_area (entry->label, pixel_buffer,
+                           entry->area.x, entry->area.y,
+                           entry->area.width, entry->area.height);
     }
-  ply_frame_buffer_unpause_updates (entry->frame_buffer);
 }
 
 void
@@ -266,18 +268,17 @@ ply_entry_set_text (ply_entry_t *entry, const char* text)
 }
 
 void
-ply_entry_show (ply_entry_t      *entry,
-                ply_event_loop_t *loop,
-                ply_window_t     *window,
-                long              x,
-                long              y)
+ply_entry_show (ply_entry_t         *entry,
+                ply_event_loop_t    *loop,
+                ply_pixel_display_t *display,
+                long                  x,
+                long                  y)
 {
   assert (entry != NULL);
   assert (entry->loop == NULL);
 
   entry->loop = loop;
-  entry->window = window;
-  entry->frame_buffer = ply_window_get_frame_buffer (window);;
+  entry->display = display;
 
   entry->area.x = x;
   entry->area.y = y;
@@ -290,13 +291,11 @@ ply_entry_show (ply_entry_t      *entry,
 void
 ply_entry_hide (ply_entry_t *entry)
 {
-  erase_entry_area (entry);
-
-  entry->frame_buffer = NULL;
-  entry->window = NULL;
-  entry->loop = NULL;
-
   entry->is_hidden = true;
+  ply_entry_draw (entry);
+
+  entry->display = NULL;
+  entry->loop = NULL;
 }
 
 bool

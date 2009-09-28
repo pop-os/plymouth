@@ -1,6 +1,6 @@
-/* ply-terminal.h - psuedoterminal abstraction
+/* ply-renderer-nouveau-driver.h
  *
- * Copyright (C) 2007 Red Hat, Inc.
+ * Copyright (C) 2009 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,25 +19,14 @@
  *
  * Written By: Ray Strode <rstrode@redhat.com>
  */
-#ifndef PLY_TERMINAL_H
-#define PLY_TERMINAL_H
+#ifndef PLY_RENDERER_NOUVEAU_DRIVER_H
+#define PLY_RENDERER_NOUVEAU_DRIVER_H
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <unistd.h>
-
-typedef struct _ply_terminal ply_terminal_t;
+#include "ply-renderer-driver.h"
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-ply_terminal_t *ply_terminal_new (void);
-void ply_terminal_free (ply_terminal_t *terminal);
-bool ply_terminal_create_device (ply_terminal_t *terminal);
-bool ply_terminal_has_device (ply_terminal_t *terminal);
-void ply_terminal_destroy_device (ply_terminal_t *terminal);
-int ply_terminal_get_fd (ply_terminal_t *terminal);
-void ply_terminal_set_fd (ply_terminal_t *terminal, int fd);
-const char *ply_terminal_get_device_name (ply_terminal_t *terminal);
+ply_renderer_driver_interface_t *ply_renderer_nouveau_driver_get_interface (void);
 #endif
 
-#endif /* PLY_TERMINAL_H */
-/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */
+#endif /* PLY_RENDERER_NOUVEAU_DRIVER_H */
+/* vim: set ts=4 sw=4 et ai ci cino={.5s,^-2,+.5s,t0,g0,e-2,n-2,p2s,(0,=.5s,:.5s */

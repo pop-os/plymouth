@@ -27,9 +27,9 @@
 #include <unistd.h>
 
 #include "ply-event-loop.h"
-#include "ply-frame-buffer.h"
+#include "ply-pixel-buffer.h"
+#include "ply-pixel-display.h"
 #include "ply-trigger.h"
-#include "ply-window.h"
 
 typedef struct _ply_throbber ply_throbber_t;
 
@@ -40,13 +40,20 @@ void ply_throbber_free (ply_throbber_t *throbber);
 
 bool ply_throbber_load (ply_throbber_t *throbber);
 bool ply_throbber_start (ply_throbber_t         *throbber,
-                         ply_event_loop_t   *loop,
-                         ply_window_t       *window,
-                         long                x,
-                         long                y);
+                         ply_event_loop_t    *loop,
+                         ply_pixel_display_t *display,
+                         long                 x,
+                         long                 y);
 void ply_throbber_stop (ply_throbber_t *throbber,
                         ply_trigger_t  *stop_trigger);
 bool ply_throbber_is_stopped (ply_throbber_t *throbber);
+
+void ply_throbber_draw_area (ply_throbber_t     *throbber,
+                             ply_pixel_buffer_t *buffer,
+                             long                x,
+                             long                y,
+                             unsigned long       width,
+                             unsigned long       height);
 
 long ply_throbber_get_width (ply_throbber_t *throbber);
 long ply_throbber_get_height (ply_throbber_t *throbber);

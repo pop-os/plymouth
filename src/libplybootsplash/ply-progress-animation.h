@@ -26,8 +26,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#include "ply-frame-buffer.h"
-#include "ply-window.h"
+#include "ply-pixel-display.h"
 
 typedef struct _ply_progress_animation ply_progress_animation_t;
 
@@ -49,11 +48,17 @@ void ply_progress_animation_set_transition (ply_progress_animation_t *progress_a
                                             ply_progress_animation_transition_t transition,
                                             double                    duration);
 void ply_progress_animation_show (ply_progress_animation_t *progress_animation,
-                                  ply_window_t             *window,
+                                  ply_pixel_display_t      *display,
                                   long                      x,
                                   long                      y);
 void ply_progress_animation_hide (ply_progress_animation_t *progress_animation);
 void ply_progress_animation_draw (ply_progress_animation_t *progress_animation);
+void ply_progress_animation_draw_area (ply_progress_animation_t *progress_animation,
+                                       ply_pixel_buffer_t       *buffer,
+                                       long                      x,
+                                       long                      y,
+                                       unsigned long             width,
+                                       unsigned long             height);
 bool ply_progress_animation_is_hidden (ply_progress_animation_t *progress_animation);
 
 long ply_progress_animation_get_width (ply_progress_animation_t *progress_animation);

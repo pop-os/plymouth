@@ -56,6 +56,10 @@ PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.12.0 ])
 AC_SUBST(GTK_CFLAGS)
 AC_SUBST(GTK_LIBS)
 
+PKG_CHECK_MODULES(DRM, [libdrm libdrm_intel libdrm_radeon libdrm_nouveau])
+AC_SUBST(DRM_CFLAGS)
+AC_SUBST(DRM_LIBS)
+
 AC_ARG_ENABLE(tracing, AS_HELP_STRING([--enable-tracing],[enable verbose tracing code]),enable_tracing=$enableval,enable_tracing=yes)
 
 if test x$enable_tracing = xyes; then
@@ -209,6 +213,9 @@ AC_OUTPUT([Makefile
            src/libplybootsplash/Makefile
            src/plymouth-1.pc
            src/plugins/Makefile
+           src/plugins/renderers/Makefile
+           src/plugins/renderers/frame-buffer/Makefile
+           src/plugins/renderers/drm/Makefile
            src/plugins/splash/Makefile
            src/plugins/splash/throbgress/Makefile
            src/plugins/splash/fade-throbber/Makefile

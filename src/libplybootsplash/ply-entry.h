@@ -27,8 +27,8 @@
 #include <unistd.h>
 
 #include "ply-event-loop.h"
-#include "ply-frame-buffer.h"
-#include "ply-window.h"
+#include "ply-pixel-buffer.h"
+#include "ply-pixel-display.h"
 
 typedef struct _ply_entry ply_entry_t;
 
@@ -39,11 +39,16 @@ bool ply_entry_load (ply_entry_t *entry);
 
 void ply_entry_show (ply_entry_t         *entry,
                      ply_event_loop_t    *loop,
-                     ply_window_t        *window,
+                     ply_pixel_display_t *display,
                      long                 x,
                      long                 y);
 void ply_entry_hide (ply_entry_t *entry);
-void ply_entry_draw (ply_entry_t *entry);
+void ply_entry_draw_area (ply_entry_t        *entry,
+                          ply_pixel_buffer_t *buffer,
+                          long                x,
+                          long                y,
+                          unsigned long       width,
+                          unsigned long       height);
 bool ply_entry_is_hidden (ply_entry_t *entry);
 
 long ply_entry_get_width (ply_entry_t *entry);

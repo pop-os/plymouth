@@ -98,6 +98,7 @@ struct _ply_renderer_backend
 
   ply_renderer_driver_interface_t *driver_interface;
   ply_renderer_driver_t *driver;
+  uint32_t driver_supports_mapping_console;
 
   int device_fd;
   char *device_name;
@@ -409,14 +410,17 @@ load_driver (ply_renderer_backend_t *backend)
   if (strcmp (driver_name, "i915") == 0)
     {
       backend->driver_interface = ply_renderer_i915_driver_get_interface ();
+      backend->driver_supports_mapping_console = true;
     }
   else if (strcmp (driver_name, "radeon") == 0)
     {
       backend->driver_interface = ply_renderer_radeon_driver_get_interface ();
+      backend->driver_supports_mapping_console = false;
     }
   else if (strcmp (driver_name, "nouveau") == 0)
     {
       backend->driver_interface = ply_renderer_nouveau_driver_get_interface ();
+      backend->driver_supports_mapping_console = false;
     }
   free (driver_name);
 
@@ -715,6 +719,20 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                                     mode);
 
       ply_list_append_data (backend->heads, head);
+    }
+
+  /* If the driver doesn't support mapping the fb console
+   * then we can't get a smooth crossfade transition to
+   * the display manager unless we use the /dev/fb interface.
+   *
+   * In multihead configurations, we'd rather have working
+   * multihead, but otherwise bail now.
+   */
+  if (!backend->driver_supports_mapping_console &&
+      ply_list_get_length (backend->heads) == 1)
+    {
+      free_heads (backend);
+      return false;
     }
 
   return ply_list_get_length (backend->heads) > 0;

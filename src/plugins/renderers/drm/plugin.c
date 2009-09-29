@@ -923,6 +923,7 @@ flush_head (ply_renderer_backend_t *backend,
   assert (backend != NULL);
 
   ply_console_set_mode (backend->console, PLY_CONSOLE_MODE_GRAPHICS);
+  ply_terminal_set_unbuffered_input (backend->terminal);
   pixel_buffer = head->pixel_buffer;
   updated_region = ply_pixel_buffer_get_updated_areas (pixel_buffer);
   areas_to_flush = ply_region_get_rectangle_list (updated_region);

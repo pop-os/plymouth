@@ -329,6 +329,9 @@ ply_terminal_open_device (ply_terminal_t *terminal)
 
   ply_terminal_check_for_vt (terminal);
 
+  if (!ply_terminal_set_unbuffered_input (terminal))
+    ply_trace ("terminal '%s' will be line buffered", terminal->name);
+
   return true;
 }
 
@@ -359,9 +362,6 @@ ply_terminal_open (ply_terminal_t *terminal)
       ply_trace ("could not open %s : %m", terminal->name);
       return false;
     }
-
-  if (!ply_terminal_set_unbuffered_input (terminal))
-    ply_trace ("terminal '%s' will be line buffered", terminal->name);
 
   ply_terminal_look_up_geometry (terminal);
 

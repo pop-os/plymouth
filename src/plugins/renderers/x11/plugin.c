@@ -234,9 +234,10 @@ map_to_device (ply_renderer_backend_t *backend)
 
       head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
       head->window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-      gtk_window_set_default_size (GTK_WINDOW (head->window),
-                                  head->area.width,
-                                  head->area.height);
+      gtk_window_set_resizable (GTK_WINDOW (head->window), FALSE);
+      gtk_widget_set_size_request (head->window,
+                                   head->area.width,
+                                   head->area.height);
       shadow_buffer = ply_pixel_buffer_get_argb32_data (head->pixel_buffer);
       head->image = cairo_image_surface_create_for_data ((unsigned char *) shadow_buffer,
                                                          CAIRO_FORMAT_ARGB32,

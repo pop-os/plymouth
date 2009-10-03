@@ -1252,14 +1252,14 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
 
      if (number_of_received_events < 0)
        {
-         if (errno != EINTR)
+         if (errno != EINTR && errno != EAGAIN)
            {
              ply_event_loop_exit (loop, 255);
              return;
            }
        }
     }
-  while ((number_of_received_events < 0) && (errno == EINTR));
+  while ((number_of_received_events < 0) && ((errno == EINTR) || (errno == EAGAIN)));
 
   for (i = 0; i < number_of_received_events; i++)
     {

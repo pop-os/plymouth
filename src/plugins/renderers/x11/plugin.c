@@ -199,7 +199,7 @@ query_device (ply_renderer_backend_t *backend)
       head = calloc (1, sizeof (ply_renderer_head_t));
 
       head->backend = backend;
-      head->area.x = 0;
+      head->area.x = 800;
       head->area.y = 0;
       head->area.width = 640;         /* FIXME hardcoded */
       head->area.height = 480;
@@ -258,6 +258,7 @@ map_to_device (ply_renderer_backend_t *backend)
       gtk_widget_show_all (head->window);
       gdk_window_set_back_pixmap (head->window->window, head->pixmap, FALSE);
       gdk_window_set_decorations (head->window->window, GDK_DECOR_BORDER);
+      gtk_window_move (GTK_WINDOW (head->window), head->area.x, head->area.y);
 
       gtk_widget_add_events (head->window, GDK_BUTTON1_MOTION_MASK);
 

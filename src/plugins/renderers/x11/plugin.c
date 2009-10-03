@@ -83,6 +83,7 @@ struct _ply_renderer_backend
   ply_event_loop_t            *loop;
   ply_renderer_input_source_t  input_source;
   ply_list_t                  *heads;
+  ply_console_t               *console;
 
   ply_fd_watch_t *display_watch;
 };
@@ -106,6 +107,7 @@ create_backend (const char     *device_name,
   backend->loop = ply_event_loop_get_default ();
   backend->heads = ply_list_new ();
   backend->input_source.key_buffer = ply_buffer_new ();
+  backend->console = console;
 
   return backend;
 }
@@ -222,6 +224,11 @@ map_to_device (ply_renderer_backend_t *backend)
   ply_list_node_t *node;
   assert (backend != NULL);
 
+  /* Prevent other parts of plymouth from trying to use
+   * the console, since X draws to it.
+   */
+  ply_console_ignore_mode_changes (backend->console, true);
+
   node = ply_list_get_first_node (backend->heads);
   while (node != NULL)
     {
@@ -284,6 +291,8 @@ unmap_from_device (ply_renderer_backend_t *backend)
 
       node = next_node;
     }
+
+  ply_console_ignore_mode_changes (backend->console, false);
 }
 
 static void

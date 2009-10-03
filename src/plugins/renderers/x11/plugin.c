@@ -67,6 +67,7 @@ struct _ply_renderer_head
   ply_pixel_buffer_t     *pixel_buffer;
   ply_rectangle_t         area;
   GtkWidget              *window;
+  GdkPixmap              *pixmap;
   cairo_surface_t        *image;
 };
 
@@ -182,6 +183,10 @@ query_device (ply_renderer_backend_t *backend)
       head->area.y = 0;
       head->area.width = 800;         /* FIXME hardcoded */
       head->area.height = 600;
+      head->pixmap = gdk_pixmap_new (NULL,
+                                     head->area.width,
+                                     head->area.height,
+                                     24);
 
       ply_list_append_data (backend->heads, head);
 
@@ -192,46 +197,15 @@ query_device (ply_renderer_backend_t *backend)
       head->area.y = 0;
       head->area.width = 640;         /* FIXME hardcoded */
       head->area.height = 480;
+      head->pixmap = gdk_pixmap_new (NULL,
+                                     head->area.width,
+                                     head->area.height,
+                                     24);
 
       ply_list_append_data (backend->heads, head);
     }
 
   return true;
-}
-
-static void
-screen_refresh (GtkWidget       *widget,
-                cairo_surface_t *image,
-                int              x,
-                int              y,
-                int              width,
-                int              height)
-{
-  cairo_t *cr;
-  cr = gdk_cairo_create (gtk_widget_get_window (widget));
-  cairo_rectangle (cr, x, y, width, height);
-  cairo_clip (cr);
-
-  cairo_set_source_surface (cr, image, 0, 0);
-  cairo_paint (cr);
-
-  cairo_destroy (cr);
-  return;
-}
-
-static gboolean
-on_expose_event (GtkWidget       *widget,
-                 GdkEventExpose  *event,
-                 gpointer         user_data)
-{
-  cairo_surface_t *image = user_data;
-  screen_refresh (widget,
-                  image,
-                  event->area.x,
-                  event->area.y,
-                  event->area.width,
-                  event->area.height);
-  return FALSE;
 }
 
 static gboolean
@@ -270,10 +244,8 @@ map_to_device (ply_renderer_backend_t *backend)
                                                          head->area.width * 4);
       gtk_widget_set_app_paintable (head->window, TRUE);
       gtk_widget_show_all (head->window);
+      gdk_window_set_back_pixmap (head->window->window, head->pixmap, FALSE);
 
-      g_signal_connect (head->window, "expose-event",
-                        G_CALLBACK (on_expose_event),
-                       head->image);
       g_signal_connect (head->window, "key-press-event",
                         G_CALLBACK (on_key_event),
                         &backend->input_source);
@@ -316,14 +288,20 @@ unmap_from_device (ply_renderer_backend_t *backend)
 static void
 flush_area_to_device (ply_renderer_backend_t *backend,
                       ply_renderer_head_t    *head,
-                      ply_rectangle_t        *area_to_flush)
+                      ply_rectangle_t        *area_to_flush,
+                      cairo_t                *cr)
 {
-  screen_refresh (head->window,
-                  head->image,
-                  area_to_flush->x,
-                  area_to_flush->y,
-                  area_to_flush->width,
-                  area_to_flush->height);
+  cairo_save (cr);
+  cairo_rectangle (cr,
+                   area_to_flush->x,
+                   area_to_flush->y,
+                   area_to_flush->width,
+                   area_to_flush->height);
+  cairo_clip (cr);
+
+  cairo_set_source_surface (cr, head->image, 0, 0);
+  cairo_paint (cr);
+  cairo_restore (cr);
 }
 
 static void
@@ -334,12 +312,15 @@ flush_head (ply_renderer_backend_t *backend,
   ply_list_t *areas_to_flush;
   ply_list_node_t *node;
   ply_pixel_buffer_t *pixel_buffer;
+  cairo_t *cr;
 
   assert (backend != NULL);
 
   pixel_buffer = head->pixel_buffer;
   updated_region = ply_pixel_buffer_get_updated_areas (pixel_buffer);
   areas_to_flush = ply_region_get_rectangle_list (updated_region);
+
+  cr = gdk_cairo_create (head->pixmap);
 
   node = ply_list_get_first_node (areas_to_flush);
   while (node != NULL)
@@ -351,11 +332,17 @@ flush_head (ply_renderer_backend_t *backend,
 
       next_node = ply_list_get_next_node (areas_to_flush, node);
 
-      flush_area_to_device (backend, head, area_to_flush);
-
+      flush_area_to_device (backend, head, area_to_flush, cr);
+      gdk_window_clear_area (head->window->window,
+                             area_to_flush->x,
+                             area_to_flush->y,
+                             area_to_flush->width,
+                             area_to_flush->height);
       node = next_node;
     }
   ply_region_clear (updated_region);
+
+  cairo_destroy (cr);
 }
 
 static void

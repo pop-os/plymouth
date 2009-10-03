@@ -91,6 +91,10 @@ struct _ply_renderer_backend
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
 static void ply_renderer_head_redraw (ply_renderer_backend_t *backend,
                                       ply_renderer_head_t    *head);
+
+static gboolean on_motion_notify_event (GtkWidget      *widget,
+                                        GdkEventMotion *event,
+                                        gpointer        user_data);
 static gboolean on_key_event (GtkWidget   *widget,
                               GdkEventKey *event,
                               gpointer     user_data);
@@ -255,6 +259,11 @@ map_to_device (ply_renderer_backend_t *backend)
       gdk_window_set_back_pixmap (head->window->window, head->pixmap, FALSE);
       gdk_window_set_decorations (head->window->window, GDK_DECOR_BORDER);
 
+      gtk_widget_add_events (head->window, GDK_BUTTON1_MOTION_MASK);
+
+      g_signal_connect (head->window, "motion-notify-event",
+                        G_CALLBACK (on_motion_notify_event),
+                        head);
       g_signal_connect (head->window, "key-press-event",
                         G_CALLBACK (on_key_event),
                         &backend->input_source);
@@ -396,6 +405,18 @@ static ply_renderer_input_source_t *
 get_input_source (ply_renderer_backend_t *backend)
 {
   return &backend->input_source;
+}
+
+static gboolean
+on_motion_notify_event (GtkWidget      *widget,
+                        GdkEventMotion *event,
+                        gpointer        user_data)
+{
+  ply_renderer_head_t *head = user_data;
+
+  gtk_window_begin_move_drag (GTK_WINDOW (head->window), 1,
+                              event->x_root, event->y_root, event->time);
+  return FALSE;
 }
 
 static gboolean

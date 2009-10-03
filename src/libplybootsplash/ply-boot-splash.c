@@ -169,8 +169,14 @@ on_keyboard_input (ply_boot_splash_t *splash,
           case KEY_CTRL_T:
             ply_trace ("toggle text mode!");
             splash->should_force_text_mode = !splash->should_force_text_mode;
-            ply_console_force_text_mode (splash->console,
-                                         splash->should_force_text_mode);
+
+            if (splash->should_force_text_mode)
+              {
+                ply_console_set_mode (splash->console, PLY_CONSOLE_MODE_TEXT);
+                ply_console_ignore_mode_changes (splash->console, true);
+              }
+            else
+              ply_console_ignore_mode_changes (splash->console, false);
             ply_trace ("text mode toggled!");
           return;
 

@@ -49,8 +49,8 @@ void ply_console_close (ply_console_t *console);
 void ply_console_set_mode (ply_console_t     *console,
                            ply_console_mode_t mode);
 
-void ply_console_force_text_mode (ply_console_t *console,
-                                  bool           should_force);
+void ply_console_ignore_mode_changes (ply_console_t *console,
+                                      bool           should_ignore);
 
 int ply_console_get_fd (ply_console_t *console);
 int ply_console_get_active_vt (ply_console_t *console);

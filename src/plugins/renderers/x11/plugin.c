@@ -253,6 +253,7 @@ map_to_device (ply_renderer_backend_t *backend)
       gtk_widget_set_app_paintable (head->window, TRUE);
       gtk_widget_show_all (head->window);
       gdk_window_set_back_pixmap (head->window->window, head->pixmap, FALSE);
+      gdk_window_set_decorations (head->window->window, GDK_DECOR_BORDER);
 
       g_signal_connect (head->window, "key-press-event",
                         G_CALLBACK (on_key_event),

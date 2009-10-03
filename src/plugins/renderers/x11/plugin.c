@@ -48,6 +48,7 @@
 #include <linux/fb.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
+#include <gdk/gdkx.h>
 
 #include "ply-buffer.h"
 #include "ply-event-loop.h"
@@ -81,6 +82,8 @@ struct _ply_renderer_backend
   ply_event_loop_t            *loop;
   ply_renderer_input_source_t  input_source;
   ply_list_t                  *heads;
+
+  ply_fd_watch_t *display_watch;
 };
 
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
@@ -128,15 +131,39 @@ destroy_backend (ply_renderer_backend_t *backend)
   free (backend);
 }
 
+static void
+on_display_event (ply_renderer_backend_t *backend)
+{
+  while (gtk_events_pending ())
+    gtk_main_iteration ();
+}
+
 static bool
 open_device (ply_renderer_backend_t *backend)
 {
-  return gtk_init_check (0, NULL);
+  Display *display;
+  int display_fd;
+
+  if (!gtk_init_check (0, NULL))
+    return false;
+
+  display = GDK_DISPLAY_XDISPLAY (gdk_display_get_default ());
+  display_fd = ConnectionNumber (display);
+  backend->display_watch = ply_event_loop_watch_fd (backend->loop,
+                                                    display_fd,
+                                                    PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
+                                                    (ply_event_handler_t) on_display_event,
+                                                    NULL,
+                                                    backend);
+
+  return true;
 }
 
 static void
 close_device (ply_renderer_backend_t *backend)
 {
+  ply_event_loop_stop_watching_fd (backend->loop, backend->display_watch);
+  backend->display_watch = NULL;
   return;
 }
 
@@ -215,17 +242,6 @@ on_window_destroy (GtkWidget *widget,
   return TRUE;
 }
 
-static void
-on_timeout (ply_renderer_backend_t *backend)
-{
-  while (gtk_events_pending ())
-    gtk_main_iteration ();
-  ply_event_loop_watch_for_timeout (backend->loop,
-                                    0.01,
-                                    (ply_event_loop_timeout_handler_t)
-                                    on_timeout, backend);
-}
-
 static bool
 map_to_device (ply_renderer_backend_t *backend)
 {
@@ -268,7 +284,6 @@ map_to_device (ply_renderer_backend_t *backend)
       ply_renderer_head_redraw (backend, head);
       node = next_node;
     }
-  on_timeout (backend);
   return true;
 }
 
@@ -296,9 +311,6 @@ unmap_from_device (ply_renderer_backend_t *backend)
 
       node = next_node;
     }
-  ply_event_loop_stop_watching_for_timeout (backend->loop,
-                                            (ply_event_loop_timeout_handler_t)
-                                            on_timeout, backend);
 }
 
 static void

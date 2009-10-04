@@ -658,18 +658,26 @@ script_return_t script_execute (script_state_t *state,
           break;
         }
 
+      case SCRIPT_OP_TYPE_DO_WHILE:
       case SCRIPT_OP_TYPE_WHILE:
       case SCRIPT_OP_TYPE_FOR:
         {
-          script_obj_t *obj;
+          script_obj_t *obj = NULL;
+          bool cond = false;
+          if (op->type == SCRIPT_OP_TYPE_DO_WHILE) cond = true;
           while (1)
             {
-              obj = script_evaluate (state, op->data.cond_op.cond);
-              if (script_obj_as_bool (obj))
+              if (!cond)
+                {
+                  obj = script_evaluate (state, op->data.cond_op.cond);
+                  cond = script_obj_as_bool (obj);
+                  script_obj_unref (obj);
+                }
+               
+              if (cond)
                 {
                   script_obj_unref (reply.object);
                   reply = script_execute (state, op->data.cond_op.op1);
-                  script_obj_unref (obj);
                   switch (reply.type)
                     {
                       case SCRIPT_RETURN_TYPE_NORMAL:
@@ -693,9 +701,9 @@ script_return_t script_execute (script_state_t *state,
                 }
               else
                 {
-                  script_obj_unref (obj);
                   break;
                 }
+              cond = false;
             }
           break;
         }

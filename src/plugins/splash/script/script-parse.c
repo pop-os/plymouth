@@ -592,6 +592,57 @@ static script_op_t *script_parse_if_while (script_scan_t *scan)
   return op;
 }
 
+static script_op_t *script_parse_do_while (script_scan_t *scan)
+{
+  script_scan_token_t *curtoken = script_scan_get_current_token (scan);
+
+  if (!script_scan_token_is_identifier_of_value (curtoken, "do"))
+    return NULL;
+  script_debug_location_t location = curtoken->location;
+  curtoken = script_scan_get_next_token (scan);
+  script_op_t *cond_op = script_parse_op (scan);
+  curtoken = script_scan_get_current_token (scan);
+
+  if (!script_scan_token_is_identifier_of_value (curtoken, "while"))
+    {
+      script_parse_error (&curtoken->location,
+                          "Expected a 'while' after a 'do' block");
+      return NULL;
+    }
+  curtoken = script_scan_get_next_token (scan);
+
+  if (!script_scan_token_is_symbol_of_value (curtoken, '('))
+    {
+      script_parse_error (&curtoken->location,
+                          "Expected a '(' at the start of a do-while condition block");
+      return NULL;
+    }
+  curtoken = script_scan_get_next_token (scan);
+  script_exp_t *cond = script_parse_exp (scan);
+  curtoken = script_scan_get_current_token (scan);
+  if (!cond)
+    {
+      script_parse_error (&curtoken->location, "Expected a valid condition expression");
+      return NULL;
+    }
+  if (!script_scan_token_is_symbol_of_value (curtoken, ')'))
+    {
+      script_parse_error (&curtoken->location,
+                          "Expected a ')' at the end of a condition block");
+      return NULL;
+    }
+  curtoken = script_scan_get_next_token (scan);
+  if (!script_scan_token_is_symbol_of_value (curtoken, ';'))
+    {
+      script_parse_error (&curtoken->location,
+                          "Expected a ';' after a do-whileexpression");
+      return NULL;
+    }
+  script_scan_get_next_token (scan);
+  script_op_t *op = script_parse_new_op_cond (SCRIPT_OP_TYPE_DO_WHILE, cond, cond_op, NULL, &location);
+  return op;
+}
+
 static script_op_t *script_parse_for (script_scan_t *scan)
 {
   script_scan_token_t *curtoken = script_scan_get_current_token (scan);
@@ -733,6 +784,8 @@ static script_op_t *script_parse_op (script_scan_t *scan)
   reply = script_parse_op_block (scan);
   if (reply) return reply;
   reply = script_parse_if_while (scan);
+  if (reply) return reply;
+  reply = script_parse_do_while (scan);
   if (reply) return reply;
   reply = script_parse_for (scan);
   if (reply) return reply;
@@ -880,6 +933,7 @@ void script_parse_op_free (script_op_t *op)
 
       case SCRIPT_OP_TYPE_IF:
       case SCRIPT_OP_TYPE_WHILE:
+      case SCRIPT_OP_TYPE_DO_WHILE:
       case SCRIPT_OP_TYPE_FOR:
         script_parse_exp_free (op->data.cond_op.cond);
         script_parse_op_free  (op->data.cond_op.op1);

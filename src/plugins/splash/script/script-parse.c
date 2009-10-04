@@ -414,6 +414,12 @@ static script_exp_t *script_parse_exp_pi (script_scan_t *scan)
         {
           script_scan_get_next_token (scan);
           key = script_parse_exp (scan);
+          if (!key)
+            {
+              script_parse_error (&curtoken->location,
+                "Expected a valid index expression");
+              return NULL;
+            }
           curtoken = script_scan_get_current_token (scan);
           if (!script_scan_token_is_symbol_of_value (curtoken, ']'))
             {
@@ -670,7 +676,7 @@ static script_op_t *script_parse_do_while (script_scan_t *scan)
   if (!script_scan_token_is_symbol_of_value (curtoken, ';'))
     {
       script_parse_error (&curtoken->location,
-                          "Expected a ';' after a do-whileexpression");
+                          "Expected a ';' after a do-while expression");
       return NULL;
     }
   script_scan_get_next_token (scan);

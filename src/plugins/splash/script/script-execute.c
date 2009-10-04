@@ -125,6 +125,29 @@ static script_obj_t *script_evaluate_var (script_state_t *state,
   return obj;
 }
 
+static script_obj_t *script_evaluate_set (script_state_t *state,
+                                          script_exp_t   *exp)
+{
+
+  ply_list_t *parameter_data = exp->data.parameters;
+  ply_list_node_t *node_data = ply_list_get_first_node (parameter_data);
+  int index = 0;
+  script_obj_t *obj = script_obj_new_hash ();
+  while (node_data)
+    {
+      script_exp_t *data_exp = ply_list_node_get_data (node_data);
+      script_obj_t *data_obj = script_evaluate (state, data_exp);
+      char *name;
+      asprintf (&name, "%d", index);
+      index++;
+      script_obj_hash_add_element (obj, data_obj, name);
+      free(name);
+      
+      node_data = ply_list_get_next_node (parameter_data, node_data);
+    }
+  return obj;
+}
+
 static script_obj_t *script_evaluate_assign (script_state_t *state,
                                              script_exp_t   *exp)
 {
@@ -442,6 +465,11 @@ static script_obj_t *script_evaluate (script_state_t *state,
         {
           script_obj_ref (state->this);
           return state->this;
+        }
+
+      case SCRIPT_EXP_TYPE_TERM_SET:
+        {
+          return script_evaluate_set (state, exp);
         }
 
       case SCRIPT_EXP_TYPE_TERM_VAR:

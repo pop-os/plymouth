@@ -122,6 +122,14 @@ static script_exp_t *script_parse_new_exp_function_def (script_function_t       
   return exp;
 }
 
+static script_exp_t *script_parse_new_exp_set (ply_list_t              *parameters,
+                                               script_debug_location_t *location)
+{
+  script_exp_t *exp = script_parse_new_exp(SCRIPT_EXP_TYPE_TERM_SET, location);
+  exp->data.parameters = parameters;
+  return exp;
+}
+
 static script_op_t *script_parse_new_op (script_op_type_t         type,
                                          script_debug_location_t *location)
 {
@@ -299,6 +307,33 @@ static script_exp_t *script_parse_exp_tm (script_scan_t *scan)
     {
       exp = script_parse_new_exp_string (curtoken->data.string, &curtoken->location);
       script_scan_get_next_token (scan);
+      return exp;
+    }
+  
+  if (script_scan_token_is_symbol_of_value (curtoken, '['))
+    {
+      ply_list_t *parameters = ply_list_new ();
+      script_debug_location_t location = curtoken->location;
+      script_scan_get_next_token (scan);
+      while (true)
+        {
+          if (script_scan_token_is_symbol_of_value (curtoken, ']')) break;
+          script_exp_t *parameter = script_parse_exp (scan);
+
+          ply_list_append_data (parameters, parameter);
+
+          curtoken = script_scan_get_current_token (scan);
+          if (script_scan_token_is_symbol_of_value (curtoken, ']')) break;
+          if (!script_scan_token_is_symbol_of_value (curtoken, ','))
+            {
+              script_parse_error (&curtoken->location,
+                "Set parameters should be separated with a ',' and terminated with a ']'");
+              return NULL;
+            }
+          curtoken = script_scan_get_next_token (scan);
+        }
+      script_scan_get_next_token (scan);
+      exp = script_parse_new_exp_set (parameters, &location);
       return exp;
     }
   if (script_scan_token_is_symbol_of_value (curtoken, '('))
@@ -877,7 +912,19 @@ static void script_parse_exp_free (script_exp_t *exp)
       case SCRIPT_EXP_TYPE_TERM_GLOBAL:
       case SCRIPT_EXP_TYPE_TERM_THIS:
         break;
-
+      case SCRIPT_EXP_TYPE_TERM_SET:
+        {
+          ply_list_node_t *node;
+          for (node = ply_list_get_first_node (exp->data.parameters);
+               node;
+               node = ply_list_get_next_node (exp->data.parameters, node))
+            {
+              script_exp_t *sub = ply_list_node_get_data (node);
+              script_parse_exp_free (sub);
+            }
+          ply_list_free (exp->data.parameters);
+          break;
+        }
       case SCRIPT_EXP_TYPE_FUNCTION_EXE:
         {
           ply_list_node_t *node;

@@ -68,7 +68,7 @@ struct _ply_console
 
   uint32_t is_open : 1;
   uint32_t is_watching_for_vt_changes : 1;
-  uint32_t should_force_text_mode : 1;
+  uint32_t should_ignore_mode_changes : 1;
 };
 
 static bool ply_console_open_device (ply_console_t *console);
@@ -106,8 +106,8 @@ ply_console_set_mode (ply_console_t     *console,
   assert (console != NULL);
   assert (mode == PLY_CONSOLE_MODE_TEXT || mode == PLY_CONSOLE_MODE_GRAPHICS);
 
-  if (console->should_force_text_mode)
-    mode = PLY_CONSOLE_MODE_TEXT;
+  if (console->should_ignore_mode_changes)
+    return;
 
   switch (mode)
     {
@@ -124,10 +124,10 @@ ply_console_set_mode (ply_console_t     *console,
 }
 
 void
-ply_console_force_text_mode (ply_console_t *console,
-                             bool           should_force)
+ply_console_ignore_mode_changes (ply_console_t *console,
+                                 bool           should_ignore)
 {
-  console->should_force_text_mode = should_force;
+  console->should_ignore_mode_changes = should_ignore;
 }
 
 static void

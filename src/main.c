@@ -989,9 +989,6 @@ add_default_displays_and_keyboard (state_t *state)
       return;
     }
 
-  ply_console_set_active_vt (state->console,
-                             ply_terminal_get_vt_number (terminal));
-
   renderer = ply_renderer_new (NULL, terminal, state->console);
 
   if (!ply_renderer_open (renderer))

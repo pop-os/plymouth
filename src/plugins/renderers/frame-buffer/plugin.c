@@ -491,6 +491,9 @@ map_to_device (ply_renderer_backend_t *backend)
 
   initialize_head (backend, head);
 
+  ply_console_set_active_vt (backend->console,
+                             ply_terminal_get_vt_number (backend->terminal));
+
   return true;
 }
 
@@ -521,6 +524,10 @@ flush_head (ply_renderer_backend_t *backend,
 
   assert (backend != NULL);
   assert (&backend->head == head);
+
+  if (ply_console_get_active_vt (backend->console) !=
+      ply_terminal_get_vt_number (backend->terminal))
+    return;
 
   ply_console_set_mode (backend->console, PLY_CONSOLE_MODE_GRAPHICS);
   ply_terminal_set_unbuffered_input (backend->terminal);

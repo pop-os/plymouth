@@ -220,6 +220,7 @@ ply_renderer_open (ply_renderer_t *renderer)
    */
   const char *known_plugins[] =
     {
+      PLYMOUTH_PLUGIN_PATH "renderers/x11.so",
       PLYMOUTH_PLUGIN_PATH "renderers/drm.so",
       PLYMOUTH_PLUGIN_PATH "renderers/frame-buffer.so",
       NULL
@@ -298,10 +299,6 @@ ply_renderer_flush_head (ply_renderer_t      *renderer,
   assert (renderer != NULL);
   assert (renderer->plugin_interface != NULL);
   assert (head != NULL);
-
-  if (ply_console_get_active_vt (renderer->console) !=
-      ply_terminal_get_vt_number (renderer->terminal))
-    return;
 
   renderer->plugin_interface->flush_head (renderer->backend, head);
 }

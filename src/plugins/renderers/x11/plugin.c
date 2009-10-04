@@ -364,6 +364,12 @@ flush_head (ply_renderer_backend_t *backend,
   ply_region_clear (updated_region);
 
   cairo_destroy (cr);
+
+  /* Force read-back to make sure plymouth isn't saturating the
+   * X server with requests
+   */
+  g_object_unref (gdk_drawable_get_image (GDK_DRAWABLE (head->pixmap),
+                  0, 0, 1, 1));
 }
 
 static void

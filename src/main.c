@@ -131,6 +131,8 @@ static void on_error_message (ply_buffer_t *debug_buffer,
                               size_t        number_of_bytes);
 static ply_buffer_t *debug_buffer;
 static char *debug_buffer_path = NULL;
+static void check_for_consoles (state_t    *state,
+                                const char *default_tty);
 
 static void
 on_session_output (state_t    *state,
@@ -560,6 +562,8 @@ on_show_splash (state_t *state)
       return;
     }
 
+  check_for_consoles (state, state->default_tty);
+
   has_display = ply_list_get_length (state->pixel_displays) > 0 ||
                 ply_list_get_length (state->text_displays) > 0;
 
@@ -597,15 +601,15 @@ quit_splash (state_t *state)
       state->boot_splash = NULL;
     }
 
-  ply_trace ("removing displays and keyboard");
-  remove_displays_and_keyboard (state);
-
   if (state->renderer != NULL)
     {
       ply_renderer_close (state->renderer);
       ply_renderer_free (state->renderer);
       state->renderer = NULL;
     }
+
+  ply_trace ("removing displays and keyboard");
+  remove_displays_and_keyboard (state);
 
   if (state->session != NULL)
     {
@@ -1265,9 +1269,11 @@ check_for_consoles (state_t    *state,
 
   ply_trace ("checking if splash screen should be disabled");
 
-  state->console = ply_console_new ();
+  if (state->console == NULL)
+    state->console = ply_console_new ();
 
-  if (!ply_console_open (state->console))
+  if (!ply_console_is_open (state->console) &&
+      !ply_console_open (state->console))
     {
       ply_trace ("could not open /dev/tty0");
       ply_console_free (state->console);

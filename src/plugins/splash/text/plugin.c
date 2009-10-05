@@ -464,37 +464,14 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
 }
 
 static void
-clear_views (ply_boot_splash_plugin_t *plugin)
-{
-  ply_list_node_t *node;
-
-  assert (plugin != NULL);
-  assert (plugin->loop != NULL);
-
-  node = ply_list_get_first_node (plugin->views);
-  while (node != NULL)
-    {
-      ply_list_node_t *next_node;
-      view_t *view;
-
-      view = ply_list_node_get_data (node);
-      next_node = ply_list_get_next_node (plugin->views, node);
-
-      ply_text_display_clear_screen (view->display);
-
-      node = next_node;
-    }
-}
-
-static void
-on_draw (ply_boot_splash_plugin_t *plugin,
+on_draw (view_t                   *view,
          ply_terminal_t           *terminal,
          int                       x,
          int                       y,
          int                       width,
          int                       height)
 {
-  clear_views (plugin);
+  ply_text_display_clear_screen (view->display);
 }
 
 static void

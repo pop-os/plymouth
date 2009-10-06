@@ -247,6 +247,7 @@ ply_renderer_open (ply_renderer_t *renderer)
         {
           ply_trace ("could not query rendering device for plugin %s",
                      plugin_path);
+          ply_renderer_close_device (renderer);
           ply_renderer_unload_plugin (renderer);
           continue;
         }
@@ -255,6 +256,7 @@ ply_renderer_open (ply_renderer_t *renderer)
         {
           ply_trace ("could not map renderer to device for plugin %s",
                      plugin_path);
+          ply_renderer_close_device (renderer);
           ply_renderer_unload_plugin (renderer);
           continue;
         }

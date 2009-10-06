@@ -94,6 +94,7 @@ typedef struct
   ply_command_parser_t *command_parser;
   ply_mode_t mode;
   ply_renderer_t *renderer;
+  ply_terminal_t *terminal;
 
   ply_trigger_t *quit_trigger;
 
@@ -608,6 +609,13 @@ quit_splash (state_t *state)
       state->renderer = NULL;
     }
 
+  if (state->terminal != NULL)
+    {
+      ply_terminal_close (state->terminal);
+      ply_terminal_free (state->terminal);
+      state->terminal = NULL;
+    }
+
   ply_trace ("removing displays and keyboard");
   remove_displays_and_keyboard (state);
 
@@ -935,6 +943,8 @@ add_display_and_keyboard_for_terminal (state_t    *state,
       return;
     }
 
+  state->terminal = terminal;
+
   ply_console_set_active_vt (state->console,
                              ply_terminal_get_vt_number (terminal));
 
@@ -1004,6 +1014,8 @@ add_default_displays_and_keyboard (state_t *state)
       add_display_and_keyboard_for_terminal (state, state->default_tty);
       return;
     }
+
+  state->terminal = terminal;
 
   keyboard = ply_keyboard_new_for_renderer (renderer);
   set_keyboard (state, keyboard);

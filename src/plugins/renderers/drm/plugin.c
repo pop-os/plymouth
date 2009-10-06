@@ -855,6 +855,9 @@ ply_renderer_head_set_scan_out_buffer_to_console (ply_renderer_backend_t *backen
   ply_renderer_head_set_scan_out_buffer (backend,
                                          head, head->console_buffer_id);
 
+  backend->driver_interface->destroy_buffer (backend->driver,
+                                             head->console_buffer_id);
+
   if (pixel_buffer != NULL)
     ply_pixel_buffer_free (pixel_buffer);
 

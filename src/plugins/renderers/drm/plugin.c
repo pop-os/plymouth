@@ -373,8 +373,12 @@ on_active_vt_changed (ply_renderer_backend_t *backend)
 
   if (ply_console_get_active_vt (backend->console) !=
       ply_terminal_get_vt_number (backend->terminal))
-    return;
+    {
+      drmDropMaster (backend->device_fd);
+      return;
+    }
 
+  drmSetMaster (backend->device_fd);
   node = ply_list_get_first_node (backend->heads);
   while (node != NULL)
     {

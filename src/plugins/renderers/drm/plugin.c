@@ -487,7 +487,6 @@ open_device (ply_renderer_backend_t *backend)
 static void
 close_device (ply_renderer_backend_t *backend)
 {
-  ply_terminal_close (backend->terminal);
   free_heads (backend);
 
   ply_console_stop_watching_for_active_vt_change (backend->console,

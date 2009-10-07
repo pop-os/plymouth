@@ -812,7 +812,11 @@ ply_renderer_head_set_scan_out_buffer_to_console (ply_renderer_backend_t *backen
 
   if (!backend->driver_interface->map_buffer (backend->driver,
                                               head->console_buffer_id))
-    return false;
+    {
+      backend->driver_interface->destroy_buffer (backend->driver,
+                                                 head->console_buffer_id);
+      return false;
+    }
 
   if (head->area.width != width || head->area.height != height)
     {

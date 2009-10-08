@@ -604,6 +604,9 @@ quit_splash (state_t *state)
       state->boot_splash = NULL;
     }
 
+  ply_trace ("removing displays and keyboard");
+  remove_displays_and_keyboard (state);
+
   if (state->renderer != NULL)
     {
       ply_renderer_close (state->renderer);
@@ -617,9 +620,6 @@ quit_splash (state_t *state)
       ply_terminal_free (state->terminal);
       state->terminal = NULL;
     }
-
-  ply_trace ("removing displays and keyboard");
-  remove_displays_and_keyboard (state);
 
   if (state->session != NULL)
     {

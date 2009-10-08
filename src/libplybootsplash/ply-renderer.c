@@ -52,6 +52,8 @@ struct _ply_renderer
   char *device_name;
   ply_terminal_t *terminal;
   ply_console_t *console;
+
+  uint32_t input_source_is_open : 1;
 };
 
 typedef const ply_renderer_plugin_interface_t *
@@ -321,8 +323,10 @@ ply_renderer_open_input_source (ply_renderer_t              *renderer,
   assert (renderer != NULL);
   assert (input_source != NULL);
 
-  return renderer->plugin_interface->open_input_source (renderer->backend,
-                                                        input_source);
+  renderer->input_source_is_open = renderer->plugin_interface->open_input_source (renderer->backend,
+                                                                                  input_source);
+
+  return renderer->input_source_is_open;
 }
 
 void
@@ -347,8 +351,12 @@ ply_renderer_close_input_source (ply_renderer_t              *renderer,
   assert (renderer != NULL);
   assert (input_source != NULL);
 
+  if (!renderer->input_source_is_open)
+    return;
+
   renderer->plugin_interface->close_input_source (renderer->backend,
                                                   input_source);
+  renderer->input_source_is_open = false;
 }
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

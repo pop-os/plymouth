@@ -357,6 +357,9 @@ ply_keyboard_watch_for_terminal_input (ply_keyboard_t *keyboard)
 static void
 ply_keyboard_stop_watching_for_terminal_input (ply_keyboard_t *keyboard)
 {
+  if (keyboard->provider.if_terminal->input_watch == NULL)
+    return;
+
   ply_event_loop_stop_watching_fd (keyboard->loop,
                                    keyboard->provider.if_terminal->input_watch);
   keyboard->provider.if_terminal->input_watch = NULL;

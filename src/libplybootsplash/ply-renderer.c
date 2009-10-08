@@ -54,6 +54,7 @@ struct _ply_renderer
   ply_console_t *console;
 
   uint32_t input_source_is_open : 1;
+  uint32_t is_mapped : 1;
 };
 
 typedef const ply_renderer_plugin_interface_t *
@@ -199,7 +200,12 @@ ply_renderer_map_to_device (ply_renderer_t *renderer)
   assert (renderer != NULL);
   assert (renderer->plugin_interface != NULL);
 
-  return renderer->plugin_interface->map_to_device (renderer->backend);
+  if (renderer->is_mapped)
+    return true;
+
+  renderer->is_mapped = renderer->plugin_interface->map_to_device (renderer->backend);
+
+  return renderer->is_mapped;
 }
 
 static void
@@ -208,7 +214,11 @@ ply_renderer_unmap_from_device (ply_renderer_t *renderer)
   assert (renderer != NULL);
   assert (renderer->plugin_interface != NULL);
 
+  if (!renderer->is_mapped)
+    return;
+
   renderer->plugin_interface->unmap_from_device (renderer->backend);
+  renderer->is_mapped = false;
 }
 
 bool

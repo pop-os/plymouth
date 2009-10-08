@@ -264,14 +264,6 @@ ply_renderer_open (ply_renderer_t *renderer)
           continue;
         }
 
-      if (!ply_renderer_map_to_device (renderer))
-        {
-          ply_trace ("could not map renderer to device for plugin %s",
-                     plugin_path);
-          ply_renderer_close_device (renderer);
-          ply_renderer_unload_plugin (renderer);
-          continue;
-        }
       return true;
   }
 
@@ -313,6 +305,9 @@ ply_renderer_flush_head (ply_renderer_t      *renderer,
   assert (renderer != NULL);
   assert (renderer->plugin_interface != NULL);
   assert (head != NULL);
+
+  if (!ply_renderer_map_to_device (renderer))
+    return;
 
   renderer->plugin_interface->flush_head (renderer->backend, head);
 }

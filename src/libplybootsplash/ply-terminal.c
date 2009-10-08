@@ -499,7 +499,8 @@ ply_terminal_free (ply_terminal_t *terminal)
                                            ply_terminal_detach_from_event_loop,
                                            terminal);
 
-  ply_terminal_close (terminal);
+  if (terminal->is_open)
+    ply_terminal_close (terminal);
 
   free (terminal);
 }

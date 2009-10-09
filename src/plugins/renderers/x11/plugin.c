@@ -193,6 +193,7 @@ query_device (ply_renderer_backend_t *backend)
                                      head->area.width,
                                      head->area.height,
                                      24);
+      head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
 
       ply_list_append_data (backend->heads, head);
 
@@ -207,6 +208,7 @@ query_device (ply_renderer_backend_t *backend)
                                      head->area.width,
                                      head->area.height,
                                      24);
+      head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
 
       ply_list_append_data (backend->heads, head);
     }
@@ -243,7 +245,6 @@ map_to_device (ply_renderer_backend_t *backend)
       head = (ply_renderer_head_t *) ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (backend->heads, node);
 
-      head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
       head->window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
       gtk_window_set_resizable (GTK_WINDOW (head->window), FALSE);
       gtk_widget_set_size_request (head->window,

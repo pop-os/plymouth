@@ -338,6 +338,8 @@ close_device (ply_renderer_backend_t *backend)
                                                   (ply_console_active_vt_changed_handler_t)
                                                   on_active_vt_changed,
                                                   backend);
+  uninitialize_head (backend, &backend->head);
+
   close (backend->device_fd);
   backend->device_fd = -1;
 
@@ -468,6 +470,8 @@ query_device (ply_renderer_backend_t *backend)
   else
     backend->flush_area = flush_area_to_any_device;
 
+  initialize_head (backend, &backend->head);
+
   return true;
 
 }
@@ -489,8 +493,6 @@ map_to_device (ply_renderer_backend_t *backend)
   if (head->map_address == MAP_FAILED)
     return false;
 
-  initialize_head (backend, head);
-
   ply_console_set_active_vt (backend->console,
                              ply_terminal_get_vt_number (backend->terminal));
 
@@ -503,8 +505,6 @@ unmap_from_device (ply_renderer_backend_t *backend)
   ply_renderer_head_t *head;
 
   head = &backend->head;
-
-  uninitialize_head (backend, head);
 
   if (head->map_address != MAP_FAILED)
     {

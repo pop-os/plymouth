@@ -474,6 +474,9 @@ static bool
 plymouth_should_ignore_show_splash_calls (state_t *state)
 {
   ply_trace ("checking if plymouth should be running");
+  if (state->mode != PLY_MODE_BOOT || ply_string_has_prefix (state->kernel_command_line, "plymouth:force-splash") || strstr (state->kernel_command_line, " plymouth:force-splash") != NULL)
+      return false;
+
   return ply_string_has_prefix (state->kernel_command_line, "init=") || strstr (state->kernel_command_line, " init=") != NULL;
 }
 

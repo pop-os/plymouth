@@ -1409,7 +1409,7 @@ dump_debug_buffer_to_file (void)
   size_t size;
 
   fd = open (debug_buffer_path,
-             O_WRONLY | O_CREAT, 0600);
+             O_WRONLY | O_CREAT | O_TRUNC, 0600);
 
   if (fd < 0)
     return;

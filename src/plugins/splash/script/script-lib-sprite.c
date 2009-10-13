@@ -58,6 +58,8 @@ static script_return_t sprite_new (script_state_t *state,
   sprite->old_x = 0;
   sprite->old_y = 0;
   sprite->old_z = 0;
+  sprite->old_width = 0;
+  sprite->old_height = 0;
   sprite->old_opacity = 1.0;
   sprite->refresh_me = false;
   sprite->remove_me = false;
@@ -345,14 +347,6 @@ void script_lib_sprite_refresh (script_lib_sprite_data_t *data)
   
   node = ply_list_get_first_node (data->sprite_list);
 
-  if (data->full_refresh)
-    {
-      draw_area (data, 0, 0,
-                 ply_pixel_display_get_width (data->display),
-                 ply_pixel_display_get_height (data->display));
-      data->full_refresh = false;
-      return;
-    }
   while (node)
     {
       sprite_t *sprite = ply_list_node_get_data (node);
@@ -401,6 +395,15 @@ void script_lib_sprite_refresh (script_lib_sprite_data_t *data)
           sprite->old_opacity = sprite->opacity;
           sprite->refresh_me = false;
         }
+    }
+
+  if (data->full_refresh)
+    {
+      draw_area (data, 0, 0,
+                 ply_pixel_display_get_width (data->display),
+                 ply_pixel_display_get_height (data->display));
+      data->full_refresh = false;
+      return;
     }
 }
 

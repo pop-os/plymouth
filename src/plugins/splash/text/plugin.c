@@ -692,7 +692,6 @@ display_password (ply_boot_splash_plugin_t *plugin,
 
   show_password_prompt (plugin, prompt, bullets);
 
-  redraw_views (plugin);
   unpause_views (plugin);
 }
 
@@ -712,7 +711,6 @@ display_question (ply_boot_splash_plugin_t *plugin,
 
   show_prompt (plugin, prompt, entry_text);
 
-  redraw_views (plugin);
   unpause_views (plugin);
 }
 

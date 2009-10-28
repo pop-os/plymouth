@@ -140,3 +140,12 @@ fun progress_callback (duration, progress)
   }
 
 PlymouthSetBootProgressFunction(progress_callback);
+
+#----------------------------------------- Quit --------------------------------
+
+fun quit_callback ()
+{
+ logo.sprite.SetOpacity (1);
+}
+
+PlymouthSetQuitFunction(quit_callback);

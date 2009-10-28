@@ -325,6 +325,9 @@ view_stop_animation (view_t *view)
   ply_boot_splash_plugin_t *plugin;
 
   plugin = view->plugin;
+  script_lib_plymouth_on_quit (view->script_state,
+                                  view->script_plymouth_lib);
+  script_lib_sprite_refresh (view->script_sprite_lib);
 
   if (plugin->loop != NULL)
     ply_event_loop_stop_watching_for_timeout (plugin->loop,

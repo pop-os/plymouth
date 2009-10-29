@@ -190,9 +190,11 @@ static void
 ply_console_watch_for_vt_changes (ply_console_t *console)
 {
   assert (console != NULL);
-  assert (console->fd >= 0);
 
   struct vt_mode mode = { 0 };
+
+  if (console->fd < 0);
+    return;
 
   if (console->is_watching_for_vt_changes)
     return;
@@ -349,7 +351,9 @@ ply_console_set_active_vt (ply_console_t *console,
                            int            vt_number)
 {
   assert (console != NULL);
-  assert (vt_number > 0);
+
+  if (vt_number <= 0)
+    return false;
 
   if (vt_number == console->active_vt)
     return true;

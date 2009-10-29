@@ -1293,9 +1293,6 @@ check_for_consoles (state_t    *state,
       !ply_console_open (state->console))
     {
       ply_trace ("could not open /dev/tty0");
-      ply_console_free (state->console);
-      state->console = NULL;
-      return;
     }
 
   remaining_command_line = state->kernel_command_line;

@@ -133,7 +133,8 @@ static void on_error_message (ply_buffer_t *debug_buffer,
 static ply_buffer_t *debug_buffer;
 static char *debug_buffer_path = NULL;
 static void check_for_consoles (state_t    *state,
-                                const char *default_tty);
+                                const char *default_tty,
+                                bool        should_add_displays);
 
 static void
 on_session_output (state_t    *state,
@@ -568,7 +569,7 @@ on_show_splash (state_t *state)
       return;
     }
 
-  check_for_consoles (state, state->default_tty);
+  check_for_consoles (state, state->default_tty, true);
 
   has_display = ply_list_get_length (state->pixel_displays) > 0 ||
                 ply_list_get_length (state->text_displays) > 0;
@@ -1279,7 +1280,8 @@ check_logging (state_t *state)
 
 static void
 check_for_consoles (state_t    *state,
-                    const char *default_tty)
+                    const char *default_tty,
+                    bool        should_add_displays)
 {
   char *console_key;
   char *remaining_command_line;
@@ -1320,10 +1322,11 @@ check_for_consoles (state_t    *state,
           state->kernel_console_tty = strdup (default_tty);
         }
 
-      add_display_and_keyboard_for_terminal (state, state->kernel_console_tty);
+      if (should_add_displays)
+        add_display_and_keyboard_for_terminal (state, state->kernel_console_tty);
     }
 
-    if (ply_list_get_length (state->text_displays) == 0)
+    if (should_add_displays && ply_list_get_length (state->text_displays) == 0)
       add_default_displays_and_keyboard (state);
 }
 
@@ -1379,7 +1382,7 @@ initialize_environment (state_t *state)
   else
     state->default_tty = "tty1";
 
-  check_for_consoles (state, state->default_tty);
+  check_for_consoles (state, state->default_tty, false);
 
   if (state->kernel_console_tty != NULL)
     redirect_standard_io_to_device (state->kernel_console_tty);
@@ -1417,14 +1420,26 @@ dump_debug_buffer_to_file (void)
   close (fd);
 }
 
+ #include <termios.h>
+ #include <unistd.h>
 static void
 on_crash (int signum)
 {
+    struct termios term_attributes;
     int fd;
 
     fd = open ("/dev/tty1", O_RDWR | O_NOCTTY);
+    if (fd < 0) fd = open ("/dev/hvc0", O_RDWR | O_NOCTTY);
 
     ioctl (fd, KDSETMODE, KD_TEXT);
+
+    tcgetattr (fd, &term_attributes);
+
+    term_attributes.c_iflag |= IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON;
+    term_attributes.c_oflag |= OPOST;
+    term_attributes.c_lflag |= ECHO | ECHONL | ICANON | ISIG | IEXTEN;
+
+    tcsetattr (fd, TCSAFLUSH, &term_attributes);
 
     close (fd);
 
@@ -1500,6 +1515,7 @@ main (int    argc,
       return 0;
     }
 
+  debug = 1;
   if (debug && !ply_is_tracing ())
     ply_toggle_tracing ();
 

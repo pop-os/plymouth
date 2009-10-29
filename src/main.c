@@ -397,7 +397,7 @@ get_log_spool_file_for_mode (ply_mode_t mode)
       filename = PLYMOUTH_SPOOL_DIRECTORY "/boot.log";
       break;
     case PLY_MODE_SHUTDOWN:
-      filename = _PATH_DEVNULL;
+      filename = NULL;
       break;
     default:
       fprintf (stderr, "Unhandled case in %s line %d\n", __FILE__, __LINE__);

@@ -4,15 +4,14 @@ set -e
 
 [ -z "$LIBEXECDIR" ] && LIBEXECDIR="/usr/libexec"
 [ -z "$DATADIR" ] && DATADIR="/usr/share"
-if [ -z "$LIB" ]; then
-  if $(echo nash-showelfinterp /proc/$$/exe | /sbin/nash --forcequiet | grep -q lib64); then
-    LIB="lib64"
-  else
-    LIB="lib"
-  fi
+if [ -z "$PLYMOUTH_PLUGIN_PATH" ]; then
+    if [ -z "$LIB" ]; then
+        PLYMOUTH_PLUGIN_PATH="$(plymouth --get-splash-plugin-path)"
+    else
+        [ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
+        PLYMOUTH_PLUGIN_PATH=${LIBDIR}/plymouth/
+    fi
 fi
-[ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
-[ -z "$BINDIR" ] && BINDIR="/usr/bin"
 
 function usage ()
 {
@@ -135,8 +134,8 @@ fi
 
 MODULE_NAME=$(grep "ModuleName *= *" ${DATADIR}/plymouth/themes/${THEME_NAME}/${THEME_NAME}.plymouth | sed 's/ModuleName *= *//')
 
-if [ ! -e ${LIBDIR}/plymouth/${MODULE_NAME}.so ]; then
-        echo "${LIBDIR}/plymouth/${MODULE_NAME}.so does not exist" > /dev/stderr
+if [ ! -e ${PLYMOUTH_PLUGIN_PATH}${MODULE_NAME}.so ]; then
+        echo "${PLYMOUTH_PLUGIN_PATH}${MODULE_NAME}.so does not exist" > /dev/stderr
         exit 1
 fi
 

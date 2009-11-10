@@ -218,6 +218,8 @@ ply_terminal_write (ply_terminal_t *terminal,
   assert (terminal != NULL);
   assert (format != NULL);
 
+  ply_terminal_set_unbuffered_input (terminal);
+
   string = NULL;
   va_start (args, format);
   vasprintf (&string, format, args);

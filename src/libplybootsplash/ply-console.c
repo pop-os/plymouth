@@ -193,7 +193,7 @@ ply_console_watch_for_vt_changes (ply_console_t *console)
 
   struct vt_mode mode = { 0 };
 
-  if (console->fd < 0);
+  if (console->fd < 0)
     return;
 
   if (console->is_watching_for_vt_changes)

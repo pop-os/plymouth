@@ -203,7 +203,7 @@ ply_console_watch_for_vt_changes (ply_console_t *console)
   mode.relsig = SIGUSR1;
   mode.acqsig = SIGUSR2;
 
-  if (!ioctl (console->fd, VT_SETMODE, &mode) < 0)
+  if (ioctl (console->fd, VT_SETMODE, &mode) < 0)
     return;
 
   ply_event_loop_watch_signal (console->loop,

@@ -59,6 +59,8 @@ struct _ply_renderer_buffer
   unsigned long width;
   unsigned long height;
   unsigned long row_stride;
+
+  uint32_t added_fb : 1;
 };
 
 struct _ply_renderer_driver
@@ -262,6 +264,7 @@ create_buffer (ply_renderer_driver_t *driver,
   buffer = ply_renderer_buffer_new (driver,
                                     buffer_object, buffer_id,
                                     width, height, *row_stride);
+  buffer->added_fb = true;
   ply_hashtable_insert (driver->buffers,
                         (void *) (uintptr_t) buffer_id,
                         buffer);
@@ -329,7 +332,8 @@ destroy_buffer (ply_renderer_driver_t *driver,
 
   assert (buffer != NULL);
 
-  drmModeRmFB (driver->device_fd, buffer->id);
+  if (buffer->added_fb)
+    drmModeRmFB (driver->device_fd, buffer->id);
 
   drm_intel_bo_unreference (buffer->object);
 

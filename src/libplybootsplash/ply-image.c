@@ -270,7 +270,7 @@ ply_image_get_height (ply_image_t *image)
   return image->height;
 }
 
-static uint32_t
+static inline uint32_t
 ply_image_interpolate (ply_image_t *image,
                        int          width,
                        int          height,
@@ -298,6 +298,7 @@ ply_image_interpolate (ply_image_t *image,
       else
         pixels[offset_y][offset_x] = image->layout.as_pixels[ix + iy * width];
     }
+  if (!pixels[0][0] && !pixels[0][1] && !pixels[1][0] && !pixels[1][1]) return 0;
   
   ix = x;
   iy = y;
@@ -305,18 +306,13 @@ ply_image_interpolate (ply_image_t *image,
   y -= iy;
   for (i = 0; i < 4; i++)
     {
-      int value = 0;
-      for (offset_y = 0; offset_y < 2; offset_y++)
-      for (offset_x = 0; offset_x < 2; offset_x++)
-        {
-          int subval = (pixels[offset_y][offset_x] >> (i * 8)) & 0xFF;
-          if (offset_x) subval *= x;
-          else          subval *= 1-x;
-          if (offset_y) subval *= y;
-          else          subval *= 1-y;
-          value += subval;
-        }
-      reply |= (value & 0xFF) << (i * 8);
+      uint32_t value = 0;
+      uint32_t mask = 0xFF << (i * 8);
+      value += ((pixels[0][0]) & mask) * (1-x) * (1-y);
+      value += ((pixels[0][1]) & mask) * x * (1-y);
+      value += ((pixels[1][0]) & mask) * (1-x) * y;
+      value += ((pixels[1][1]) & mask) * x * y;
+      reply |= value & mask;
     }
   return reply;
 }
@@ -379,22 +375,29 @@ ply_image_rotate (ply_image_t *image,
   new_image->width = width;
   new_image->height = height;
 
+  double d = sqrt ((center_x * center_x +
+                    center_y * center_y));
+  double theta = atan2 (-center_y, -center_x) - theta_offset;
+  double start_x = center_x + d * cos (theta);
+  double start_y = center_y + d * sin (theta);
+  double step_x = cos (-theta_offset);
+  double step_y = sin (-theta_offset);
+  
   for (y = 0; y < height; y++)
     {
+      old_y = start_y;
+      old_x = start_x;
+      start_y += step_x;
+      start_x -= step_y;
       for (x = 0; x < width; x++)
         {
-          double d;
-          double theta;
-
-          d = sqrt ((x - center_x) * (x - center_x) +
-                    (y - center_y) * (y - center_y));
-          theta = atan2 (y - center_y, x - center_x);
-
-          theta -= theta_offset;
-          old_x = center_x + d * cos (theta);
-          old_y = center_y + d * sin (theta);
-          new_image->layout.as_pixels[x + y * width] =
+          if (old_x < 0 || old_x > width || old_y < 0 || old_y > height)
+            new_image->layout.as_pixels[x + y * width] = 0;
+          else
+            new_image->layout.as_pixels[x + y * width] =
                     ply_image_interpolate (image, width, height, old_x, old_y);
+          old_x += step_x;
+          old_y += step_y;
         }
     }
   return new_image;

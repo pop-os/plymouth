@@ -173,6 +173,7 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
                                  - (new_area->y + new_area->height);
               old_area->y = new_area->y + new_area->height;
             }
+          break;
 
           /*   NNN  We only care about the top row of Ns,
            *  ONNNO everything below that is already handled by

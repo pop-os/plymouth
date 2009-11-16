@@ -367,12 +367,17 @@ ply_animation_draw_area (ply_animation_t    *animation,
 {
   ply_image_t * const * frames;
   uint32_t *frame_data;
-
+  int number_of_frames;
+  int frame_index;
+  
   if (animation->is_stopped)
     return;
 
+  number_of_frames = ply_array_get_size (animation->frames);
+  frame_index = MIN(animation->frame_number, number_of_frames - 1);
+
   frames = (ply_image_t * const *) ply_array_get_elements (animation->frames);
-  frame_data = ply_image_get_data (frames[animation->frame_number]);
+  frame_data = ply_image_get_data (frames[frame_index]);
 
   ply_pixel_buffer_fill_with_argb32_data (buffer,
                                           &animation->frame_area, 0, 0,

@@ -81,6 +81,7 @@ typedef struct
   ply_animation_t *end_animation;
   ply_progress_animation_t *progress_animation;
   ply_label_t *label;
+  ply_label_t *message_label;
   ply_rectangle_t box_area, lock_area;
 } view_t;
 
@@ -98,6 +99,7 @@ struct _ply_boot_splash_plugin
   double animation_horizontal_alignment;
   double animation_vertical_alignment;
   char *animation_dir;
+  char *message;
 
   ply_progress_animation_transition_t transition;
   double transition_duration;
@@ -117,6 +119,9 @@ struct _ply_boot_splash_plugin
 static void stop_animation (ply_boot_splash_plugin_t *plugin);
 
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
+static void display_message (ply_boot_splash_plugin_t *plugin,
+                             const char               *message);
+
 
 static view_t *
 view_new (ply_boot_splash_plugin_t *plugin,
@@ -138,6 +143,7 @@ view_new (ply_boot_splash_plugin_t *plugin,
                                          plugin->transition_duration);
 
   view->label = ply_label_new ();
+  view->message_label = ply_label_new ();
 
   return view;
 }
@@ -150,6 +156,7 @@ view_free (view_t *view)
   ply_animation_free (view->end_animation);
   ply_progress_animation_free (view->progress_animation);
   ply_label_free (view->label);
+  ply_label_free (view->message_label);
 
   free (view);
 }
@@ -422,6 +429,7 @@ create_plugin (ply_key_file_t *key_file)
   free (image_path);
 
   plugin->animation_dir = image_dir;
+  plugin->message = NULL;
 
   alignment = ply_key_file_get_value (key_file, "two-step", "HorizontalAlignment");
   if (alignment != NULL)
@@ -528,6 +536,11 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
     ply_image_free (plugin->corner_image);
 
   free_views (plugin);
+  if (plugin->message != NULL)
+    {
+      free (plugin->message);
+      plugin->message = NULL;
+    }
 
   free (plugin);
 }
@@ -720,6 +733,10 @@ on_draw (view_t                   *view,
 
         }
     }
+  ply_label_draw_area (view->message_label,
+                       pixel_buffer,
+                       x, y, width, height);
+
 }
 
 static void
@@ -1005,6 +1022,32 @@ hide_prompt (ply_boot_splash_plugin_t *plugin)
     }
 }
 
+
+static void
+show_message (ply_boot_splash_plugin_t *plugin,
+              const char               *message)
+{
+  ply_list_node_t *node;
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+      
+      ply_label_set_text (view->message_label, message);
+      
+      ply_label_show (view->message_label, view->display, 10, 10);
+      
+      ply_pixel_display_draw_area (view->display, 10, 10,
+                                   ply_label_get_width (view->message_label),
+                                   ply_label_get_height(view->message_label));
+      node = next_node;
+    }
+}
+
 static void
 display_normal (ply_boot_splash_plugin_t *plugin)
 {
@@ -1016,6 +1059,9 @@ display_normal (ply_boot_splash_plugin_t *plugin)
       start_progress_animation (plugin);
 
       redraw_views (plugin);
+      if (plugin->message)
+        display_message (plugin, plugin->message);
+
     }
   unpause_views (plugin);
 }
@@ -1050,6 +1096,16 @@ display_question (ply_boot_splash_plugin_t *plugin,
   unpause_views (plugin);
 }
 
+static void
+display_message (ply_boot_splash_plugin_t *plugin,
+                 const char               *message)
+{
+  if (plugin->message != NULL)
+    free (plugin->message);
+  plugin->message = strdup (message);
+  show_message (plugin, plugin->message);
+}
+
 ply_boot_splash_plugin_interface_t *
 ply_boot_splash_plugin_get_interface (void)
 {
@@ -1068,6 +1124,7 @@ ply_boot_splash_plugin_get_interface (void)
       .display_normal = display_normal,
       .display_password = display_password,
       .display_question = display_question,
+      .display_message = display_message,
     };
 
   return &plugin_interface;

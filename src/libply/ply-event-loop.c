@@ -914,9 +914,11 @@ ply_event_loop_stop_watching_for_timeout (ply_event_loop_t *loop,
                                           void             *user_data)
 {
   ply_list_node_t *node;
+  bool timeout_removed;
 
   loop->wakeup_time = PLY_EVENT_LOOP_NO_TIMED_WAKEUP;
 
+  timeout_removed = false;
   node = ply_list_get_first_node (loop->timeout_watches);
   while (node != NULL)
     {
@@ -927,19 +929,29 @@ ply_event_loop_stop_watching_for_timeout (ply_event_loop_t *loop,
       next_node = ply_list_get_next_node (loop->timeout_watches, node);
 
       if (timeout_watch->handler == timeout_handler &&
-          timeout_watch->user_data == user_data) {
-              ply_list_remove_node (loop->timeout_watches, node);
-              free (timeout_watch);
-      }
-      else {
-        if (fabs (loop->wakeup_time - PLY_EVENT_LOOP_NO_TIMED_WAKEUP) <= 0)
-          loop->wakeup_time = timeout_watch->timeout;
-        else
-          loop->wakeup_time = MIN (loop->wakeup_time, timeout_watch->timeout);
-      }
+          timeout_watch->user_data == user_data)
+        {
+          ply_list_remove_node (loop->timeout_watches, node);
+          free (timeout_watch);
+
+          if (timeout_removed)
+            ply_trace ("multiple matching timeouts found for removal");
+
+          timeout_removed = true;
+        }
+      else
+        {
+          if (fabs (loop->wakeup_time - PLY_EVENT_LOOP_NO_TIMED_WAKEUP) <= 0)
+            loop->wakeup_time = timeout_watch->timeout;
+          else
+            loop->wakeup_time = MIN (loop->wakeup_time, timeout_watch->timeout);
+        }
 
       node = next_node;
     }
+
+  if (!timeout_removed)
+    ply_trace ("no matching timeout found for removal");
 }
 
 static ply_event_loop_fd_status_t

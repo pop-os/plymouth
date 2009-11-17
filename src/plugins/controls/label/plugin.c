@@ -211,12 +211,21 @@ draw_control (ply_label_plugin_control_t *label,
 
 void
 set_text_for_control (ply_label_plugin_control_t *label,
-                      const char  *text)
+                      const char                 *text)
 {
+  ply_rectangle_t dirty_area;
+
   if (label->text != text)
     {
+      dirty_area = label->area;
       free (label->text);
       label->text = strdup (text);
+      size_control (label);
+      if (!label->is_hidden)
+        ply_pixel_display_draw_area (label->display,
+                                     dirty_area.x, dirty_area.y,
+                                     dirty_area.width, dirty_area.height);
+
     }
 }
 
@@ -226,6 +235,9 @@ show_control (ply_label_plugin_control_t *label,
               long                        x,
               long                        y)
 {
+  ply_rectangle_t dirty_area;
+  
+  dirty_area = label->area;
   label->display = display;
   label->area.x = x;
   label->area.y = y;
@@ -233,6 +245,13 @@ show_control (ply_label_plugin_control_t *label,
   label->is_hidden = false;
 
   size_control (label);
+
+  if (!label->is_hidden)
+    ply_pixel_display_draw_area (label->display,
+                                 dirty_area.x, dirty_area.y,
+                                 dirty_area.width, dirty_area.height);
+
+  label->is_hidden = false;
 
   return true;
 }

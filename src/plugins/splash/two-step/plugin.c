@@ -99,7 +99,6 @@ struct _ply_boot_splash_plugin
   double animation_horizontal_alignment;
   double animation_vertical_alignment;
   char *animation_dir;
-  char *message;
 
   ply_progress_animation_transition_t transition;
   double transition_duration;
@@ -144,6 +143,8 @@ view_new (ply_boot_splash_plugin_t *plugin,
 
   view->label = ply_label_new ();
   view->message_label = ply_label_new ();
+  ply_label_set_text (view->message_label, "");
+  ply_label_show (view->message_label, view->display, 10, 10);
 
   return view;
 }
@@ -429,7 +430,6 @@ create_plugin (ply_key_file_t *key_file)
   free (image_path);
 
   plugin->animation_dir = image_dir;
-  plugin->message = NULL;
 
   alignment = ply_key_file_get_value (key_file, "two-step", "HorizontalAlignment");
   if (alignment != NULL)
@@ -536,12 +536,6 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
     ply_image_free (plugin->corner_image);
 
   free_views (plugin);
-  if (plugin->message != NULL)
-    {
-      free (plugin->message);
-      plugin->message = NULL;
-    }
-
   free (plugin);
 }
 
@@ -1039,8 +1033,6 @@ show_message (ply_boot_splash_plugin_t *plugin,
       
       ply_label_set_text (view->message_label, message);
       
-      ply_label_show (view->message_label, view->display, 10, 10);
-      
       ply_pixel_display_draw_area (view->display, 10, 10,
                                    ply_label_get_width (view->message_label),
                                    ply_label_get_height(view->message_label));
@@ -1059,9 +1051,6 @@ display_normal (ply_boot_splash_plugin_t *plugin)
       start_progress_animation (plugin);
 
       redraw_views (plugin);
-      if (plugin->message)
-        display_message (plugin, plugin->message);
-
     }
   unpause_views (plugin);
 }
@@ -1100,10 +1089,7 @@ static void
 display_message (ply_boot_splash_plugin_t *plugin,
                  const char               *message)
 {
-  if (plugin->message != NULL)
-    free (plugin->message);
-  plugin->message = strdup (message);
-  show_message (plugin, plugin->message);
+  show_message (plugin, message);
 }
 
 ply_boot_splash_plugin_interface_t *

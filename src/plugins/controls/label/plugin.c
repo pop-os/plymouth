@@ -221,7 +221,7 @@ set_text_for_control (ply_label_plugin_control_t *label,
       free (label->text);
       label->text = strdup (text);
       size_control (label);
-      if (!label->is_hidden)
+      if (!label->is_hidden && label->display != NULL)
         ply_pixel_display_draw_area (label->display,
                                      dirty_area.x, dirty_area.y,
                                      dirty_area.width, dirty_area.height);
@@ -246,7 +246,7 @@ show_control (ply_label_plugin_control_t *label,
 
   size_control (label);
 
-  if (!label->is_hidden)
+  if (!label->is_hidden && label->display != NULL)
     ply_pixel_display_draw_area (label->display,
                                  dirty_area.x, dirty_area.y,
                                  dirty_area.width, dirty_area.height);
@@ -260,9 +260,10 @@ void
 hide_control (ply_label_plugin_control_t *label)
 {
   label->is_hidden = true;
-  ply_pixel_display_draw_area (label->display,
-                               label->area.x, label->area.y,
-                               label->area.width, label->area.height);
+  if (label->display != NULL)
+    ply_pixel_display_draw_area (label->display,
+                                 label->area.x, label->area.y,
+                                 label->area.width, label->area.height);
 
   label->display = NULL;
   label->loop = NULL;

@@ -202,8 +202,6 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   if (plugin == NULL)
     return;
 
-  free_views (plugin);
-
   if (plugin->loop != NULL)
     {
       stop_animation (plugin);
@@ -214,6 +212,7 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
       detach_from_event_loop (plugin);
     }
 
+  free_views (plugin);
   free (plugin->script_filename);
   free (plugin->image_dir);
   free (plugin);

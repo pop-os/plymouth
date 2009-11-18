@@ -1196,11 +1196,14 @@ ply_event_loop_handle_timeouts (ply_event_loop_t *loop)
       if (watch->timeout <= now)
         {
           assert (watch->handler != NULL);
+
+          ply_list_remove_node (loop->timeout_watches, node);
+
           watch->handler (watch->user_data, loop);
           free (watch);
-          ply_list_remove_node (loop->timeout_watches, node);
         }
-      else {
+      else
+        {
           if (fabs (loop->wakeup_time - PLY_EVENT_LOOP_NO_TIMED_WAKEUP) <= 0)
             loop->wakeup_time = watch->timeout;
           else

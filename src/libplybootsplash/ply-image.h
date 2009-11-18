@@ -33,7 +33,6 @@ ply_image_t *ply_image_new (const char *filename);
 void ply_image_free (ply_image_t *image);
 bool ply_image_load (ply_image_t *image);
 uint32_t *ply_image_get_data (ply_image_t *image);
-ssize_t ply_image_get_size (ply_image_t *image);
 long ply_image_get_width (ply_image_t *image);
 long ply_image_get_height (ply_image_t *image);
 ply_image_t *ply_image_resize (ply_image_t *image, long width, long height);

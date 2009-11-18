@@ -61,7 +61,6 @@ struct _ply_image
   FILE  *fp;
 
   ply_image_layout_t layout;
-  size_t size;
 
   long width;
   long height;
@@ -105,7 +104,6 @@ ply_image_new (const char *filename)
   image->filename = strdup (filename);
   image->fp = NULL;
   image->layout.address = NULL;
-  image->size = -1;
   image->width = -1;
   image->height = -1;
 
@@ -244,14 +242,6 @@ ply_image_get_data (ply_image_t *image)
   assert (image != NULL);
 
   return image->layout.as_pixels;
-}
-
-ssize_t
-ply_image_get_size (ply_image_t *image)
-{
-  assert (image != NULL);
-
-  return image->size;
 }
 
 long

@@ -1201,6 +1201,10 @@ ply_event_loop_handle_timeouts (ply_event_loop_t *loop)
 
           watch->handler (watch->user_data, loop);
           free (watch);
+
+          /* start over in case the handler invalidated the list
+           */
+          next_node = ply_list_get_first_node (loop->timeout_watches);
         }
       else
         {

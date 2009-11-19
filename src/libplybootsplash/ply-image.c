@@ -27,6 +27,7 @@
  */
 #include "config.h"
 #include "ply-image.h"
+#include "ply-pixel-buffer.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -51,11 +52,7 @@
 struct _ply_image
 {
   char  *filename;
-
-  uint32_t *bytes;
-
-  long width;
-  long height;
+  ply_pixel_buffer_t *buffer;
 };
 
 ply_image_t *
@@ -68,9 +65,7 @@ ply_image_new (const char *filename)
   image = calloc (1, sizeof (ply_image_t));
 
   image->filename = strdup (filename);
-  image->bytes = NULL;
-  image->width = -1;
-  image->height = -1;
+  image->buffer = NULL;
 
   return image;
 }
@@ -82,13 +77,8 @@ ply_image_free (ply_image_t *image)
     return;
 
   assert (image->filename != NULL);
-
-  if (image->bytes != NULL)
-    {
-      free (image->bytes);
-      image->bytes = NULL;
-    }
-
+  
+  ply_pixel_buffer_free (image->buffer);
   free (image->filename);
   free (image);
 }
@@ -128,6 +118,7 @@ ply_image_load (ply_image_t *image)
   png_uint_32 width, height, bytes_per_row, row;
   int bits_per_pixel, color_type, interlace_method;
   png_byte **rows;
+  uint32_t *bytes;
   FILE *fp;
   
   assert (image != NULL);
@@ -185,10 +176,12 @@ ply_image_load (ply_image_t *image)
   png_read_update_info (png, info);
 
   rows = malloc (height * sizeof (png_byte *));
-  image->bytes = malloc (height * width * sizeof(uint32_t));
+  image->buffer = ply_pixel_buffer_new (width, height);
+  
+  bytes = ply_pixel_buffer_get_argb32_data (image->buffer);
 
   for (row = 0; row < height; row++)
-    rows[row] = (png_byte*) &image->bytes[row * width];
+    rows[row] = (png_byte*) &bytes[row * width];
 
   png_read_image (png, rows);
 
@@ -196,9 +189,6 @@ ply_image_load (ply_image_t *image)
   png_read_end (png, info);
   fclose (fp);
   png_destroy_read_struct (&png, &info, NULL);
-
-  image->width = width;
-  image->height = height;
 
   return true;
 }
@@ -208,23 +198,29 @@ ply_image_get_data (ply_image_t *image)
 {
   assert (image != NULL);
 
-  return image->bytes;
+  return ply_pixel_buffer_get_argb32_data (image->buffer);
 }
 
 long
 ply_image_get_width (ply_image_t *image)
 {
+  ply_rectangle_t size;
+  
   assert (image != NULL);
+  ply_pixel_buffer_get_size (image->buffer, &size);
 
-  return image->width;
+  return size.width;
 }
 
 long
 ply_image_get_height (ply_image_t *image)
 {
+  ply_rectangle_t size;
+  
   assert (image != NULL);
+  ply_pixel_buffer_get_size (image->buffer, &size);
 
-  return image->height;
+  return size.height;
 }
 
 static inline uint32_t
@@ -243,6 +239,9 @@ ply_image_interpolate (ply_image_t *image,
   int offset_y;
   uint32_t pixels[2][2];
   uint32_t reply = 0;
+  uint32_t *bytes;
+  
+  bytes = ply_pixel_buffer_get_argb32_data (image->buffer);
   
   for (offset_y = 0; offset_y < 2; offset_y++)
   for (offset_x = 0; offset_x < 2; offset_x++)
@@ -253,7 +252,7 @@ ply_image_interpolate (ply_image_t *image,
       if (ix < 0 || ix >= width || iy < 0 || iy >= height)
         pixels[offset_y][offset_x] = 0x00000000;
       else
-        pixels[offset_y][offset_x] = image->bytes[ix + iy * width];
+        pixels[offset_y][offset_x] = bytes[ix + iy * width];
     }
   if (!pixels[0][0] && !pixels[0][1] && !pixels[1][0] && !pixels[1][1]) return 0;
   
@@ -284,13 +283,13 @@ ply_image_resize (ply_image_t *image,
   double old_x, old_y;
   int old_width, old_height;
   float scale_x, scale_y;
-
+  uint32_t *bytes;
+  
   new_image = ply_image_new (image->filename);
 
-  new_image->bytes = malloc (height * width * sizeof(uint32_t));
+  new_image->buffer = ply_pixel_buffer_new (width, height);
 
-  new_image->width = width;
-  new_image->height = height;
+  bytes = ply_pixel_buffer_get_argb32_data (new_image->buffer);
 
   old_width = ply_image_get_width (image);
   old_height = ply_image_get_height (image);
@@ -304,7 +303,7 @@ ply_image_resize (ply_image_t *image,
       for (x=0; x < width; x++)
         {
           old_x = x * scale_x;
-          new_image->bytes[x + y * width] =
+          bytes[x + y * width] =
                     ply_image_interpolate (image, old_width, old_height, old_x, old_y);
         }
     }
@@ -322,15 +321,16 @@ ply_image_rotate (ply_image_t *image,
   double old_x, old_y;
   int width;
   int height;
+  uint32_t *bytes;
 
   width = ply_image_get_width (image);
   height = ply_image_get_height (image);
 
   new_image = ply_image_new (image->filename);
 
-  new_image->bytes = malloc (height * width * sizeof(uint32_t));
-  new_image->width = width;
-  new_image->height = height;
+  new_image->buffer = ply_pixel_buffer_new (width, height);
+
+  bytes = ply_pixel_buffer_get_argb32_data (new_image->buffer);
 
   double d = sqrt ((center_x * center_x +
                     center_y * center_y));
@@ -349,9 +349,9 @@ ply_image_rotate (ply_image_t *image,
       for (x = 0; x < width; x++)
         {
           if (old_x < 0 || old_x > width || old_y < 0 || old_y > height)
-            new_image->bytes[x + y * width] = 0;
+            bytes[x + y * width] = 0;
           else
-            new_image->bytes[x + y * width] =
+            bytes[x + y * width] =
                     ply_image_interpolate (image, width, height, old_x, old_y);
           old_x += step_x;
           old_y += step_y;

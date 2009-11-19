@@ -48,19 +48,12 @@
 
 #include "ply-utils.h"
 
-typedef union
-{
- uint32_t *as_pixels;
- png_byte *as_png_bytes;
- char *address;
-} ply_image_layout_t;
-
 struct _ply_image
 {
   char  *filename;
   FILE  *fp;
 
-  ply_image_layout_t layout;
+  uint32_t *bytes;
 
   long width;
   long height;
@@ -103,7 +96,7 @@ ply_image_new (const char *filename)
 
   image->filename = strdup (filename);
   image->fp = NULL;
-  image->layout.address = NULL;
+  image->bytes = NULL;
   image->width = -1;
   image->height = -1;
 
@@ -118,10 +111,10 @@ ply_image_free (ply_image_t *image)
 
   assert (image->filename != NULL);
 
-  if (image->layout.address != NULL)
+  if (image->bytes != NULL)
     {
-      free (image->layout.address);
-      image->layout.address = NULL;
+      free (image->bytes);
+      image->bytes = NULL;
     }
 
   free (image->filename);
@@ -218,10 +211,10 @@ ply_image_load (ply_image_t *image)
   png_read_update_info (png, info);
 
   rows = malloc (height * sizeof (png_byte *));
-  image->layout.address = malloc (height * bytes_per_row);
+  image->bytes = malloc (height * width * sizeof(uint32_t));
 
   for (row = 0; row < height; row++)
-    rows[row] = &image->layout.as_png_bytes[row * bytes_per_row];
+    rows[row] = (png_byte*) &image->bytes[row * width];
 
   png_read_image (png, rows);
 
@@ -241,7 +234,7 @@ ply_image_get_data (ply_image_t *image)
 {
   assert (image != NULL);
 
-  return image->layout.as_pixels;
+  return image->bytes;
 }
 
 long
@@ -286,7 +279,7 @@ ply_image_interpolate (ply_image_t *image,
       if (ix < 0 || ix >= width || iy < 0 || iy >= height)
         pixels[offset_y][offset_x] = 0x00000000;
       else
-        pixels[offset_y][offset_x] = image->layout.as_pixels[ix + iy * width];
+        pixels[offset_y][offset_x] = image->bytes[ix + iy * width];
     }
   if (!pixels[0][0] && !pixels[0][1] && !pixels[1][0] && !pixels[1][1]) return 0;
   
@@ -320,7 +313,7 @@ ply_image_resize (ply_image_t *image,
 
   new_image = ply_image_new (image->filename);
 
-  new_image->layout.address = malloc (height * width * 4);
+  new_image->bytes = malloc (height * width * sizeof(uint32_t));
 
   new_image->width = width;
   new_image->height = height;
@@ -337,7 +330,7 @@ ply_image_resize (ply_image_t *image,
       for (x=0; x < width; x++)
         {
           old_x = x * scale_x;
-          new_image->layout.as_pixels[x + y * width] =
+          new_image->bytes[x + y * width] =
                     ply_image_interpolate (image, old_width, old_height, old_x, old_y);
         }
     }
@@ -361,7 +354,7 @@ ply_image_rotate (ply_image_t *image,
 
   new_image = ply_image_new (image->filename);
 
-  new_image->layout.address = malloc (height * width * 4);
+  new_image->bytes = malloc (height * width * sizeof(uint32_t));
   new_image->width = width;
   new_image->height = height;
 
@@ -382,9 +375,9 @@ ply_image_rotate (ply_image_t *image,
       for (x = 0; x < width; x++)
         {
           if (old_x < 0 || old_x > width || old_y < 0 || old_y > height)
-            new_image->layout.as_pixels[x + y * width] = 0;
+            new_image->bytes[x + y * width] = 0;
           else
-            new_image->layout.as_pixels[x + y * width] =
+            new_image->bytes[x + y * width] =
                     ply_image_interpolate (image, width, height, old_x, old_y);
           old_x += step_x;
           old_y += step_y;

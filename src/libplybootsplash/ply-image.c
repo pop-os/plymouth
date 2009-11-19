@@ -51,39 +51,12 @@
 struct _ply_image
 {
   char  *filename;
-  FILE  *fp;
 
   uint32_t *bytes;
 
   long width;
   long height;
 };
-
-static bool ply_image_open_file (ply_image_t *image);
-static void ply_image_close_file (ply_image_t *image);
-
-static bool
-ply_image_open_file (ply_image_t *image)
-{
-  assert (image != NULL);
-
-  image->fp = fopen (image->filename, "r");
-
-  if (image->fp == NULL)
-    return false;
-  return true;
-}
-
-static void
-ply_image_close_file (ply_image_t *image)
-{
-  assert (image != NULL);
-
-  if (image->fp == NULL)
-    return;
-  fclose (image->fp);
-  image->fp = NULL;
-}
 
 ply_image_t *
 ply_image_new (const char *filename)
@@ -95,7 +68,6 @@ ply_image_new (const char *filename)
   image = calloc (1, sizeof (ply_image_t));
 
   image->filename = strdup (filename);
-  image->fp = NULL;
   image->bytes = NULL;
   image->width = -1;
   image->height = -1;
@@ -156,23 +128,25 @@ ply_image_load (ply_image_t *image)
   png_uint_32 width, height, bytes_per_row, row;
   int bits_per_pixel, color_type, interlace_method;
   png_byte **rows;
-
+  FILE *fp;
+  
   assert (image != NULL);
-
-  if (!ply_image_open_file (image))
+  
+  fp = fopen (image->filename, "r");
+  if (fp == NULL)
     return false;
-
+  
   png = png_create_read_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
   assert (png != NULL);
 
   info = png_create_info_struct (png);
   assert (info != NULL);
 
-  png_init_io (png, image->fp);
+  png_init_io (png, fp);
 
   if (setjmp (png_jmpbuf (png)) != 0)
     {
-      ply_image_close_file (image);
+      fclose (fp);
       return false;
     }
 
@@ -220,7 +194,7 @@ ply_image_load (ply_image_t *image)
 
   free (rows);
   png_read_end (png, info);
-  ply_image_close_file (image);
+  fclose (fp);
   png_destroy_read_struct (&png, &info, NULL);
 
   image->width = width;

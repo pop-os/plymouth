@@ -77,10 +77,10 @@ static script_return_t sprite_set_image (script_state_t *state,
   script_lib_sprite_data_t *data = user_data;
   sprite_t *sprite = script_obj_as_native_of_class (state->this, data->class);
   script_obj_t *script_obj_image = script_obj_hash_get_element (state->local,
-                                                              "image");
+                                                                "image");
   script_obj_deref (&script_obj_image);
-  ply_image_t *image = script_obj_as_native_of_class_name (script_obj_image,
-                                                           "image");
+  ply_pixel_buffer_t *image = script_obj_as_native_of_class_name (script_obj_image,
+                                                                  "image");
 
   if (image && sprite)
     {
@@ -214,16 +214,18 @@ void script_lib_sprite_draw_area (script_lib_sprite_data_t *data,
     {
       sprite_t *sprite = ply_list_node_get_data (node);
       ply_rectangle_t sprite_area;
+      
       if (!sprite->image) continue;
       if (sprite->remove_me) continue;
       if (sprite->opacity < 0.011) continue;
+      
+      ply_pixel_buffer_get_size (sprite->image, &sprite_area);
+      
       sprite_area.x = sprite->x;
       sprite_area.y = sprite->y;
 
       if (sprite_area.x >= (x + width)) continue;
       if (sprite_area.y >= (y + height)) continue;
-      sprite_area.width =  ply_image_get_width (sprite->image);
-      sprite_area.height = ply_image_get_height (sprite->image);
 
       if ((sprite_area.x + (int) sprite_area.width) <= x) continue;
       if ((sprite_area.y + (int) sprite_area.height) <= y) continue;
@@ -231,7 +233,7 @@ void script_lib_sprite_draw_area (script_lib_sprite_data_t *data,
                                                                    &sprite_area,
                                                                    &clip_area,
                                                                    0, 0,
-                                                                   ply_image_get_data (sprite->image),
+                                                                   ply_pixel_buffer_get_argb32_data (sprite->image),
                                                                    sprite->opacity);
     }
 }
@@ -379,9 +381,9 @@ void script_lib_sprite_refresh (script_lib_sprite_data_t *data)
           || (fabs (sprite->old_opacity - sprite->opacity) > 0.01)      /* People can't see the difference between */
           || sprite->refresh_me)
         {
-          int width = ply_image_get_width (sprite->image);
-          int height = ply_image_get_height (sprite->image);
-          draw_area (data, sprite->x, sprite->y, width, height);
+          ply_rectangle_t size;
+          ply_pixel_buffer_get_size (sprite->image, &size);
+          draw_area (data, sprite->x, sprite->y, size.width, size.height);
           draw_area (data,
                      sprite->old_x,
                      sprite->old_y,
@@ -390,8 +392,8 @@ void script_lib_sprite_refresh (script_lib_sprite_data_t *data)
           sprite->old_x = sprite->x;
           sprite->old_y = sprite->y;
           sprite->old_z = sprite->z;
-          sprite->old_width = width;
-          sprite->old_height = height;
+          sprite->old_width = size.width;
+          sprite->old_height = size.height;
           sprite->old_opacity = sprite->opacity;
           sprite->refresh_me = false;
         }

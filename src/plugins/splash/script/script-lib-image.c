@@ -21,6 +21,7 @@
  */
 #define _GNU_SOURCE
 #include "ply-image.h"
+#include "ply-pixel-buffer.h"
 #include "ply-utils.h"
 #include "script.h"
 #include "script-parse.h"
@@ -39,9 +40,9 @@
 
 static void image_free (script_obj_t *obj)
 {
-  ply_image_t *image = obj->data.native.object_data;
+  ply_pixel_buffer_t *image = obj->data.native.object_data;
 
-  ply_image_free (image);
+  ply_pixel_buffer_free (image);
 }
 
 static script_return_t image_new (script_state_t *state,
@@ -68,12 +69,15 @@ static script_return_t image_new (script_state_t *state,
     }
   else
     asprintf (&path_filename, "%s/%s", data->image_dir, filename);
-  ply_image_t *image = ply_image_new (path_filename);
-  if (ply_image_load (image))
-    reply = script_obj_new_native (image, data->class);
+  ply_image_t *file_image = ply_image_new (path_filename);
+  if (ply_image_load (file_image))
+    {
+      ply_pixel_buffer_t *buffer = ply_image_convert_to_pixel_buffer (file_image);
+      reply = script_obj_new_native (buffer, data->class);
+    }
   else
     {
-      ply_image_free (image);
+      ply_image_free (file_image);
       reply = script_obj_new_null ();
     }
   free (filename);
@@ -85,35 +89,47 @@ static script_return_t image_get_width (script_state_t *state,
                                         void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
-  ply_image_t *image = script_obj_as_native_of_class (state->this, data->class);
-  if (image)
-    return script_return_obj (script_obj_new_number (ply_image_get_width (image)));
-  return script_return_obj_null ();
+  ply_rectangle_t size;
+  ply_pixel_buffer_t *image;
+  
+  image = script_obj_as_native_of_class (state->this, data->class);
+  if (!image) return script_return_obj_null ();
+  
+  ply_pixel_buffer_get_size (image, &size);
+  
+  return script_return_obj (script_obj_new_number (size.width));
 }
 
 static script_return_t image_get_height (script_state_t *state,
                                          void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
-  ply_image_t *image = script_obj_as_native_of_class (state->this, data->class);
-  if (image)
-    return script_return_obj (script_obj_new_number (ply_image_get_height (image)));
-  return script_return_obj_null ();
+  ply_rectangle_t size;
+  ply_pixel_buffer_t *image;
+  
+  image = script_obj_as_native_of_class (state->this, data->class);
+  if (!image) return script_return_obj_null ();
+  
+  ply_pixel_buffer_get_size (image, &size);
+  
+  return script_return_obj (script_obj_new_number (size.height));
 }
 
 static script_return_t image_rotate (script_state_t *state,
                                      void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
-  ply_image_t *image = script_obj_as_native_of_class (state->this, data->class);
+  ply_pixel_buffer_t *image = script_obj_as_native_of_class (state->this, data->class);
   float angle = script_obj_hash_get_number (state->local, "angle");
-
+  ply_rectangle_t size;
+  
   if (image)
     {
-      ply_image_t *new_image = ply_image_rotate (image,
-                                                 ply_image_get_width (image) / 2,
-                                                 ply_image_get_height (image) / 2,
-                                                 angle);
+      ply_pixel_buffer_get_size (image, &size);
+      ply_pixel_buffer_t *new_image = ply_pixel_buffer_rotate (image,
+                                                               size.width / 2,
+                                                               size.height / 2,
+                                                               angle);
       return script_return_obj (script_obj_new_native (new_image, data->class));
     }
   return script_return_obj_null ();
@@ -123,13 +139,13 @@ static script_return_t image_scale (script_state_t *state,
                                     void           *user_data)
 {
   script_lib_image_data_t *data = user_data;
-  ply_image_t *image = script_obj_as_native_of_class (state->this, data->class);
+  ply_pixel_buffer_t *image = script_obj_as_native_of_class (state->this, data->class);
   int width = script_obj_hash_get_number (state->local, "width");
   int height = script_obj_hash_get_number (state->local, "height");
 
   if (image)
     {
-      ply_image_t *new_image = ply_image_resize (image, width, height);
+      ply_pixel_buffer_t *new_image = ply_pixel_buffer_resize (image, width, height);
       return script_return_obj (script_obj_new_native (new_image, data->class));
     }
   return script_return_obj_null ();

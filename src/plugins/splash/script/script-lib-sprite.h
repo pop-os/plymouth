@@ -23,6 +23,7 @@
 #define SCRIPT_LIB_SPRITE_H
 
 #include "script.h"
+#include "ply-pixel-buffer.h"
 #include "ply-pixel-display.h"
 
 typedef struct
@@ -38,20 +39,20 @@ typedef struct
 
 typedef struct
 {
-  int           x;
-  int           y;
-  int           z;
-  double        opacity;
-  int           old_x;
-  int           old_y;
-  int           old_z;
-  int           old_width;
-  int           old_height;
-  double        old_opacity;
-  bool          refresh_me;
-  bool          remove_me;
-  ply_image_t  *image;
-  script_obj_t *image_obj;
+  int                 x;
+  int                 y;
+  int                 z;
+  double              opacity;
+  int                 old_x;
+  int                 old_y;
+  int                 old_z;
+  int                 old_width;
+  int                 old_height;
+  double              old_opacity;
+  bool                refresh_me;
+  bool                remove_me;
+  ply_pixel_buffer_t *image;
+  script_obj_t       *image_obj;
 } sprite_t;
 
 script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t      *state,

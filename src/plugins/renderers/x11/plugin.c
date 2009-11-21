@@ -378,10 +378,16 @@ ply_renderer_head_redraw (ply_renderer_backend_t *backend,
                           ply_renderer_head_t    *head)
 {
   ply_region_t *region;
+  ply_rectangle_t area;
+
+  area.x = 0;
+  area.y = 0;
+  area.width = head->area.width;
+  area.height = head->area.height;
 
   region = ply_pixel_buffer_get_updated_areas (head->pixel_buffer);
 
-  ply_region_add_rectangle (region, &head->area);
+  ply_region_add_rectangle (region, &area);
 
   flush_head (backend, head);
 }

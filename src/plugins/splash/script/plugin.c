@@ -46,7 +46,6 @@
 #include "ply-entry.h"
 #include "ply-event-loop.h"
 #include "ply-key-file.h"
-#include "ply-label.h"
 #include "ply-list.h"
 #include "ply-logger.h"
 #include "ply-image.h"

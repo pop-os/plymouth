@@ -21,6 +21,7 @@
  */
 #define _GNU_SOURCE
 #include "ply-image.h"
+#include "ply-label.h"
 #include "ply-pixel-buffer.h"
 #include "ply-utils.h"
 #include "script.h"
@@ -151,6 +152,39 @@ static script_return_t image_scale (script_state_t *state,
   return script_return_obj_null ();
 }
 
+static script_return_t image_text (script_state_t *state,
+                                   void           *user_data)
+{
+  script_lib_image_data_t *data = user_data;
+  ply_pixel_buffer_t *image;
+  ply_label_t *label;
+  int width, height;
+  
+  char *text = script_obj_hash_get_string (state->local, "text");
+  
+  /* These colour values are currently unused, but will be once label supports them */
+  float red = script_obj_hash_get_number (state->local, "red");
+  float green = script_obj_hash_get_number (state->local, "green");
+  float blue = script_obj_hash_get_number (state->local, "blue");
+  
+  if (!text) return script_return_obj_null ();
+  
+  label = ply_label_new ();
+  ply_label_set_text (label, text);
+  ply_label_show (label, NULL, 0, 0);
+  
+  width = ply_label_get_width (label);
+  height = ply_label_get_height (label);
+  
+  image = ply_pixel_buffer_new (width, height);
+  ply_label_draw_area (label, image, 0, 0, width, height);
+  
+  free (text);
+  ply_label_free (label);
+  
+  return script_return_obj (script_obj_new_native (image, data->class));
+}
+
 script_lib_image_data_t *script_lib_image_setup (script_state_t *state,
                                                  char         *image_dir)
 {
@@ -189,6 +223,15 @@ script_lib_image_data_t *script_lib_image_setup (script_state_t *state,
                               "GetHeight",
                               image_get_height,
                               data,
+                              NULL);
+  script_add_native_function (image_hash,
+                              "_Text",
+                              image_text,
+                              data,
+                              "text",
+                              "red",
+                              "green",
+                              "blue",
                               NULL);
 
   script_obj_unref (image_hash);

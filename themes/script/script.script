@@ -145,7 +145,20 @@ Plymouth.SetBootProgressFunction(progress_callback);
 
 fun quit_callback ()
 {
- logo.sprite.SetOpacity (1);
+  logo.sprite.SetOpacity (1);
 }
 
 Plymouth.SetQuitFunction(quit_callback);
+
+#----------------------------------------- Message --------------------------------
+
+message_sprite = Sprite();
+message_sprite.SetPosition(10, 10, 10000);
+
+fun message_callback (text)
+{
+  my_image = Image.Text(text, 1, 1, 1);
+  message_sprite.SetImage(my_image);
+}
+
+Plymouth.SetMessageFunction(message_callback);

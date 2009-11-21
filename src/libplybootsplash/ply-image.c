@@ -223,90 +223,18 @@ ply_image_get_height (ply_image_t *image)
   return size.height;
 }
 
-static inline uint32_t
-ply_image_interpolate (ply_image_t *image,
-                       int          width,
-                       int          height,
-                       double       x,
-                       double       y)
-{
-  int ix;
-  int iy;
-  
-  int i;
-  
-  int offset_x;
-  int offset_y;
-  uint32_t pixels[2][2];
-  uint32_t reply = 0;
-  uint32_t *bytes;
-  
-  bytes = ply_pixel_buffer_get_argb32_data (image->buffer);
-  
-  for (offset_y = 0; offset_y < 2; offset_y++)
-  for (offset_x = 0; offset_x < 2; offset_x++)
-    {
-      ix = x + offset_x;
-      iy = y + offset_y;
-      
-      if (ix < 0 || ix >= width || iy < 0 || iy >= height)
-        pixels[offset_y][offset_x] = 0x00000000;
-      else
-        pixels[offset_y][offset_x] = bytes[ix + iy * width];
-    }
-  if (!pixels[0][0] && !pixels[0][1] && !pixels[1][0] && !pixels[1][1]) return 0;
-  
-  ix = x;
-  iy = y;
-  x -= ix;
-  y -= iy;
-  for (i = 0; i < 4; i++)
-    {
-      uint32_t value = 0;
-      uint32_t mask = 0xFF << (i * 8);
-      value += ((pixels[0][0]) & mask) * (1-x) * (1-y);
-      value += ((pixels[0][1]) & mask) * x * (1-y);
-      value += ((pixels[1][0]) & mask) * (1-x) * y;
-      value += ((pixels[1][1]) & mask) * x * y;
-      reply |= value & mask;
-    }
-  return reply;
-}
-
 ply_image_t *
 ply_image_resize (ply_image_t *image,
                   long         width,
                   long         height)
 {
   ply_image_t *new_image;
-  int x, y;
-  double old_x, old_y;
-  int old_width, old_height;
-  float scale_x, scale_y;
-  uint32_t *bytes;
   
   new_image = ply_image_new (image->filename);
 
-  new_image->buffer = ply_pixel_buffer_new (width, height);
-
-  bytes = ply_pixel_buffer_get_argb32_data (new_image->buffer);
-
-  old_width = ply_image_get_width (image);
-  old_height = ply_image_get_height (image);
-
-  scale_x = ((double) old_width - 1) / MAX (width - 1, 1);
-  scale_y = ((double) old_height - 1) / MAX (height - 1, 1);
-
-  for (y = 0; y < height; y++)
-    {
-      old_y = y * scale_y;
-      for (x=0; x < width; x++)
-        {
-          old_x = x * scale_x;
-          bytes[x + y * width] =
-                    ply_image_interpolate (image, old_width, old_height, old_x, old_y);
-        }
-    }
+  new_image->buffer = ply_pixel_buffer_resize (image->buffer,
+                                               width,
+                                               height);
   return new_image;
 }
 
@@ -317,46 +245,13 @@ ply_image_rotate (ply_image_t *image,
                   double       theta_offset)
 {
   ply_image_t *new_image;
-  int x, y;
-  double old_x, old_y;
-  int width;
-  int height;
-  uint32_t *bytes;
-
-  width = ply_image_get_width (image);
-  height = ply_image_get_height (image);
-
-  new_image = ply_image_new (image->filename);
-
-  new_image->buffer = ply_pixel_buffer_new (width, height);
-
-  bytes = ply_pixel_buffer_get_argb32_data (new_image->buffer);
-
-  double d = sqrt ((center_x * center_x +
-                    center_y * center_y));
-  double theta = atan2 (-center_y, -center_x) - theta_offset;
-  double start_x = center_x + d * cos (theta);
-  double start_y = center_y + d * sin (theta);
-  double step_x = cos (-theta_offset);
-  double step_y = sin (-theta_offset);
   
-  for (y = 0; y < height; y++)
-    {
-      old_y = start_y;
-      old_x = start_x;
-      start_y += step_x;
-      start_x -= step_y;
-      for (x = 0; x < width; x++)
-        {
-          if (old_x < 0 || old_x > width || old_y < 0 || old_y > height)
-            bytes[x + y * width] = 0;
-          else
-            bytes[x + y * width] =
-                    ply_image_interpolate (image, width, height, old_x, old_y);
-          old_x += step_x;
-          old_y += step_y;
-        }
-    }
+  new_image = ply_image_new (image->filename);
+  
+  new_image->buffer = ply_pixel_buffer_rotate (image->buffer,
+                                               center_x,
+                                               center_y,
+                                               theta_offset);
   return new_image;
 }
 

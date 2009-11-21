@@ -97,6 +97,15 @@ void ply_pixel_buffer_pop_clip_area (ply_pixel_buffer_t *buffer);
 
 uint32_t *ply_pixel_buffer_get_argb32_data (ply_pixel_buffer_t *buffer);
 
+ply_pixel_buffer_t *ply_pixel_buffer_resize (ply_pixel_buffer_t *old_buffer,
+                                             long                width,
+                                             long                height);
+
+ply_pixel_buffer_t *ply_pixel_buffer_rotate (ply_pixel_buffer_t *old_buffer,
+                                             long                center_x,
+                                             long                center_y,
+                                             double              theta_offset);
+
 #endif
 
 #endif /* PLY_PIXEL_BUFFER_H */

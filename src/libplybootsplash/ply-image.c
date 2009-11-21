@@ -360,4 +360,16 @@ ply_image_rotate (ply_image_t *image,
   return new_image;
 }
 
+ply_pixel_buffer_t *
+ply_image_convert_to_pixel_buffer (ply_image_t *image)
+{
+  ply_pixel_buffer_t *buffer;
+  
+  buffer = image->buffer;
+  image->buffer = NULL;
+  ply_image_free (image);
+  
+  return buffer;
+}
+
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

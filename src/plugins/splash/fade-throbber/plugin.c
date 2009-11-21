@@ -547,17 +547,9 @@ on_timeout (ply_boot_splash_plugin_t *plugin)
 static void
 view_start_animation (view_t *view)
 {
-  ply_boot_splash_plugin_t *plugin;
   unsigned long screen_width, screen_height;
 
   assert (view != NULL);
-
-  plugin = view->plugin;
-
-  assert (plugin->loop != NULL);
-
-  if (plugin->is_animating)
-     return;
 
   screen_width = ply_pixel_display_get_width (view->display);
   screen_height = ply_pixel_display_get_height (view->display);
@@ -565,18 +557,6 @@ view_start_animation (view_t *view)
   ply_pixel_display_draw_area (view->display, 0, 0,
                                screen_width, screen_height);
 
-  plugin->start_time = ply_get_timestamp ();
-  animate_at_time (plugin, plugin->start_time);
-
-  if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
-    return;
-
-  ply_event_loop_watch_for_timeout (plugin->loop, 
-                                    1.0 / FRAMES_PER_SECOND,
-                                    (ply_event_loop_timeout_handler_t)
-                                    on_timeout, plugin);
-
-  plugin->is_animating = true;
 }
 
 static void
@@ -587,6 +567,9 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   if (plugin->is_animating)
      return;
 
+  plugin->start_time = ply_get_timestamp ();
+  animate_at_time (plugin, plugin->start_time);
+  
   node = ply_list_get_first_node (plugin->views);
   while (node != NULL)
     {
@@ -602,6 +585,14 @@ start_animation (ply_boot_splash_plugin_t *plugin)
     }
 
   plugin->is_animating = true;
+  
+  if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+    return;
+
+  ply_event_loop_watch_for_timeout (plugin->loop, 
+                                    1.0 / FRAMES_PER_SECOND,
+                                    (ply_event_loop_timeout_handler_t)
+                                    on_timeout, plugin);
 }
 
 static void

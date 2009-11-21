@@ -567,9 +567,6 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   if (plugin->is_animating)
      return;
 
-  plugin->start_time = ply_get_timestamp ();
-  animate_at_time (plugin, plugin->start_time);
-  
   node = ply_list_get_first_node (plugin->views);
   while (node != NULL)
     {
@@ -585,6 +582,9 @@ start_animation (ply_boot_splash_plugin_t *plugin)
     }
 
   plugin->is_animating = true;
+  
+  plugin->start_time = ply_get_timestamp ();
+  animate_at_time (plugin, plugin->start_time);
   
   if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
     return;

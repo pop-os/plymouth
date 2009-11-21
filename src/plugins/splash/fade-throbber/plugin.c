@@ -83,6 +83,7 @@ typedef struct
   ply_entry_t *entry;
   ply_label_t *label;
   ply_rectangle_t lock_area;
+  double logo_opacity;
 } view_t;
 
 struct _ply_boot_splash_plugin
@@ -94,7 +95,6 @@ struct _ply_boot_splash_plugin
   ply_image_t *lock_image;
   char *image_dir;
   ply_list_t *views;
-  double logo_opacity;
 
   ply_boot_splash_display_type_t state;
 
@@ -475,10 +475,10 @@ view_animate_at_time (view_t  *view,
   if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
     logo_opacity = 1.0;
 
-  if (fabs (logo_opacity - plugin->logo_opacity) <= DBL_MIN)
+  if (fabs (logo_opacity - view->logo_opacity) <= DBL_MIN)
     return;
 
-  plugin->logo_opacity = logo_opacity;
+  view->logo_opacity = logo_opacity;
 
   ply_pixel_display_draw_area (view->display,
                                logo_x, logo_y,
@@ -712,7 +712,7 @@ draw_normal_view (view_t             *view,
   ply_pixel_buffer_fill_with_argb32_data_at_opacity (pixel_buffer,
                                                      &logo_area, 0, 0,
                                                      logo_data,
-                                                     plugin->logo_opacity);
+                                                     view->logo_opacity);
 }
 
 static void

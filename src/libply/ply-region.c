@@ -98,7 +98,10 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
 {
 
   if (ply_rectangle_is_empty (new_area))
-    return;
+    {
+      free (new_area);
+      return;
+    }
 
   while (node != NULL)
     {

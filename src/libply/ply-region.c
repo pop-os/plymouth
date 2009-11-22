@@ -322,8 +322,9 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
            */
           case PLY_RECTANGLE_OVERLAP_RIGHT_EDGE:
             {
-              new_area->width = (new_area->x + new_area->width) - (old_area->x + old_area->width);
+              long temp = new_area->x;
               new_area->x = old_area->x + old_area->width;
+              new_area->width = (temp + new_area->width) - (old_area->x + old_area->width);
             }
           break;
 

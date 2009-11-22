@@ -14,6 +14,7 @@ include $(srcdir)/ply-hashtable-test.am
 include $(srcdir)/ply-event-loop-test.am
 include $(srcdir)/ply-command-parser-test.am
 include $(srcdir)/ply-progress-test.am
+include $(srcdir)/ply-region.am
 endif
 
 noinst_PROGRAMS = $(TESTS)

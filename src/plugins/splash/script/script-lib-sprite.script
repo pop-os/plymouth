@@ -70,7 +70,7 @@ fun SpriteWindowSetBackgroundTopColor (red, green, blue)
 }
 
 
-fun SpriteWindowGetSetBackgroundBottomColor (red, green, blue)
+fun SpriteWindowSetBackgroundBottomColor (red, green, blue)
 {
   return Window.SetBackgroundBottomColor (red, green, blue);
 }

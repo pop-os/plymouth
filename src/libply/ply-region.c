@@ -135,7 +135,7 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
               rectangle->width = old_area->x - new_area->x;
               rectangle->height = (new_area->y + new_area->height) - old_area->y;
 
-              merge_rectangle_with_sub_list (region, rectangle, node);
+              merge_rectangle_with_sub_list (region, rectangle, next_node);
 
               new_area->height = old_area->y - new_area->y;
             }
@@ -156,7 +156,7 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
               rectangle->width = (old_area->x + new_area->width) - (old_area->x + old_area->width);
               rectangle->height = (new_area->y + new_area->height) - old_area->y;
 
-              merge_rectangle_with_sub_list (region, rectangle, node);
+              merge_rectangle_with_sub_list (region, rectangle, next_node);
 
               new_area->height = old_area->y - new_area->y;
             }
@@ -200,7 +200,7 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
               rectangle->width = old_area->x - new_area->x;
               rectangle->height = (old_area->y + old_area->height) - new_area->y;
 
-              merge_rectangle_with_sub_list (region, rectangle, node);
+              merge_rectangle_with_sub_list (region, rectangle, next_node);
 
               new_area->height = (new_area->y + new_area->height) - (old_area->y + old_area->height);
               new_area->width = new_area->width;
@@ -224,7 +224,7 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
               rectangle->width = (new_area->x + new_area->width) - (old_area->x + old_area->width);
               rectangle->height = (old_area->y + old_area->height) - new_area->y;
 
-              merge_rectangle_with_sub_list (region, rectangle, node);
+              merge_rectangle_with_sub_list (region, rectangle, next_node);
 
               new_area->height = (new_area->y + new_area->height) - (old_area->y + old_area->height);
               new_area->y = old_area->y + old_area->height;
@@ -300,7 +300,7 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
               rectangle->y = old_area->y + old_area->height;
               rectangle->width = new_area->width;
               rectangle->height = (new_area->y + new_area->height) - (old_area->y + old_area->height);
-              merge_rectangle_with_sub_list (region, rectangle, node);
+              merge_rectangle_with_sub_list (region, rectangle, next_node);
 
               new_area->height = old_area->y - new_area->y;
             }
@@ -341,7 +341,7 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
               rectangle->x = old_area->x + old_area->width;
               rectangle->width = (new_area->x + new_area->width) - (old_area->x + old_area->width);
 
-              merge_rectangle_with_sub_list (region, rectangle, node);
+              merge_rectangle_with_sub_list (region, rectangle, next_node);
 
               new_area->width = old_area->x - new_area->x;
             }
@@ -358,7 +358,7 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
 
         }
 
-      node = next_node;
+      node = ply_list_get_next_node (region->rectangle_list, node);
     }
 
   ply_list_append_data (region->rectangle_list, new_area);

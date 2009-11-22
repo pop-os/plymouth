@@ -154,9 +154,9 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
               ply_rectangle_t *rectangle;
 
               rectangle = copy_rectangle (new_area);
-              rectangle->x = new_area->x + old_area->width;
+              rectangle->x = old_area->x + old_area->width;
               rectangle->y = old_area->y;
-              rectangle->width = (old_area->x + new_area->width) - (old_area->x + old_area->width);
+              rectangle->width = (new_area->x + new_area->width) - (old_area->x + old_area->width);
               rectangle->height = (new_area->y + new_area->height) - old_area->y;
 
               merge_rectangle_with_sub_list (region, rectangle, next_node);

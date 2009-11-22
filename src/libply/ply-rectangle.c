@@ -67,162 +67,116 @@ ply_rectangle_overlap_t
 ply_rectangle_find_overlap (ply_rectangle_t *rectangle1,
                             ply_rectangle_t *rectangle2)
 {
-  ply_rectangle_overlap_t overlap;
+  enum {H_COLLISION_NONE, H_COLLISION_LEFT, H_COLLISION_RIGHT, H_COLLISION_BOTH, H_COLLISION_CONTAINED}
+        h_collision = H_COLLISION_NONE;
+  enum {V_COLLISION_NONE, V_COLLISION_TOP, V_COLLISION_BOTTOM, V_COLLISION_BOTH, V_COLLISION_CONTAINED}
+        v_collision = V_COLLISION_NONE;
 
-  long rectangle1_top_edge;
-  long rectangle1_left_edge;
-  long rectangle1_right_edge;
-  long rectangle1_bottom_edge;
-  long rectangle2_top_edge;
-  long rectangle2_left_edge;
-  long rectangle2_right_edge;
-  long rectangle2_bottom_edge;
+  if (rectangle2->x >= rectangle1->x && (rectangle2->x + (int)rectangle2->width) <= (rectangle1->x + (int)rectangle1->width))
+    {
+      h_collision = H_COLLISION_CONTAINED;
+    }
+  else
+    {                                       /* Remember: x+width points to the first pixel outside the rectangle*/
+      if (rectangle2->x < rectangle1->x &&
+          (rectangle2->x + (int)rectangle2->width) > rectangle1->x)
+        h_collision = H_COLLISION_LEFT;         /* rectangle2 colllided with the left edge of rectangle1 */
 
-  rectangle1_top_edge = rectangle1->y;
-  rectangle1_left_edge = rectangle1->x;
-  rectangle1_right_edge = rectangle1->x + rectangle1->width - 1;
-  rectangle1_bottom_edge = rectangle1->y + rectangle1->height - 1;
+      if (rectangle2->x < (rectangle1->x + (int)rectangle1->width) &&
+          (rectangle2->x + (int)rectangle2->width) >= (rectangle1->x + (int)rectangle1->width))
+        {                                       /* rectangle2 colllided with the right edge of rectangle1 */
+          if (h_collision == H_COLLISION_LEFT)
+            h_collision = H_COLLISION_BOTH;
+          else
+            h_collision = H_COLLISION_RIGHT;
+        }
+    }
 
-  rectangle2_top_edge = rectangle2->y;
-  rectangle2_left_edge = rectangle2->x;
-  rectangle2_right_edge = rectangle2->x + rectangle2->width - 1;
-  rectangle2_bottom_edge = rectangle2->y + rectangle2->height - 1;
+  if (h_collision != H_COLLISION_NONE)
+    {
+      
+      if (rectangle2->y >= rectangle1->y && (rectangle2->y + (int)rectangle2->height) <= (rectangle1->y + (int)rectangle1->height))
+        {
+          v_collision = V_COLLISION_CONTAINED;
+        }
+      else
+        {
+          if (rectangle2->y < rectangle1->y &&
+              (rectangle2->y + (int)rectangle2->height) > rectangle1->y)
+            v_collision = V_COLLISION_TOP;
+          if (rectangle2->y < (rectangle1->y + (int)rectangle1->height) &&
+              (rectangle2->y + (int)rectangle2->height) >= (rectangle1->y + (int)rectangle1->height))
+            {
+              if (v_collision == V_COLLISION_TOP)
+                v_collision = V_COLLISION_BOTH;
+              else
+                v_collision = V_COLLISION_BOTTOM;
+            }
+        }
+    }
 
-  overlap = 0;
-
-  /* 1111111
-   * 1122211
-   * 1122211
-   * 1111111
-   */
-  if (ply_rectangle_contains_point (rectangle1,
-                                    rectangle2_left_edge,
-                                    rectangle2_top_edge) &&
-      ply_rectangle_contains_point (rectangle1,
-                                    rectangle2_right_edge,
-                                    rectangle2_bottom_edge))
-    return PLY_RECTANGLE_OVERLAP_NO_EDGES;
-
-  /* 2222222
-   * 2211122
-   * 2211122
-   * 2222222
-   */
-  if (ply_rectangle_contains_point (rectangle2,
-                                    rectangle1_left_edge,
-                                    rectangle1_top_edge) &&
-      ply_rectangle_contains_point (rectangle2,
-                                    rectangle1_right_edge,
-                                    rectangle1_bottom_edge))
-    return PLY_RECTANGLE_OVERLAP_ALL_EDGES;
-
-  /* 1111111
-   * 11112222
-   * 11112222
-   * 1111111
-   */
-  if (ply_rectangle_contains_point (rectangle2,
-                                    rectangle1_right_edge,
-                                    rectangle2_top_edge) &&
-      ply_rectangle_contains_point (rectangle2,
-                                    rectangle1_right_edge,
-                                    rectangle2_bottom_edge))
-    overlap |= PLY_RECTANGLE_OVERLAP_RIGHT_EDGE;
-
-  /*   222222
-   * 11112222
-   * 11112222
-   *   222222
-   */
-  if (ply_rectangle_contains_point (rectangle1,
-                                    rectangle2_left_edge,
-                                    rectangle1_top_edge) &&
-      ply_rectangle_contains_point (rectangle1,
-                                    rectangle2_left_edge,
-                                    rectangle1_bottom_edge))
-    overlap |= PLY_RECTANGLE_OVERLAP_RIGHT_EDGE;
-
-  /*  1111111
-   * 22221111
-   * 22221111
-   *  1111111
-   */
-  if (ply_rectangle_contains_point (rectangle2,
-                                    rectangle1_left_edge,
-                                    rectangle2_top_edge) &&
-      ply_rectangle_contains_point (rectangle2,
-                                    rectangle1_left_edge,
-                                    rectangle2_bottom_edge))
-    overlap |= PLY_RECTANGLE_OVERLAP_LEFT_EDGE;
-
-  /* 222222
-   * 22221111
-   * 22221111
-   * 222222
-   */
-  if (ply_rectangle_contains_point (rectangle1,
-                                    rectangle2_right_edge,
-                                    rectangle1_top_edge) &&
-      ply_rectangle_contains_point (rectangle1,
-                                    rectangle2_right_edge,
-                                    rectangle1_bottom_edge))
-    overlap |= PLY_RECTANGLE_OVERLAP_LEFT_EDGE;
-
-  /*
-   *  2222
-   * 122221
-   * 111111
-   * 111111
-   */
-  if (ply_rectangle_contains_point (rectangle2,
-                                    rectangle2_left_edge,
-                                    rectangle1_top_edge) &&
-      ply_rectangle_contains_point (rectangle2,
-                                    rectangle2_right_edge,
-                                    rectangle1_top_edge))
-    overlap |= PLY_RECTANGLE_OVERLAP_TOP_EDGE;
-
-  /*
-   * 2222222
-   * 2211122
-   *   111
-   */
-  if (ply_rectangle_contains_point (rectangle1,
-                                    rectangle1_left_edge,
-                                    rectangle2_bottom_edge) &&
-      ply_rectangle_contains_point (rectangle1,
-                                    rectangle1_right_edge,
-                                    rectangle2_bottom_edge))
-    overlap |= PLY_RECTANGLE_OVERLAP_TOP_EDGE;
-
-  /*
-   * 111111
-   * 111111
-   * 122221
-   *  2222
-   */
-  if (ply_rectangle_contains_point (rectangle1,
-                                    rectangle1_left_edge,
-                                    rectangle2_top_edge) &&
-      ply_rectangle_contains_point (rectangle1,
-                                    rectangle1_right_edge,
-                                    rectangle2_top_edge))
-    overlap |= PLY_RECTANGLE_OVERLAP_BOTTOM_EDGE;
-
-  /*
-   *   111
-   * 2211122
-   * 2222222
-   */
-  if (ply_rectangle_contains_point (rectangle2,
-                                    rectangle2_left_edge,
-                                    rectangle1_bottom_edge) &&
-      ply_rectangle_contains_point (rectangle2,
-                                    rectangle2_right_edge,
-                                    rectangle1_bottom_edge))
-    overlap |= PLY_RECTANGLE_OVERLAP_BOTTOM_EDGE;
-
-  return overlap;
+  switch (h_collision)
+    {
+      case H_COLLISION_NONE:
+        return PLY_RECTANGLE_OVERLAP_NONE;
+      case H_COLLISION_LEFT:
+        switch (v_collision)
+          {
+            case V_COLLISION_NONE:
+                return PLY_RECTANGLE_OVERLAP_NONE;
+            case V_COLLISION_TOP:
+                return PLY_RECTANGLE_OVERLAP_TOP_AND_LEFT_EDGES;
+            case V_COLLISION_BOTTOM:
+                return PLY_RECTANGLE_OVERLAP_BOTTOM_AND_LEFT_EDGES;
+            case V_COLLISION_BOTH:
+                return PLY_RECTANGLE_OVERLAP_TOP_LEFT_AND_BOTTOM_EDGES;
+            case V_COLLISION_CONTAINED:
+                return PLY_RECTANGLE_OVERLAP_LEFT_EDGE;
+          }
+      case H_COLLISION_RIGHT:
+        switch (v_collision)
+          {
+            case V_COLLISION_NONE:
+                return PLY_RECTANGLE_OVERLAP_NONE;
+            case V_COLLISION_TOP:
+                return PLY_RECTANGLE_OVERLAP_TOP_AND_RIGHT_EDGES;
+            case V_COLLISION_BOTTOM:
+                return PLY_RECTANGLE_OVERLAP_BOTTOM_AND_RIGHT_EDGES;
+            case V_COLLISION_BOTH:
+                return PLY_RECTANGLE_OVERLAP_TOP_RIGHT_AND_BOTTOM_EDGES;
+            case V_COLLISION_CONTAINED:
+                return PLY_RECTANGLE_OVERLAP_RIGHT_EDGE;
+          }
+      case H_COLLISION_BOTH:
+        switch (v_collision)
+          {
+            case V_COLLISION_NONE:
+                return PLY_RECTANGLE_OVERLAP_NONE;
+            case V_COLLISION_TOP:
+                return PLY_RECTANGLE_OVERLAP_TOP_AND_SIDE_EDGES;
+            case V_COLLISION_BOTTOM:
+                return PLY_RECTANGLE_OVERLAP_BOTTOM_AND_SIDE_EDGES;
+            case V_COLLISION_BOTH:
+                return PLY_RECTANGLE_OVERLAP_ALL_EDGES;
+            case V_COLLISION_CONTAINED:
+                return PLY_RECTANGLE_OVERLAP_SIDE_EDGES;
+          }
+      case H_COLLISION_CONTAINED:
+        switch (v_collision)
+          {
+            case V_COLLISION_NONE:
+                return PLY_RECTANGLE_OVERLAP_NONE;
+            case V_COLLISION_TOP:
+                return PLY_RECTANGLE_OVERLAP_TOP_EDGE;
+            case V_COLLISION_BOTTOM:
+                return PLY_RECTANGLE_OVERLAP_BOTTOM_EDGE;
+            case V_COLLISION_BOTH:
+                return PLY_RECTANGLE_OVERLAP_TOP_AND_BOTTOM_EDGES;
+            case V_COLLISION_CONTAINED:
+                return PLY_RECTANGLE_OVERLAP_NO_EDGES;
+          }
+    }
+  return PLY_RECTANGLE_OVERLAP_NONE;
 }
 
 void

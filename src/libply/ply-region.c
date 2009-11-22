@@ -113,7 +113,12 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
 
       next_node = ply_list_get_next_node (region->rectangle_list, node);
 
-      overlap = ply_rectangle_find_overlap (old_area, new_area);
+      if (ply_rectangle_is_empty (new_area))
+        overlap = PLY_RECTANGLE_OVERLAP_NO_EDGES;
+      else if (ply_rectangle_is_empty (old_area))
+        overlap = PLY_RECTANGLE_OVERLAP_ALL_EDGES;
+      else
+        overlap = ply_rectangle_find_overlap (old_area, new_area);
 
       switch (overlap)
         {
@@ -393,8 +398,8 @@ ply_region_get_rectangle_list (ply_region_t *region)
 #ifdef PLY_REGION_ENABLE_TEST
 #include <stdio.h>
 
-#define COVER_SIZE 30
-#define RECTANGLE_COUNT 2
+#define COVER_SIZE 100
+#define RECTANGLE_COUNT 1000
 
 static void
 cover_with_rect(char             cover[COVER_SIZE][COVER_SIZE],

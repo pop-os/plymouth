@@ -397,8 +397,9 @@ ply_region_get_rectangle_list (ply_region_t *region)
 static void
 cover_with_rect(char             cover[COVER_SIZE][COVER_SIZE],
                 ply_rectangle_t *rectangle,
-                int              mask)
-{
+                char             value)
+{      /* is value is not zero, the entry will be set to the value,
+          otherwise entry is incremented*/
   int x, y;
   for (y=0; y<rectangle->height; y++)
     {
@@ -409,9 +410,8 @@ cover_with_rect(char             cover[COVER_SIZE][COVER_SIZE],
               rectangle->x + x < COVER_SIZE &&
               rectangle->y + y < COVER_SIZE)
             {
-//              printf("%d %d\n", rectangle->x, x);
-              if (mask)
-                cover[rectangle->y + y][rectangle->x + x] = mask;
+              if (value)
+                cover[rectangle->y + y][rectangle->x + x] = value;
               else
                 cover[rectangle->y + y][rectangle->x + x]++;
             }
@@ -427,9 +427,8 @@ do_test (void)
   int x, y, i, width, height;
   ply_region_t *region;
   ply_list_node_t *node;
-  
+
   region = ply_region_new ();
-  
 
   for (y = 0; y < COVER_SIZE; y++)
     {
@@ -445,12 +444,16 @@ do_test (void)
       rectangle.y = random() % COVER_SIZE-5;
       rectangle.width = 1 + random() % 20;
       rectangle.height = 1 + random() % 20;
-      printf("Adding X=%d Y=%d W=%d H=%d\n", rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+      printf("Adding X=%d Y=%d W=%d H=%d\n",
+              rectangle.x,
+              rectangle.y,
+              rectangle.width,
+              rectangle.height);
       cover_with_rect(cover, &rectangle, 100); /* 100 means covered by origial squares */
       ply_region_add_rectangle (region, &rectangle);
     }
   
-  printf("TO\n");
+  printf("Converted to:\n");
   int count = 0;
   
   ply_list_t *rectangle_list = ply_region_get_rectangle_list (region);
@@ -459,7 +462,11 @@ do_test (void)
        node = ply_list_get_next_node (rectangle_list, node))
     {
       ply_rectangle_t *small_rectangle = ply_list_node_get_data (node);
-      printf("Processed X=%d Y=%d W=%d H=%d\n", small_rectangle->x, small_rectangle->y, small_rectangle->width, small_rectangle->height);
+      printf("Processed X=%d Y=%d W=%d H=%d\n",
+             small_rectangle->x,
+             small_rectangle->y, 
+             small_rectangle->width, 
+             small_rectangle->height);
       cover_with_rect(cover, small_rectangle, 0);
       count++;
     }
@@ -476,23 +483,28 @@ do_test (void)
             {
               if (cover[y][x] == 100)
                 {
-                  printf("-");
+                  printf("-");  /* "-" means should have been covered but wasn't */
                   count++;
                 }
               else
-                if (cover[y][x] == 101) printf("O");
-              else
                 {
-                  printf("%d", cover[y][x]-101);
-                  count++;
+                  if (cover[y][x] == 101)
+                    printf("O");  /* "O" means correctly covered */
+                  else
+                    {
+                      printf("%d", cover[y][x] - 101);
+                      count++;  /* 1+ means covered multiple times*/
+                    }
                 }
             }
           else
             {
-              if (cover[y][x] == 0) printf("o");
-              else                 {
-                  printf("%d", cover[y][x]);
-                  count++;
+              if (cover[y][x] == 0)
+                printf("o");  /* "o" means not involved*/
+              else
+                {
+                  printf("%c", 'A' - 1 + cover[y][x]);
+                  count++;  /* A+ means covered despite being not involved*/
                 }
             }
         }
@@ -506,7 +518,7 @@ main (int    argc,
       char **argv)
 {
   int i;
-  srandom(123);
+  srandom(312);
   for (i=0; i<100; i++)
     {
       if (do_test ()) return 1;

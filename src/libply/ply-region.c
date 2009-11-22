@@ -199,14 +199,12 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
 
               rectangle = copy_rectangle (new_area);
 
-              rectangle->y = old_area->y;
               rectangle->width = old_area->x - new_area->x;
               rectangle->height = (old_area->y + old_area->height) - new_area->y;
 
               merge_rectangle_with_sub_list (region, rectangle, next_node);
 
               new_area->height = (new_area->y + new_area->height) - (old_area->y + old_area->height);
-              new_area->width = new_area->width;
               new_area->y = old_area->y + old_area->height;
             }
           break;
@@ -241,8 +239,7 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
            */
           case PLY_RECTANGLE_OVERLAP_BOTTOM_AND_SIDE_EDGES:
             {
-              old_area->height = (new_area->y + new_area->height)
-                                 - (old_area->y + old_area->height);
+              old_area->height = new_area->y - old_area->y;
             }
           break;
 

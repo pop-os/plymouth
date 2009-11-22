@@ -283,9 +283,10 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
            * NNNNNNN
            */
           case PLY_RECTANGLE_OVERLAP_ALL_EDGES:
+            merge_rectangle_with_sub_list (region, new_area, next_node);
             free (old_area);
             ply_list_remove_node (region->rectangle_list, node);
-          break;
+          return;
 
           /*  NNN  We need to split the new rectangle into
            * ONNNO two rectangles: the top and bottom row of Ns

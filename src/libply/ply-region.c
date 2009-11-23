@@ -361,7 +361,64 @@ merge_rectangle_with_sub_list (ply_region_t    *region,
            */
           case PLY_RECTANGLE_OVERLAP_NO_EDGES:
             free (new_area);
-            return;
+          return;
+
+          /*  NNNNN We expand the old rectangle up and throw away the new.
+           *  NNNNN We must merge it because the new region may have overlapped
+           *  NNNNN something further down the list.
+           *  OOOOO
+           */
+          case PLY_RECTANGLE_OVERLAP_EXACT_TOP_EDGE:
+            {
+              old_area->height = (old_area->y + old_area->height) - new_area->y;
+              old_area->y = new_area->y;
+              free (new_area);
+              merge_rectangle_with_sub_list (region, old_area, next_node);
+              ply_list_remove_node (region->rectangle_list, node);
+            }
+          return;
+
+          /*  OOOOO We expand the old rectangle down and throw away the new.
+           *  NNNNN We must merge it because the new region may have overlapped
+           *  NNNNN something further down the list.
+           *  NNNNN
+           */
+          case PLY_RECTANGLE_OVERLAP_EXACT_BOTTOM_EDGE:
+            {
+              old_area->height = (new_area->y + new_area->height) - old_area->y;
+              free (new_area);
+              merge_rectangle_with_sub_list (region, old_area, next_node);
+              ply_list_remove_node (region->rectangle_list, node);
+            }
+          return;
+
+          /*  NNNNNO We expand the old rectangle left and throw away the new.
+           *  NNNNNO We must merge it because the new region may have overlapped
+           *  NNNNNO something further down the list.
+           */
+          case PLY_RECTANGLE_OVERLAP_EXACT_LEFT_EDGE:
+            {
+              old_area->width = (old_area->x + old_area->width) - new_area->x;
+              old_area->x = new_area->x;
+              free (new_area);
+              merge_rectangle_with_sub_list (region, old_area, next_node);
+              ply_list_remove_node (region->rectangle_list, node);
+            }
+          return;
+
+          /*  ONNNNN We expand the old rectangle right and throw away the new.
+           *  ONNNNN We must merge it because the new region may have overlapped
+           *  ONNNNN something further down the list.
+           */
+          case PLY_RECTANGLE_OVERLAP_EXACT_RIGHT_EDGE:
+            {
+              old_area->width = (new_area->x + new_area->width) - old_area->x;
+              free (new_area);
+              merge_rectangle_with_sub_list (region, old_area, next_node);
+              ply_list_remove_node (region->rectangle_list, node);
+            }
+          return;
+
 
         }
 

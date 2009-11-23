@@ -19,6 +19,7 @@
  *
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
+#include "config.h"
 #include "ply-image.h"
 #include "ply-utils.h"
 #include "ply-logger.h"
@@ -334,20 +335,47 @@ script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t      *state,
 }
 
 static int
-sprite_compare_z(void *data_a, void *data_b)
+sprite_compare_z (void *data_a, void *data_b)
 {
  sprite_t *sprite_a = data_a;
  sprite_t *sprite_b = data_b;
  return sprite_a->z - sprite_b->z;
 }
 
-void script_lib_sprite_refresh (script_lib_sprite_data_t *data)
+static void
+region_add_area      (ply_region_t *region,
+                      long          x,
+                      long          y,
+                      unsigned long width,
+                      unsigned long height)
+{
+  ply_rectangle_t rectangle;
+  rectangle.x = x;
+  rectangle.y = y;
+  rectangle.width = width;
+  rectangle.height = height;
+  ply_region_add_rectangle (region, &rectangle);
+}
+
+void
+script_lib_sprite_refresh (script_lib_sprite_data_t *data)
 {
   ply_list_node_t *node;
+  ply_region_t *region = ply_region_new ();
+  ply_list_t *rectable_list;
   
   ply_list_sort (data->sprite_list, &sprite_compare_z);
   
   node = ply_list_get_first_node (data->sprite_list);
+  
+
+  if (data->full_refresh)
+    {
+      region_add_area (region, 0, 0,
+                       ply_pixel_display_get_width (data->display),
+                       ply_pixel_display_get_height (data->display));
+      data->full_refresh = false;
+    }
 
   while (node)
     {
@@ -357,11 +385,11 @@ void script_lib_sprite_refresh (script_lib_sprite_data_t *data)
       if (sprite->remove_me)
         {
           if (sprite->image)
-            draw_area (data,
-                       sprite->old_x,
-                       sprite->old_y,
-                       sprite->old_width,
-                       sprite->old_height);
+            region_add_area (region,
+                             sprite->old_x,
+                             sprite->old_y,
+                             sprite->old_width,
+                             sprite->old_height);
           ply_list_remove_node (data->sprite_list, node);
           script_obj_unref (sprite->image_obj);
           free (sprite);
@@ -383,12 +411,17 @@ void script_lib_sprite_refresh (script_lib_sprite_data_t *data)
         {
           ply_rectangle_t size;
           ply_pixel_buffer_get_size (sprite->image, &size);
-          draw_area (data, sprite->x, sprite->y, size.width, size.height);
-          draw_area (data,
-                     sprite->old_x,
-                     sprite->old_y,
-                     sprite->old_width,
-                     sprite->old_height);
+          region_add_area (region,
+                           sprite->x,
+                           sprite->y,
+                           size.width,
+                           size.height);
+          region_add_area (region,
+                           sprite->old_x,
+                           sprite->old_y,
+                           sprite->old_width,
+                           sprite->old_height);
+
           sprite->old_x = sprite->x;
           sprite->old_y = sprite->y;
           sprite->old_z = sprite->z;
@@ -399,14 +432,25 @@ void script_lib_sprite_refresh (script_lib_sprite_data_t *data)
         }
     }
 
-  if (data->full_refresh)
+  ply_pixel_display_pause_updates (data->display);
+  rectable_list = ply_region_get_rectangle_list (region);
+  
+  for (node = ply_list_get_first_node (rectable_list);
+       node;
+       node = ply_list_get_next_node (rectable_list, node))
     {
-      draw_area (data, 0, 0,
-                 ply_pixel_display_get_width (data->display),
-                 ply_pixel_display_get_height (data->display));
-      data->full_refresh = false;
-      return;
+      ply_rectangle_t *rectangle = ply_list_node_get_data (node);
+      
+      
+      draw_area (data,
+                 rectangle->x,
+                 rectangle->y,
+                 rectangle->width,
+                 rectangle->height);
     }
+  ply_pixel_display_unpause_updates (data->display);
+  
+  ply_region_free (region);
 }
 
 void script_lib_sprite_destroy (script_lib_sprite_data_t *data)

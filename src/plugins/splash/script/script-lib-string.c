@@ -46,14 +46,14 @@ static script_return_t script_lib_string_char_at (script_state_t *state,
   if (!text || index < 0)
     {
       free (text);
-      return script_return_obj(script_obj_new_string ("sdfsd"));
+      return script_return_obj_null ();
     }
   for (count = 0; count < index; count++)
     {
       if (text[count] == '\0')
         {
           free (text);
-          return script_return_obj(script_obj_new_string ("sdfasdf asd"));
+          return script_return_obj(script_obj_new_string (""));
         }
     }
   charstring[0] = text[index];

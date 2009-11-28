@@ -363,8 +363,8 @@ main (int    argc,
 
   for (i = 0; i<100; i++)
     {
-      value = malloc(sizeof(int));
-      *value = random() %100;
+      value = malloc (sizeof (int));
+      *value = random() % 100;
       ply_list_append_data (list, (void *) value);
     }
 

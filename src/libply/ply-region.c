@@ -452,6 +452,20 @@ ply_region_get_rectangle_list (ply_region_t *region)
   return region->rectangle_list;
 }
 
+static int
+rectangle_compare_y (void *element_a, void *element_b)
+{
+  ply_rectangle_t *rectangle_a = element_a;
+  ply_rectangle_t *rectangle_b = element_b;
+  return rectangle_a->y - rectangle_b->y;
+}
+
+ply_list_t *
+ply_region_get_sorted_rectangle_list (ply_region_t *region)
+{
+  return region->rectangle_list;
+}
+
 #ifdef PLY_REGION_ENABLE_TEST
 #include <stdio.h>
 

@@ -357,7 +357,7 @@ flush_head (ply_renderer_backend_t *backend,
 
   pixel_buffer = head->pixel_buffer;
   updated_region = ply_pixel_buffer_get_updated_areas (pixel_buffer);
-  areas_to_flush = ply_region_get_rectangle_list (updated_region);
+  areas_to_flush = ply_region_get_sorted_rectangle_list (updated_region);
 
   cr = gdk_cairo_create (head->pixmap);
 

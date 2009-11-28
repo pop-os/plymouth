@@ -38,6 +38,7 @@ void ply_region_add_rectangle (ply_region_t    *region,
                                ply_rectangle_t *rectangle);
 void ply_region_clear (ply_region_t *region);
 ply_list_t *ply_region_get_rectangle_list (ply_region_t *region);
+ply_list_t *ply_region_get_sorted_rectangle_list (ply_region_t *region);
 
 bool ply_region_is_empty (ply_region_t *region);
 

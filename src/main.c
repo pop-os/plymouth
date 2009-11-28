@@ -1044,7 +1044,8 @@ add_displays_and_keyboard_to_boot_splash (state_t           *state,
   ply_list_node_t *node;
 
   ply_trace ("setting keyboard on boot splash");
-  ply_boot_splash_set_keyboard (splash, state->keyboard);
+  if (state->keyboard != NULL)
+    ply_boot_splash_set_keyboard (splash, state->keyboard);
 
   node = ply_list_get_first_node (state->pixel_displays);
   while (node != NULL)

@@ -86,6 +86,8 @@ struct _ply_renderer_backend
   ply_console_t               *console;
 
   ply_fd_watch_t *display_watch;
+
+  uint32_t is_inactive : 1;
 };
 
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
@@ -308,6 +310,18 @@ unmap_from_device (ply_renderer_backend_t *backend)
 }
 
 static void
+activate (ply_renderer_backend_t *backend)
+{
+  backend->is_inactive = false;
+}
+
+static void
+deactivate (ply_renderer_backend_t *backend)
+{
+  backend->is_inactive = true;
+}
+
+static void
 flush_area_to_device (ply_renderer_backend_t *backend,
                       ply_renderer_head_t    *head,
                       ply_rectangle_t        *area_to_flush,
@@ -337,6 +351,9 @@ flush_head (ply_renderer_backend_t *backend,
   cairo_t *cr;
 
   assert (backend != NULL);
+
+  if (backend->is_inactive)
+    return;
 
   pixel_buffer = head->pixel_buffer;
   updated_region = ply_pixel_buffer_get_updated_areas (pixel_buffer);
@@ -516,6 +533,8 @@ ply_renderer_backend_get_interface (void)
       .query_device = query_device,
       .map_to_device = map_to_device,
       .unmap_from_device = unmap_from_device,
+      .activate = activate,
+      .deactivate = deactivate,
       .flush_head = flush_head,
       .get_heads = get_heads,
       .get_buffer_for_head = get_buffer_for_head,

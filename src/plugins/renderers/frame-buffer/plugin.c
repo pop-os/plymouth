@@ -108,6 +108,8 @@ struct _ply_renderer_backend
   unsigned int bytes_per_pixel;
   unsigned int row_stride;
 
+  uint32_t is_inactive : 1;
+
   void (* flush_area) (ply_renderer_backend_t *backend,
                        ply_renderer_head_t    *head,
                        ply_rectangle_t        *area_to_flush);
@@ -301,14 +303,31 @@ destroy_backend (ply_renderer_backend_t *backend)
 }
 
 static void
+activate (ply_renderer_backend_t *backend)
+{
+  backend->is_inactive = false;
+
+  if (backend->head.map_address != MAP_FAILED)
+    ply_renderer_head_redraw (backend, &backend->head);
+}
+
+static void
+deactivate (ply_renderer_backend_t *backend)
+{
+  backend->is_inactive = true;
+}
+
+static void
 on_active_vt_changed (ply_renderer_backend_t *backend)
 {
   if (ply_console_get_active_vt (backend->console) !=
       ply_terminal_get_vt_number (backend->terminal))
-    return;
+    {
+      deactivate (backend);
+      return;
+    }
 
-  if (backend->head.map_address != MAP_FAILED)
-    ply_renderer_head_redraw (backend, &backend->head);
+  activate (backend);
 }
 
 static bool
@@ -525,8 +544,7 @@ flush_head (ply_renderer_backend_t *backend,
   assert (backend != NULL);
   assert (&backend->head == head);
 
-  if (ply_console_get_active_vt (backend->console) !=
-      ply_terminal_get_vt_number (backend->terminal))
+  if (backend->is_inactive)
     return;
 
   ply_console_set_mode (backend->console, PLY_CONSOLE_MODE_GRAPHICS);
@@ -661,6 +679,8 @@ ply_renderer_backend_get_interface (void)
       .query_device = query_device,
       .map_to_device = map_to_device,
       .unmap_from_device = unmap_from_device,
+      .activate = activate,
+      .deactivate = deactivate,
       .flush_head = flush_head,
       .get_heads = get_heads,
       .get_buffer_for_head = get_buffer_for_head,

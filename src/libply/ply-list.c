@@ -315,13 +315,27 @@ ply_list_node_set_data (ply_list_node_t *node, void *data)
 #ifdef PLY_LIST_ENABLE_TEST
 #include <stdio.h>
 
+static int
+compare_int_ptr (void *element_a,
+                 void *element_b)
+{
+  int *int_a = element_a;
+  int *int_b = element_b;
+  return *int_a - *int_b;
+
+}
+
 int
 main (int    argc,
       char **argv)
 {
   ply_list_t *list;
   ply_list_node_t *node;
-  int i;
+  int i, lastval;
+  int *value;
+  int errors;
+
+  errors = 0;
 
   list = ply_list_new ();
 
@@ -343,8 +357,39 @@ main (int    argc,
       i++;
     }
 
+  printf ("\n");
+  ply_list_remove_all_nodes (list);
+  srandom(1);
+
+  for (i = 0; i<100; i++)
+    {
+      value = malloc(sizeof(int));
+      *value = random() %100;
+      ply_list_append_data (list, (void *) value);
+    }
+
+  ply_list_sort (list, compare_int_ptr);
+
+  node = ply_list_get_first_node (list);
+  i = 0;
+  lastval = 0;
+
+  while (node != NULL)
+    {
+      value = (int *) ply_list_node_get_data (node);
+      if (*value < lastval)
+        {
+          printf ("ERROR: incorrect order\n");
+          errors = 1;
+        }
+      lastval = *value;
+      printf ("node '%d' has data '%d'\n", i, *value);
+      node = ply_list_get_next_node (list, node);
+      i++;
+    }
+
   ply_list_free (list);
-  return 0;
+  return errors;
 }
 
 #endif

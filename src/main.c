@@ -1515,7 +1515,6 @@ main (int    argc,
       return 0;
     }
 
-  debug = 1;
   if (debug && !ply_is_tracing ())
     ply_toggle_tracing ();
 

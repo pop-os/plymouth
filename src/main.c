@@ -553,9 +553,12 @@ remove_displays_and_keyboard (state_t *state)
       node = next_node;
     }
 
-  ply_keyboard_stop_watching_for_input (state->keyboard);
-  ply_keyboard_free (state->keyboard);
-  state->keyboard = NULL;
+  if (state->keyboard != NULL)
+    {
+      ply_keyboard_stop_watching_for_input (state->keyboard);
+      ply_keyboard_free (state->keyboard);
+      state->keyboard = NULL;
+    }
 }
 
 static void

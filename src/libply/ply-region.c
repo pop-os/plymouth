@@ -463,6 +463,7 @@ rectangle_compare_y (void *element_a, void *element_b)
 ply_list_t *
 ply_region_get_sorted_rectangle_list (ply_region_t *region)
 {
+  ply_list_sort (region->rectangle_list, &rectangle_compare_y);
   return region->rectangle_list;
 }
 

@@ -270,33 +270,61 @@ ply_list_get_next_node (ply_list_t     *list,
 {
   return node->next;
 }
-void ply_list_sort (ply_list_t  *list,
+
+static void 
+ply_list_sort_swap (void **element_a,
+                    void **element_b)
+{
+  void *temp;
+  temp = *element_a;
+  *element_a = *element_b;
+  *element_b = temp;
+}
+
+static void 
+ply_list_sort_body (ply_list_node_t         *node_start,
+                    ply_list_node_t         *node_end,
                     ply_list_compare_func_t *compare)
 {
-  ply_list_node_t *nodea;
-  ply_list_node_t *nodeb;
-  int clean;
-  do
+  if (node_start == node_end) return;
+  ply_list_node_t *cur_node = node_start;
+  ply_list_node_t *top_node = node_end;
+  ply_list_node_t *next_node = cur_node->next;
+  while (cur_node != top_node)
     {
-      clean=1;
-      nodea = ply_list_get_first_node (list);
-      if (!nodea) return;
-      nodeb = ply_list_get_next_node (list, nodea);
-      while (nodeb)
+      int diff = compare(cur_node->data, next_node->data);
+      if (diff > 0)
         {
-          if ((compare)(ply_list_node_get_data(nodea), ply_list_node_get_data(nodeb))>0)
-            {
-              void* temp = ply_list_node_get_data(nodea);
-              ply_list_node_set_data(nodea, ply_list_node_get_data(nodeb));
-              ply_list_node_set_data(nodeb, temp);
-              clean=0;
-            }
-          nodea = nodeb;
-          nodeb = ply_list_get_next_node (list, nodea);
+          ply_list_sort_swap (&next_node->data,
+                              &cur_node->data);
+          cur_node = next_node;
+          next_node = cur_node->next;
+        }
+      else
+        {
+          ply_list_sort_swap (&next_node->data,
+                              &top_node->data);
+          top_node = top_node->previous;
         }
     }
-  while (!clean);
- 
+
+  if (cur_node != node_end)
+    ply_list_sort_body (cur_node->next,
+                        node_end,
+                        compare);
+  if (cur_node != node_start)
+    ply_list_sort_body (node_start,
+                        cur_node->previous,
+                        compare);
+}
+
+void
+ply_list_sort (ply_list_t              *list,
+               ply_list_compare_func_t *compare)
+{
+  ply_list_sort_body (ply_list_get_first_node (list),
+                      ply_list_get_last_node (list),
+                      compare);
 }
 
 void *

@@ -278,6 +278,22 @@ ply_renderer_close (ply_renderer_t *renderer)
   ply_renderer_close_device (renderer);
 }
 
+void
+ply_renderer_activate (ply_renderer_t *renderer)
+{
+  assert (renderer->plugin_interface != NULL);
+
+  return renderer->plugin_interface->activate (renderer->backend);
+}
+
+void
+ply_renderer_deactivate (ply_renderer_t *renderer)
+{
+  assert (renderer->plugin_interface != NULL);
+
+  return renderer->plugin_interface->deactivate (renderer->backend);
+}
+
 ply_list_t *
 ply_renderer_get_heads (ply_renderer_t *renderer)
 {

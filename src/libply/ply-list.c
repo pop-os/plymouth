@@ -265,6 +265,22 @@ ply_list_get_last_node (ply_list_t *list)
 }
 
 ply_list_node_t *
+ply_list_get_nth_node (ply_list_t *list,
+                       int         index)
+{
+  ply_list_node_t *node;
+  if (index < 0)
+    return NULL;
+  if (index >= list->number_of_nodes)
+    return NULL;
+  while (index--)
+    {
+      node = node->next;
+    }
+  return node;
+}
+
+ply_list_node_t *
 ply_list_get_next_node (ply_list_t     *list,
                        ply_list_node_t *node)
 {

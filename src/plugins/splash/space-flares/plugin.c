@@ -910,7 +910,7 @@ satellite_move (view_t *view, sprite_t* sprite, double time)
 static void
 sprite_list_sort (view_t *view)
 {
-  ply_list_sort (view->sprites, &sprite_compare_z);
+  ply_list_sort_stable (view->sprites, &sprite_compare_z);
 }
 
 static void

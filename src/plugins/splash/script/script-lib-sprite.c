@@ -364,7 +364,7 @@ script_lib_sprite_refresh (script_lib_sprite_data_t *data)
   ply_region_t *region = ply_region_new ();
   ply_list_t *rectable_list;
   
-  ply_list_sort (data->sprite_list, &sprite_compare_z);
+  ply_list_sort_stable (data->sprite_list, &sprite_compare_z);
   
   node = ply_list_get_first_node (data->sprite_list);
   

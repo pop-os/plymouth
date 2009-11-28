@@ -327,6 +327,31 @@ ply_list_sort (ply_list_t              *list,
                       compare);
 }
 
+void
+ply_list_sort_stable (ply_list_t              *list,
+                      ply_list_compare_func_t *compare)
+{
+  ply_list_node_t *top_node;
+  ply_list_node_t *cur_node;
+
+  top_node = ply_list_get_first_node (list);
+  if (top_node == NULL) return;
+  top_node = top_node->next;
+
+  while (top_node)
+    {
+      cur_node = top_node->previous;
+      while (cur_node && compare(cur_node->data, cur_node->next->data) > 0)
+        {
+          ply_list_sort_swap (&cur_node->data,
+                              &cur_node->next->data);
+          cur_node = cur_node->previous;
+        }
+      top_node = top_node->next;
+    }
+  
+}
+
 void *
 ply_list_node_get_data (ply_list_node_t *node)
 {

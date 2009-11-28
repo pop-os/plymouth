@@ -269,6 +269,7 @@ ply_list_get_nth_node (ply_list_t *list,
                        int         index)
 {
   ply_list_node_t *node;
+  node = list->first_node;
   if (index < 0)
     return NULL;
   if (index >= list->number_of_nodes)

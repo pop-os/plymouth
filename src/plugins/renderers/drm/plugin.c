@@ -110,6 +110,8 @@ struct _ply_renderer_backend
   int32_t dither_red;
   int32_t dither_green;
   int32_t dither_blue;
+
+  uint32_t is_inactive : 1;
 };
 
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
@@ -367,16 +369,11 @@ find_driver_for_device (const char *device_name)
 }
 
 static void
-on_active_vt_changed (ply_renderer_backend_t *backend)
+activate (ply_renderer_backend_t *backend)
 {
   ply_list_node_t *node;
 
-  if (ply_console_get_active_vt (backend->console) !=
-      ply_terminal_get_vt_number (backend->terminal))
-    {
-      drmDropMaster (backend->device_fd);
-      return;
-    }
+  backend->is_inactive = false;
 
   drmSetMaster (backend->device_fd);
   node = ply_list_get_first_node (backend->heads);
@@ -394,6 +391,29 @@ on_active_vt_changed (ply_renderer_backend_t *backend)
 
       node = next_node;
     }
+}
+
+static void
+deactivate (ply_renderer_backend_t *backend)
+{
+  ply_trace ("dropping master");
+  drmDropMaster (backend->device_fd);
+  backend->is_inactive = true;
+}
+
+static void
+on_active_vt_changed (ply_renderer_backend_t *backend)
+{
+  if (ply_console_get_active_vt (backend->console) !=
+      ply_terminal_get_vt_number (backend->terminal))
+    {
+      ply_trace ("deactivating on vt change");
+      deactivate (backend);
+      return;
+    }
+
+  ply_trace ("activating on vt change");
+  activate (backend);
 }
 
 static bool
@@ -889,8 +909,12 @@ unmap_from_device (ply_renderer_backend_t *backend)
       head = (ply_renderer_head_t *) ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (backend->heads, node);
 
-      ply_renderer_head_set_scan_out_buffer_to_console (backend, head,
-                                                        should_set_to_black);
+      if (!backend->is_inactive)
+        {
+          ply_trace ("scanning out directly to console");
+          ply_renderer_head_set_scan_out_buffer_to_console (backend, head,
+                                                            should_set_to_black);
+        }
 
       ply_renderer_head_unmap (backend, head);
 
@@ -935,8 +959,7 @@ flush_head (ply_renderer_backend_t *backend,
 
   assert (backend != NULL);
 
-  if (ply_console_get_active_vt (backend->console) !=
-      ply_terminal_get_vt_number (backend->terminal))
+  if (backend->is_inactive)
     return;
 
   ply_console_set_mode (backend->console, PLY_CONSOLE_MODE_GRAPHICS);
@@ -1079,6 +1102,8 @@ ply_renderer_backend_get_interface (void)
       .query_device = query_device,
       .map_to_device = map_to_device,
       .unmap_from_device = unmap_from_device,
+      .activate = activate,
+      .deactivate = deactivate,
       .flush_head = flush_head,
       .get_heads = get_heads,
       .get_buffer_for_head = get_buffer_for_head,

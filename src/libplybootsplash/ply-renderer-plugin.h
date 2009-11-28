@@ -46,6 +46,8 @@ typedef struct
   bool (* query_device) (ply_renderer_backend_t *backend);
   bool (* map_to_device) (ply_renderer_backend_t *backend);
   void (* unmap_from_device) (ply_renderer_backend_t *backend);
+  void (* activate) (ply_renderer_backend_t *backend);
+  void (* deactivate) (ply_renderer_backend_t *backend);
   void (* flush_head) (ply_renderer_backend_t *backend,
                        ply_renderer_head_t    *head);
 

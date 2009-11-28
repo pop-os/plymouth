@@ -65,6 +65,7 @@ struct _ply_boot_server
   ply_boot_server_ignore_keystroke_handler_t ignore_keystroke_handler;
   ply_boot_server_progress_pause_handler_t progress_pause_handler;
   ply_boot_server_progress_unpause_handler_t progress_unpause_handler;
+  ply_boot_server_deactivate_handler_t deactivate_handler;
   ply_boot_server_quit_handler_t quit_handler;
   void *user_data;
 
@@ -85,6 +86,7 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
                      ply_boot_server_newroot_handler_t newroot_handler,
                      ply_boot_server_system_initialized_handler_t initialized_handler,
                      ply_boot_server_error_handler_t   error_handler,
+                     ply_boot_server_deactivate_handler_t    deactivate_handler,
                      ply_boot_server_quit_handler_t    quit_handler,
                      void                             *user_data)
 {
@@ -108,6 +110,7 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
   server->system_initialized_handler = initialized_handler;
   server->show_splash_handler = show_splash_handler;
   server->hide_splash_handler = hide_splash_handler;
+  server->deactivate_handler = deactivate_handler;
   server->quit_handler = quit_handler;
   server->user_data = user_data;
 
@@ -272,6 +275,17 @@ ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
 }
 
 static void
+ply_boot_connection_on_deactivated (ply_boot_connection_t *connection)
+{
+  if (!ply_write (connection->fd,
+                  PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
+                  strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+    {
+      ply_error ("could not write bytes: %m");
+    }
+}
+
+static void
 ply_boot_connection_on_quit_complete (ply_boot_connection_t *connection)
 {
   if (!ply_write (connection->fd,
@@ -352,6 +366,24 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       ply_trace ("got hide splash request");
       if (server->hide_splash_handler != NULL)
         server->hide_splash_handler (server->user_data, server);
+    }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_DEACTIVATE) == 0)
+    {
+      ply_trigger_t *deactivate_trigger;
+
+      deactivate_trigger = ply_trigger_new (NULL);
+
+      ply_trigger_add_handler (deactivate_trigger,
+                               (ply_trigger_handler_t)
+                               ply_boot_connection_on_deactivated,
+                               connection);
+
+      if (server->deactivate_handler != NULL)
+        server->deactivate_handler (server->user_data, deactivate_trigger, server);
+
+      free (argument);
+      free (command);
+      return;
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_QUIT) == 0)
     {
@@ -663,6 +695,12 @@ on_hide_splash (ply_event_loop_t *loop)
 }
 
 static void
+on_deactivate (ply_event_loop_t *loop)
+{
+  printf ("got deactivate request\n");
+}
+
+static void
 on_quit (ply_event_loop_t *loop)
 {
   printf ("got quit request, quiting...\n");
@@ -754,6 +792,7 @@ main (int    argc,
                                 (ply_boot_server_newroot_handler_t) on_newroot,
                                 (ply_boot_server_system_initialized_handler_t) on_system_initialized,
                                 (ply_boot_server_error_handler_t) on_error,
+                                (ply_boot_server_deactivate_handler_t) on_deactivate,
                                 (ply_boot_server_quit_handler_t) on_quit,
                                 loop);
 

@@ -96,6 +96,7 @@ typedef struct
   ply_renderer_t *renderer;
   ply_terminal_t *terminal;
 
+  ply_trigger_t *deactivate_trigger;
   ply_trigger_t *quit_trigger;
 
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
@@ -106,6 +107,7 @@ typedef struct
   uint32_t is_attached : 1;
   uint32_t should_be_attached : 1;
   uint32_t should_retain_splash : 1;
+  uint32_t is_inactive : 1;
 
   char *kernel_console_tty;
   char *override_splash_path;
@@ -553,9 +555,12 @@ remove_displays_and_keyboard (state_t *state)
       node = next_node;
     }
 
-  ply_keyboard_stop_watching_for_input (state->keyboard);
-  ply_keyboard_free (state->keyboard);
-  state->keyboard = NULL;
+  if (state->keyboard != NULL)
+    {
+      ply_keyboard_stop_watching_for_input (state->keyboard);
+      ply_keyboard_free (state->keyboard);
+      state->keyboard = NULL;
+    }
 }
 
 static void
@@ -690,7 +695,24 @@ quit_program (state_t *state)
 static void
 on_boot_splash_idle (state_t *state)
 {
+
   ply_trace ("boot splash idle");
+
+  if (state->deactivate_trigger != NULL)
+    {
+      ply_trace ("deactivating renderer");
+      ply_renderer_deactivate (state->renderer);
+
+      ply_trace ("quitting splash");
+      quit_splash (state);
+
+      ply_trigger_pull (state->deactivate_trigger, NULL);
+      state->deactivate_trigger = NULL;
+      state->is_inactive = true;
+
+      return;
+    }
+
   if (!state->should_retain_splash)
     {
       ply_trace ("hiding splash");
@@ -702,6 +724,27 @@ on_boot_splash_idle (state_t *state)
   quit_splash (state);
   ply_trace ("quitting program");
   quit_program (state);
+}
+
+
+static void
+on_deactivate (state_t       *state,
+               ply_trigger_t *deactivate_trigger)
+{
+  ply_trace ("deactivating");
+  if (state->boot_splash != NULL)
+    {
+      state->deactivate_trigger = deactivate_trigger;
+      ply_boot_splash_become_idle (state->boot_splash,
+                                   (ply_boot_splash_on_idle_handler_t)
+                                   on_boot_splash_idle,
+                                   state);
+    }
+  else
+    {
+      ply_trigger_pull (state->deactivate_trigger, NULL);
+      state->deactivate_trigger = NULL;
+    }
 }
 
 static void
@@ -725,6 +768,10 @@ on_quit (state_t       *state,
                                    on_boot_splash_idle,
                                    state);
     }
+  else if (state->is_inactive && !retain_splash)
+    /* We've been deactivated and X failed to start
+     */
+    dump_details_and_quit_splash (state);
   else
     quit_program (state);
 }
@@ -747,6 +794,7 @@ start_boot_server (state_t *state)
                                 (ply_boot_server_newroot_handler_t) on_newroot,
                                 (ply_boot_server_system_initialized_handler_t) on_system_initialized,
                                 (ply_boot_server_error_handler_t) on_error,
+                                (ply_boot_server_deactivate_handler_t) on_deactivate,
                                 (ply_boot_server_quit_handler_t) on_quit,
                                 state);
 
@@ -1041,7 +1089,8 @@ add_displays_and_keyboard_to_boot_splash (state_t           *state,
   ply_list_node_t *node;
 
   ply_trace ("setting keyboard on boot splash");
-  ply_boot_splash_set_keyboard (splash, state->keyboard);
+  if (state->keyboard != NULL)
+    ply_boot_splash_set_keyboard (splash, state->keyboard);
 
   node = ply_list_get_first_node (state->pixel_displays);
   while (node != NULL)

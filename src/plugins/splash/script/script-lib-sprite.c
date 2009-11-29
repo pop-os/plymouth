@@ -200,6 +200,55 @@ static script_return_t sprite_window_get_height (script_state_t *state,
   return script_return_obj (script_obj_new_number (height));
 }
 
+static script_return_t sprite_window_set_x (script_state_t *state,
+                                            void           *user_data)
+{
+  script_lib_sprite_data_t *data = user_data;
+  ply_list_node_t *node;
+  script_lib_display_t *display;
+  int index;
+  int x;
+
+  index = script_obj_hash_get_number (state->local, "window");
+  x = script_obj_hash_get_number (state->local, "value");
+  node = ply_list_get_nth_node (data->displays, index);
+  if (node)
+    {
+      display = ply_list_node_get_data (node);
+      if (display->x != x)
+        {
+          display->x = x;
+          data->full_refresh = true;
+        }
+    }
+  return script_return_obj_null ();
+}
+
+static script_return_t sprite_window_set_y (script_state_t *state,
+                                            void           *user_data)
+{
+  script_lib_sprite_data_t *data = user_data;
+  ply_list_node_t *node;
+  script_lib_display_t *display;
+  int index;
+  int y;
+
+  index = script_obj_hash_get_number (state->local, "window");
+  y = script_obj_hash_get_number (state->local, "value");
+  ply_trace("%d\n", index);
+  node = ply_list_get_nth_node (data->displays, index);
+  if (node)
+    {
+      display = ply_list_node_get_data (node);
+      if (display->y != y)
+        {
+          display->y = y;
+          data->full_refresh = true;
+        }
+    }
+  return script_return_obj_null ();
+}
+
 static uint32_t extract_rgb_color (script_state_t *state)
 {
   uint8_t red =   CLAMP (255 * script_obj_hash_get_number (state->local, "red"),   0, 255);
@@ -398,6 +447,20 @@ script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
                               sprite_window_get_height,
                               data,
                               "window",
+                              NULL);
+  script_add_native_function (window_hash,
+                              "SetX",
+                              sprite_window_set_x,
+                              data,
+                              "window",
+                              "value",
+                              NULL);
+  script_add_native_function (window_hash,
+                              "SetY",
+                              sprite_window_set_y,
+                              data,
+                              "window",
+                              "value",
                               NULL);
   script_add_native_function (window_hash,
                               "SetBackgroundTopColor",

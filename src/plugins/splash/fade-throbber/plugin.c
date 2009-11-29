@@ -668,6 +668,9 @@ draw_normal_view (view_t             *view,
 
   plugin = view->plugin;
 
+  if (!plugin->is_animating)
+    return;
+
   logo_area.width = ply_image_get_width (plugin->logo_image);
   logo_area.height = ply_image_get_height (plugin->logo_image);
   logo_data = ply_image_get_data (plugin->logo_image);
@@ -751,9 +754,6 @@ on_draw (view_t                   *view,
   area.height = height;
 
   draw_background (view, pixel_buffer, x, y, width, height);
-
-  if (!plugin->is_animating)
-    return;
 
   if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_NORMAL)
     draw_normal_view (view, pixel_buffer, x, y, width, height);

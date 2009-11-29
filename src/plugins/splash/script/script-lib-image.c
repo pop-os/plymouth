@@ -163,14 +163,15 @@ static script_return_t image_text (script_state_t *state,
   char *text = script_obj_hash_get_string (state->local, "text");
   
   /* These colour values are currently unused, but will be once label supports them */
-  float red = script_obj_hash_get_number (state->local, "red");
-  float green = script_obj_hash_get_number (state->local, "green");
-  float blue = script_obj_hash_get_number (state->local, "blue");
+  float red = CLAMP(script_obj_hash_get_number (state->local, "red"), 0, 1);
+  float green = CLAMP(script_obj_hash_get_number (state->local, "green"), 0, 1);
+  float blue = CLAMP(script_obj_hash_get_number (state->local, "blue"), 0, 1);
   
   if (!text) return script_return_obj_null ();
   
   label = ply_label_new ();
   ply_label_set_text (label, text);
+  ply_label_set_color (label, red, green, blue, 1.0);
   ply_label_show (label, NULL, 0, 0);
   
   width = ply_label_get_width (label);

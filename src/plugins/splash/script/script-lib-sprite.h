@@ -28,7 +28,7 @@
 
 typedef struct
 {
-  ply_pixel_display_t       *display;
+  ply_list_t                *displays;
   ply_list_t                *sprite_list;
   script_obj_native_class_t *class;
   script_op_t               *script_main_op;
@@ -36,6 +36,14 @@ typedef struct
   uint32_t                   background_color_end;
   bool                       full_refresh;
 } script_lib_sprite_data_t;
+
+typedef struct
+{
+  ply_pixel_display_t      *pixel_display;
+  script_lib_sprite_data_t *data;
+  int                       x; 
+  int                       y; 
+} script_lib_display_t;
 
 typedef struct
 {
@@ -55,15 +63,9 @@ typedef struct
   script_obj_t       *image_obj;
 } sprite_t;
 
-script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t      *state,
-                                                   ply_pixel_display_t *display);
+script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
+                                                   ply_list_t     *displays);
 void script_lib_sprite_refresh (script_lib_sprite_data_t *data);
 void script_lib_sprite_destroy (script_lib_sprite_data_t *data);
-void script_lib_sprite_draw_area (script_lib_sprite_data_t *data,
-                                  ply_pixel_buffer_t       *pixel_buffer,
-                                  int                       x,
-                                  int                       y,
-                                  int                       width,
-                                  int                       height);
 
 #endif /* SCRIPT_LIB_SPRITE_H */

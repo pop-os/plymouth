@@ -46,6 +46,10 @@ struct _ply_label
   ply_label_plugin_control_t *control;
 
   char *text;
+  float red;
+  float green;
+  float blue;
+  float alpha;
 };
 
 typedef const ply_label_plugin_interface_t *
@@ -59,6 +63,10 @@ ply_label_new (void)
   ply_label_t *label;
 
   label = calloc (1, sizeof (struct _ply_label));
+  label->red = 1;
+  label->green = 1;
+  label->blue = 1;
+  label->alpha = 1;
   return label;
 }
 
@@ -120,6 +128,11 @@ ply_label_load_plugin (ply_label_t *label)
     label->plugin_interface->set_text_for_control (label->control,
                                                    label->text);
 
+  label->plugin_interface->set_color_for_control (label->control,
+                                                  label->red,
+                                                  label->green,
+                                                  label->blue,
+                                                  label->alpha);
   return true;
 }
 
@@ -205,6 +218,28 @@ ply_label_set_text (ply_label_t *label,
 
   label->plugin_interface->set_text_for_control (label->control,
                                                  text);
+}
+
+void
+ply_label_set_color (ply_label_t *label,
+                     float        red,
+                     float        green,
+                     float        blue,
+                     float        alpha)
+{
+  label->red = red;
+  label->green = green;
+  label->blue = blue;
+  label->alpha = alpha;
+
+  if (label->plugin_interface == NULL)
+    return;
+
+  label->plugin_interface->set_color_for_control (label->control,
+                                                  red,
+                                                  green,
+                                                  blue,
+                                                  alpha);
 }
 
 long

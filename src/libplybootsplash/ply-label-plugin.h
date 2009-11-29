@@ -50,8 +50,13 @@ typedef struct
                          unsigned long                      height);
   bool (* is_control_hidden) (ply_label_plugin_control_t        *label);
 
-  void (* set_text_for_control) (ply_label_plugin_control_t        *label,
-                                 const char         *text);
+  void (* set_text_for_control) (ply_label_plugin_control_t *label,
+                                 const char                 *text);
+  void (* set_color_for_control) (ply_label_plugin_control_t *label,
+                                  float                       red,
+                                  float                       green,
+                                  float                       blue,
+                                  float                       alpha);
 
   long (* get_width_of_control) (ply_label_plugin_control_t        *label);
   long (* get_height_of_control) (ply_label_plugin_control_t        *label);

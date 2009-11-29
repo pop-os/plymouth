@@ -56,6 +56,10 @@ struct _ply_label_plugin_control
   ply_rectangle_t     area;
 
   char               *text;
+  float               red;
+  float               green;
+  float               blue;
+  float               alpha;
 
   uint32_t is_hidden : 1;
 };
@@ -152,8 +156,8 @@ size_control (ply_label_plugin_control_t *label)
   pango_layout_set_text (pango_layout, label->text, -1);
   pango_cairo_update_layout (cairo_context, pango_layout);
   pango_layout_get_size (pango_layout, &text_width, &text_height);
-  label->area.width = (long) ((double) text_width / PANGO_SCALE) + 1;
-  label->area.height = (long) ((double) text_height / PANGO_SCALE) + 1;
+  label->area.width = (long) ((double) text_width / PANGO_SCALE);
+  label->area.height = (long) ((double) text_height / PANGO_SCALE);
 
   g_object_unref (pango_layout);
   cairo_destroy (cairo_context);
@@ -187,21 +191,19 @@ draw_control (ply_label_plugin_control_t *label,
   pango_layout_set_text (pango_layout, label->text, -1);
   pango_cairo_update_layout (cairo_context, pango_layout);
   pango_layout_get_size (pango_layout, &text_width, &text_height);
-  label->area.width = (long) ((double) text_width / PANGO_SCALE) + 1;
-  label->area.height = (long) ((double) text_height / PANGO_SCALE) + 1;
+  label->area.width = (long) ((double) text_width / PANGO_SCALE);
+  label->area.height = (long) ((double) text_height / PANGO_SCALE);
 
   cairo_rectangle (cairo_context, x, y, width, height);
   cairo_clip (cairo_context);
   cairo_move_to (cairo_context,
-                 label->area.x + 1,
-                 label->area.y + 1);
-  cairo_set_source_rgba (cairo_context, 0.0, 0.0, 0.0, 0.7);
-  pango_cairo_show_layout (cairo_context,
-                           pango_layout);
-  cairo_move_to (cairo_context,
                  label->area.x,
                  label->area.y);
-  cairo_set_source_rgb (cairo_context, 1.0, 1.0, 1.0);
+  cairo_set_source_rgba (cairo_context,
+                         label->red,
+                         label->green,
+                         label->blue,
+                         label->alpha);
   pango_cairo_show_layout (cairo_context,
                            pango_layout);
 
@@ -227,6 +229,24 @@ set_text_for_control (ply_label_plugin_control_t *label,
                                      dirty_area.width, dirty_area.height);
 
     }
+}
+
+void
+set_color_for_control (ply_label_plugin_control_t *label,
+                       float                       red,
+                       float                       green,
+                       float                       blue,
+                       float                       alpha)
+{
+  label->red = red;
+  label->green = green;
+  label->blue = blue;
+  label->alpha = alpha;
+
+  if (!label->is_hidden && label->display != NULL)
+    ply_pixel_display_draw_area (label->display,
+                                 label->area.x, label->area.y,
+                                 label->area.width, label->area.height);
 }
 
 bool
@@ -287,6 +307,7 @@ ply_label_plugin_get_interface (void)
       .draw_control = draw_control,
       .is_control_hidden = is_control_hidden,
       .set_text_for_control = set_text_for_control,
+      .set_color_for_control = set_color_for_control,
       .get_width_of_control = get_width_of_control,
       .get_height_of_control = get_height_of_control
     };

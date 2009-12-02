@@ -200,6 +200,63 @@ static script_return_t sprite_window_get_height (script_state_t *state,
   return script_return_obj (script_obj_new_number (height));
 }
 
+static script_return_t sprite_window_get_x (script_state_t *state,
+                                            void           *user_data)
+{
+  script_lib_sprite_data_t *data = user_data;
+  ply_list_node_t *node;
+  int index;
+  script_obj_t *index_obj;
+  script_lib_display_t *display;
+
+  index_obj = script_obj_hash_peek_element (state->local, "window");
+
+  if (index_obj)
+    {
+    index = script_obj_as_number (index_obj);
+    script_obj_unref(index_obj);
+    if (index < 0)
+      return script_return_obj_null ();
+    }
+  else
+    index = 0;
+
+  node = ply_list_get_nth_node (data->displays, index);
+  if (node == NULL)
+    return script_return_obj_null ();
+  display = ply_list_node_get_data (node);
+  return script_return_obj (script_obj_new_number (display->x));
+}
+
+
+static script_return_t sprite_window_get_y (script_state_t *state,
+                                            void           *user_data)
+{
+  script_lib_sprite_data_t *data = user_data;
+  ply_list_node_t *node;
+  int index;
+  script_obj_t *index_obj;
+  script_lib_display_t *display;
+
+  index_obj = script_obj_hash_peek_element (state->local, "window");
+
+  if (index_obj)
+    {
+    index = script_obj_as_number (index_obj);
+    script_obj_unref(index_obj);
+    if (index < 0)
+      return script_return_obj_null ();
+    }
+  else
+    index = 0;
+
+  node = ply_list_get_nth_node (data->displays, index);
+  if (node == NULL)
+    return script_return_obj_null ();
+  display = ply_list_node_get_data (node);
+  return script_return_obj (script_obj_new_number (display->y));
+}
+
 static script_return_t sprite_window_set_x (script_state_t *state,
                                             void           *user_data)
 {
@@ -445,6 +502,18 @@ script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
   script_add_native_function (window_hash,
                               "GetHeight",
                               sprite_window_get_height,
+                              data,
+                              "window",
+                              NULL);
+  script_add_native_function (window_hash,
+                              "GetX",
+                              sprite_window_get_x,
+                              data,
+                              "window",
+                              NULL);
+  script_add_native_function (window_hash,
+                              "GetY",
+                              sprite_window_get_y,
                               data,
                               "window",
                               NULL);

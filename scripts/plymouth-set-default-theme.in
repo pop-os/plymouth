@@ -22,7 +22,7 @@ function usage ()
 function show_help() {
   cat <<EOF
 
-    ${0##*/} [opt]
+    $(usage)
 
      --help             show this help message
      --list             show available themes

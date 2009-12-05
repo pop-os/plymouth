@@ -13,9 +13,24 @@ if [ -z "$PLYMOUTH_PLUGIN_PATH" ]; then
     fi
 fi
 
+
 function usage ()
 {
-  echo "usage: plymouth-set-default-theme { --list | --reset | <theme-name> [ --rebuild-initrd ] }"
+  echo "usage: plymouth-set-default-theme { --list | --reset | <theme-name> [ --rebuild-initrd ] | --help }"
+}
+
+function show_help() {
+  cat <<EOF
+
+    ${0##*/} [opt]
+
+     --help             show this help message
+     --list             show available themes
+     --reset            reset to default theme
+     --rebuild-initrd   rebuild initrd (necessary after changing theme)
+     <theme-name>       name of new theme to use (see --list for available themes)
+
+EOF
 }
 
 function list_themes ()
@@ -39,6 +54,7 @@ function get_default_theme ()
 DO_RESET=0
 DO_INITRD_REBUILD=0
 DO_LIST=0
+DO_HELP=0
 THEME_NAME=""
 while [ $# -gt 0 ]; do
         case "$1" in
@@ -79,6 +95,10 @@ while [ $# -gt 0 ]; do
                 DO_RESET=1
         ;;
 
+	--help)
+		DO_HELP=1
+	;;
+
         *)
                 if [ -n "$THEME_NAME" ]; then
                         echo "You can only specify one theme at a time" > /dev/stderr
@@ -103,6 +123,11 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+
+if [ $DO_HELP -eq 1 ]; then
+        show_help
+	exit $?
+fi
 
 if [ $DO_LIST -ne 0 ]; then
         list_themes

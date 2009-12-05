@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <sys/types.h>
 
 #ifndef MIN
 #define MIN(a,b) ((a) <= (b)? (a) : (b))

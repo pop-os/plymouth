@@ -1,4 +1,4 @@
-SUBDIRS = src themes images scripts
+SUBDIRS = src themes images scripts man
 DISTCHECK_CONFIGURE_FLAGS = --disable-tests --without-system-root-install
 
 EXTRA_DIST = ChangeLog                                                         \

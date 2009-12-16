@@ -243,5 +243,5 @@ AC_OUTPUT([Makefile
            themes/script/Makefile
            images/Makefile
            scripts/Makefile
-	   man/Makefile
+           docs/Makefile
 ])

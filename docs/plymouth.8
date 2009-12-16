@@ -22,9 +22,10 @@ to the new theme and also performs the necessary regeneration of the initial ram
 prior to the mounting of the root filesystem. The options available to this
 script are explained in the \fBOPTIONS\fP paragraph.
 .PP
-In order for plymouth to be loaded during boot, the option `splash'
-(or `rhgb' for backward compatibility with the RHGB boot splash) must be
-provided at the kernel command line.
+In order for the configured default plymouth theme to be loaded during boot,
+the option `splash' (or `rhgb' for backward compatibility with the RHGB boot
+splash) must be provided at the kernel command line.  With this command line
+option, plymouth will default to showing detailed boot output.
 .SH OPTIONS
 plymouth-set-default-theme follows the usual GNU command line syntax, with long
 options starting with two dashes (`-') and short variants of each of them.

@@ -23,11 +23,11 @@ function show_help() {
 Plymouth theme chooser
 $(usage)
 
-  --help             Show this help message
-  --list             Show available themes
-  --reset            Reset to default theme
-  --rebuild-initrd   Rebuild initrd (necessary after changing theme)
-  <theme-name>       Name of new theme to use (see --list for available themes)
+  -h, --help             Show this help message
+  -l, --list             Show available themes
+  -r. --reset            Reset to default theme
+  -R, --rebuild-initrd   Rebuild initrd (necessary after changing theme)
+  <theme-name>           Name of new theme to use (see --list for available themes)
 
 EOF
 }
@@ -58,7 +58,7 @@ THEME_NAME=""
 while [ $# -gt 0 ]; do
         case "$1" in
 
-        --list)
+        -l|--list)
                 if [ -n "$THEME_NAME" ]; then
                         echo "You can only specify --list or a theme name, not both" > /dev/stderr
                         echo $(usage) > /dev/stderr
@@ -74,11 +74,11 @@ while [ $# -gt 0 ]; do
                 DO_LIST=1
         ;;
 
-        --rebuild-initrd)
+        -R|--rebuild-initrd)
                 DO_INITRD_REBUILD=1
         ;;
 
-        --reset|default)
+        -r|--reset|default)
                 if [ -n "$THEME_NAME" ]; then
                         echo "You can only specify --reset or a theme name, not both" > /dev/stderr
                         echo $(usage) > /dev/stderr
@@ -94,7 +94,7 @@ while [ $# -gt 0 ]; do
                 DO_RESET=1
         ;;
 
-        --help)
+        -h|--help)
                 DO_HELP=1
         ;;
 

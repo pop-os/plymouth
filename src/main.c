@@ -771,9 +771,12 @@ on_quit (state_t       *state,
                                    state);
     }
   else if (state->is_inactive && !retain_splash)
-    /* We've been deactivated and X failed to start
-     */
-    dump_details_and_quit_splash (state);
+    {
+      /* We've been deactivated and X failed to start
+       */
+      dump_details_and_quit_splash (state);
+      quit_program (state);
+    }
   else
     quit_program (state);
 }

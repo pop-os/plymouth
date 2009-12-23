@@ -700,8 +700,11 @@ on_boot_splash_idle (state_t *state)
 
   if (state->deactivate_trigger != NULL)
     {
-      ply_trace ("deactivating renderer");
-      ply_renderer_deactivate (state->renderer);
+      if (state->renderer != NULL)
+        {
+          ply_trace ("deactivating renderer");
+          ply_renderer_deactivate (state->renderer);
+        }
 
       ply_trace ("quitting splash");
       quit_splash (state);

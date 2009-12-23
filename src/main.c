@@ -745,8 +745,7 @@ on_deactivate (state_t       *state,
     }
   else
     {
-      ply_trigger_pull (state->deactivate_trigger, NULL);
-      state->deactivate_trigger = NULL;
+      ply_trigger_pull (deactivate_trigger, NULL);
     }
 }
 

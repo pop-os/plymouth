@@ -1,6 +1,6 @@
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/../../../libply                                        \
-           -I$(srcdir)/../../../libplybootsplash                              \
+           -I$(srcdir)/../../../libply-splash-core                            \
            -I$(srcdir)/../../..                                               \
            -I$(srcdir)/../..                                                  \
            -I$(srcdir)/..                                                     \
@@ -18,7 +18,7 @@ space_flares_la_CFLAGS =    $(PLYMOUTH_CFLAGS)                                  
 space_flares_la_LDFLAGS =   -module -avoid-version -export-dynamic
 space_flares_la_LIBADD =    $(PLYMOUTH_LIBS)                                         \
                     ../../../libply/libply.la                                 \
-                    ../../../libplybootsplash/libplybootsplash.la
+                    ../../../libply-splash-core/libply-splash-core.la
 space_flares_la_SOURCES = $(srcdir)/plugin.c
 
 MAINTAINERCLEANFILES = Makefile.in

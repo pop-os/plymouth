@@ -3,10 +3,10 @@ INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/../libply                                              \
            -I$(srcdir)/../plugins/controls
 
-lib_LTLIBRARIES = libplybootsplash.la
+lib_LTLIBRARIES = libply-splash-core.la
 
-libplybootsplashdir = $(includedir)/plymouth-1/plybootsplash
-libplybootsplash_HEADERS = \
+libply_splash_coredir = $(includedir)/plymouth-1/ply-splash-core
+libply_splash_core_HEADERS = \
 		    ply-animation.h                                           \
 		    ply-boot-splash.h                                         \
 		    ply-boot-splash-plugin.h                                  \
@@ -27,18 +27,18 @@ libplybootsplash_HEADERS = \
 		    ply-text-progress-bar.h                                   \
 		    ply-throbber.h
 
-libplybootsplash_la_CFLAGS = $(PLYMOUTH_CFLAGS)                               \
+libply_splash_core_la_CFLAGS = $(PLYMOUTH_CFLAGS)                               \
 			     $(IMAGE_CFLAGS)                                  \
                              -DPLYMOUTH_BACKGROUND_COLOR=$(background_color)   \
                        -DPLYMOUTH_BACKGROUND_END_COLOR=$(background_end_color) \
                        -DPLYMOUTH_BACKGROUND_START_COLOR=$(background_start_color) \
                        -DPLYMOUTH_PLUGIN_PATH=\"$(PLYMOUTH_PLUGIN_PATH)\"
-libplybootsplash_la_LIBADD = $(PLYMOUTH_LIBS) $(IMAGE_LIBS) ../libply/libply.la
-libplybootsplash_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
+libply_splash_core_la_LIBADD = $(PLYMOUTH_LIBS) $(IMAGE_LIBS) ../libply/libply.la
+libply_splash_core_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
 		    -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
 		    -no-undefined
-libplybootsplash_la_SOURCES = \
-		    $(libplybootsplash_HEADERS)                              \
+libply_splash_core_la_SOURCES = \
+		    $(libply_splash_core_HEADERS)                              \
 		    ply-console.c                                            \
 		    ply-entry.c                                              \
 		    ply-image.c                                              \

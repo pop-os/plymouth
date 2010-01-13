@@ -1,6 +1,6 @@
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/../../../libply                                        \
-           -I$(srcdir)/../../../libplybootsplash                              \
+           -I$(srcdir)/../../../libply-splash-core                            \
            -I$(srcdir)/../../..                                               \
            -I$(srcdir)/../..                                                  \
            -I$(srcdir)/..                                                     \
@@ -14,7 +14,7 @@ x11_la_LDFLAGS = -module -avoid-version -export-dynamic
 x11_la_LIBADD = $(PLYMOUTH_LIBS)                             \
                 $(GTK_LIBS)                                  \
                 ../../../libply/libply.la                    \
-                ../../../libplybootsplash/libplybootsplash.la
+                ../../../libply-splash-core/libply-splash-core.la
 x11_la_SOURCES = $(srcdir)/plugin.c
 
 MAINTAINERCLEANFILES = Makefile.in

@@ -20,7 +20,7 @@ Group: Development/Libraries
 Requires: %{name} = %{version}-%{release}
 
 %description libs
-This package contains the libply and libplybootsplash libraries
+This package contains the libply and libply-splash-core libraries
 used by Plymouth.
 
 %package devel
@@ -30,7 +30,7 @@ Requires: %{name} = %{version}-%{release}
 Requires: pkgconfig
 
 %description devel
-This package contains the libply and libplybootsplash libraries
+This package contains the libply and libply-splash-core libraries
 and headers needed to develop 3rd party splash plugins for Plymouth.
 
 %package plugin-fade-in
@@ -131,14 +131,14 @@ fi
 %files devel
 %defattr(-, root, root)
 %{_libdir}/libply.so
-%{_libdir}/libplybootsplash.so
+%{_libdir}/libply-splash-core.so
 %{_libdir}/pkgconfig/plymouth-1.pc
 %{_includedir}/plymouth-1
 
 %files libs
 %defattr(-, root, root)
 %{_libdir}/libply.so.*
-%{_libdir}/libplybootsplash.so.*
+%{_libdir}/libply-splash-core.so.*
 
 %files plugin-fade-in
 %defattr(-, root, root)

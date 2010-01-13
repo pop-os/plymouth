@@ -8,20 +8,20 @@ ply_boot_splash_test_CFLAGS = $(PLYMOUTH_CFLAGS) -DPLY_BOOT_SPLASH_ENABLE_TEST  
 ply_boot_splash_test_LDADD = $(PLYMOUTH_LIBS) ../libply/libply.la
 
 ply_boot_splash_test_SOURCES =                                                   \
-                          $(srcdir)/../libplybootsplash/ply-boot-splash-plugin.h \
-                          $(srcdir)/../libplybootsplash/ply-console.h            \
-                          $(srcdir)/../libplybootsplash/ply-console.c            \
-                          $(srcdir)/../libplybootsplash/ply-keyboard.h           \
-                          $(srcdir)/../libplybootsplash/ply-keyboard.c           \
-                          $(srcdir)/../libplybootsplash/ply-pixel-buffer.h       \
-                          $(srcdir)/../libplybootsplash/ply-pixel-buffer.c       \
-                          $(srcdir)/../libplybootsplash/ply-pixel-display.h      \
-                          $(srcdir)/../libplybootsplash/ply-pixel-display.c      \
-                          $(srcdir)/../libplybootsplash/ply-renderer.h           \
-                          $(srcdir)/../libplybootsplash/ply-renderer.c           \
-                          $(srcdir)/../libplybootsplash/ply-terminal.h           \
-                          $(srcdir)/../libplybootsplash/ply-terminal.c           \
-                          $(srcdir)/../libplybootsplash/ply-text-display.h       \
-                          $(srcdir)/../libplybootsplash/ply-text-display.c       \
-                          $(srcdir)/../libplybootsplash/ply-boot-splash.h        \
-                          $(srcdir)/../libplybootsplash/ply-boot-splash.c
+                          $(srcdir)/../libply-splash-core/ply-boot-splash-plugin.h \
+                          $(srcdir)/../libply-splash-core/ply-console.h            \
+                          $(srcdir)/../libply-splash-core/ply-console.c            \
+                          $(srcdir)/../libply-splash-core/ply-keyboard.h           \
+                          $(srcdir)/../libply-splash-core/ply-keyboard.c           \
+                          $(srcdir)/../libply-splash-core/ply-pixel-buffer.h       \
+                          $(srcdir)/../libply-splash-core/ply-pixel-buffer.c       \
+                          $(srcdir)/../libply-splash-core/ply-pixel-display.h      \
+                          $(srcdir)/../libply-splash-core/ply-pixel-display.c      \
+                          $(srcdir)/../libply-splash-core/ply-renderer.h           \
+                          $(srcdir)/../libply-splash-core/ply-renderer.c           \
+                          $(srcdir)/../libply-splash-core/ply-terminal.h           \
+                          $(srcdir)/../libply-splash-core/ply-terminal.c           \
+                          $(srcdir)/../libply-splash-core/ply-text-display.h       \
+                          $(srcdir)/../libply-splash-core/ply-text-display.c       \
+                          $(srcdir)/../libply-splash-core/ply-boot-splash.h        \
+                          $(srcdir)/../libply-splash-core/ply-boot-splash.c

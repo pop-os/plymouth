@@ -211,7 +211,9 @@ AS_AC_EXPAND(PLYMOUTH_PLUGIN_PATH, $plymouthplugindir)
 AC_OUTPUT([Makefile
            src/libply/Makefile
            src/libply-splash-core/Makefile
+           src/libply-splash-graphics/Makefile
            src/ply-splash-core.pc
+           src/ply-splash-graphics.pc
            src/plugins/Makefile
            src/plugins/renderers/Makefile
            src/plugins/renderers/frame-buffer/Makefile

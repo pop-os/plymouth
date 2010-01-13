@@ -1,4 +1,4 @@
-SUBDIRS = libply libply-splash-core . plugins client viewer tests
+SUBDIRS = libply libply-splash-core libply-splash-graphics . plugins client viewer tests
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/libply                                                 \
            -I$(srcdir)/libply-splash-core                                     \
@@ -14,7 +14,7 @@ plymouthdbin_PROGRAMS = plymouthd
 plymouthd_CFLAGS = $(PLYMOUTH_CFLAGS)                                         \
 		   -DPLYMOUTH_PLUGIN_PATH=\"$(PLYMOUTH_PLUGIN_PATH)\"         \
 		   -DPLYMOUTH_THEME_PATH=\"$(PLYMOUTH_THEME_PATH)/\"
-plymouthd_LDADD = $(PLYMOUTH_LIBS) libply/libply.la libply-splash-core/libply-splash-core.la
+plymouthd_LDADD = $(PLYMOUTH_LIBS) libply/libply.la libply-splash-core/libply-splash-core.la libply-splash-graphics/libply-splash-graphics.la
 plymouthd_SOURCES =                                                            \
                    ply-boot-protocol.h                                        \
                    ply-boot-server.h                                          \
@@ -26,12 +26,12 @@ plymouthdspooldir = $(localstatedir)/spool/plymouth
 plymouthdtimedir = $(localstatedir)/lib/plymouth
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = ply-splash-core.pc
+pkgconfig_DATA = ply-splash-core.pc ply-splash-graphics.pc
 
 install-data-hook:
 	-mkdir -p $(DESTDIR)$(plymouthdrundir)
 	-mkdir -p $(DESTDIR)$(plymouthdspooldir)
 	-mkdir -p $(DESTDIR)$(plymouthdtimedir)
 
-EXTRA_DIST = ply-splash-core.pc.in
+EXTRA_DIST = ply-splash-core.pc.in ply-splash-graphics.pc.in
 MAINTAINERCLEANFILES = Makefile.in

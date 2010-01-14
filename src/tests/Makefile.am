@@ -2,7 +2,7 @@ INCLUDES =                                                                    \
            -I$(top_srcdir)                                                    \
            -I$(srcdir)/..                                                     \
            -I$(srcdir)/../libply                                              \
-           -I$(srcdir)/../libplybootsplash                                    \
+           -I$(srcdir)/../libply-splash-core                                  \
            -I$(srcdir)
 TESTS =
 

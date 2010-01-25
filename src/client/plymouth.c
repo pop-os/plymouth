@@ -186,9 +186,48 @@ on_success (state_t *state)
 }
 
 static void
-on_password_answer_failure (password_answer_state_t *answer_state, ply_boot_client_t *client)
+on_password_answer_failure (password_answer_state_t *answer_state,
+                            ply_boot_client_t       *client)
 {
-  ply_event_loop_exit (answer_state->state->loop, 1);
+  /* plymouthd isn't running for some reason.  If there is a command
+   * to run, we'll run it anyway, because it might be important for
+   * boot up to continue (to decrypt the root partition or whatever)
+   */
+  if (answer_state->command != NULL)
+    {
+      int exit_status;
+      bool command_started;
+
+      exit_status = 127;
+      command_started = false;
+      while (answer_state->number_of_tries_left > 0)
+        {
+          command_started = answer_via_command (answer_state->command, NULL,
+                                                &exit_status);
+
+          if (command_started && WIFEXITED (exit_status) &&
+              WEXITSTATUS (exit_status) == 0)
+            {
+              break;
+            }
+
+          answer_state->number_of_tries_left--;
+        }
+
+      if (command_started && WIFSIGNALED (exit_status))
+        {
+          raise (WTERMSIG (exit_status));
+        }
+      else
+        {
+          ply_event_loop_exit (answer_state->state->loop,
+                               WEXITSTATUS (exit_status));
+        }
+    }
+  else
+    {
+      ply_event_loop_exit (answer_state->state->loop, 1);
+    }
 }
 
 static void

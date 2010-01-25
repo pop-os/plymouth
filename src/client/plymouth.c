@@ -37,11 +37,16 @@
 #include "ply-logger.h"
 #include "ply-utils.h"
 
+#ifndef PLY_MAX_COMMAND_LINE_SIZE
+#define PLY_MAX_COMMAND_LINE_SIZE 512
+#endif
+
 typedef struct
 {
   ply_event_loop_t     *loop;
   ply_boot_client_t    *client;
   ply_command_parser_t *command_parser;
+  char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
 } state_t;
 
 typedef struct
@@ -624,6 +629,32 @@ on_quit_request (state_t    *state,
                                        on_failure, state);
 }
 
+static bool
+get_kernel_command_line (state_t *state)
+{
+  int fd;
+
+  ply_trace ("opening /proc/cmdline");
+  fd = open ("proc/cmdline", O_RDONLY);
+
+  if (fd < 0)
+    {
+      ply_trace ("couldn't open it: %m");
+      return false;
+    }
+
+  ply_trace ("reading kernel command line");
+  if (read (fd, state->kernel_command_line, sizeof (state->kernel_command_line)) < 0)
+    {
+      ply_trace ("couldn't read it: %m");
+      return false;
+    }
+
+  ply_trace ("Kernel command line is: '%s'", state->kernel_command_line);
+  close (fd);
+  return true;
+}
+
 int
 main (int    argc,
       char **argv)
@@ -774,6 +805,13 @@ main (int    argc,
 
       free (help_string);
       return 0;
+    }
+
+  if (get_kernel_command_line (&state))
+    {
+      if (strstr (state.kernel_command_line, "plymouth:debug") != NULL
+          && !ply_is_tracing ())
+        ply_toggle_tracing ();
     }
 
   if (should_be_verbose && !ply_is_tracing ())

@@ -72,6 +72,20 @@ static script_return_t sprite_new (script_state_t *state,
   return script_return_obj (reply);
 }
 
+static script_return_t sprite_get_image (script_state_t *state,
+                                         void           *user_data)
+{
+  script_lib_sprite_data_t *data = user_data;
+  sprite_t *sprite = script_obj_as_native_of_class (state->this, data->class);
+  
+  if (sprite && sprite->image_obj)
+    {
+      script_obj_ref (sprite->image_obj);
+      return script_return_obj (sprite->image_obj);
+    }
+  return script_return_obj_null ();
+}
+
 static script_return_t sprite_set_image (script_state_t *state,
                                          void           *user_data)
 {
@@ -93,6 +107,50 @@ static script_return_t sprite_set_image (script_state_t *state,
     }
   script_obj_unref (script_obj_image);
 
+  return script_return_obj_null ();
+}
+
+static script_return_t sprite_get_x (script_state_t *state,
+                                     void           *user_data)
+{
+  script_lib_sprite_data_t *data = user_data;
+  sprite_t *sprite = script_obj_as_native_of_class (state->this, data->class);
+
+  if (sprite)
+    return script_return_obj (script_obj_new_number (sprite->x));
+  return script_return_obj_null ();
+}
+
+static script_return_t sprite_get_y (script_state_t *state,
+                                     void           *user_data)
+{
+  script_lib_sprite_data_t *data = user_data;
+  sprite_t *sprite = script_obj_as_native_of_class (state->this, data->class);
+
+  if (sprite)
+    return script_return_obj (script_obj_new_number (sprite->y));
+  return script_return_obj_null ();
+}
+
+static script_return_t sprite_get_z (script_state_t *state,
+                                     void           *user_data)
+{
+  script_lib_sprite_data_t *data = user_data;
+  sprite_t *sprite = script_obj_as_native_of_class (state->this, data->class);
+
+  if (sprite)
+    return script_return_obj (script_obj_new_number (sprite->z));
+  return script_return_obj_null ();
+}
+
+static script_return_t sprite_get_opacity (script_state_t *state,
+                                           void           *user_data)
+{
+  script_lib_sprite_data_t *data = user_data;
+  sprite_t *sprite = script_obj_as_native_of_class (state->this, data->class);
+
+  if (sprite)
+    return script_return_obj (script_obj_new_number (sprite->opacity));
   return script_return_obj_null ();
 }
 
@@ -460,10 +518,20 @@ script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
                               data,
                               NULL);
   script_add_native_function (sprite_hash,
+                              "GetImage",
+                              sprite_get_image,
+                              data,
+                              NULL);
+  script_add_native_function (sprite_hash,
                               "SetImage",
                               sprite_set_image,
                               data,
                               "image",
+                              NULL);
+  script_add_native_function (sprite_hash,
+                              "GetX",
+                              sprite_get_x,
+                              data,
                               NULL);
   script_add_native_function (sprite_hash,
                               "SetX",
@@ -472,16 +540,31 @@ script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
                               "value",
                               NULL);
   script_add_native_function (sprite_hash,
+                              "GetY",
+                              sprite_get_y,
+                              data,
+                              NULL);
+  script_add_native_function (sprite_hash,
                               "SetY",
                               sprite_set_y,
                               data,
                               "value",
                               NULL);
   script_add_native_function (sprite_hash,
+                              "GetZ",
+                              sprite_get_z,
+                              data,
+                              NULL);
+  script_add_native_function (sprite_hash,
                               "SetZ",
                               sprite_set_z,
                               data,
                               "value",
+                              NULL);
+  script_add_native_function (sprite_hash,
+                              "GetOpacity",
+                              sprite_get_opacity,
+                              data,
                               NULL);
   script_add_native_function (sprite_hash,
                               "SetOpacity",

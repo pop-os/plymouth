@@ -61,11 +61,6 @@ static script_return_t script_lib_math_random (script_state_t *state,
   return script_return_obj (script_obj_new_number (reply_double));
 }
 
-static double double_to_int (double value)
-{
-  return (double) (int) value;
-}
-
 script_lib_math_data_t *script_lib_math_setup (script_state_t *state)
 {
   script_lib_math_data_t *data = malloc (sizeof (script_lib_math_data_t));
@@ -105,7 +100,7 @@ script_lib_math_data_t *script_lib_math_setup (script_state_t *state)
   script_add_native_function (math_hash,
                               "Int",
                               script_lib_math_double_from_double_function,
-                              double_to_int,
+                              floor,
                               "value",
                               NULL);
   script_add_native_function (math_hash,

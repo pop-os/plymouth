@@ -661,6 +661,7 @@ main (int    argc,
 {
   state_t state = { 0 };
   bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash, should_wait, should_be_verbose, report_error, should_get_plugin_path;
+  bool is_connected;
   char *status, *chroot_dir, *ignore_keystroke;
   int exit_code;
 
@@ -823,24 +824,12 @@ main (int    argc,
       return 0;
     }
 
-  if (!ply_boot_client_connect (state.client,
-                                (ply_boot_client_disconnect_handler_t)
-                                on_disconnect, &state))
+  is_connected = ply_boot_client_connect (state.client,
+                                          (ply_boot_client_disconnect_handler_t)
+                                          on_disconnect, &state);
+  if (!is_connected && should_ping)
     {
-      if (should_ping)
-         return 1;
-
-#if 0
-      ply_save_errno ();
-
-      if (errno == ECONNREFUSED)
-        ply_error ("error: boot status daemon not running "
-                   "(use --ping to check ahead of time)");
-      else
-        ply_error ("could not connect to boot status daemon: %m");
-      ply_restore_errno ();
-#endif
-      return errno;
+      return 1;
     }
 
   ply_boot_client_attach_to_event_loop (state.client, state.loop);

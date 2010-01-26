@@ -888,7 +888,7 @@ on_keyboard_input (state_t                  *state,
       if (character_size == 1 && ( keyboard_input[0] == '\x3' || keyboard_input[0] == '\x4' ))
         {
           ply_entry_trigger_t* entry_trigger = ply_list_node_get_data (node);
-          ply_trigger_pull (entry_trigger->trigger, NULL);
+          ply_trigger_pull (entry_trigger->trigger, "\x3");
           ply_buffer_clear (state->entry_buffer);
           ply_list_remove_node (state->entry_triggers, node);
           free (entry_trigger);

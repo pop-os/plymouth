@@ -41,6 +41,8 @@
 #define PLY_MAX_COMMAND_LINE_SIZE 512
 #endif
 
+#define KEY_CTRL_C ('\100' ^'C')
+
 typedef struct
 {
   ply_event_loop_t     *loop;
@@ -248,7 +250,7 @@ on_password_answer (password_answer_state_t   *answer_state,
   int exit_status;
 
   exit_status = 127;
-  if (answer != NULL)  /* a NULL answer means the user quit */
+  if (answer != NULL && answer[0] != KEY_CTRL_C)  /* a CTRL-C answer means the user canceled */
     {
       if (answer_state->command != NULL)
         {

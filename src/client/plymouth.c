@@ -125,6 +125,9 @@ answer_via_command (char           *command,
   pid_t pid;
   int command_input_sender_fd, command_input_receiver_fd;
 
+
+  ply_trace ("running command '%s'", command);
+
   /* answer may be NULL which means,
    * "The daemon can't ask the user questions,
    *   do all the prompting from the client"
@@ -189,6 +192,8 @@ static void
 on_password_answer_failure (password_answer_state_t *answer_state,
                             ply_boot_client_t       *client)
 {
+  ply_trace ("password answer failure");
+
   /* plymouthd isn't running for some reason.  If there is a command
    * to run, we'll run it anyway, because it might be important for
    * boot up to continue (to decrypt the root partition or whatever)
@@ -197,6 +202,8 @@ on_password_answer_failure (password_answer_state_t *answer_state,
     {
       int exit_status;
       bool command_started;
+
+      ply_trace ("daemon not available, running command on our own");
 
       exit_status = 127;
       command_started = false;
@@ -208,14 +215,17 @@ on_password_answer_failure (password_answer_state_t *answer_state,
           if (command_started && WIFEXITED (exit_status) &&
               WEXITSTATUS (exit_status) == 0)
             {
+              ply_trace ("command was successful");
               break;
             }
 
+          ply_trace ("command failed");
           answer_state->number_of_tries_left--;
         }
 
       if (command_started && WIFSIGNALED (exit_status))
         {
+          ply_trace ("command died with signal %s", strsignal (WTERMSIG (exit_status)));
           raise (WTERMSIG (exit_status));
         }
       else
@@ -371,22 +381,31 @@ on_multiple_password_answers (password_answer_state_t     *answer_state,
 
   assert (answer_state->command != NULL);
 
+  ply_trace ("on multiple password answers");
+
   need_to_ask_user = true;
 
   if (answers != NULL)
-    for (i = 0; answers[i] != NULL; i++)
-      {
-        bool command_started;
-        exit_status = 127;
-        command_started = answer_via_command (answer_state->command, answers[i],
-                                              &exit_status);
-        if (command_started && WIFEXITED (exit_status) &&
-            WEXITSTATUS (exit_status) == 0)
-          {
-            need_to_ask_user = false;
-            break;
-          }
-      }
+    {
+      ply_trace ("daemon has a few candidate passwords for us to try");
+      for (i = 0; answers[i] != NULL; i++)
+        {
+          bool command_started;
+          exit_status = 127;
+          command_started = answer_via_command (answer_state->command, answers[i],
+                                                &exit_status);
+          if (command_started && WIFEXITED (exit_status) &&
+              WEXITSTATUS (exit_status) == 0)
+            {
+              need_to_ask_user = false;
+              break;
+            }
+        }
+    }
+  else
+    {
+      ply_trace ("daemon has no candidate passwords for us to try");
+    }
 
   if (need_to_ask_user)
     {
@@ -419,6 +438,7 @@ on_disconnect (state_t *state)
       status = 2;
   }
 
+  ply_trace ("disconnect");
   ply_event_loop_exit (state->loop, status);
 }
 
@@ -426,6 +446,9 @@ static void
 on_password_request_execute (password_answer_state_t *password_answer_state,
                              ply_boot_client_t       *client)
 {
+  ply_trace ("executing password request (command %s)",
+             password_answer_state->command);
+
   if (password_answer_state->command != NULL)
     {
       ply_boot_client_ask_daemon_for_cached_passwords (client,
@@ -459,7 +482,8 @@ on_password_request (state_t    *state,
   program = NULL;
   number_of_tries = 0;
   dont_pause = false;
-  
+
+  ply_trace ("Password request");
   ply_command_parser_get_command_options (state->command_parser,
                                           command,
                                           "command", &program,
@@ -866,9 +890,15 @@ main (int    argc,
   is_connected = ply_boot_client_connect (state.client,
                                           (ply_boot_client_disconnect_handler_t)
                                           on_disconnect, &state);
-  if (!is_connected && should_ping)
+  if (!is_connected)
     {
-      return 1;
+      ply_trace ("daemon not running");
+
+      if (should_ping)
+        {
+          ply_trace ("ping failed");
+          return 1;
+        }
     }
 
   ply_boot_client_attach_to_event_loop (state.client, state.loop);

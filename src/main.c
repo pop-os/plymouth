@@ -251,8 +251,17 @@ on_ask_for_password (state_t      *state,
                      const char   *prompt,
                      ply_trigger_t *answer)
 {
-  ply_entry_trigger_t *entry_trigger =
-                                  calloc (1, sizeof (ply_entry_trigger_t));
+  ply_entry_trigger_t *entry_trigger;
+
+  /* No splash, client will have to get password
+   */
+  if (state->boot_splash == NULL)
+    {
+      ply_trigger_pull (answer, NULL);
+      return;
+    }
+
+  entry_trigger = calloc (1, sizeof (ply_entry_trigger_t));
   entry_trigger->type = PLY_ENTRY_TRIGGER_TYPE_PASSWORD;
   entry_trigger->prompt = prompt;
   entry_trigger->trigger = answer;
@@ -265,8 +274,9 @@ on_ask_question (state_t      *state,
                  const char   *prompt,
                  ply_trigger_t *answer)
 {
-  ply_entry_trigger_t *entry_trigger =
-                                  calloc (1, sizeof (ply_entry_trigger_t));
+  ply_entry_trigger_t *entry_trigger;
+
+  entry_trigger = calloc (1, sizeof (ply_entry_trigger_t));
   entry_trigger->type = PLY_ENTRY_TRIGGER_TYPE_QUESTION;
   entry_trigger->prompt = prompt;
   entry_trigger->trigger = answer;

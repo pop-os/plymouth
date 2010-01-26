@@ -283,6 +283,10 @@ on_password_answer (password_answer_state_t   *answer_state,
           exit_status = 0;
         }
     }
+  else if (answer == NULL)
+    {
+      on_password_answer_failure (answer_state, answer_state->state->client);
+    }
 
   if (WIFSIGNALED (exit_status))
     raise (WTERMSIG (exit_status));

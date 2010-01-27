@@ -3,7 +3,13 @@ INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)/../libply                                              \
            -I$(srcdir)/../plugins/controls
 
-lib_LTLIBRARIES = libply-splash-core.la
+if WITH_SYSTEM_ROOT_INSTALL
+librarydir = $(libdir:/usr%=%)
+else
+librarydir = $(libdir)
+endif
+
+library_LTLIBRARIES = libply-splash-core.la
 
 libply_splash_coredir = $(includedir)/plymouth-1/ply-splash-core
 libply_splash_core_HEADERS = \

@@ -95,6 +95,8 @@ struct _ply_keyboard
   ply_list_t *enter_handler_list;
 };
 
+static bool ply_keyboard_watch_for_terminal_input (ply_keyboard_t *keyboard);
+
 ply_keyboard_t *
 ply_keyboard_new_for_terminal (ply_terminal_t *terminal)
 {
@@ -340,6 +342,15 @@ on_terminal_data (ply_keyboard_t *keyboard)
   on_key_event (keyboard, keyboard->provider.if_terminal->key_buffer);
 }
 
+static void
+on_terminal_disconnected (ply_keyboard_t *keyboard)
+{
+  ply_trace ("keyboard input terminal watch invalidated, rewatching");
+  keyboard->provider.if_terminal->input_watch = NULL;
+
+  ply_keyboard_watch_for_terminal_input (keyboard);
+}
+
 static bool
 ply_keyboard_watch_for_terminal_input (ply_keyboard_t *keyboard)
 {
@@ -349,7 +360,9 @@ ply_keyboard_watch_for_terminal_input (ply_keyboard_t *keyboard)
 
   terminal_fd = ply_terminal_get_fd (keyboard->provider.if_terminal->terminal);
   keyboard->provider.if_terminal->input_watch = ply_event_loop_watch_fd (keyboard->loop, terminal_fd, PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
-                                                                          (ply_event_handler_t) on_terminal_data, NULL, keyboard);
+                                                                         (ply_event_handler_t) on_terminal_data,
+                                                                         (ply_event_handler_t) on_terminal_disconnected,
+                                                                         keyboard);
 
   return true;
 }

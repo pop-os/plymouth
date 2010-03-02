@@ -1525,9 +1525,9 @@ on_crash (int signum)
 
     if (pid_file != NULL)
       {
-	unlink (pid_file);
-	free (pid_file);
-	pid_file = NULL;
+        unlink (pid_file);
+        free (pid_file);
+        pid_file = NULL;
       }
 
     signal (signum, SIG_DFL);
@@ -1558,7 +1558,7 @@ main (int    argc,
                                   "debug", "Output debugging information", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "debug-file", "File to output debugging information to", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "mode", "Mode is one of: boot, shutdown", PLY_COMMAND_OPTION_TYPE_STRING,
-				  "pid-file", "Write the pid of the daemon to a file", PLY_COMMAND_OPTION_TYPE_STRING,
+                                  "pid-file", "Write the pid of the daemon to a file", PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
   if (!ply_command_parser_parse_arguments (state.command_parser, state.loop, argv, argc))
@@ -1580,7 +1580,7 @@ main (int    argc,
                                   "no-daemon", &no_daemon,
                                   "debug", &debug,
                                   "debug-file", &debug_buffer_path,
-				  "pid-file", &pid_file,
+                                  "pid-file", &pid_file,
                                   NULL);
 
   if (should_help)

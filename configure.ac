@@ -230,6 +230,7 @@ AC_OUTPUT([Makefile
            src/plugins/controls/Makefile
            src/plugins/controls/label/Makefile
            src/Makefile
+           src/client/ply-boot-client.pc
            src/client/Makefile
            src/viewer/Makefile
            src/tests/Makefile

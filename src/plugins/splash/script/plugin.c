@@ -308,19 +308,6 @@ on_keyboard_input (ply_boot_splash_plugin_t *plugin,
 }
 
 static void
-on_draw (ply_boot_splash_plugin_t *plugin,
-         ply_pixel_buffer_t       *pixel_buffer,
-         int                       x,
-         int                       y,
-         int                       width,
-         int                       height)
-{
-  script_lib_sprite_draw_area (plugin->script_sprite_lib,
-                               pixel_buffer,
-                               x, y, width, height);
-}
-
-static void
 set_keyboard (ply_boot_splash_plugin_t *plugin,
               ply_keyboard_t           *keyboard)
 {

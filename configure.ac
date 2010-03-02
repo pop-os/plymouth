@@ -208,6 +208,10 @@ AS_AC_EXPAND(PLYMOUTH_THEME_PATH, $plymouththemedir)
 plymouthplugindir=$libdir/plymouth/
 AS_AC_EXPAND(PLYMOUTH_PLUGIN_PATH, $plymouthplugindir)
 
+AS_AC_EXPAND(PLYMOUTH_LIBDIR, $libdir)
+AS_AC_EXPAND(PLYMOUTH_LIBEXECDIR, $libexecdir)
+AS_AC_EXPAND(PLYMOUTH_DATADIR, $datadir)
+
 AC_OUTPUT([Makefile
            src/libply/Makefile
            src/libply-splash-core/Makefile
@@ -245,6 +249,9 @@ AC_OUTPUT([Makefile
            themes/glow/Makefile
            themes/script/Makefile
            images/Makefile
+	   scripts/plymouth-generate-initrd
+	   scripts/plymouth-populate-initrd
+	   scripts/plymouth-set-default-theme
            scripts/Makefile
            docs/Makefile
 ])

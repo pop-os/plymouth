@@ -2,14 +2,14 @@
 
 set -e
 
-[ -z "$LIBEXECDIR" ] && LIBEXECDIR="/usr/libexec"
-[ -z "$DATADIR" ] && DATADIR="/usr/share"
+[ -z "$PLYMOUTH_LIBEXECDIR" ] && PLYMOUTH_LIBEXECDIR="@PLYMOUTH_LIBEXECDIR@"
+[ -z "$PLYMOUTH_DATADIR" ] && PLYMOUTH_DATADIR="@PLYMOUTH_DATADIR@"
 if [ -z "$PLYMOUTH_PLUGIN_PATH" ]; then
     if [ -z "$LIB" ]; then
         PLYMOUTH_PLUGIN_PATH="$(plymouth --get-splash-plugin-path)"
     else
-        [ -z "$LIBDIR" ] && LIBDIR="/usr/$LIB"
-        PLYMOUTH_PLUGIN_PATH=${LIBDIR}/plymouth/
+        [ -z "$PLYMOUTH_LIBDIR" ] && PLYMOUTH_LIBDIR="@PLYMOUTH_LIBDIR@"
+        PLYMOUTH_PLUGIN_PATH=${PLYMOUTH_LIBDIR}/plymouth/
     fi
 fi
 
@@ -34,7 +34,7 @@ EOF
 
 function list_themes ()
 {
-        for theme in ${DATADIR}/plymouth/themes/*/*.plymouth; do
+        for theme in ${PLYMOUTH_DATADIR}/plymouth/themes/*/*.plymouth; do
                 [ -f $theme ] || continue;
                 echo "$(basename $theme .plymouth)"
         done
@@ -42,10 +42,10 @@ function list_themes ()
 
 function get_default_theme ()
 {
-        THEME_NAME=$(basename $(readlink ${DATADIR}/plymouth/themes/default.plymouth) .plymouth)
+        THEME_NAME=$(basename $(readlink ${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth) .plymouth)
         if [ "$THEME_NAME" = ".plymouth" ]; then
                 $0 --reset
-                THEME_NAME=$(basename $(readlink ${DATADIR}/plymouth/themes/default.plymouth) .plymouth)
+                THEME_NAME=$(basename $(readlink ${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth) .plymouth)
         fi
         [ "$THEME_NAME" = ".so" ] || echo $THEME_NAME && exit 1
 }
@@ -144,27 +144,27 @@ if [ `id -u` -ne 0 ]; then
 fi
 
 if [ $DO_RESET -ne 0 ]; then
-        THEME_NAME=$(basename $(ls -1 -t ${DATADIR}/plymouth/themes/*/*.plymouth 2> /dev/null | tail -n 1) .plymouth)
+        THEME_NAME=$(basename $(ls -1 -t ${PLYMOUTH_DATADIR}/plymouth/themes/*/*.plymouth 2> /dev/null | tail -n 1) .plymouth)
         if [ $THEME_NAME = .plymouth ]; then
-                rm -f ${DATADIR}/plymouth/themes/default.plymouth
+                rm -f ${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth
                 exit 0
         fi
 fi
 
-if [ ! -e ${DATADIR}/plymouth/themes/${THEME_NAME}/${THEME_NAME}.plymouth ]; then
-        echo "${DATADIR}/plymouth/themes/${THEME_NAME}/${THEME_NAME}.plymouth does not exist" > /dev/stderr
+if [ ! -e ${PLYMOUTH_DATADIR}/plymouth/themes/${THEME_NAME}/${THEME_NAME}.plymouth ]; then
+        echo "${PLYMOUTH_DATADIR}/plymouth/themes/${THEME_NAME}/${THEME_NAME}.plymouth does not exist" > /dev/stderr
         exit 1
 fi
 
-MODULE_NAME=$(grep "ModuleName *= *" ${DATADIR}/plymouth/themes/${THEME_NAME}/${THEME_NAME}.plymouth | sed 's/ModuleName *= *//')
+MODULE_NAME=$(grep "ModuleName *= *" ${PLYMOUTH_DATADIR}/plymouth/themes/${THEME_NAME}/${THEME_NAME}.plymouth | sed 's/ModuleName *= *//')
 
 if [ ! -e ${PLYMOUTH_PLUGIN_PATH}${MODULE_NAME}.so ]; then
         echo "${PLYMOUTH_PLUGIN_PATH}${MODULE_NAME}.so does not exist" > /dev/stderr
         exit 1
 fi
 
-(cd ${DATADIR}/plymouth/themes;
+(cd ${PLYMOUTH_DATADIR}/plymouth/themes;
         ln -sf ${THEME_NAME}/${THEME_NAME}.plymouth default.plymouth && \
         ([ $DO_INITRD_REBUILD -ne 0 ] && \
-           $LIBEXECDIR/plymouth/plymouth-update-initrd) || :)
+           ${PLYMOUTH_LIBEXECDIR}/plymouth/plymouth-update-initrd) || :)
 

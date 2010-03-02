@@ -98,7 +98,7 @@ bool ply_create_file_link (const char *source,
                            const char *destination);
 void ply_show_new_kernel_messages (bool should_show);
 
-ply_daemon_handle_t *ply_create_daemon (void);
+ply_daemon_handle_t *ply_create_daemon (const char *pid_file);
 bool ply_detach_daemon (ply_daemon_handle_t *handle,
                         int                  exit_code);
 

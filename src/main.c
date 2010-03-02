@@ -134,6 +134,7 @@ static void on_error_message (ply_buffer_t *debug_buffer,
                               size_t        number_of_bytes);
 static ply_buffer_t *debug_buffer;
 static char *debug_buffer_path = NULL;
+static char *pid_file = NULL;
 static void check_for_consoles (state_t    *state,
                                 const char *default_tty,
                                 bool        should_add_displays);
@@ -687,6 +688,13 @@ quit_program (state_t *state)
 {
   ply_trace ("exiting event loop");
   ply_event_loop_exit (state->loop, 0);
+
+  if (pid_file != NULL)
+    {
+      unlink (pid_file);
+      free (pid_file);
+      pid_file = NULL;
+    }
 
 #ifdef PLY_ENABLE_GDM_TRANSITION
   if (state->should_retain_splash)
@@ -1515,6 +1523,13 @@ on_crash (int signum)
         pause ();
       }
 
+    if (pid_file != NULL)
+      {
+	unlink (pid_file);
+	free (pid_file);
+	pid_file = NULL;
+      }
+
     signal (signum, SIG_DFL);
     raise(signum);
 }
@@ -1543,6 +1558,7 @@ main (int    argc,
                                   "debug", "Output debugging information", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "debug-file", "File to output debugging information to", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "mode", "Mode is one of: boot, shutdown", PLY_COMMAND_OPTION_TYPE_STRING,
+				  "pid-file", "Write the pid of the daemon to a file", PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
   if (!ply_command_parser_parse_arguments (state.command_parser, state.loop, argv, argc))
@@ -1564,6 +1580,7 @@ main (int    argc,
                                   "no-daemon", &no_daemon,
                                   "debug", &debug,
                                   "debug-file", &debug_buffer_path,
+				  "pid-file", &pid_file,
                                   NULL);
 
   if (should_help)
@@ -1605,7 +1622,7 @@ main (int    argc,
 
   if (! no_daemon)
     {
-      daemon_handle = ply_create_daemon ();
+      daemon_handle = ply_create_daemon (pid_file);
 
       if (daemon_handle == NULL)
         {

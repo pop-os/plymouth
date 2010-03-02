@@ -27,6 +27,7 @@ aclocal.m4
 stamp-*
 *.rpm
 plymouth
+plymouth-generate-initrd
 plymouth-populate-initrd
 plymouth-set-default-theme
 plymouth-log-viewer

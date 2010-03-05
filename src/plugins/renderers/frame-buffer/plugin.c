@@ -70,6 +70,7 @@ struct _ply_renderer_head
 
 struct _ply_renderer_input_source
 {
+  ply_renderer_backend_t *backend;
   ply_fd_watch_t *terminal_input_watch;
 
   ply_buffer_t   *key_buffer;
@@ -118,6 +119,8 @@ struct _ply_renderer_backend
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
 static void ply_renderer_head_redraw (ply_renderer_backend_t *backend,
                                       ply_renderer_head_t    *head);
+static bool open_input_source (ply_renderer_backend_t      *backend,
+                               ply_renderer_input_source_t *input_source);
 
 static inline uint_fast32_t
 argb32_pixel_value_to_device_pixel_value (ply_renderer_backend_t *backend,
@@ -626,6 +629,13 @@ on_key_event (ply_renderer_input_source_t *input_source,
 
 }
 
+static void
+on_input_source_disconnected (ply_renderer_input_source_t *input_source)
+{
+  ply_trace ("input source disconnected, reopening");
+  open_input_source (input_source->backend, input_source);
+}
+
 static bool
 open_input_source (ply_renderer_backend_t      *backend,
                    ply_renderer_input_source_t *input_source)
@@ -637,9 +647,11 @@ open_input_source (ply_renderer_backend_t      *backend,
 
   terminal_fd = ply_terminal_get_fd (backend->terminal);
 
+  input_source->backend = backend;
   input_source->terminal_input_watch = ply_event_loop_watch_fd (backend->loop, terminal_fd, PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
                                                                 (ply_event_handler_t) on_key_event,
-                                                                NULL, input_source);
+                                                                (ply_event_handler_t) on_input_source_disconnected,
+                                                                input_source);
   return true;
 }
 
@@ -665,6 +677,7 @@ close_input_source (ply_renderer_backend_t      *backend,
 
   ply_event_loop_stop_watching_fd (backend->loop, input_source->terminal_input_watch);
   input_source->terminal_input_watch = NULL;
+  input_source->backend = NULL;
 }
 
 ply_renderer_plugin_interface_t *

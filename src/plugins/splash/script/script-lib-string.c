@@ -25,6 +25,7 @@
 #include "script-execute.h"
 #include "script-object.h"
 #include "script-lib-string.h"
+#include "ply-utils.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,6 +63,38 @@ static script_return_t script_lib_string_char_at (script_state_t *state,
   return script_return_obj(script_obj_new_string (charstring));
 }
 
+static script_return_t script_lib_string_sub_string (script_state_t *state,
+                                                     void           *user_data)
+{
+  char *text = script_obj_as_string (state->this);
+  int start = script_obj_hash_get_number (state->local, "start");
+  int end = script_obj_hash_get_number (state->local, "end");
+  int text_count;
+  char* substring;
+  script_obj_t *substring_obj;
+
+  if (!text || start < 0 || end < start)
+    {
+      free (text);
+      return script_return_obj_null ();
+    }
+
+  for (text_count = 0; text_count < start; text_count++)
+    {
+      if (text[text_count] == '\0')
+        {
+          free (text);
+          return script_return_obj(script_obj_new_string (""));
+        }
+    }
+
+  substring = strndup(&text[text_count], end - start);
+  substring_obj = script_obj_new_string (substring);
+  free (substring);
+  free (text);
+  return script_return_obj(substring_obj);
+}
+
 script_lib_string_data_t *script_lib_string_setup (script_state_t *state)
 {
   script_lib_string_data_t *data = malloc (sizeof (script_lib_string_data_t));
@@ -72,6 +105,13 @@ script_lib_string_data_t *script_lib_string_setup (script_state_t *state)
                               script_lib_string_char_at,
                               NULL,
                               "index",
+                              NULL);
+  script_add_native_function (string_hash,
+                              "SubString",
+                              script_lib_string_sub_string,
+                              NULL,
+                              "start",
+                              "end",
                               NULL);
   script_obj_unref (string_hash);
   data->script_main_op = script_parse_string (script_lib_string_string, "script-lib-string.script");

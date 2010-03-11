@@ -1185,6 +1185,7 @@ start_boot_splash (state_t    *state,
   if (!ply_boot_splash_show (splash, splash_mode))
     {
       ply_save_errno ();
+      ply_boot_splash_unset_keyboard (splash);
       ply_boot_splash_free (splash);
       ply_restore_errno ();
       return NULL;

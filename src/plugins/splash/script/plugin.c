@@ -348,6 +348,12 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 {
   assert (plugin != NULL);
 
+  if (ply_list_get_length (plugin->displays) == 0)
+    {
+      ply_trace ("no pixel displays");
+      return false;
+    }
+
   plugin->loop = loop;
   plugin->mode = mode;
 

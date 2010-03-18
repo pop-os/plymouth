@@ -786,14 +786,19 @@ on_quit (state_t       *state,
          bool           retain_splash,
          ply_trigger_t *quit_trigger)
 {
+  if (state->quit_trigger != NULL)
+    {
+      ply_trigger_pull (quit_trigger, NULL);
+      return;
+    }
+
+  state->quit_trigger = quit_trigger;
+  state->should_retain_splash = retain_splash;
+
   ply_trace ("time to quit, closing log");
   if (state->session != NULL)
     ply_terminal_session_close_log (state->session);
   ply_trace ("unloading splash");
-
-  state->should_retain_splash = retain_splash;
-
-  state->quit_trigger = quit_trigger;
 
   if (state->boot_splash != NULL)
     {

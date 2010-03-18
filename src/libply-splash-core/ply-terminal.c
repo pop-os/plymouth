@@ -292,7 +292,7 @@ ply_terminal_check_for_vt (ply_terminal_t *terminal)
   major_number = major (file_attributes.st_rdev);
   minor_number = minor (file_attributes.st_rdev);
 
-  if (major_number == TTY_MAJOR)
+  if ((major_number == TTY_MAJOR) && (minor_number <= MAX_NR_CONSOLES))
     terminal->vt_number = minor_number;
   else
     terminal->vt_number = -1;

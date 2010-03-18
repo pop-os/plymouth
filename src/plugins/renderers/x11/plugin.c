@@ -85,7 +85,7 @@ struct _ply_renderer_backend
 
   ply_fd_watch_t *display_watch;
 
-  uint32_t is_inactive : 1;
+  uint32_t is_active : 1;
 };
 
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
@@ -269,6 +269,9 @@ map_to_device (ply_renderer_backend_t *backend)
       ply_renderer_head_redraw (backend, head);
       node = next_node;
     }
+
+  backend->is_active = true;
+
   return true;
 }
 
@@ -301,13 +304,13 @@ unmap_from_device (ply_renderer_backend_t *backend)
 static void
 activate (ply_renderer_backend_t *backend)
 {
-  backend->is_inactive = false;
+  backend->is_active = true;
 }
 
 static void
 deactivate (ply_renderer_backend_t *backend)
 {
-  backend->is_inactive = true;
+  backend->is_active = false;
 }
 
 static void
@@ -341,7 +344,7 @@ flush_head (ply_renderer_backend_t *backend,
 
   assert (backend != NULL);
 
-  if (backend->is_inactive)
+  if (!backend->is_active)
     return;
 
   pixel_buffer = head->pixel_buffer;

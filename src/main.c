@@ -578,6 +578,9 @@ on_show_splash (state_t *state)
 {
   bool has_display;
 
+  if (state->is_inactive)
+    return;
+
   if (plymouth_should_ignore_show_splash_calls (state))
     {
       dump_details_and_quit_splash (state);

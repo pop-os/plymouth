@@ -735,9 +735,10 @@ deactivate_splash (state_t *state)
   ply_trace ("quitting splash");
   quit_splash (state);
 
+  state->is_inactive = true;
+
   ply_trigger_pull (state->deactivate_trigger, NULL);
   state->deactivate_trigger = NULL;
-  state->is_inactive = true;
 }
 
 static void
@@ -795,8 +796,8 @@ on_deactivate (state_t       *state,
     }
   else
     {
-      ply_trigger_pull (state->deactivate_trigger, NULL);
-      state->deactivate_trigger = NULL;
+      ply_trace ("deactivating splash");
+      deactivate_splash (state);
     }
 }
 

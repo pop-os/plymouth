@@ -1038,14 +1038,12 @@ static void
 display_normal (ply_boot_splash_plugin_t *plugin)
 {
   pause_views (plugin);
-  if (plugin->state ==  PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY ||
-      plugin->state ==  PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY)
-    {
-      plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
-      hide_prompt (plugin);
-      start_animation (plugin);
-      redraw_views (plugin);
-    }
+  if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_NORMAL)
+    hide_prompt (plugin);
+
+  plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
+  start_animation (plugin);
+  redraw_views (plugin);
   unpause_views (plugin);
 }
 

@@ -26,7 +26,6 @@
 #include <stdint.h>
 
 #include "ply-buffer.h"
-#include "ply-console.h"
 #include "ply-list.h"
 #include "ply-pixel-buffer.h"
 #include "ply-terminal.h"
@@ -41,9 +40,8 @@ typedef void (* ply_renderer_input_source_handler_t) (void                      
                                                       ply_renderer_input_source_t *input_source);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-ply_renderer_t *ply_renderer_new (const char    *device_name,
-                                  ply_terminal_t *terminal,
-                                  ply_console_t *console);
+ply_renderer_t *ply_renderer_new (const char    * device_name,
+                                  ply_terminal_t *terminal);
 void ply_renderer_free (ply_renderer_t *renderer);
 bool ply_renderer_open (ply_renderer_t *renderer);
 void ply_renderer_close (ply_renderer_t *renderer);

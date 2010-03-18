@@ -28,7 +28,7 @@
 
 #include "ply-event-loop.h"
 #include "ply-buffer.h"
-#include "ply-console.h"
+#include "ply-terminal.h"
 #include "ply-keyboard.h"
 #include "ply-pixel-display.h"
 #include "ply-text-display.h"
@@ -41,10 +41,10 @@ typedef struct _ply_boot_splash ply_boot_splash_t;
 typedef void (* ply_boot_splash_on_idle_handler_t) (void *user_data);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-ply_boot_splash_t *ply_boot_splash_new (const char   *theme_path,
-                                        const char   *plugin_dir,
-                                        ply_buffer_t *boot_buffer,
-                                        ply_console_t *console);
+ply_boot_splash_t *ply_boot_splash_new (const char   *  theme_path,
+                                        const char   *  plugin_dir,
+                                        ply_buffer_t *  boot_buffer,
+                                        ply_terminal_t *terminal);
 bool ply_boot_splash_load (ply_boot_splash_t *splash);
 void ply_boot_splash_unload (ply_boot_splash_t *splash);
 void ply_boot_splash_set_keyboard (ply_boot_splash_t *splash,

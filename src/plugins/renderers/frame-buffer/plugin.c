@@ -82,7 +82,6 @@ struct _ply_renderer_input_source
 struct _ply_renderer_backend
 {
   ply_event_loop_t *loop;
-  ply_console_t *console;
   ply_terminal_t *terminal;
 
   char *device_name;
@@ -245,8 +244,7 @@ flush_area_to_xrgb32_device (ply_renderer_backend_t *backend,
 
 static ply_renderer_backend_t *
 create_backend (const char *device_name,
-                ply_terminal_t *terminal,
-                ply_console_t *console)
+                ply_terminal_t *terminal)
 {
   ply_renderer_backend_t *backend;
 
@@ -263,7 +261,6 @@ create_backend (const char *device_name,
   backend->loop = ply_event_loop_get_default ();
   backend->heads = ply_list_new ();
   backend->input_source.key_buffer = ply_buffer_new ();
-  backend->console = console;
   backend->terminal = terminal;
 
   return backend;
@@ -323,7 +320,7 @@ deactivate (ply_renderer_backend_t *backend)
 static void
 on_active_vt_changed (ply_renderer_backend_t *backend)
 {
-  if (ply_console_get_active_vt (backend->console) !=
+  if (ply_terminal_get_active_vt (backend->terminal) !=
       ply_terminal_get_vt_number (backend->terminal))
     {
       deactivate (backend);
@@ -344,10 +341,10 @@ open_device (ply_renderer_backend_t *backend)
       return false;
     }
 
-  ply_console_watch_for_active_vt_change (backend->console,
-                                          (ply_console_active_vt_changed_handler_t)
-                                          on_active_vt_changed,
-                                          backend);
+  ply_terminal_watch_for_active_vt_change (backend->terminal,
+                                           (ply_terminal_active_vt_changed_handler_t)
+                                           on_active_vt_changed,
+                                           backend);
 
   return true;
 }
@@ -356,10 +353,10 @@ static void
 close_device (ply_renderer_backend_t *backend)
 {
 
-  ply_console_stop_watching_for_active_vt_change (backend->console,
-                                                  (ply_console_active_vt_changed_handler_t)
-                                                  on_active_vt_changed,
-                                                  backend);
+  ply_terminal_stop_watching_for_active_vt_change (backend->terminal,
+                                                   (ply_terminal_active_vt_changed_handler_t)
+                                                   on_active_vt_changed,
+                                                   backend);
   uninitialize_head (backend, &backend->head);
 
   close (backend->device_fd);
@@ -515,8 +512,8 @@ map_to_device (ply_renderer_backend_t *backend)
   if (head->map_address == MAP_FAILED)
     return false;
 
-  ply_console_set_active_vt (backend->console,
-                             ply_terminal_get_vt_number (backend->terminal));
+  ply_terminal_set_active_vt (backend->terminal,
+                              ply_terminal_get_vt_number (backend->terminal));
 
   return true;
 }
@@ -550,7 +547,7 @@ flush_head (ply_renderer_backend_t *backend,
   if (backend->is_inactive)
     return;
 
-  ply_console_set_mode (backend->console, PLY_CONSOLE_MODE_GRAPHICS);
+  ply_terminal_set_mode (backend->terminal, PLY_TERMINAL_MODE_GRAPHICS);
   ply_terminal_set_unbuffered_input (backend->terminal);
   pixel_buffer = head->pixel_buffer;
   updated_region = ply_pixel_buffer_get_updated_areas (pixel_buffer);

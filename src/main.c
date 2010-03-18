@@ -79,7 +79,6 @@ typedef struct
 typedef struct
 {
   ply_event_loop_t *loop;
-  ply_console_t *console;
   ply_boot_server_t *boot_server;
   ply_list_t *pixel_displays;
   ply_list_t *text_displays;
@@ -1022,11 +1021,11 @@ add_display_and_keyboard_for_terminal (state_t    *state,
 
   state->terminal = terminal;
 
-  ply_console_set_active_vt (state->console,
-                             ply_terminal_get_vt_number (terminal));
+  ply_terminal_set_active_vt (state->terminal,
+                              ply_terminal_get_vt_number (state->terminal));
 
-  keyboard = ply_keyboard_new_for_terminal (terminal);
-  display = ply_text_display_new (terminal, state->console);
+  keyboard = ply_keyboard_new_for_terminal (state->terminal);
+  display = ply_text_display_new (state->terminal);
 
   ply_list_append_data (state->text_displays, display);
   state->keyboard = keyboard;
@@ -1080,7 +1079,7 @@ add_default_displays_and_keyboard (state_t *state)
       return;
     }
 
-  renderer = ply_renderer_new (NULL, terminal, state->console);
+  renderer = ply_renderer_new (NULL, terminal);
 
   if (!ply_renderer_open (renderer))
     {
@@ -1099,7 +1098,7 @@ add_default_displays_and_keyboard (state_t *state)
 
   add_pixel_displays_from_renderer (state, renderer);
 
-  text_display = ply_text_display_new (terminal, state->console);
+  text_display = ply_text_display_new (state->terminal);
   ply_list_append_data (state->text_displays, text_display);
 
   state->renderer = renderer;
@@ -1158,7 +1157,7 @@ start_boot_splash (state_t    *state,
   splash = ply_boot_splash_new (theme_path,
                                 PLYMOUTH_PLUGIN_PATH,
                                 state->boot_buffer,
-                                state->console);
+                                state->terminal);
 
   if (!ply_boot_splash_load (splash))
     {
@@ -1360,15 +1359,6 @@ check_for_consoles (state_t    *state,
   char *remaining_command_line;
 
   ply_trace ("checking if splash screen should be disabled");
-
-  if (state->console == NULL)
-    state->console = ply_console_new ();
-
-  if (!ply_console_is_open (state->console) &&
-      !ply_console_open (state->console))
-    {
-      ply_trace ("could not open /dev/tty0");
-    }
 
   remaining_command_line = state->kernel_command_line;
   while ((console_key = strstr (remaining_command_line, " console=")) != NULL)

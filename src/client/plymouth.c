@@ -740,7 +740,7 @@ main (int    argc,
       char **argv)
 {
   state_t state = { 0 };
-  bool should_help, should_quit, should_ping, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash, should_wait, should_be_verbose, report_error, should_get_plugin_path;
+  bool should_help, should_quit, should_ping, should_check_for_active_vt, should_sysinit, should_ask_for_password, should_show_splash, should_hide_splash, should_wait, should_be_verbose, report_error, should_get_plugin_path;
   bool is_connected;
   char *status, *chroot_dir, *ignore_keystroke;
   int exit_code;
@@ -760,6 +760,7 @@ main (int    argc,
                                   "newroot", "Tell boot daemon that new root filesystem is mounted", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "quit", "Tell boot daemon to quit", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "ping", "Check of boot daemon is running", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "has-active-vt", "Check if boot daemon has an active vt", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "sysinit", "Tell boot daemon root filesystem is mounted read-write", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "show-splash", "Show splash screen", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "hide-splash", "Hide splash screen", PLY_COMMAND_OPTION_TYPE_FLAG,
@@ -868,6 +869,7 @@ main (int    argc,
                                   "newroot", &chroot_dir,
                                   "quit", &should_quit,
                                   "ping", &should_ping,
+                                  "has-active-vt", &should_check_for_active_vt,
                                   "sysinit", &should_sysinit,
                                   "show-splash", &should_show_splash,
                                   "hide-splash", &should_hide_splash,
@@ -921,6 +923,11 @@ main (int    argc,
           ply_trace ("ping failed");
           return 1;
         }
+      if (should_check_for_active_vt)
+        {
+          ply_trace ("has active vt? failed");
+          return 1;
+        }
     }
 
   ply_boot_client_attach_to_event_loop (state.client, state.loop);
@@ -950,6 +957,12 @@ main (int    argc,
                                  on_success, 
                                  (ply_boot_client_response_handler_t)
                                  on_failure, &state);
+  else if (should_check_for_active_vt)
+    ply_boot_client_ask_daemon_has_active_vt (state.client,
+                                              (ply_boot_client_response_handler_t)
+                                              on_success,
+                                              (ply_boot_client_response_handler_t)
+                                              on_failure, &state);
   else if (status != NULL)
     ply_boot_client_update_daemon (state.client, status,
                                    (ply_boot_client_response_handler_t)

@@ -723,6 +723,16 @@ ply_boot_client_tell_daemon_to_progress_unpause (ply_boot_client_t              
 }
 
 void
+ply_boot_client_ask_daemon_has_active_vt (ply_boot_client_t                  *client,
+                                          ply_boot_client_response_handler_t  handler,
+                                          ply_boot_client_response_handler_t  failed_handler,
+                                          void                               *user_data)
+{
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_HAS_ACTIVE_VT,
+                                 NULL, handler, failed_handler, user_data);
+}
+
+void
 ply_boot_client_tell_daemon_about_error (ply_boot_client_t                  *client,
                                          ply_boot_client_response_handler_t  handler,
                                          ply_boot_client_response_handler_t  failed_handler,

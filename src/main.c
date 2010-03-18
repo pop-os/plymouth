@@ -712,10 +712,26 @@ quit_program (state_t *state)
 static void
 on_boot_splash_idle (state_t *state)
 {
-
   ply_trace ("boot splash idle");
 
-  if (state->deactivate_trigger != NULL)
+  /* In the case where we've received both a deactivate command and a
+   * quit command, the quit command takes precedence.
+   */
+  if (state->quit_trigger != NULL)
+    {
+      if (!state->should_retain_splash)
+        {
+          ply_trace ("hiding splash");
+          if (state->boot_splash != NULL)
+            ply_boot_splash_hide (state->boot_splash);
+        }
+
+      ply_trace ("quitting splash");
+      quit_splash (state);
+      ply_trace ("quitting program");
+      quit_program (state);
+    }
+  else if (state->deactivate_trigger != NULL)
     {
       if (state->renderer != NULL)
         {
@@ -729,21 +745,7 @@ on_boot_splash_idle (state_t *state)
       ply_trigger_pull (state->deactivate_trigger, NULL);
       state->deactivate_trigger = NULL;
       state->is_inactive = true;
-
-      return;
     }
-
-  if (!state->should_retain_splash)
-    {
-      ply_trace ("hiding splash");
-      if (state->boot_splash != NULL)
-          ply_boot_splash_hide (state->boot_splash);
-    }
-
-  ply_trace ("quitting splash");
-  quit_splash (state);
-  ply_trace ("quitting program");
-  quit_program (state);
 }
 
 

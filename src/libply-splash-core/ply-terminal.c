@@ -509,6 +509,12 @@ ply_terminal_get_fd (ply_terminal_t *terminal)
 }
 
 bool
+ply_terminal_is_vt (ply_terminal_t *terminal)
+{
+  return terminal->vt_number > 0;
+}
+
+bool
 ply_terminal_is_open (ply_terminal_t *terminal)
 {
   return terminal->is_open;
@@ -712,7 +718,7 @@ ply_terminal_activate_vt (ply_terminal_t *terminal)
 {
   assert (terminal != NULL);
 
-  if (terminal->vt_number <= 0)
+  if (!ply_terminal_is_vt (terminal))
     return false;
 
   if (terminal->vt_number == terminal->active_vt)

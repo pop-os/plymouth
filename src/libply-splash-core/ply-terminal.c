@@ -50,6 +50,12 @@
 #define TEXT_PALETTE_SIZE 48
 #endif
 
+typedef struct
+{
+  ply_terminal_active_vt_changed_handler_t handler;
+  void *user_data;
+} ply_terminal_active_vt_changed_closure_t;
+
 struct _ply_terminal
 {
   ply_event_loop_t *loop;
@@ -60,6 +66,7 @@ struct _ply_terminal
   int   fd;
   int   vt_number;
 
+  ply_list_t *vt_change_closures;
   ply_fd_watch_t *fd_watch;
   ply_terminal_color_t foreground_color;
   ply_terminal_color_t background_color;
@@ -73,6 +80,9 @@ struct _ply_terminal
   uint32_t original_term_attributes_saved : 1;
   uint32_t supports_text_color : 1;
   uint32_t is_open : 1;
+  uint32_t is_active : 1;
+  uint32_t is_watching_for_vt_changes : 1;
+  uint32_t should_ignore_mode_changes : 1;
 };
 
 static bool ply_terminal_open_device (ply_terminal_t *terminal);
@@ -82,16 +92,18 @@ ply_terminal_new (const char *device_name)
 {
   ply_terminal_t *terminal;
 
+  assert (device_name != NULL);
+
   terminal = calloc (1, sizeof (ply_terminal_t));
 
   terminal->loop = ply_event_loop_get_default ();
-  if (device_name != NULL)
-    {
-      if (strncmp (device_name, "/dev/", strlen ("/dev/")) == 0)
-        terminal->name = strdup (device_name);
-      else
-        asprintf (&terminal->name, "/dev/%s", device_name);
-    }
+  terminal->vt_change_closures = ply_list_new ();
+
+  if (strncmp (device_name, "/dev/", strlen ("/dev/")) == 0)
+    terminal->name = strdup (device_name);
+  else
+    asprintf (&terminal->name, "/dev/%s", device_name);
+
   terminal->fd = -1;
   terminal->vt_number = -1;
 
@@ -236,32 +248,8 @@ on_tty_disconnected (ply_terminal_t *terminal)
   terminal->fd_watch = NULL;
   terminal->fd = -1;
 
-  if (terminal->name != NULL)
-    {
-      ply_trace ("trying to reopen terminal '%s'", terminal->name);
-      ply_terminal_open_device (terminal);
-    }
-}
-
-static int
-get_active_vt (void)
-{
-  int console_fd;
-  struct vt_stat console_state = { 0 };
-
-  console_fd = open ("/dev/tty0", O_RDONLY | O_NOCTTY);
-
-  if (console_fd < 0)
-    goto out;
-
-  if (ioctl (console_fd, VT_GETSTATE, &console_state) < 0)
-    goto out;
-
-out:
-  if (console_fd >= 0)
-    close (console_fd);
-
-  return console_state.v_active;
+  ply_trace ("trying to reopen terminal '%s'", terminal->name);
+  ply_terminal_open_device (terminal);
 }
 
 static bool
@@ -304,10 +292,116 @@ ply_terminal_check_for_vt (ply_terminal_t *terminal)
   major_number = major (file_attributes.st_rdev);
   minor_number = minor (file_attributes.st_rdev);
 
-  if (major_number == TTY_MAJOR)
+  if ((major_number == TTY_MAJOR) && (minor_number <= MAX_NR_CONSOLES))
     terminal->vt_number = minor_number;
   else
     terminal->vt_number = -1;
+}
+
+static int
+get_active_vt (ply_terminal_t *terminal)
+{
+  struct vt_stat vt_state = { 0 };
+
+  if (ioctl (terminal->fd, VT_GETSTATE, &vt_state) < 0)
+    return -1;
+
+  return vt_state.v_active;
+}
+
+static void
+do_active_vt_changed (ply_terminal_t *terminal)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (terminal->vt_change_closures);
+  while (node != NULL)
+    {
+      ply_terminal_active_vt_changed_closure_t *closure;
+      ply_list_node_t *next_node;
+
+      closure = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (terminal->vt_change_closures, node);
+
+      if (closure->handler != NULL)
+        closure->handler (closure->user_data, terminal);
+
+      node = next_node;
+    }
+}
+
+static void
+on_leave_vt (ply_terminal_t *terminal)
+{
+  ioctl (terminal->fd, VT_RELDISP, 1);
+
+  terminal->is_active = false;
+  do_active_vt_changed (terminal);
+}
+
+static void
+on_enter_vt (ply_terminal_t *terminal)
+{
+  ioctl (terminal->fd, VT_RELDISP, VT_ACKACQ);
+
+  terminal->is_active = true;
+  do_active_vt_changed (terminal);
+}
+
+static void
+ply_terminal_watch_for_vt_changes (ply_terminal_t *terminal)
+{
+  assert (terminal != NULL);
+
+  struct vt_mode mode = { 0 };
+
+  if (terminal->fd < 0)
+    return;
+
+  if (!ply_terminal_is_vt (terminal))
+    return;
+
+  if (terminal->is_watching_for_vt_changes)
+    return;
+
+  mode.mode = VT_PROCESS;
+  mode.relsig = SIGUSR1;
+  mode.acqsig = SIGUSR2;
+
+  if (ioctl (terminal->fd, VT_SETMODE, &mode) < 0)
+    return;
+
+  ply_event_loop_watch_signal (terminal->loop,
+                               SIGUSR1,
+                               (ply_event_handler_t)
+                               on_leave_vt, terminal);
+
+  ply_event_loop_watch_signal (terminal->loop,
+                               SIGUSR2,
+                               (ply_event_handler_t)
+                               on_enter_vt, terminal);
+
+  terminal->is_watching_for_vt_changes = true;
+}
+
+static void
+ply_terminal_stop_watching_for_vt_changes (ply_terminal_t *terminal)
+{
+  struct vt_mode mode = { 0 };
+
+  if (!ply_terminal_is_vt (terminal))
+    return;
+
+  if (!terminal->is_watching_for_vt_changes)
+    return;
+
+  terminal->is_watching_for_vt_changes = false;
+
+  ply_event_loop_stop_watching_signal (terminal->loop, SIGUSR1);
+  ply_event_loop_stop_watching_signal (terminal->loop, SIGUSR2);
+
+  mode.mode = VT_AUTO;
+  ioctl (terminal->fd, VT_SETMODE, &mode);
 }
 
 static bool
@@ -342,20 +436,8 @@ ply_terminal_open (ply_terminal_t *terminal)
 {
   assert (terminal != NULL);
 
-  if (terminal->name == NULL)
-    {
-      char tty_name[512] = "";
-
-      terminal->vt_number = get_active_vt ();
-
-      if (readlink ("/proc/self/fd/0", tty_name, sizeof (tty_name) - 1) < 0)
-        {
-          ply_trace ("could not read tty name of fd 0");
-          return false;
-        }
-
-      terminal->name = strdup (tty_name);
-    }
+  if (terminal->is_open)
+    return true;
 
   ply_trace ("trying to open terminal '%s'", terminal->name);
 
@@ -376,6 +458,16 @@ ply_terminal_open (ply_terminal_t *terminal)
                                ply_terminal_look_up_geometry,
                                terminal);
 
+  if (ply_terminal_is_vt (terminal))
+    {
+      ply_terminal_watch_for_vt_changes (terminal);
+
+      if (get_active_vt (terminal) == terminal->vt_number)
+        terminal->is_active = true;
+      else
+        terminal->is_active = false;
+    }
+
   terminal->is_open = true;
 
   return true;
@@ -388,15 +480,32 @@ ply_terminal_get_fd (ply_terminal_t *terminal)
 }
 
 bool
+ply_terminal_is_vt (ply_terminal_t *terminal)
+{
+  return terminal->vt_number > 0;
+}
+
+bool
 ply_terminal_is_open (ply_terminal_t *terminal)
 {
   return terminal->is_open;
 }
 
+bool
+ply_terminal_is_active (ply_terminal_t *terminal)
+{
+  return terminal->is_active;
+}
+
 void
 ply_terminal_close (ply_terminal_t *terminal)
 {
+  if (!terminal->is_open)
+    return;
+
   terminal->is_open = false;
+
+  ply_terminal_stop_watching_for_vt_changes (terminal);
 
   ply_trace ("restoring color palette");
   ply_terminal_restore_color_palette (terminal);
@@ -479,6 +588,44 @@ ply_terminal_supports_color (ply_terminal_t *terminal)
   return terminal->supports_text_color;
 }
 
+void
+ply_terminal_set_mode (ply_terminal_t     *terminal,
+                       ply_terminal_mode_t mode)
+{
+
+  assert (terminal != NULL);
+  assert (mode == PLY_TERMINAL_MODE_TEXT || mode == PLY_TERMINAL_MODE_GRAPHICS);
+
+  if (!ply_terminal_is_vt (terminal))
+    return;
+
+  if (terminal->should_ignore_mode_changes)
+    return;
+
+  switch (mode)
+    {
+      case PLY_TERMINAL_MODE_TEXT:
+        if (ioctl (terminal->fd, KDSETMODE, KD_TEXT) < 0)
+          return;
+        break;
+
+      case PLY_TERMINAL_MODE_GRAPHICS:
+        if (ioctl (terminal->fd, KDSETMODE, KD_GRAPHICS) < 0)
+          return;
+        break;
+    }
+}
+
+void
+ply_terminal_ignore_mode_changes (ply_terminal_t *terminal,
+                                  bool            should_ignore)
+{
+  if (!ply_terminal_is_vt (terminal))
+    return;
+
+  terminal->should_ignore_mode_changes = should_ignore;
+}
+
 static void
 ply_terminal_detach_from_event_loop (ply_terminal_t *terminal)
 {
@@ -487,13 +634,31 @@ ply_terminal_detach_from_event_loop (ply_terminal_t *terminal)
   terminal->fd_watch = NULL;
 }
 
+static void
+free_vt_change_closures (ply_terminal_t *terminal)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (terminal->vt_change_closures);
+  while (node != NULL)
+    {
+      ply_terminal_active_vt_changed_closure_t *closure;
+      ply_list_node_t *next_node;
+
+      closure = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (terminal->vt_change_closures, node);
+
+      free (closure);
+      node = next_node;
+    }
+  ply_list_free (terminal->vt_change_closures);
+}
+
 void
 ply_terminal_free (ply_terminal_t *terminal)
 {
   if (terminal == NULL)
     return;
-
-  free (terminal->name);
 
   if (terminal->loop != NULL)
     ply_event_loop_stop_watching_for_exit (terminal->loop,
@@ -504,6 +669,8 @@ ply_terminal_free (ply_terminal_t *terminal)
   if (terminal->is_open)
     ply_terminal_close (terminal);
 
+  free_vt_change_closures (terminal);
+  free (terminal->name);
   free (terminal);
 }
 
@@ -511,6 +678,80 @@ int
 ply_terminal_get_vt_number (ply_terminal_t *terminal)
 {
   return terminal->vt_number;
+}
+
+static bool
+set_active_vt (ply_terminal_t *terminal,
+               int             vt_number)
+{
+  if (ioctl (terminal->fd, VT_ACTIVATE, vt_number) < 0)
+    return false;
+
+  return true;
+}
+
+bool
+ply_terminal_activate_vt (ply_terminal_t *terminal)
+{
+  assert (terminal != NULL);
+
+  if (!ply_terminal_is_vt (terminal))
+    return false;
+
+  if (terminal->is_active)
+    return true;
+
+  if (!set_active_vt (terminal, terminal->vt_number))
+    return false;
+
+  return true;
+}
+
+void
+ply_terminal_watch_for_active_vt_change (ply_terminal_t *terminal,
+                                         ply_terminal_active_vt_changed_handler_t active_vt_changed_handler,
+                                         void *user_data)
+{
+  ply_terminal_active_vt_changed_closure_t *closure;
+
+  if (!ply_terminal_is_vt (terminal))
+    return;
+
+  closure = calloc (1, sizeof (*closure));
+  closure->handler = active_vt_changed_handler;
+  closure->user_data = user_data;
+
+  ply_list_append_data (terminal->vt_change_closures, closure);
+}
+
+void
+ply_terminal_stop_watching_for_active_vt_change (ply_terminal_t *terminal,
+                                                 ply_terminal_active_vt_changed_handler_t active_vt_changed_handler,
+                                                 void *user_data)
+{
+  ply_list_node_t *node;
+
+  if (!ply_terminal_is_vt (terminal))
+    return;
+
+  node = ply_list_get_first_node (terminal->vt_change_closures);
+  while (node != NULL)
+    {
+      ply_terminal_active_vt_changed_closure_t *closure;
+      ply_list_node_t *next_node;
+
+      closure = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (terminal->vt_change_closures, node);
+
+      if (closure->handler == active_vt_changed_handler &&
+          closure->user_data == user_data)
+        {
+          free (closure);
+          ply_list_remove_node (terminal->vt_change_closures, node);
+        }
+
+      node = next_node;
+    }
 }
 
 /* vim: set ts=4 sw=4 et ai ci cino={.5s,^-2,+.5s,t0,g0,e-2,n-2,p2s,(0,=.5s,:.5s */

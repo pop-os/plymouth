@@ -36,7 +36,6 @@
 #include <wchar.h>
 
 #include "ply-buffer.h"
-#include "ply-console.h"
 #include "ply-event-loop.h"
 #include "ply-list.h"
 #include "ply-logger.h"
@@ -96,7 +95,6 @@ struct _ply_text_display
   ply_event_loop_t *loop;
 
   ply_terminal_t *terminal;
-  ply_console_t *console;
 
   ply_terminal_color_t foreground_color;
   ply_terminal_color_t background_color;
@@ -106,8 +104,7 @@ struct _ply_text_display
 };
 
 ply_text_display_t *
-ply_text_display_new (ply_terminal_t *terminal,
-                      ply_console_t  *console)
+ply_text_display_new (ply_terminal_t *terminal)
 {
   ply_text_display_t *display;
 
@@ -115,7 +112,6 @@ ply_text_display_new (ply_terminal_t *terminal,
 
   display->loop = NULL;
   display->terminal = terminal;
-  display->console = console;
 
   return display;
 }
@@ -253,8 +249,8 @@ ply_text_display_write (ply_text_display_t *display,
   vasprintf (&string, format, args);
   va_end (args);
 
-  if (ply_terminal_get_vt_number (display->terminal) > 0)
-    ply_console_set_mode (display->console, PLY_CONSOLE_MODE_TEXT);
+  if (ply_terminal_is_vt (display->terminal))
+    ply_terminal_set_mode (display->terminal, PLY_TERMINAL_MODE_TEXT);
   write (fd, string, strlen (string));
   free (string);
 }

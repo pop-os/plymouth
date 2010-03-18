@@ -26,7 +26,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#include "ply-console.h"
+#include "ply-terminal.h"
 #include "ply-event-loop.h"
 #include "ply-list.h"
 #include "ply-region.h"
@@ -38,8 +38,7 @@ typedef struct _ply_renderer_backend ply_renderer_backend_t;
 typedef struct
 {
   ply_renderer_backend_t * (* create_backend) (const char *device_name,
-                                               ply_terminal_t *terminal,
-                                               ply_console_t *console);
+                                               ply_terminal_t *terminal);
   void (* destroy_backend) (ply_renderer_backend_t *backend);
   bool (* open_device) (ply_renderer_backend_t *backend);
   void (* close_device) (ply_renderer_backend_t *backend);

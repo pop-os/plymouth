@@ -34,7 +34,7 @@
 #include <wchar.h>
 
 #include "ply-boot-splash-plugin.h"
-#include "ply-console.h"
+#include "ply-terminal.h"
 #include "ply-event-loop.h"
 #include "ply-list.h"
 #include "ply-logger.h"
@@ -58,7 +58,7 @@ struct _ply_boot_splash
   ply_module_handle_t *module_handle;
   const ply_boot_splash_plugin_interface_t *plugin_interface;
   ply_boot_splash_plugin_t *plugin;
-  ply_console_t *console;
+  ply_terminal_t *terminal;
   ply_keyboard_t *keyboard;
   ply_buffer_t *boot_buffer;
   ply_trigger_t *idle_trigger;
@@ -85,10 +85,10 @@ static void ply_boot_splash_update_progress (ply_boot_splash_t *splash);
 static void ply_boot_splash_detach_from_event_loop (ply_boot_splash_t *splash);
 
 ply_boot_splash_t *
-ply_boot_splash_new (const char   *theme_path,
-                     const char   *plugin_dir,
-                     ply_buffer_t *boot_buffer,
-                     ply_console_t *console)
+ply_boot_splash_new (const char     *theme_path,
+                     const char     *plugin_dir,
+                     ply_buffer_t   *boot_buffer,
+                     ply_terminal_t *terminal)
 {
   ply_boot_splash_t *splash;
 
@@ -102,7 +102,7 @@ ply_boot_splash_new (const char   *theme_path,
   splash->is_shown = false;
 
   splash->boot_buffer = boot_buffer;
-  splash->console = console;
+  splash->terminal = terminal;
   splash->pixel_displays = ply_list_new ();
   splash->text_displays = ply_list_new ();
 
@@ -172,11 +172,11 @@ on_keyboard_input (ply_boot_splash_t *splash,
 
             if (splash->should_force_text_mode)
               {
-                ply_console_set_mode (splash->console, PLY_CONSOLE_MODE_TEXT);
-                ply_console_ignore_mode_changes (splash->console, true);
+                ply_terminal_set_mode (splash->terminal, PLY_TERMINAL_MODE_TEXT);
+                ply_terminal_ignore_mode_changes (splash->terminal, true);
               }
             else
-              ply_console_ignore_mode_changes (splash->console, false);
+              ply_terminal_ignore_mode_changes (splash->terminal, false);
             ply_trace ("text mode toggled!");
           return;
 
@@ -513,7 +513,7 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
   splash->plugin_interface->hide_splash_screen (splash->plugin,
                                                 splash->loop);
 
-  ply_console_set_mode (splash->console, PLY_CONSOLE_MODE_TEXT);
+  ply_terminal_set_mode (splash->terminal, PLY_TERMINAL_MODE_TEXT);
 
   splash->is_shown = false;
 
@@ -698,7 +698,6 @@ main (int    argc,
   const char *theme_path;
   ply_text_display_t *text_display;
   ply_renderer_t *renderer;
-  ply_console_t *console;
   ply_terminal_t *terminal;
   ply_keyboard_t *keyboard;
 
@@ -716,14 +715,6 @@ main (int    argc,
   else
     tty_name = strdup("tty0");
 
-  console = ply_console_new ();
-
-  if (!ply_console_open (console))
-    {
-      perror ("could not open console");
-      return errno;
-    }
-
   terminal = ply_terminal_new (tty_name);
 
   if (!ply_terminal_open (terminal))
@@ -732,7 +723,7 @@ main (int    argc,
       return errno;
     }
 
-  renderer = ply_renderer_new (NULL, terminal, console);
+  renderer = ply_renderer_new (NULL, terminal);
   free(tty_name);
 
   if (!ply_renderer_open (renderer))
@@ -747,7 +738,7 @@ main (int    argc,
                                    (ply_keyboard_escape_handler_t) on_quit, &state);
 
   state.buffer = ply_buffer_new ();
-  state.splash = ply_boot_splash_new (theme_path, PLYMOUTH_PLUGIN_PATH, state.buffer, console);
+  state.splash = ply_boot_splash_new (theme_path, PLYMOUTH_PLUGIN_PATH, state.buffer, terminal);
 
   if (!ply_boot_splash_load (state.splash))
     {
@@ -758,7 +749,7 @@ main (int    argc,
   ply_boot_splash_set_keyboard (state.splash, keyboard);
   add_displays_to_splash_from_renderer (&state, renderer);
 
-  text_display = ply_text_display_new (terminal, console);
+  text_display = ply_text_display_new (terminal);
   ply_boot_splash_add_text_display (state.splash, text_display);
 
   ply_boot_splash_attach_to_event_loop (state.splash, state.loop);

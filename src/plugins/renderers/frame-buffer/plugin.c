@@ -82,7 +82,6 @@ struct _ply_renderer_input_source
 struct _ply_renderer_backend
 {
   ply_event_loop_t *loop;
-  ply_console_t *console;
   ply_terminal_t *terminal;
 
   char *device_name;
@@ -109,7 +108,7 @@ struct _ply_renderer_backend
   unsigned int bytes_per_pixel;
   unsigned int row_stride;
 
-  uint32_t is_inactive : 1;
+  uint32_t is_active : 1;
 
   void (* flush_area) (ply_renderer_backend_t *backend,
                        ply_renderer_head_t    *head,
@@ -245,8 +244,7 @@ flush_area_to_xrgb32_device (ply_renderer_backend_t *backend,
 
 static ply_renderer_backend_t *
 create_backend (const char *device_name,
-                ply_terminal_t *terminal,
-                ply_console_t *console)
+                ply_terminal_t *terminal)
 {
   ply_renderer_backend_t *backend;
 
@@ -263,7 +261,6 @@ create_backend (const char *device_name,
   backend->loop = ply_event_loop_get_default ();
   backend->heads = ply_list_new ();
   backend->input_source.key_buffer = ply_buffer_new ();
-  backend->console = console;
   backend->terminal = terminal;
 
   return backend;
@@ -308,7 +305,7 @@ destroy_backend (ply_renderer_backend_t *backend)
 static void
 activate (ply_renderer_backend_t *backend)
 {
-  backend->is_inactive = false;
+  backend->is_active = true;
 
   if (backend->head.map_address != MAP_FAILED)
     ply_renderer_head_redraw (backend, &backend->head);
@@ -317,20 +314,22 @@ activate (ply_renderer_backend_t *backend)
 static void
 deactivate (ply_renderer_backend_t *backend)
 {
-  backend->is_inactive = true;
+  backend->is_active = false;
 }
 
 static void
 on_active_vt_changed (ply_renderer_backend_t *backend)
 {
-  if (ply_console_get_active_vt (backend->console) !=
-      ply_terminal_get_vt_number (backend->terminal))
+  if (ply_terminal_is_active (backend->terminal))
     {
-      deactivate (backend);
-      return;
+      ply_trace ("activating on vt change");
+      activate (backend);
     }
-
-  activate (backend);
+  else
+    {
+      ply_trace ("deactivating on vt change");
+      deactivate (backend);
+    }
 }
 
 static bool
@@ -344,10 +343,23 @@ open_device (ply_renderer_backend_t *backend)
       return false;
     }
 
-  ply_console_watch_for_active_vt_change (backend->console,
-                                          (ply_console_active_vt_changed_handler_t)
-                                          on_active_vt_changed,
-                                          backend);
+  if (!ply_terminal_open (backend->terminal))
+    {
+      ply_trace ("could not open terminal: %m");
+      return false;
+    }
+
+  if (!ply_terminal_is_vt (backend->terminal))
+    {
+      ply_trace ("terminal is not a VT");
+      ply_terminal_close (backend->terminal);
+      return false;
+    }
+
+  ply_terminal_watch_for_active_vt_change (backend->terminal,
+                                           (ply_terminal_active_vt_changed_handler_t)
+                                           on_active_vt_changed,
+                                           backend);
 
   return true;
 }
@@ -356,10 +368,10 @@ static void
 close_device (ply_renderer_backend_t *backend)
 {
 
-  ply_console_stop_watching_for_active_vt_change (backend->console,
-                                                  (ply_console_active_vt_changed_handler_t)
-                                                  on_active_vt_changed,
-                                                  backend);
+  ply_terminal_stop_watching_for_active_vt_change (backend->terminal,
+                                                   (ply_terminal_active_vt_changed_handler_t)
+                                                   on_active_vt_changed,
+                                                   backend);
   uninitialize_head (backend, &backend->head);
 
   close (backend->device_fd);
@@ -515,8 +527,10 @@ map_to_device (ply_renderer_backend_t *backend)
   if (head->map_address == MAP_FAILED)
     return false;
 
-  ply_console_set_active_vt (backend->console,
-                             ply_terminal_get_vt_number (backend->terminal));
+  if (ply_terminal_is_active (backend->terminal))
+    activate (backend);
+  else
+    ply_terminal_activate_vt (backend->terminal);
 
   return true;
 }
@@ -547,10 +561,10 @@ flush_head (ply_renderer_backend_t *backend,
   assert (backend != NULL);
   assert (&backend->head == head);
 
-  if (backend->is_inactive)
+  if (!backend->is_active)
     return;
 
-  ply_console_set_mode (backend->console, PLY_CONSOLE_MODE_GRAPHICS);
+  ply_terminal_set_mode (backend->terminal, PLY_TERMINAL_MODE_GRAPHICS);
   ply_terminal_set_unbuffered_input (backend->terminal);
   pixel_buffer = head->pixel_buffer;
   updated_region = ply_pixel_buffer_get_updated_areas (pixel_buffer);

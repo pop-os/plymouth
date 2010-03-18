@@ -27,7 +27,6 @@
 #include <unistd.h>
 
 #include "ply-buffer.h"
-#include "ply-console.h"
 #include "ply-event-loop.h"
 #include "ply-terminal.h"
 
@@ -41,8 +40,7 @@ typedef void (* ply_text_display_draw_handler_t) (void *user_data,
                                                   int   number_of_rows);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-ply_text_display_t *ply_text_display_new (ply_terminal_t *terminal,
-                                          ply_console_t  *console);
+ply_text_display_t *ply_text_display_new (ply_terminal_t *terminal);
 
 void ply_text_display_free (ply_text_display_t *display);
 

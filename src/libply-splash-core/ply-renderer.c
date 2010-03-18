@@ -36,7 +36,7 @@
 
 #include "ply-renderer-plugin.h"
 #include "ply-buffer.h"
-#include "ply-console.h"
+#include "ply-terminal.h"
 #include "ply-event-loop.h"
 #include "ply-list.h"
 #include "ply-logger.h"
@@ -51,7 +51,6 @@ struct _ply_renderer
 
   char *device_name;
   ply_terminal_t *terminal;
-  ply_console_t *console;
 
   uint32_t input_source_is_open : 1;
   uint32_t is_mapped : 1;
@@ -63,9 +62,8 @@ typedef const ply_renderer_plugin_interface_t *
 static void ply_renderer_unload_plugin (ply_renderer_t *renderer);
 
 ply_renderer_t *
-ply_renderer_new (const char    *device_name,
-                  ply_terminal_t *terminal,
-                  ply_console_t *console)
+ply_renderer_new (const char    * device_name,
+                  ply_terminal_t *terminal)
 {
   ply_renderer_t *renderer;
 
@@ -75,7 +73,6 @@ ply_renderer_new (const char    *device_name,
     renderer->device_name = strdup (device_name);
 
   renderer->terminal = terminal;
-  renderer->console = console;
 
   return renderer;
 }
@@ -138,8 +135,7 @@ ply_renderer_load_plugin (ply_renderer_t *renderer,
     }
 
   renderer->backend = renderer->plugin_interface->create_backend (renderer->device_name,
-                                                                  renderer->terminal,
-                                                                  renderer->console);
+                                                                  renderer->terminal);
 
   if (renderer->backend == NULL)
     {

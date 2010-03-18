@@ -79,7 +79,6 @@ typedef struct
 typedef struct
 {
   ply_event_loop_t *loop;
-  ply_console_t *console;
   ply_boot_server_t *boot_server;
   ply_list_t *pixel_displays;
   ply_list_t *text_displays;
@@ -1005,28 +1004,15 @@ static void
 add_display_and_keyboard_for_terminal (state_t    *state,
                                        const char *tty_name)
 {
-  ply_terminal_t *terminal;
   ply_text_display_t *display;
   ply_keyboard_t *keyboard;
 
   ply_trace ("adding display and keyboard for %s", tty_name);
 
-  terminal = ply_terminal_new (tty_name);
+  state->terminal = ply_terminal_new (tty_name);
 
-  if (!ply_terminal_open (terminal))
-    {
-      ply_trace ("could not open terminal '%s': %m", tty_name);
-      ply_terminal_free (terminal);
-      return;
-    }
-
-  state->terminal = terminal;
-
-  ply_console_set_active_vt (state->console,
-                             ply_terminal_get_vt_number (terminal));
-
-  keyboard = ply_keyboard_new_for_terminal (terminal);
-  display = ply_text_display_new (terminal, state->console);
+  keyboard = ply_keyboard_new_for_terminal (state->terminal);
+  display = ply_text_display_new (state->terminal);
 
   ply_list_append_data (state->text_displays, display);
   state->keyboard = keyboard;
@@ -1073,14 +1059,7 @@ add_default_displays_and_keyboard (state_t *state)
 
   terminal = ply_terminal_new (state->default_tty);
 
-  if (!ply_terminal_open (terminal))
-    {
-      ply_trace ("could not open terminal '%s': %m", state->default_tty);
-      ply_terminal_free (terminal);
-      return;
-    }
-
-  renderer = ply_renderer_new (NULL, terminal, state->console);
+  renderer = ply_renderer_new (NULL, terminal);
 
   if (!ply_renderer_open (renderer))
     {
@@ -1099,7 +1078,7 @@ add_default_displays_and_keyboard (state_t *state)
 
   add_pixel_displays_from_renderer (state, renderer);
 
-  text_display = ply_text_display_new (terminal, state->console);
+  text_display = ply_text_display_new (state->terminal);
   ply_list_append_data (state->text_displays, text_display);
 
   state->renderer = renderer;
@@ -1158,7 +1137,7 @@ start_boot_splash (state_t    *state,
   splash = ply_boot_splash_new (theme_path,
                                 PLYMOUTH_PLUGIN_PATH,
                                 state->boot_buffer,
-                                state->console);
+                                state->terminal);
 
   if (!ply_boot_splash_load (splash))
     {
@@ -1361,15 +1340,6 @@ check_for_consoles (state_t    *state,
 
   ply_trace ("checking if splash screen should be disabled");
 
-  if (state->console == NULL)
-    state->console = ply_console_new ();
-
-  if (!ply_console_is_open (state->console) &&
-      !ply_console_open (state->console))
-    {
-      ply_trace ("could not open /dev/tty0");
-    }
-
   remaining_command_line = state->kernel_command_line;
   while ((console_key = strstr (remaining_command_line, " console=")) != NULL)
     {
@@ -1450,12 +1420,15 @@ initialize_environment (state_t *state)
   state->text_displays = ply_list_new ();
   state->keyboard = NULL;
 
-  if (state->mode == PLY_MODE_SHUTDOWN)
+  if (!state->default_tty)
     {
-      state->default_tty = "tty63";
+      if (state->mode == PLY_MODE_SHUTDOWN)
+        {
+          state->default_tty = SHUTDOWN_TTY;
+        }
+      else
+        state->default_tty = BOOT_TTY;
     }
-  else
-    state->default_tty = "tty1";
 
   check_for_consoles (state, state->default_tty, false);
 
@@ -1547,6 +1520,7 @@ main (int    argc,
   bool attach_to_session;
   ply_daemon_handle_t *daemon_handle;
   char *mode_string = NULL;
+  char *tty = NULL;
 
   state.command_parser = ply_command_parser_new ("plymouthd", "Boot splash control server");
 
@@ -1560,6 +1534,7 @@ main (int    argc,
                                   "debug-file", "File to output debugging information to", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "mode", "Mode is one of: boot, shutdown", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "pid-file", "Write the pid of the daemon to a file", PLY_COMMAND_OPTION_TYPE_STRING,
+                                  "tty", "TTY to use instead of default", PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
   if (!ply_command_parser_parse_arguments (state.command_parser, state.loop, argv, argc))
@@ -1582,6 +1557,7 @@ main (int    argc,
                                   "debug", &debug,
                                   "debug-file", &debug_buffer_path,
                                   "pid-file", &pid_file,
+                                  "tty", &tty,
                                   NULL);
 
   if (should_help)
@@ -1610,6 +1586,11 @@ main (int    argc,
         state.mode = PLY_MODE_BOOT;
 
       free (mode_string);
+    }
+
+  if (tty != NULL)
+    {
+      state.default_tty = tty;
     }
 
   if (geteuid () != 0)

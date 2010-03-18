@@ -125,6 +125,12 @@ AC_ARG_WITH(release-file, AC_HELP_STRING([--with-release-file=<path_to_release_f
 AC_SUBST(RELEASE_FILE)
 AC_DEFINE_UNQUOTED(RELEASE_FILE, "$RELEASE_FILE", [Release file path])
 
+AC_ARG_WITH(boot-tty, AC_HELP_STRING([--with-boot-tty=<tty>], [Default TTY to use in boot mode (by default tty1)]),BOOT_TTY=${withval},BOOT_TTY=/dev/tty1)
+AC_DEFINE_UNQUOTED(BOOT_TTY, "$BOOT_TTY", [TTY to use in boot mode])
+
+AC_ARG_WITH(shutdown-tty, AC_HELP_STRING([--with-shutdown-tty=<tty>], [Default TTY to use in shutdown mode (by default tty63)]),SHUTDOWN_TTY=${withval},SHUTDOWN_TTY=/dev/tty63)
+AC_DEFINE_UNQUOTED(SHUTDOWN_TTY, "$SHUTDOWN_TTY", [TTY to use in shutdown mode])
+
 # Turn on the additional warnings last, so -Werror doesn't affect other tests.
 
 AC_DEFUN([PLYMOUTH_CC_TRY_FLAG], [

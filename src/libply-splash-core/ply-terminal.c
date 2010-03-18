@@ -65,7 +65,6 @@ struct _ply_terminal
   char *name;
   int   fd;
   int   vt_number;
-  int   next_active_vt;
 
   ply_list_t *vt_change_closures;
   ply_fd_watch_t *fd_watch;
@@ -335,12 +334,6 @@ static void
 on_leave_vt (ply_terminal_t *terminal)
 {
   ioctl (terminal->fd, VT_RELDISP, 1);
-
-  if (terminal->next_active_vt > 0)
-    {
-      ioctl (terminal->fd, VT_WAITACTIVE, terminal->next_active_vt);
-      terminal->next_active_vt = 0;
-    }
 
   terminal->is_active = false;
   do_active_vt_changed (terminal);
@@ -687,8 +680,6 @@ set_active_vt (ply_terminal_t *terminal,
 {
   if (ioctl (terminal->fd, VT_ACTIVATE, vt_number) < 0)
     return false;
-
-  terminal->next_active_vt = vt_number;
 
   return true;
 }

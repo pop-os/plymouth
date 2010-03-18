@@ -93,17 +93,18 @@ ply_terminal_new (const char *device_name)
 {
   ply_terminal_t *terminal;
 
+  assert (device_name != NULL);
+
   terminal = calloc (1, sizeof (ply_terminal_t));
 
   terminal->loop = ply_event_loop_get_default ();
   terminal->vt_change_closures = ply_list_new ();
-  if (device_name != NULL)
-    {
-      if (strncmp (device_name, "/dev/", strlen ("/dev/")) == 0)
-        terminal->name = strdup (device_name);
-      else
-        asprintf (&terminal->name, "/dev/%s", device_name);
-    }
+
+  if (strncmp (device_name, "/dev/", strlen ("/dev/")) == 0)
+    terminal->name = strdup (device_name);
+  else
+    asprintf (&terminal->name, "/dev/%s", device_name);
+
   terminal->fd = -1;
   terminal->vt_number = -1;
 
@@ -248,11 +249,8 @@ on_tty_disconnected (ply_terminal_t *terminal)
   terminal->fd_watch = NULL;
   terminal->fd = -1;
 
-  if (terminal->name != NULL)
-    {
-      ply_trace ("trying to reopen terminal '%s'", terminal->name);
-      ply_terminal_open_device (terminal);
-    }
+  ply_trace ("trying to reopen terminal '%s'", terminal->name);
+  ply_terminal_open_device (terminal);
 }
 
 static bool
@@ -299,27 +297,6 @@ ply_terminal_check_for_vt (ply_terminal_t *terminal)
     terminal->vt_number = minor_number;
   else
     terminal->vt_number = -1;
-}
-
-static int
-get_active_vt (void)
-{
-  int console_fd;
-  struct vt_stat console_state = { 0 };
-
-  console_fd = open ("/dev/tty0", O_RDONLY | O_NOCTTY);
-
-  if (console_fd < 0)
-    goto out;
-
-  if (ioctl (console_fd, VT_GETSTATE, &console_state) < 0)
-    goto out;
-
-out:
-  if (console_fd >= 0)
-    close (console_fd);
-
-  return console_state.v_active;
 }
 
 static void
@@ -466,21 +443,6 @@ bool
 ply_terminal_open (ply_terminal_t *terminal)
 {
   assert (terminal != NULL);
-
-  if (terminal->name == NULL)
-    {
-      char tty_name[512] = "";
-
-      terminal->vt_number = get_active_vt ();
-
-      if (readlink ("/proc/self/fd/0", tty_name, sizeof (tty_name) - 1) < 0)
-        {
-          ply_trace ("could not read tty name of fd 0");
-          return false;
-        }
-
-      terminal->name = strdup (tty_name);
-    }
 
   ply_trace ("trying to open terminal '%s'", terminal->name);
 
@@ -689,8 +651,6 @@ ply_terminal_free (ply_terminal_t *terminal)
   if (terminal == NULL)
     return;
 
-  free (terminal->name);
-
   if (terminal->loop != NULL)
     ply_event_loop_stop_watching_for_exit (terminal->loop,
                                            (ply_event_loop_exit_handler_t)
@@ -701,6 +661,7 @@ ply_terminal_free (ply_terminal_t *terminal)
     ply_terminal_close (terminal);
 
   free_vt_change_closures (terminal);
+  free (terminal->name);
   free (terminal);
 }
 

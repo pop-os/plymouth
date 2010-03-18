@@ -66,6 +66,7 @@ struct _ply_boot_server
   ply_boot_server_progress_pause_handler_t progress_pause_handler;
   ply_boot_server_progress_unpause_handler_t progress_unpause_handler;
   ply_boot_server_deactivate_handler_t deactivate_handler;
+  ply_boot_server_reactivate_handler_t reactivate_handler;
   ply_boot_server_quit_handler_t quit_handler;
   void *user_data;
 
@@ -85,8 +86,9 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
                      ply_boot_server_hide_splash_handler_t hide_splash_handler,
                      ply_boot_server_newroot_handler_t newroot_handler,
                      ply_boot_server_system_initialized_handler_t initialized_handler,
-                     ply_boot_server_error_handler_t   error_handler,
-                     ply_boot_server_deactivate_handler_t    deactivate_handler,
+                     ply_boot_server_error_handler_t error_handler,
+                     ply_boot_server_deactivate_handler_t deactivate_handler,
+                     ply_boot_server_reactivate_handler_t reactivate_handler,
                      ply_boot_server_quit_handler_t    quit_handler,
                      void                             *user_data)
 {
@@ -111,6 +113,7 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
   server->show_splash_handler = show_splash_handler;
   server->hide_splash_handler = hide_splash_handler;
   server->deactivate_handler = deactivate_handler;
+  server->reactivate_handler = reactivate_handler;
   server->quit_handler = quit_handler;
   server->user_data = user_data;
 
@@ -387,6 +390,12 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       free (argument);
       free (command);
       return;
+    }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_REACTIVATE) == 0)
+    {
+      ply_trace ("got reactivate request");
+      if (server->reactivate_handler != NULL)
+        server->reactivate_handler (server->user_data, server);
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_QUIT) == 0)
     {
@@ -722,6 +731,12 @@ on_deactivate (ply_event_loop_t *loop)
 }
 
 static void
+on_reactivate (ply_event_loop_t *loop)
+{
+  printf ("got reactivate request\n");
+}
+
+static void
 on_quit (ply_event_loop_t *loop)
 {
   printf ("got quit request, quiting...\n");
@@ -814,6 +829,7 @@ main (int    argc,
                                 (ply_boot_server_system_initialized_handler_t) on_system_initialized,
                                 (ply_boot_server_error_handler_t) on_error,
                                 (ply_boot_server_deactivate_handler_t) on_deactivate,
+                                (ply_boot_server_reactivate_handler_t) on_reactivate,
                                 (ply_boot_server_quit_handler_t) on_quit,
                                 loop);
 

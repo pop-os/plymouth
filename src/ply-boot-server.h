@@ -83,6 +83,8 @@ typedef void (* ply_boot_server_error_handler_t) (void              *user_data,
 typedef void (* ply_boot_server_deactivate_handler_t) (void              *user_data,
                                                        ply_trigger_t     *deactivate_trigger,
                                                        ply_boot_server_t *server);
+typedef void (* ply_boot_server_reactivate_handler_t) (void              *user_data,
+                                                       ply_boot_server_t *server);
 typedef void (* ply_boot_server_quit_handler_t) (void              *user_data,
                                                  bool               retain_splash,
                                                  ply_trigger_t     *quit_trigger,
@@ -103,6 +105,7 @@ ply_boot_server_t *ply_boot_server_new (ply_boot_server_update_handler_t update_
                                         ply_boot_server_system_initialized_handler_t initialized_handler,
                                         ply_boot_server_error_handler_t error_handler,
                                         ply_boot_server_deactivate_handler_t deactivate_handler,
+                                        ply_boot_server_reactivate_handler_t reactivate_handler,
                                         ply_boot_server_quit_handler_t quit_handler,
                                         void                        *user_data);
 

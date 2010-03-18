@@ -821,6 +821,40 @@ on_deactivate (state_t       *state,
 }
 
 static void
+on_reactivate (state_t *state)
+{
+  if (!state->is_inactive)
+    return;
+
+  if (state->terminal != NULL)
+    {
+      ply_terminal_watch_for_vt_changes (state->terminal);
+      ply_terminal_set_unbuffered_input (state->terminal);
+      ply_terminal_ignore_mode_changes (state->terminal, false);
+    }
+
+  if ((state->session != NULL) && state->should_be_attached)
+    {
+      ply_trace ("reactivating terminal session");
+      attach_to_running_session (state);
+    }
+
+  if (state->keyboard != NULL)
+    {
+      ply_trace ("activating keyboard");
+      ply_keyboard_watch_for_input (state->keyboard);
+    }
+
+  if (state->renderer != NULL)
+    {
+      ply_trace ("activating renderer");
+      ply_renderer_activate (state->renderer);
+    }
+
+  state->is_inactive = false;
+}
+
+static void
 on_quit (state_t       *state,
          bool           retain_splash,
          ply_trigger_t *quit_trigger)
@@ -879,6 +913,7 @@ start_boot_server (state_t *state)
                                 (ply_boot_server_system_initialized_handler_t) on_system_initialized,
                                 (ply_boot_server_error_handler_t) on_error,
                                 (ply_boot_server_deactivate_handler_t) on_deactivate,
+                                (ply_boot_server_reactivate_handler_t) on_reactivate,
                                 (ply_boot_server_quit_handler_t) on_quit,
                                 state);
 

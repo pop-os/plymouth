@@ -732,8 +732,27 @@ deactivate_splash (state_t *state)
       ply_renderer_deactivate (state->renderer);
     }
 
-  ply_trace ("quitting splash");
-  quit_splash (state);
+  if (state->keyboard != NULL)
+    {
+      ply_trace ("deactivating keyboard");
+      ply_keyboard_stop_watching_for_input (state->keyboard);
+    }
+
+  if ((state->session != NULL) && state->is_attached)
+    {
+      ply_trace ("deactivating terminal session");
+      ply_terminal_session_detach (state->session);
+      state->is_redirected = false;
+      state->is_attached = false;
+    }
+
+  if (state->terminal != NULL)
+    {
+      ply_trace ("deactivating terminal");
+      ply_terminal_stop_watching_for_vt_changes (state->terminal);
+      ply_terminal_set_buffered_input (state->terminal);
+      ply_terminal_ignore_mode_changes (state->terminal, true);
+    }
 
   state->is_inactive = true;
 

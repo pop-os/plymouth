@@ -249,7 +249,7 @@ ply_text_display_write (ply_text_display_t *display,
   vasprintf (&string, format, args);
   va_end (args);
 
-  if (ply_terminal_get_vt_number (display->terminal) > 0)
+  if (ply_terminal_is_vt (display->terminal))
     ply_terminal_set_mode (display->terminal, PLY_TERMINAL_MODE_TEXT);
   write (fd, string, strlen (string));
   free (string);

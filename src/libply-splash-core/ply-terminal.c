@@ -388,6 +388,9 @@ ply_terminal_watch_for_vt_changes (ply_terminal_t *terminal)
   if (terminal->fd < 0)
     return;
 
+  if (!ply_terminal_is_vt (terminal))
+    return;
+
   if (terminal->is_watching_for_vt_changes)
     return;
 
@@ -415,6 +418,9 @@ static void
 ply_terminal_stop_watching_for_vt_changes (ply_terminal_t *terminal)
 {
   struct vt_mode mode = { 0 };
+
+  if (!ply_terminal_is_vt (terminal))
+    return;
 
   if (!terminal->is_watching_for_vt_changes)
     return;
@@ -495,7 +501,10 @@ ply_terminal_open (ply_terminal_t *terminal)
                                ply_terminal_look_up_geometry,
                                terminal);
 
-  ply_terminal_watch_for_vt_changes (terminal);
+  if (ply_terminal_is_vt (terminal))
+    {
+      ply_terminal_watch_for_vt_changes (terminal);
+    }
 
   terminal->is_open = true;
 
@@ -616,6 +625,9 @@ ply_terminal_set_mode (ply_terminal_t     *terminal,
   assert (terminal != NULL);
   assert (mode == PLY_TERMINAL_MODE_TEXT || mode == PLY_TERMINAL_MODE_GRAPHICS);
 
+  if (!ply_terminal_is_vt (terminal))
+    return;
+
   if (terminal->should_ignore_mode_changes)
     return;
 
@@ -637,6 +649,9 @@ void
 ply_terminal_ignore_mode_changes (ply_terminal_t *terminal,
                                   bool            should_ignore)
 {
+  if (!ply_terminal_is_vt (terminal))
+    return;
+
   terminal->should_ignore_mode_changes = should_ignore;
 }
 
@@ -737,6 +752,9 @@ ply_terminal_watch_for_active_vt_change (ply_terminal_t *terminal,
 {
   ply_terminal_active_vt_changed_closure_t *closure;
 
+  if (!ply_terminal_is_vt (terminal))
+    return;
+
   closure = calloc (1, sizeof (*closure));
   closure->handler = active_vt_changed_handler;
   closure->user_data = user_data;
@@ -750,6 +768,9 @@ ply_terminal_stop_watching_for_active_vt_change (ply_terminal_t *terminal,
                                                  void *user_data)
 {
   ply_list_node_t *node;
+
+  if (!ply_terminal_is_vt (terminal))
+    return;
 
   node = ply_list_get_first_node (terminal->vt_change_closures);
   while (node != NULL)

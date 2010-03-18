@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <paths.h>
+#include <assert.h>
 
 #include <linux/kd.h>
 #include <linux/vt.h>
@@ -721,6 +722,25 @@ quit_program (state_t *state)
 }
 
 static void
+deactivate_splash (state_t *state)
+{
+  assert (!state->is_inactive);
+
+  if (state->renderer != NULL)
+    {
+      ply_trace ("deactivating renderer");
+      ply_renderer_deactivate (state->renderer);
+    }
+
+  ply_trace ("quitting splash");
+  quit_splash (state);
+
+  ply_trigger_pull (state->deactivate_trigger, NULL);
+  state->deactivate_trigger = NULL;
+  state->is_inactive = true;
+}
+
+static void
 on_boot_splash_idle (state_t *state)
 {
   ply_trace ("boot splash idle");
@@ -744,18 +764,8 @@ on_boot_splash_idle (state_t *state)
     }
   else if (state->deactivate_trigger != NULL)
     {
-      if (state->renderer != NULL)
-        {
-          ply_trace ("deactivating renderer");
-          ply_renderer_deactivate (state->renderer);
-        }
-
-      ply_trace ("quitting splash");
-      quit_splash (state);
-
-      ply_trigger_pull (state->deactivate_trigger, NULL);
-      state->deactivate_trigger = NULL;
-      state->is_inactive = true;
+      ply_trace ("deactivating splash");
+      deactivate_splash (state);
     }
 }
 

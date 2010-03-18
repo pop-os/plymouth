@@ -108,7 +108,7 @@ struct _ply_renderer_backend
   unsigned int bytes_per_pixel;
   unsigned int row_stride;
 
-  uint32_t is_inactive : 1;
+  uint32_t is_active : 1;
 
   void (* flush_area) (ply_renderer_backend_t *backend,
                        ply_renderer_head_t    *head,
@@ -305,7 +305,7 @@ destroy_backend (ply_renderer_backend_t *backend)
 static void
 activate (ply_renderer_backend_t *backend)
 {
-  backend->is_inactive = false;
+  backend->is_active = true;
 
   if (backend->head.map_address != MAP_FAILED)
     ply_renderer_head_redraw (backend, &backend->head);
@@ -314,7 +314,7 @@ activate (ply_renderer_backend_t *backend)
 static void
 deactivate (ply_renderer_backend_t *backend)
 {
-  backend->is_inactive = true;
+  backend->is_active = false;
 }
 
 static void
@@ -527,7 +527,10 @@ map_to_device (ply_renderer_backend_t *backend)
   if (head->map_address == MAP_FAILED)
     return false;
 
-  ply_terminal_activate_vt (backend->terminal);
+  if (ply_terminal_is_active (backend->terminal))
+    activate (backend);
+  else
+    ply_terminal_activate_vt (backend->terminal);
 
   return true;
 }
@@ -558,7 +561,7 @@ flush_head (ply_renderer_backend_t *backend,
   assert (backend != NULL);
   assert (&backend->head == head);
 
-  if (backend->is_inactive)
+  if (!backend->is_active)
     return;
 
   ply_terminal_set_mode (backend->terminal, PLY_TERMINAL_MODE_GRAPHICS);

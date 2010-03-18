@@ -820,9 +820,9 @@ map_to_device (ply_renderer_backend_t *backend)
     }
 
   if (ply_terminal_is_active (backend->terminal))
-      activate (backend);
+    activate (backend);
   else
-      ply_terminal_activate_vt (backend->terminal);
+    ply_terminal_activate_vt (backend->terminal);
 
   return head_mapped;
 }

@@ -1424,10 +1424,10 @@ initialize_environment (state_t *state)
     {
       if (state->mode == PLY_MODE_SHUTDOWN)
         {
-          state->default_tty = "tty63";
+          state->default_tty = SHUTDOWN_TTY;
         }
       else
-        state->default_tty = "tty1";
+        state->default_tty = BOOT_TTY;
     }
 
   check_for_consoles (state, state->default_tty, false);

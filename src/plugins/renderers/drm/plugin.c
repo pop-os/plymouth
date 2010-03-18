@@ -496,6 +496,12 @@ open_device (ply_renderer_backend_t *backend)
   if (!load_driver (backend))
     return false;
 
+  if (!ply_terminal_open (backend->terminal))
+    {
+      ply_trace ("could not open terminal: %m");
+      return false;
+    }
+
   ply_terminal_watch_for_active_vt_change (backend->terminal,
                                            (ply_terminal_active_vt_changed_handler_t)
                                            on_active_vt_changed,

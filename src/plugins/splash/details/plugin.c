@@ -197,8 +197,12 @@ add_text_display (ply_boot_splash_plugin_t *plugin,
                   ply_text_display_t       *display)
 {
   view_t *view;
+  ply_terminal_t *terminal;
 
   view = view_new (plugin, display);
+
+  terminal = ply_text_display_get_terminal (view->display);
+  ply_terminal_open (terminal);
 
   ply_list_append_data (plugin->views, view);
 }

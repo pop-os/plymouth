@@ -1004,22 +1004,12 @@ static void
 add_display_and_keyboard_for_terminal (state_t    *state,
                                        const char *tty_name)
 {
-  ply_terminal_t *terminal;
   ply_text_display_t *display;
   ply_keyboard_t *keyboard;
 
   ply_trace ("adding display and keyboard for %s", tty_name);
 
-  terminal = ply_terminal_new (tty_name);
-
-  if (!ply_terminal_open (terminal))
-    {
-      ply_trace ("could not open terminal '%s': %m", tty_name);
-      ply_terminal_free (terminal);
-      return;
-    }
-
-  state->terminal = terminal;
+  state->terminal = ply_terminal_new (tty_name);
 
   ply_terminal_activate_vt (state->terminal);
 
@@ -1070,13 +1060,6 @@ add_default_displays_and_keyboard (state_t *state)
   ply_trace ("adding default displays and keyboard");
 
   terminal = ply_terminal_new (state->default_tty);
-
-  if (!ply_terminal_open (terminal))
-    {
-      ply_trace ("could not open terminal '%s': %m", state->default_tty);
-      ply_terminal_free (terminal);
-      return;
-    }
 
   renderer = ply_renderer_new (NULL, terminal);
 

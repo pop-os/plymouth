@@ -659,6 +659,8 @@ dump_details_and_quit_splash (state_t *state)
   state->showing_details = false;
   on_escape_pressed (state);
 
+  if (state->renderer != NULL)
+    ply_renderer_deactivate (state->renderer);
   if (state->boot_splash != NULL)
     ply_boot_splash_hide (state->boot_splash);
 
@@ -773,6 +775,8 @@ on_boot_splash_idle (state_t *state)
       if (!state->should_retain_splash)
         {
           ply_trace ("hiding splash");
+          if (state->renderer != NULL)
+            ply_renderer_deactivate (state->renderer);
           if (state->boot_splash != NULL)
             ply_boot_splash_hide (state->boot_splash);
         }

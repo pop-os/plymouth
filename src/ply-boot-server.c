@@ -68,6 +68,7 @@ struct _ply_boot_server
   ply_boot_server_deactivate_handler_t deactivate_handler;
   ply_boot_server_reactivate_handler_t reactivate_handler;
   ply_boot_server_quit_handler_t quit_handler;
+  ply_boot_server_has_active_vt_handler_t has_active_vt_handler;
   void *user_data;
 
   uint32_t is_listening : 1;
@@ -89,7 +90,8 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
                      ply_boot_server_error_handler_t error_handler,
                      ply_boot_server_deactivate_handler_t deactivate_handler,
                      ply_boot_server_reactivate_handler_t reactivate_handler,
-                     ply_boot_server_quit_handler_t    quit_handler,
+                     ply_boot_server_quit_handler_t quit_handler,
+                     ply_boot_server_has_active_vt_handler_t has_active_vt_handler,
                      void                             *user_data)
 {
   ply_boot_server_t *server;
@@ -115,6 +117,7 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
   server->deactivate_handler = deactivate_handler;
   server->reactivate_handler = reactivate_handler;
   server->quit_handler = quit_handler;
+  server->has_active_vt_handler = has_active_vt_handler;
   server->user_data = user_data;
 
   return server;
@@ -582,6 +585,25 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (server->newroot_handler != NULL)
         server->newroot_handler(server->user_data, argument, server);
     }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_HAS_ACTIVE_VT) == 0)
+    {
+      bool answer = false;
+
+      ply_trace ("got has_active vt? request");
+      if (server->has_active_vt_handler != NULL)
+        answer = server->has_active_vt_handler(server->user_data, server);
+
+      if (!answer)
+        {
+          if (!ply_write (connection->fd,
+                          PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK,
+                          strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
+            ply_error ("could not write bytes: %m");
+
+          free(command);
+          return;
+        }
+    }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PING) != 0)
     {
       ply_error ("received unknown command '%s' from client", command);
@@ -803,6 +825,13 @@ on_ignore_keystroke (ply_event_loop_t *loop)
   return;
 }
 
+static bool
+on_has_active_vt (ply_event_loop_t *loop)
+{
+  printf ("got has_active vt? request\n");
+  return true;
+}
+
 int
 main (int    argc,
       char **argv)
@@ -831,6 +860,7 @@ main (int    argc,
                                 (ply_boot_server_deactivate_handler_t) on_deactivate,
                                 (ply_boot_server_reactivate_handler_t) on_reactivate,
                                 (ply_boot_server_quit_handler_t) on_quit,
+                                (ply_boot_server_has_active_vt_handler_t) on_has_active_vt,
                                 loop);
 
   if (!ply_boot_server_listen (server))

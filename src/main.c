@@ -896,6 +896,15 @@ on_quit (state_t       *state,
     quit_program (state);
 }
 
+static bool
+on_has_active_vt (state_t *state)
+{
+  if (state->terminal != NULL)
+    return ply_terminal_is_active (state->terminal);
+  else
+    return false;
+}
+
 static ply_boot_server_t *
 start_boot_server (state_t *state)
 {
@@ -917,6 +926,7 @@ start_boot_server (state_t *state)
                                 (ply_boot_server_deactivate_handler_t) on_deactivate,
                                 (ply_boot_server_reactivate_handler_t) on_reactivate,
                                 (ply_boot_server_quit_handler_t) on_quit,
+                                (ply_boot_server_has_active_vt_handler_t) on_has_active_vt,
                                 state);
 
   if (!ply_boot_server_listen (server))

@@ -1420,12 +1420,15 @@ initialize_environment (state_t *state)
   state->text_displays = ply_list_new ();
   state->keyboard = NULL;
 
-  if (state->mode == PLY_MODE_SHUTDOWN)
+  if (!state->default_tty)
     {
-      state->default_tty = "tty63";
+      if (state->mode == PLY_MODE_SHUTDOWN)
+        {
+          state->default_tty = "tty63";
+        }
+      else
+        state->default_tty = "tty1";
     }
-  else
-    state->default_tty = "tty1";
 
   check_for_consoles (state, state->default_tty, false);
 
@@ -1517,6 +1520,7 @@ main (int    argc,
   bool attach_to_session;
   ply_daemon_handle_t *daemon_handle;
   char *mode_string = NULL;
+  char *tty = NULL;
 
   state.command_parser = ply_command_parser_new ("plymouthd", "Boot splash control server");
 
@@ -1530,6 +1534,7 @@ main (int    argc,
                                   "debug-file", "File to output debugging information to", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "mode", "Mode is one of: boot, shutdown", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "pid-file", "Write the pid of the daemon to a file", PLY_COMMAND_OPTION_TYPE_STRING,
+                                  "tty", "TTY to use instead of default", PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
   if (!ply_command_parser_parse_arguments (state.command_parser, state.loop, argv, argc))
@@ -1552,6 +1557,7 @@ main (int    argc,
                                   "debug", &debug,
                                   "debug-file", &debug_buffer_path,
                                   "pid-file", &pid_file,
+                                  "tty", &tty,
                                   NULL);
 
   if (should_help)
@@ -1580,6 +1586,11 @@ main (int    argc,
         state.mode = PLY_MODE_BOOT;
 
       free (mode_string);
+    }
+
+  if (tty != NULL)
+    {
+      state.default_tty = tty;
     }
 
   if (geteuid () != 0)

@@ -842,19 +842,19 @@ on_quit (state_t       *state,
     ply_terminal_session_close_log (state->session);
   ply_trace ("unloading splash");
 
-  if (state->boot_splash != NULL)
-    {
-      ply_boot_splash_become_idle (state->boot_splash,
-                                   (ply_boot_splash_on_idle_handler_t)
-                                   on_boot_splash_idle,
-                                   state);
-    }
-  else if (state->is_inactive && !retain_splash)
+  if (state->is_inactive && !retain_splash)
     {
       /* We've been deactivated and X failed to start
        */
       dump_details_and_quit_splash (state);
       quit_program (state);
+    }
+  else if (state->boot_splash != NULL)
+    {
+      ply_boot_splash_become_idle (state->boot_splash,
+                                   (ply_boot_splash_on_idle_handler_t)
+                                   on_boot_splash_idle,
+                                   state);
     }
   else
     quit_program (state);

@@ -9,8 +9,6 @@ ply_boot_splash_test_LDADD = $(PLYMOUTH_LIBS) ../libply/libply.la
 
 ply_boot_splash_test_SOURCES =                                                   \
                           $(srcdir)/../libply-splash-core/ply-boot-splash-plugin.h \
-                          $(srcdir)/../libply-splash-core/ply-console.h            \
-                          $(srcdir)/../libply-splash-core/ply-console.c            \
                           $(srcdir)/../libply-splash-core/ply-keyboard.h           \
                           $(srcdir)/../libply-splash-core/ply-keyboard.c           \
                           $(srcdir)/../libply-splash-core/ply-pixel-buffer.h       \

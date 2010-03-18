@@ -15,7 +15,6 @@ libply_splash_coredir = $(includedir)/plymouth-1/ply-splash-core
 libply_splash_core_HEADERS = \
 		    ply-boot-splash.h                                         \
 		    ply-boot-splash-plugin.h                                  \
-		    ply-console.h                                             \
 		    ply-keyboard.h                                            \
 		    ply-pixel-buffer.h                                        \
 		    ply-pixel-display.h                                       \
@@ -36,7 +35,6 @@ libply_splash_core_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
 		    -no-undefined
 libply_splash_core_la_SOURCES = \
 		    $(libply_splash_core_HEADERS)                              \
-		    ply-console.c                                            \
 		    ply-keyboard.c                                           \
 		    ply-pixel-display.c                                      \
 		    ply-text-display.c                                       \

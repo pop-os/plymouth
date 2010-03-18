@@ -111,7 +111,7 @@ struct _ply_renderer_backend
   int32_t dither_green;
   int32_t dither_blue;
 
-  uint32_t is_inactive : 1;
+  uint32_t is_active : 1;
 };
 
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
@@ -373,7 +373,7 @@ activate (ply_renderer_backend_t *backend)
 {
   ply_list_node_t *node;
 
-  backend->is_inactive = false;
+  backend->is_active = true;
 
   drmSetMaster (backend->device_fd);
   node = ply_list_get_first_node (backend->heads);
@@ -398,7 +398,7 @@ deactivate (ply_renderer_backend_t *backend)
 {
   ply_trace ("dropping master");
   drmDropMaster (backend->device_fd);
-  backend->is_inactive = true;
+  backend->is_active = false;
 }
 
 static void
@@ -819,7 +819,10 @@ map_to_device (ply_renderer_backend_t *backend)
       node = next_node;
     }
 
-  ply_terminal_activate_vt (backend->terminal);
+  if (ply_terminal_is_active (backend->terminal))
+      activate (backend);
+  else
+      ply_terminal_activate_vt (backend->terminal);
 
   return head_mapped;
 }
@@ -921,7 +924,7 @@ unmap_from_device (ply_renderer_backend_t *backend)
       head = (ply_renderer_head_t *) ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (backend->heads, node);
 
-      if (!backend->is_inactive)
+      if (backend->is_active)
         {
           ply_trace ("scanning out directly to console");
           ply_renderer_head_set_scan_out_buffer_to_console (backend, head,
@@ -970,7 +973,7 @@ flush_head (ply_renderer_backend_t *backend,
 
   assert (backend != NULL);
 
-  if (backend->is_inactive)
+  if (!backend->is_active)
     return;
 
   ply_terminal_set_mode (backend->terminal, PLY_TERMINAL_MODE_GRAPHICS);

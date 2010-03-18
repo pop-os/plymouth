@@ -108,6 +108,10 @@ void ply_boot_client_tell_daemon_to_deactivate (ply_boot_client_t               
                                                 ply_boot_client_response_handler_t  handler,
                                                 ply_boot_client_response_handler_t  failed_handler,
                                                 void                               *user_data);
+void ply_boot_client_tell_daemon_to_reactivate (ply_boot_client_t                  *client,
+                                                ply_boot_client_response_handler_t  handler,
+                                                ply_boot_client_response_handler_t  failed_handler,
+                                                void                               *user_data);
 void ply_boot_client_tell_daemon_to_quit (ply_boot_client_t                  *client,
                                           bool                                retain_splash,
                                           ply_boot_client_response_handler_t  handler,

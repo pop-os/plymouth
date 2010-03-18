@@ -679,6 +679,17 @@ on_deactivate_request (state_t    *state,
 }
 
 static void
+on_reactivate_request (state_t    *state,
+                       const char *command)
+{
+  ply_boot_client_tell_daemon_to_reactivate (state->client,
+                                             (ply_boot_client_response_handler_t)
+                                             on_success,
+                                             (ply_boot_client_response_handler_t)
+                                             on_failure, state);
+}
+
+static void
 on_quit_request (state_t    *state,
                  const char *command)
 {
@@ -825,6 +836,11 @@ main (int    argc,
                                   "deactivate", "Tell boot daemon to deactivate",
                                   (ply_command_handler_t)
                                   on_deactivate_request, &state, NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "reactivate", "Tell boot daemon to reactivate",
+                                  (ply_command_handler_t)
+                                  on_reactivate_request, &state, NULL);
 
   ply_command_parser_add_command (state.command_parser,
                                   "quit", "Tell boot daemon to quit",

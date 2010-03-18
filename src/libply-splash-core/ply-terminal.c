@@ -81,6 +81,7 @@ struct _ply_terminal
   uint32_t supports_text_color : 1;
   uint32_t is_open : 1;
   uint32_t is_active : 1;
+  uint32_t is_unbuffered : 1;
   uint32_t is_watching_for_vt_changes : 1;
   uint32_t should_ignore_mode_changes : 1;
 };
@@ -182,6 +183,8 @@ ply_terminal_set_unbuffered_input (ply_terminal_t *terminal)
   if (tcsetattr (terminal->fd, TCSAFLUSH, &term_attributes) != 0)
     return false;
 
+  terminal->is_unbuffered = true;
+
   return true;
 }
 
@@ -190,13 +193,20 @@ ply_terminal_set_buffered_input (ply_terminal_t *terminal)
 {
   struct termios term_attributes;
 
+  if (!terminal->is_unbuffered)
+    return true;
+
   tcgetattr (terminal->fd, &term_attributes);
 
   /* If someone already messed with the terminal settings,
    * and they seem good enough, bail
    */
   if (term_attributes.c_lflag & ICANON)
-    return true;
+    {
+      terminal->is_unbuffered = false;
+
+      return true;
+    }
 
   /* If we don't know the original term attributes, or they were originally sucky,
    * then invent some that are probably good enough.
@@ -210,11 +220,15 @@ ply_terminal_set_buffered_input (ply_terminal_t *terminal)
       if (tcsetattr (terminal->fd, TCSAFLUSH, &term_attributes) != 0)
         return false;
 
+      terminal->is_unbuffered = false;
+
       return true;
     }
 
   if (tcsetattr (terminal->fd, TCSAFLUSH, &terminal->original_term_attributes) != 0)
     return false;
+
+  terminal->is_unbuffered = false;
 
   return true;
 }
@@ -229,8 +243,6 @@ ply_terminal_write (ply_terminal_t *terminal,
 
   assert (terminal != NULL);
   assert (format != NULL);
-
-  ply_terminal_set_unbuffered_input (terminal);
 
   string = NULL;
   va_start (args, format);

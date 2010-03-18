@@ -320,14 +320,16 @@ deactivate (ply_renderer_backend_t *backend)
 static void
 on_active_vt_changed (ply_renderer_backend_t *backend)
 {
-  if (ply_terminal_get_active_vt (backend->terminal) !=
-      ply_terminal_get_vt_number (backend->terminal))
+  if (ply_terminal_is_active (backend->terminal))
     {
-      deactivate (backend);
-      return;
+      ply_trace ("activating on vt change");
+      activate (backend);
     }
-
-  activate (backend);
+  else
+    {
+      ply_trace ("deactivating on vt change");
+      deactivate (backend);
+    }
 }
 
 static bool

@@ -404,16 +404,16 @@ deactivate (ply_renderer_backend_t *backend)
 static void
 on_active_vt_changed (ply_renderer_backend_t *backend)
 {
-  if (ply_terminal_get_active_vt (backend->terminal) !=
-      ply_terminal_get_vt_number (backend->terminal))
+  if (ply_terminal_is_active (backend->terminal))
+    {
+      ply_trace ("activating on vt change");
+      activate (backend);
+    }
+  else
     {
       ply_trace ("deactivating on vt change");
       deactivate (backend);
-      return;
     }
-
-  ply_trace ("activating on vt change");
-  activate (backend);
 }
 
 static bool
@@ -927,8 +927,7 @@ reset_scan_out_buffer_if_needed (ply_renderer_backend_t *backend,
 {
   drmModeCrtc *controller;
 
-  if (ply_terminal_get_active_vt (backend->terminal) !=
-      ply_terminal_get_vt_number (backend->terminal))
+  if (!ply_terminal_is_active (backend->terminal))
     return;
 
   controller = drmModeGetCrtc (backend->device_fd, head->controller_id);

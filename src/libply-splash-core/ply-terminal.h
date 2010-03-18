@@ -62,6 +62,7 @@ bool ply_terminal_open (ply_terminal_t *terminal);
 int ply_terminal_get_fd (ply_terminal_t *terminal);
 bool ply_terminal_is_vt (ply_terminal_t *terminal);
 bool ply_terminal_is_open (ply_terminal_t *terminal);
+bool ply_terminal_is_active (ply_terminal_t *terminal);
 void ply_terminal_close (ply_terminal_t *terminal);
 void ply_terminal_reset_colors (ply_terminal_t *terminal);
 
@@ -90,7 +91,6 @@ void ply_terminal_ignore_mode_changes (ply_terminal_t *terminal,
                                        bool            should_ignore);
 
 int ply_terminal_get_vt_number (ply_terminal_t *terminal);
-int ply_terminal_get_active_vt (ply_terminal_t *terminal);
 bool ply_terminal_activate_vt (ply_terminal_t *terminal);
 
 void ply_terminal_watch_for_active_vt_change (ply_terminal_t *terminal,

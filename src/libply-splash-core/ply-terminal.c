@@ -65,7 +65,6 @@ struct _ply_terminal
   char *name;
   int   fd;
   int   vt_number;
-  int   active_vt;
   int   next_active_vt;
 
   ply_list_t *vt_change_closures;
@@ -82,6 +81,7 @@ struct _ply_terminal
   uint32_t original_term_attributes_saved : 1;
   uint32_t supports_text_color : 1;
   uint32_t is_open : 1;
+  uint32_t is_active : 1;
   uint32_t is_watching_for_vt_changes : 1;
   uint32_t should_ignore_mode_changes : 1;
 };
@@ -299,15 +299,15 @@ ply_terminal_check_for_vt (ply_terminal_t *terminal)
     terminal->vt_number = -1;
 }
 
-static void
-ply_terminal_look_up_active_vt (ply_terminal_t *terminal)
+static int
+get_active_vt (ply_terminal_t *terminal)
 {
-  struct vt_stat terminal_state = { 0 };
+  struct vt_stat vt_state = { 0 };
 
-  if (ioctl (terminal->fd, VT_GETSTATE, &terminal_state) < 0)
-    return;
+  if (ioctl (terminal->fd, VT_GETSTATE, &vt_state) < 0)
+    return -1;
 
-  terminal->active_vt = terminal_state.v_active;
+  return vt_state.v_active;
 }
 
 static void
@@ -342,7 +342,7 @@ on_leave_vt (ply_terminal_t *terminal)
       terminal->next_active_vt = 0;
     }
 
-  ply_terminal_look_up_active_vt (terminal);
+  terminal->is_active = false;
   do_active_vt_changed (terminal);
 }
 
@@ -351,7 +351,7 @@ on_enter_vt (ply_terminal_t *terminal)
 {
   ioctl (terminal->fd, VT_RELDISP, VT_ACKACQ);
 
-  ply_terminal_look_up_active_vt (terminal);
+  terminal->is_active = true;
   do_active_vt_changed (terminal);
 }
 
@@ -431,7 +431,6 @@ ply_terminal_open_device (ply_terminal_t *terminal)
                                                    terminal);
 
   ply_terminal_check_for_vt (terminal);
-  ply_terminal_look_up_active_vt (terminal);
 
   if (!ply_terminal_set_unbuffered_input (terminal))
     ply_trace ("terminal '%s' will be line buffered", terminal->name);
@@ -466,6 +465,11 @@ ply_terminal_open (ply_terminal_t *terminal)
   if (ply_terminal_is_vt (terminal))
     {
       ply_terminal_watch_for_vt_changes (terminal);
+
+      if (get_active_vt (terminal) == terminal->vt_number)
+        terminal->is_active = true;
+      else
+        terminal->is_active = false;
     }
 
   terminal->is_open = true;
@@ -489,6 +493,12 @@ bool
 ply_terminal_is_open (ply_terminal_t *terminal)
 {
   return terminal->is_open;
+}
+
+bool
+ply_terminal_is_active (ply_terminal_t *terminal)
+{
+  return terminal->is_active;
 }
 
 void
@@ -671,12 +681,6 @@ ply_terminal_get_vt_number (ply_terminal_t *terminal)
   return terminal->vt_number;
 }
 
-int
-ply_terminal_get_active_vt (ply_terminal_t *terminal)
-{
-  return terminal->active_vt;
-}
-
 static bool
 set_active_vt (ply_terminal_t *terminal,
                int             vt_number)
@@ -697,7 +701,7 @@ ply_terminal_activate_vt (ply_terminal_t *terminal)
   if (!ply_terminal_is_vt (terminal))
     return false;
 
-  if (terminal->vt_number == terminal->active_vt)
+  if (terminal->is_active)
     return true;
 
   if (!set_active_vt (terminal, terminal->vt_number))

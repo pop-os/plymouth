@@ -852,6 +852,8 @@ on_reactivate (state_t *state)
     }
 
   state->is_inactive = false;
+
+  update_display (state);
 }
 
 static void

@@ -695,22 +695,31 @@ ply_terminal_get_active_vt (ply_terminal_t *terminal)
   return terminal->active_vt;
 }
 
-bool
-ply_terminal_set_active_vt (ply_terminal_t *terminal,
-                            int             vt_number)
+static bool
+set_active_vt (ply_terminal_t *terminal,
+               int             vt_number)
 {
-  assert (terminal != NULL);
-
-  if (vt_number <= 0)
-    return false;
-
-  if (vt_number == terminal->active_vt)
-    return true;
-
   if (ioctl (terminal->fd, VT_ACTIVATE, vt_number) < 0)
     return false;
 
   terminal->next_active_vt = vt_number;
+
+  return true;
+}
+
+bool
+ply_terminal_activate_vt (ply_terminal_t *terminal)
+{
+  assert (terminal != NULL);
+
+  if (terminal->vt_number <= 0)
+    return false;
+
+  if (terminal->vt_number == terminal->active_vt)
+    return true;
+
+  if (!set_active_vt (terminal, terminal->vt_number))
+    return false;
 
   return true;
 }

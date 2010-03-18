@@ -90,8 +90,7 @@ void ply_terminal_ignore_mode_changes (ply_terminal_t *terminal,
 
 int ply_terminal_get_vt_number (ply_terminal_t *terminal);
 int ply_terminal_get_active_vt (ply_terminal_t *terminal);
-bool ply_terminal_set_active_vt (ply_terminal_t *terminal,
-                                 int             vt_number);
+bool ply_terminal_activate_vt (ply_terminal_t *terminal);
 
 void ply_terminal_watch_for_active_vt_change (ply_terminal_t *terminal,
                                               ply_terminal_active_vt_changed_handler_t active_vt_changed_handler,

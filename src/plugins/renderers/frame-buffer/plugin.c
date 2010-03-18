@@ -512,8 +512,7 @@ map_to_device (ply_renderer_backend_t *backend)
   if (head->map_address == MAP_FAILED)
     return false;
 
-  ply_terminal_set_active_vt (backend->terminal,
-                              ply_terminal_get_vt_number (backend->terminal));
+  ply_terminal_activate_vt (backend->terminal);
 
   return true;
 }

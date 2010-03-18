@@ -702,6 +702,11 @@ quit_program (state_t *state)
     }
 #endif
 
+  if (state->deactivate_trigger != NULL)
+    {
+      ply_trigger_pull (state->deactivate_trigger, NULL);
+      state->deactivate_trigger = NULL;
+    }
   if (state->quit_trigger != NULL)
     {
       ply_trigger_pull (state->quit_trigger, NULL);

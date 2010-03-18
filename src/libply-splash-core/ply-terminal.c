@@ -348,7 +348,7 @@ on_enter_vt (ply_terminal_t *terminal)
   do_active_vt_changed (terminal);
 }
 
-static void
+void
 ply_terminal_watch_for_vt_changes (ply_terminal_t *terminal)
 {
   assert (terminal != NULL);
@@ -384,7 +384,7 @@ ply_terminal_watch_for_vt_changes (ply_terminal_t *terminal)
   terminal->is_watching_for_vt_changes = true;
 }
 
-static void
+void
 ply_terminal_stop_watching_for_vt_changes (ply_terminal_t *terminal)
 {
   struct vt_mode mode = { 0 };

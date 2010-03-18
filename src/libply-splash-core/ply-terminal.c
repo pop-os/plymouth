@@ -436,6 +436,9 @@ ply_terminal_open (ply_terminal_t *terminal)
 {
   assert (terminal != NULL);
 
+  if (terminal->is_open)
+    return true;
+
   ply_trace ("trying to open terminal '%s'", terminal->name);
 
   if (!ply_terminal_open_device (terminal))
@@ -497,6 +500,9 @@ ply_terminal_is_active (ply_terminal_t *terminal)
 void
 ply_terminal_close (ply_terminal_t *terminal)
 {
+  if (!terminal->is_open)
+    return;
+
   terminal->is_open = false;
 
   ply_terminal_stop_watching_for_vt_changes (terminal);

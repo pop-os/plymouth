@@ -758,10 +758,17 @@ static void
 on_deactivate (state_t       *state,
                ply_trigger_t *deactivate_trigger)
 {
+  if (state->deactivate_trigger != NULL)
+    {
+      ply_trigger_pull (deactivate_trigger, NULL);
+      return;
+    }
+
+  state->deactivate_trigger = deactivate_trigger;
+
   ply_trace ("deactivating");
   if (state->boot_splash != NULL)
     {
-      state->deactivate_trigger = deactivate_trigger;
       ply_boot_splash_become_idle (state->boot_splash,
                                    (ply_boot_splash_on_idle_handler_t)
                                    on_boot_splash_idle,
@@ -769,7 +776,8 @@ on_deactivate (state_t       *state,
     }
   else
     {
-      ply_trigger_pull (deactivate_trigger, NULL);
+      ply_trigger_pull (state->deactivate_trigger, NULL);
+      state->deactivate_trigger = NULL;
     }
 }
 

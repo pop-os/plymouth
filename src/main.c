@@ -667,6 +667,9 @@ dump_details_and_quit_splash (state_t *state)
 static void
 on_hide_splash (state_t *state)
 {
+  if (state->is_inactive)
+    return;
+
   if (state->boot_splash == NULL)
     return;
 

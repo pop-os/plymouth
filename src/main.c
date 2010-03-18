@@ -1011,8 +1011,6 @@ add_display_and_keyboard_for_terminal (state_t    *state,
 
   state->terminal = ply_terminal_new (tty_name);
 
-  ply_terminal_activate_vt (state->terminal);
-
   keyboard = ply_keyboard_new_for_terminal (state->terminal);
   display = ply_text_display_new (state->terminal);
 

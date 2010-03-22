@@ -474,15 +474,24 @@ script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
                                                    ply_list_t     *pixel_displays)
 {
   ply_list_node_t *node;
-  int centre_x, centre_y;
+  unsigned int max_width, max_height;
   script_lib_sprite_data_t *data = malloc (sizeof (script_lib_sprite_data_t));
 
   data->class = script_obj_native_class_new (sprite_free, "sprite", data);
   data->sprite_list = ply_list_new ();
   data->displays = ply_list_new ();
 
-  centre_x = 0;
-  centre_y = 0;
+  max_width = 0;
+  max_height = 0;
+
+  for (node = ply_list_get_first_node (pixel_displays);
+       node;
+       node = ply_list_get_next_node (pixel_displays, node))
+    {
+      ply_pixel_display_t *pixel_display = ply_list_node_get_data (node);
+      max_width = MAX(max_width, ply_pixel_display_get_width (pixel_display));
+      max_height = MAX(max_height, ply_pixel_display_get_height (pixel_display));
+    }
 
   for (node = ply_list_get_first_node (pixel_displays);
        node;
@@ -491,18 +500,10 @@ script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
       ply_pixel_display_t *pixel_display = ply_list_node_get_data (node);
       script_lib_display_t *script_display = malloc (sizeof(script_lib_display_t));
       script_display->pixel_display = pixel_display;
-      if (centre_x == 0)
-        {
-          script_display->x = 0;
-          script_display->y = 0;
-          centre_x = ply_pixel_display_get_width (pixel_display) / 2;
-          centre_y = ply_pixel_display_get_height (pixel_display) / 2;
-        }
-      else
-        {
-          script_display->x = centre_x - ply_pixel_display_get_width (pixel_display) / 2;
-          script_display->y = centre_y - ply_pixel_display_get_height (pixel_display) / 2;
-        }
+      
+      script_display->x = (max_width - ply_pixel_display_get_width (pixel_display)) / 2;
+      script_display->y = (max_height - ply_pixel_display_get_height (pixel_display)) / 2;
+      
       script_display->data = data;
       ply_pixel_display_set_draw_handler (pixel_display,
                                           (ply_pixel_display_draw_handler_t)

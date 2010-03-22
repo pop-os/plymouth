@@ -206,25 +206,32 @@ static script_return_t sprite_window_get_width (script_state_t *state,
   int index;
   script_obj_t *index_obj;
   script_lib_display_t *display;
-  int width;
+  unsigned int width;
 
   index_obj = script_obj_hash_peek_element (state->local, "window");
 
   if (index_obj)
     {
-    index = script_obj_as_number (index_obj);
-    script_obj_unref(index_obj);
-    if (index < 0)
-      return script_return_obj_null ();
+      index = script_obj_as_number (index_obj);
+      script_obj_unref(index_obj);
+      if (index < 0)
+        return script_return_obj_null ();
+      node = ply_list_get_nth_node (data->displays, index);
+      if (node == NULL)
+        return script_return_obj_null ();
+      display = ply_list_node_get_data (node);
+      width = ply_pixel_display_get_width (display->pixel_display);
+      return script_return_obj (script_obj_new_number (width));
     }
-  else
-    index = 0;
 
-  node = ply_list_get_nth_node (data->displays, index);
-  if (node == NULL)
-    return script_return_obj_null ();
-  display = ply_list_node_get_data (node);
-  width = ply_pixel_display_get_width (display->pixel_display);
+  width = 0;
+  for (node = ply_list_get_first_node (data->displays);
+       node;
+       node = ply_list_get_next_node (data->displays, node))
+    {
+      display = ply_list_node_get_data (node);
+      width = MIN (width, ply_pixel_display_get_width (display->pixel_display));
+    }
   return script_return_obj (script_obj_new_number (width));
 }
 
@@ -236,25 +243,32 @@ static script_return_t sprite_window_get_height (script_state_t *state,
   int index;
   script_obj_t *index_obj;
   script_lib_display_t *display;
-  int height;
+  unsigned int height;
 
   index_obj = script_obj_hash_peek_element (state->local, "window");
 
   if (index_obj)
     {
-    index = script_obj_as_number (index_obj);
-    script_obj_unref(index_obj);
-    if (index < 0)
-      return script_return_obj_null ();
+      index = script_obj_as_number (index_obj);
+      script_obj_unref(index_obj);
+      if (index < 0)
+        return script_return_obj_null ();
+      node = ply_list_get_nth_node (data->displays, index);
+      if (node == NULL)
+        return script_return_obj_null ();
+      display = ply_list_node_get_data (node);
+      height = ply_pixel_display_get_height (display->pixel_display);
+      return script_return_obj (script_obj_new_number (height));
     }
-  else
-    index = 0;
 
-  node = ply_list_get_nth_node (data->displays, index);
-  if (node == NULL)
-    return script_return_obj_null ();
-  display = ply_list_node_get_data (node);
-  height = ply_pixel_display_get_height (display->pixel_display);
+  height = 0;
+  for (node = ply_list_get_first_node (data->displays);
+       node;
+       node = ply_list_get_next_node (data->displays, node))
+    {
+      display = ply_list_node_get_data (node);
+      height = MIN (height, ply_pixel_display_get_height (display->pixel_display));
+    }
   return script_return_obj (script_obj_new_number (height));
 }
 
@@ -266,24 +280,32 @@ static script_return_t sprite_window_get_x (script_state_t *state,
   int index;
   script_obj_t *index_obj;
   script_lib_display_t *display;
+  int x;
 
   index_obj = script_obj_hash_peek_element (state->local, "window");
 
   if (index_obj)
     {
-    index = script_obj_as_number (index_obj);
-    script_obj_unref(index_obj);
-    if (index < 0)
-      return script_return_obj_null ();
+      index = script_obj_as_number (index_obj);
+      script_obj_unref(index_obj);
+      if (index < 0)
+        return script_return_obj_null ();
+      node = ply_list_get_nth_node (data->displays, index);
+      if (node == NULL)
+        return script_return_obj_null ();
+      display = ply_list_node_get_data (node);
+      return script_return_obj (script_obj_new_number (display->x));
     }
-  else
-    index = 0;
 
-  node = ply_list_get_nth_node (data->displays, index);
-  if (node == NULL)
-    return script_return_obj_null ();
-  display = ply_list_node_get_data (node);
-  return script_return_obj (script_obj_new_number (display->x));
+  x = 0;
+  for (node = ply_list_get_first_node (data->displays);
+       node;
+       node = ply_list_get_next_node (data->displays, node))
+    {
+      display = ply_list_node_get_data (node);
+      x = MAX (x, display->x);
+    }
+  return script_return_obj (script_obj_new_number (x));
 }
 
 
@@ -295,24 +317,32 @@ static script_return_t sprite_window_get_y (script_state_t *state,
   int index;
   script_obj_t *index_obj;
   script_lib_display_t *display;
+  int y;
 
   index_obj = script_obj_hash_peek_element (state->local, "window");
 
   if (index_obj)
     {
-    index = script_obj_as_number (index_obj);
-    script_obj_unref(index_obj);
-    if (index < 0)
-      return script_return_obj_null ();
+      index = script_obj_as_number (index_obj);
+      script_obj_unref(index_obj);
+      if (index < 0)
+        return script_return_obj_null ();
+      node = ply_list_get_nth_node (data->displays, index);
+      if (node == NULL)
+        return script_return_obj_null ();
+      display = ply_list_node_get_data (node);
+      return script_return_obj (script_obj_new_number (display->y));
     }
-  else
-    index = 0;
 
-  node = ply_list_get_nth_node (data->displays, index);
-  if (node == NULL)
-    return script_return_obj_null ();
-  display = ply_list_node_get_data (node);
-  return script_return_obj (script_obj_new_number (display->y));
+  y = 0;
+  for (node = ply_list_get_first_node (data->displays);
+       node;
+       node = ply_list_get_next_node (data->displays, node))
+    {
+      display = ply_list_node_get_data (node);
+      y = MAX (y, display->y);
+    }
+  return script_return_obj (script_obj_new_number (y));
 }
 
 static script_return_t sprite_window_set_x (script_state_t *state,
@@ -350,7 +380,6 @@ static script_return_t sprite_window_set_y (script_state_t *state,
 
   index = script_obj_hash_get_number (state->local, "window");
   y = script_obj_hash_get_number (state->local, "value");
-  ply_trace("%d\n", index);
   node = ply_list_get_nth_node (data->displays, index);
   if (node)
     {

@@ -437,7 +437,10 @@ ply_terminal_open (ply_terminal_t *terminal)
   assert (terminal != NULL);
 
   if (terminal->is_open)
-    return true;
+    {
+      ply_trace ("terminal %s is already open", terminal->name);
+      return true;
+    }
 
   ply_trace ("trying to open terminal '%s'", terminal->name);
 
@@ -501,7 +504,10 @@ void
 ply_terminal_close (ply_terminal_t *terminal)
 {
   if (!terminal->is_open)
-    return;
+    {
+      ply_trace ("terminal %s is already closed", terminal->name);
+      return;
+    }
 
   terminal->is_open = false;
 

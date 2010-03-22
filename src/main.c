@@ -639,6 +639,11 @@ quit_splash (state_t *state)
 
   if (state->terminal != NULL)
     {
+      if (!state->should_retain_splash)
+        {
+          ply_trace ("Not retaining splash, so deallocating VT");
+          ply_terminal_deactivate_vt (state->terminal);
+        }
       ply_terminal_close (state->terminal);
       ply_terminal_free (state->terminal);
       state->terminal = NULL;

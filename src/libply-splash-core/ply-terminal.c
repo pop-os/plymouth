@@ -65,6 +65,7 @@ struct _ply_terminal
   char *name;
   int   fd;
   int   vt_number;
+  int   initial_vt_number;
 
   ply_list_t *vt_change_closures;
   ply_fd_watch_t *fd_watch;
@@ -107,6 +108,7 @@ ply_terminal_new (const char *device_name)
 
   terminal->fd = -1;
   terminal->vt_number = -1;
+  terminal->initial_vt_number = -1;
 
   return terminal;
 }
@@ -317,6 +319,9 @@ get_active_vt (ply_terminal_t *terminal)
 
   if (ioctl (terminal->fd, VT_GETSTATE, &vt_state) < 0)
     return -1;
+
+  if (terminal->initial_vt_number < 0)
+    terminal->initial_vt_number = vt_state.v_active;
 
   return vt_state.v_active;
 }
@@ -708,6 +713,17 @@ set_active_vt (ply_terminal_t *terminal,
   return true;
 }
 
+static bool
+deallocate_vt (ply_terminal_t *terminal,
+               int             vt_number)
+{
+  if (ioctl (terminal->fd, VT_DISALLOCATE, vt_number) < 0)
+    return false;
+
+  return true;
+}
+
+
 bool
 ply_terminal_activate_vt (ply_terminal_t *terminal)
 {
@@ -721,6 +737,56 @@ ply_terminal_activate_vt (ply_terminal_t *terminal)
 
   if (!set_active_vt (terminal, terminal->vt_number))
     return false;
+
+  return true;
+}
+
+bool
+ply_terminal_deactivate_vt (ply_terminal_t *terminal)
+{
+  int old_vt_number;
+
+  assert (terminal != NULL);
+
+  if (!ply_terminal_is_vt (terminal))
+    {
+      ply_trace ("terminal is not for a VT");
+      return false;
+    }
+
+  if (terminal->initial_vt_number < 0)
+    {
+      ply_trace ("Don't know where to jump to");
+      return false;
+    }
+
+  if (terminal->initial_vt_number == terminal->vt_number)
+    {
+      ply_trace ("can't deactivate initial VT");
+      return false;
+    }
+
+  /* Otherwise we'd close and free the terminal before handling the
+   * "leaving the VT" signal.
+   */
+  ply_terminal_stop_watching_for_vt_changes (terminal);
+
+  old_vt_number = terminal->vt_number;
+
+  if (ply_terminal_is_active (terminal))
+    {
+      if (!set_active_vt (terminal, terminal->initial_vt_number))
+        {
+          ply_trace ("Couldn't number to initial VT");
+          return false;
+        }
+    }
+
+  if (!deallocate_vt (terminal, old_vt_number))
+    {
+      ply_trace ("Couldn't deallocate vt %d", old_vt_number);
+      return false;
+    }
 
   return true;
 }

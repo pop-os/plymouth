@@ -230,7 +230,10 @@ static script_return_t sprite_window_get_width (script_state_t *state,
        node = ply_list_get_next_node (data->displays, node))
     {
       display = ply_list_node_get_data (node);
-      width = MIN (width, ply_pixel_display_get_width (display->pixel_display));
+      if (width == 0)
+        width = ply_pixel_display_get_width (display->pixel_display);
+      else
+        width = MIN (width, ply_pixel_display_get_width (display->pixel_display));
     }
   return script_return_obj (script_obj_new_number (width));
 }
@@ -267,7 +270,10 @@ static script_return_t sprite_window_get_height (script_state_t *state,
        node = ply_list_get_next_node (data->displays, node))
     {
       display = ply_list_node_get_data (node);
-      height = MIN (height, ply_pixel_display_get_height (display->pixel_display));
+      if (height == 0)
+        height = ply_pixel_display_get_height (display->pixel_display);
+      else
+        height = MIN (height, ply_pixel_display_get_height (display->pixel_display));
     }
   return script_return_obj (script_obj_new_number (height));
 }

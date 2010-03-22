@@ -760,7 +760,10 @@ on_deactivate (state_t       *state,
 {
   if (state->deactivate_trigger != NULL)
     {
-      ply_trigger_pull (deactivate_trigger, NULL);
+      ply_trigger_add_handler (state->deactivate_trigger,
+                               (ply_trigger_handler_t)
+                               ply_trigger_pull,
+                               deactivate_trigger);
       return;
     }
 

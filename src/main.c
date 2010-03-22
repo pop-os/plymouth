@@ -791,7 +791,10 @@ on_quit (state_t       *state,
 {
   if (state->quit_trigger != NULL)
     {
-      ply_trigger_pull (quit_trigger, NULL);
+      ply_trigger_add_handler (state->quit_trigger,
+                               (ply_trigger_handler_t)
+                               ply_trigger_pull,
+                               quit_trigger);
       return;
     }
 

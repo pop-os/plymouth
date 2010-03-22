@@ -222,7 +222,7 @@ static script_return_t sprite_window_get_width (script_state_t *state,
 
   node = ply_list_get_nth_node (data->displays, index);
   if (node == NULL)
-    return script_return_obj (script_obj_new_number (index));
+    return script_return_obj_null ();
   display = ply_list_node_get_data (node);
   width = ply_pixel_display_get_width (display->pixel_display);
   return script_return_obj (script_obj_new_number (width));

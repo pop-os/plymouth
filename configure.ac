@@ -1,9 +1,9 @@
-AC_INIT(plymouth, 0.8.0, "halfline@gmail.com")
+AC_INIT([plymouth],[0.8.0],["halfline@gmail.com"])
 AC_CONFIG_SRCDIR(src/main.c)
 AC_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(build-tools)
 
-AC_GNU_SOURCE
+AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_AWK
 AC_PROG_CC
 AM_PROG_CC_C_O
@@ -15,7 +15,7 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_MAINTAINER_MODE([enable])
 
 PKG_PROG_PKG_CONFIG
-AM_PROG_LIBTOOL
+LT_INIT
 
 ## increment if the interface has additions, changes, removals.
 LT_CURRENT=2
@@ -76,7 +76,7 @@ if test x$enable_gdm_transition = xyes; then
   AC_DEFINE(PLY_ENABLE_GDM_TRANSITION, 1, [Enable smooth transition to GDM])
 fi
 
-AC_ARG_WITH(system-root-install, AC_HELP_STRING([--with-system-root-install], [Install client in /bin and daemon in /sbin]),with_system_root_install=${withval},with_system_root_install=yes)
+AC_ARG_WITH(system-root-install, AS_HELP_STRING([--with-system-root-install],[Install client in /bin and daemon in /sbin]),with_system_root_install=${withval},with_system_root_install=yes)
 AM_CONDITIONAL(WITH_SYSTEM_ROOT_INSTALL,  [test "$with_system_root_install" = yes])
 
 if test x$with_system_root_install = xyes; then
@@ -89,28 +89,28 @@ fi
 AC_SUBST(plymouthclientdir)
 AC_SUBST(plymouthdaemondir)
 
-AC_ARG_WITH(rhgb-compat-link, AC_HELP_STRING([--with-rhgb-compat-link], [Install /usr/bin/rhgb-client compatability symlink]),with_rhgb_compat_link=${withval},with_rhgb_compat_link=yes)
+AC_ARG_WITH(rhgb-compat-link, AS_HELP_STRING([--with-rhgb-compat-link],[Install /usr/bin/rhgb-client compatability symlink]),with_rhgb_compat_link=${withval},with_rhgb_compat_link=yes)
 AM_CONDITIONAL(WITH_RHGB_COMPAT_LINK,  [test "$with_rhgb_compat_link" = yes])
 
 AC_ARG_WITH(gdm-autostart-file, AS_HELP_STRING([--with-gdm-autostart-file],[start log viewer from gdm on boot errors]),with_gdm_autostart_file=$withval,with_gdm_autostart_file=yes)
 
 AM_CONDITIONAL(START_FROM_GDM,  [test "$with_gdm_autostart_file" = yes])
 
-AC_ARG_WITH(logo, AC_HELP_STRING([--with-logo], [logo used by boot splash plugins]),logofile=${withval},logofile=$datadir/plymouth/bizcom.png)
+AC_ARG_WITH(logo, AS_HELP_STRING([--with-logo],[logo used by boot splash plugins]),logofile=${withval},logofile=$datadir/plymouth/bizcom.png)
 AC_SUBST(logofile)
 
 AM_CONDITIONAL(INSTALL_FALLBACK_LOGO,  [test "$logofile" = $datadir/plymouth/bizcom.png])
 
-AC_ARG_WITH(background-color, AC_HELP_STRING([--with-background-color], [background color used by boot splash plugins]),background_color=${withval},background_color=0x5d5950)
+AC_ARG_WITH(background-color, AS_HELP_STRING([--with-background-color],[background color used by boot splash plugins]),background_color=${withval},background_color=0x5d5950)
 AC_SUBST(background_color)
 
-AC_ARG_WITH(background-start-color-stop, AC_HELP_STRING([--with-background-start-color-stop], [first color stop in background gradients used by boot splash plugins]),background_start_color=${withval},background_start_color=0x807c71)
+AC_ARG_WITH(background-start-color-stop, AS_HELP_STRING([--with-background-start-color-stop],[first color stop in background gradients used by boot splash plugins]),background_start_color=${withval},background_start_color=0x807c71)
 AC_SUBST(background_start_color)
 
-AC_ARG_WITH(background-end-color-stop, AC_HELP_STRING([--with-background-end-color-stop], [first color end in background gradients used by boot splash plugins]),background_end_color=${withval},background_end_color=0x3a362f)
+AC_ARG_WITH(background-end-color-stop, AS_HELP_STRING([--with-background-end-color-stop],[first color end in background gradients used by boot splash plugins]),background_end_color=${withval},background_end_color=0x3a362f)
 AC_SUBST(background_end_color)
 
-AC_ARG_WITH(default-plugin, AC_HELP_STRING([--with-default-plugin=fade-throbber], [Plugin to use by default]),default_plugin_name=${withval},default_plugin_name=fade-throbber)
+AC_ARG_WITH(default-plugin, AS_HELP_STRING([--with-default-plugin=fade-throbber],[Plugin to use by default]),default_plugin_name=${withval},default_plugin_name=fade-throbber)
 AM_CONDITIONAL(ADD_DEFAULT_PLUGIN_LINK,
                [test "$default_plugin_name" = "spinfinity" \
                   -o "$default_plugin_name" = "fade-throbber"    \
@@ -120,15 +120,15 @@ AM_CONDITIONAL(ADD_DEFAULT_PLUGIN_LINK,
                   -o "$default_plugin_name" = "details"])
 AC_SUBST(default_plugin_name)
 
-AC_ARG_WITH(release-file, AC_HELP_STRING([--with-release-file=<path_to_release_file>], [Release File to use to detect distribution (by default /etc/system-reelase)]),RELEASE_FILE=${withval},RELEASE_FILE=/etc/system-release)
+AC_ARG_WITH(release-file, AS_HELP_STRING([--with-release-file=<path_to_release_file>],[Release File to use to detect distribution (by default /etc/system-reelase)]),RELEASE_FILE=${withval},RELEASE_FILE=/etc/system-release)
 
 AC_SUBST(RELEASE_FILE)
 AC_DEFINE_UNQUOTED(RELEASE_FILE, "$RELEASE_FILE", [Release file path])
 
-AC_ARG_WITH(boot-tty, AC_HELP_STRING([--with-boot-tty=<tty>], [Default TTY to use in boot mode (by default tty1)]),BOOT_TTY=${withval},BOOT_TTY=/dev/tty1)
+AC_ARG_WITH(boot-tty, AS_HELP_STRING([--with-boot-tty=<tty>],[Default TTY to use in boot mode (by default tty1)]),BOOT_TTY=${withval},BOOT_TTY=/dev/tty1)
 AC_DEFINE_UNQUOTED(BOOT_TTY, "$BOOT_TTY", [TTY to use in boot mode])
 
-AC_ARG_WITH(shutdown-tty, AC_HELP_STRING([--with-shutdown-tty=<tty>], [Default TTY to use in shutdown mode (by default tty63)]),SHUTDOWN_TTY=${withval},SHUTDOWN_TTY=/dev/tty63)
+AC_ARG_WITH(shutdown-tty, AS_HELP_STRING([--with-shutdown-tty=<tty>],[Default TTY to use in shutdown mode (by default tty63)]),SHUTDOWN_TTY=${withval},SHUTDOWN_TTY=/dev/tty63)
 AC_DEFINE_UNQUOTED(SHUTDOWN_TTY, "$SHUTDOWN_TTY", [TTY to use in shutdown mode])
 
 # Turn on the additional warnings last, so -Werror doesn't affect other tests.
@@ -218,7 +218,7 @@ AS_AC_EXPAND(PLYMOUTH_LIBDIR, $libdir)
 AS_AC_EXPAND(PLYMOUTH_LIBEXECDIR, $libexecdir)
 AS_AC_EXPAND(PLYMOUTH_DATADIR, $datadir)
 
-AC_OUTPUT([Makefile
+AC_CONFIG_FILES([Makefile
            src/libply/Makefile
            src/libply-splash-core/Makefile
            src/libply-splash-graphics/Makefile
@@ -261,3 +261,4 @@ AC_OUTPUT([Makefile
            scripts/Makefile
            docs/Makefile
 ])
+AC_OUTPUT

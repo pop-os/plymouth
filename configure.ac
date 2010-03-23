@@ -110,16 +110,6 @@ AC_SUBST(background_start_color)
 AC_ARG_WITH(background-end-color-stop, AS_HELP_STRING([--with-background-end-color-stop],[first color end in background gradients used by boot splash plugins]),background_end_color=${withval},background_end_color=0x3a362f)
 AC_SUBST(background_end_color)
 
-AC_ARG_WITH(default-plugin, AS_HELP_STRING([--with-default-plugin=fade-throbber],[Plugin to use by default]),default_plugin_name=${withval},default_plugin_name=fade-throbber)
-AM_CONDITIONAL(ADD_DEFAULT_PLUGIN_LINK,
-               [test "$default_plugin_name" = "spinfinity" \
-                  -o "$default_plugin_name" = "fade-throbber"    \
-                  -o "$default_plugin_name" = "text"       \
-                  -o "$default_plugin_name" = "glow"       \
-                  -o "$default_plugin_name" = "solar"      \
-                  -o "$default_plugin_name" = "details"])
-AC_SUBST(default_plugin_name)
-
 AC_ARG_WITH(release-file, AS_HELP_STRING([--with-release-file=<path_to_release_file>],[Release File to use to detect distribution (by default /etc/system-reelase)]),RELEASE_FILE=${withval},RELEASE_FILE=/etc/system-release)
 
 AC_SUBST(RELEASE_FILE)
@@ -213,6 +203,12 @@ AS_AC_EXPAND(PLYMOUTH_THEME_PATH, $plymouththemedir)
 
 plymouthplugindir=$libdir/plymouth/
 AS_AC_EXPAND(PLYMOUTH_PLUGIN_PATH, $plymouthplugindir)
+
+plymouthpolicydir=$datadir/plymouth/
+AS_AC_EXPAND(PLYMOUTH_POLICY_DIR, $plymouthpolicydir)
+
+plymouthconfdir=$sysconfdir/plymouth/
+AS_AC_EXPAND(PLYMOUTH_CONF_DIR, $plymouthconfdir)
 
 AS_AC_EXPAND(PLYMOUTH_LIBDIR, $libdir)
 AS_AC_EXPAND(PLYMOUTH_LIBEXECDIR, $libexecdir)

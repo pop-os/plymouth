@@ -111,6 +111,8 @@ typedef struct
 
   char *kernel_console_tty;
   char *override_splash_path;
+  char *system_default_splash_path;
+  char *distribution_default_splash_path;
   const char *default_tty;
 
   int number_of_errors;
@@ -214,6 +216,64 @@ find_override_splash (state_t *state)
 }
 
 static void
+find_system_default_splash (state_t *state)
+{
+  ply_key_file_t *key_file;
+  char *splash_string;
+
+  if (state->system_default_splash_path != NULL)
+      return;
+
+  ply_trace ("Trying to load " PLYMOUTH_CONF_DIR "plymouthd.conf");
+  key_file = ply_key_file_new (PLYMOUTH_CONF_DIR "plymouthd.conf");
+
+  if (ply_key_file_load (key_file))
+    {
+      ply_trace ("failed to load " PLYMOUTH_CONF_DIR "plymouthd.conf");
+      ply_key_file_free (key_file);
+      return;
+    }
+
+  splash_string = ply_key_file_get_value (key_file, "Daemon", "Theme");
+
+  ply_trace ("System default splash is configured to be '%s'", splash_string);
+
+  asprintf (&state->override_splash_path,
+            PLYMOUTH_THEME_PATH "%s/%s.plymouth",
+            splash_string, splash_string);
+  free (splash_string);
+}
+
+static void
+find_distribution_default_splash (state_t *state)
+{
+  ply_key_file_t *key_file;
+  char *splash_string;
+
+  if (state->distribution_default_splash_path != NULL)
+      return;
+
+  ply_trace ("Trying to load " PLYMOUTH_POLICY_DIR "plymouthd.defaults");
+  key_file = ply_key_file_new (PLYMOUTH_POLICY_DIR "plymouthd.defaults");
+
+  if (ply_key_file_load (key_file))
+    {
+      ply_trace ("failed to load " PLYMOUTH_POLICY_DIR "plymouthd.conf");
+      ply_key_file_free (key_file);
+      return;
+    }
+
+  splash_string = ply_key_file_get_value (key_file, "Daemon", "Theme");
+
+  ply_trace ("Distribution default splash is configured to be '%s'", splash_string);
+
+  asprintf (&state->override_splash_path,
+            PLYMOUTH_THEME_PATH "%s/%s.plymouth",
+            splash_string, splash_string);
+  free (splash_string);
+}
+
+static void
 show_default_splash (state_t *state)
 {
   if (state->boot_splash != NULL)
@@ -223,21 +283,37 @@ show_default_splash (state_t *state)
   find_override_splash (state);
   if (state->override_splash_path != NULL)
     {
-      ply_trace ("Starting override splash at '%s'", state->override_splash_path);
+      ply_trace ("Trying override splash at '%s'", state->override_splash_path);
       state->boot_splash = start_boot_splash (state,
                                               state->override_splash_path);
     }
 
+  find_system_default_splash (state);
   if (state->boot_splash == NULL)
     {
-      ply_trace ("Starting default splash");
+      ply_trace ("Trying system default splash");
+      state->boot_splash = start_boot_splash (state,
+                                              state->system_default_splash_path);
+    }
+
+  find_distribution_default_splash (state);
+  if (state->boot_splash == NULL)
+    {
+      ply_trace ("Trying distribution default splash");
+      state->boot_splash = start_boot_splash (state,
+                                              state->distribution_default_splash_path);
+    }
+
+  if (state->boot_splash == NULL)
+    {
+      ply_trace ("Trying old scheme for default splash");
       state->boot_splash = start_boot_splash (state,
                                               PLYMOUTH_THEME_PATH "default.plymouth");
     }
 
   if (state->boot_splash == NULL)
     {
-      ply_trace ("Could not start graphical splash screen,"
+      ply_trace ("Could not start default splash screen,"
                  "showing text splash screen");
       state->boot_splash = start_boot_splash (state,
                                               PLYMOUTH_THEME_PATH "text/text.plymouth");

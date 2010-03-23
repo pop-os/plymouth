@@ -204,6 +204,12 @@ AS_AC_EXPAND(PLYMOUTH_THEME_PATH, $plymouththemedir)
 plymouthplugindir=$libdir/plymouth/
 AS_AC_EXPAND(PLYMOUTH_PLUGIN_PATH, $plymouthplugindir)
 
+plymouthpolicydir=$datadir/plymouth/
+AS_AC_EXPAND(PLYMOUTH_POLICY_DIR, $plymouthpolicydir)
+
+plymouthconfdir=$sysconfdir/plymouth/
+AS_AC_EXPAND(PLYMOUTH_CONF_DIR, $plymouthconfdir)
+
 AS_AC_EXPAND(PLYMOUTH_LIBDIR, $libdir)
 AS_AC_EXPAND(PLYMOUTH_LIBEXECDIR, $libexecdir)
 AS_AC_EXPAND(PLYMOUTH_DATADIR, $datadir)

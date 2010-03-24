@@ -184,6 +184,7 @@ ply_key_file_load_group (ply_key_file_t *key_file,
           getline (&line_to_toss, &number_of_bytes,
                    key_file->fp);
           free (line_to_toss);
+          items_matched = 0;
           continue;
         }
       ungetc (first_byte, key_file->fp);
@@ -238,6 +239,7 @@ ply_key_file_load_groups (ply_key_file_t *key_file)
           getline (&line_to_toss, &number_of_bytes,
                    key_file->fp);
           free (line_to_toss);
+          items_matched = 0;
           continue;
         }
       ungetc (first_byte, key_file->fp);

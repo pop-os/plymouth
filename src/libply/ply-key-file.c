@@ -246,7 +246,8 @@ ply_key_file_load_groups (ply_key_file_t *key_file)
 
       if (items_matched <= 0)
         {
-          ply_trace ("key file has no groups");
+          ply_trace ("key file has no %sgroups",
+                     added_group? "more " : "");
           break;
         }
 

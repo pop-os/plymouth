@@ -273,6 +273,8 @@ static void
 ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
                                         const char            *password)
 {
+  ply_trace ("got password answer");
+
   ply_boot_connection_send_answer (connection, password);
   if (password != NULL)
     ply_list_append_data (connection->server->cached_passwords,
@@ -283,6 +285,7 @@ ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
 static void
 ply_boot_connection_on_deactivated (ply_boot_connection_t *connection)
 {
+  ply_trace ("deactivated");
   if (!ply_write (connection->fd,
                   PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
                   strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
@@ -294,6 +297,7 @@ ply_boot_connection_on_deactivated (ply_boot_connection_t *connection)
 static void
 ply_boot_connection_on_quit_complete (ply_boot_connection_t *connection)
 {
+  ply_trace ("quit complete");
   if (!ply_write (connection->fd,
                   PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
                   strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
@@ -306,6 +310,7 @@ static void
 ply_boot_connection_on_question_answer (ply_boot_connection_t *connection,
                                         const char             *answer)
 {
+  ply_trace ("got question answer: %s", answer);
   ply_boot_connection_send_answer (connection, answer);
 }
 
@@ -313,6 +318,7 @@ static void
 ply_boot_connection_on_keystroke_answer (ply_boot_connection_t *connection,
                                         const char            *key)
 {
+  ply_trace ("got key: %s", key);
   ply_boot_connection_send_answer (connection, key);
 }
 
@@ -330,7 +336,10 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
   if (!ply_boot_connection_read_request (connection,
                                          &command, &argument))
-    return;
+    {
+      ply_trace ("could not read connection request");
+      return;
+    }
 
   if (!ply_boot_connection_is_from_root (connection))
     {
@@ -354,11 +363,13 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_SYSTEM_INITIALIZED) == 0)
     {
+      ply_trace ("got system initialized notification");
       if (server->system_initialized_handler != NULL)
         server->system_initialized_handler (server->user_data, server);
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_ERROR) == 0)
     {
+      ply_trace ("got error notification");
       if (server->error_handler != NULL)
         server->error_handler (server->user_data, server);
     }
@@ -493,6 +504,8 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
         {
           size = buffer_size;
 
+          ply_trace ("writing %d cached answers",
+                     ply_list_get_length (server->cached_passwords));
           if (!ply_write (connection->fd,
                           PLY_BOOT_PROTOCOL_RESPONSE_TYPE_MULTIPLE_ANSWERS,
                           strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_MULTIPLE_ANSWERS)) ||

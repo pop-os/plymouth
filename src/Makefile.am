@@ -30,6 +30,12 @@ plymouthdtimedir = $(localstatedir)/lib/plymouth
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = ply-splash-core.pc ply-splash-graphics.pc
 
+plymouthd_defaultsdir = $(PLYMOUTH_POLICY_DIR)
+dist_plymouthd_defaults_DATA = plymouthd.defaults
+
+plymouthd_confdir = $(PLYMOUTH_CONF_DIR)
+dist_plymouthd_conf_DATA = plymouthd.conf
+
 install-data-hook:
 	-mkdir -p $(DESTDIR)$(plymouthdrundir)
 	-mkdir -p $(DESTDIR)$(plymouthdspooldir)

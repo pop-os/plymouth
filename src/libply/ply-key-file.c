@@ -167,9 +167,26 @@ ply_key_file_load_group (ply_key_file_t *key_file,
       char *key;
       char *value;
       long offset;
+      int first_byte;
 
       key = NULL;
       value = NULL;
+
+      first_byte = fgetc (key_file->fp);
+      if (first_byte == '#')
+        {
+          char *line_to_toss;
+          size_t number_of_bytes;
+
+          line_to_toss = NULL;
+          number_of_bytes = 0;
+
+          getline (&line_to_toss, &number_of_bytes,
+                   key_file->fp);
+          free (line_to_toss);
+          continue;
+        }
+      ungetc (first_byte, key_file->fp);
 
       offset = ftell (key_file->fp);
       items_matched = fscanf (key_file->fp, " %a[^= \t\n] = %a[^\n] ", &key, &value);
@@ -205,7 +222,25 @@ ply_key_file_load_groups (ply_key_file_t *key_file)
   
   do
     {
+      int first_byte;
+
       ply_key_file_group_t *group;
+
+      first_byte = fgetc (key_file->fp);
+      if (first_byte == '#')
+        {
+          char *line_to_toss;
+          size_t number_of_bytes;
+
+          line_to_toss = NULL;
+          number_of_bytes = 0;
+
+          getline (&line_to_toss, &number_of_bytes,
+                   key_file->fp);
+          free (line_to_toss);
+          continue;
+        }
+      ungetc (first_byte, key_file->fp);
 
       items_matched = fscanf (key_file->fp, " [ %a[^]] ] ", &group_name);
 

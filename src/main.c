@@ -1233,6 +1233,9 @@ add_pixel_displays_from_renderer (state_t        *state,
 
   heads = ply_renderer_get_heads (renderer);
 
+  ply_trace ("Adding displays for %d heads",
+             ply_list_get_length (heads));
+
   node = ply_list_get_first_node (heads);
   while (node != NULL)
     {

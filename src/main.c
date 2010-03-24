@@ -140,6 +140,7 @@ static char *pid_file = NULL;
 static void check_for_consoles (state_t    *state,
                                 const char *default_tty,
                                 bool        should_add_displays);
+static void toggle_between_splash_and_details (state_t *state);
 
 static void
 on_session_output (state_t    *state,

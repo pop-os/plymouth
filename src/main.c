@@ -740,7 +740,7 @@ static void
 dump_details_and_quit_splash (state_t *state)
 {
   state->showing_details = false;
-  on_escape_pressed (state);
+  toggle_between_splash_and_details (state);
 
   if (state->renderer != NULL)
     ply_renderer_deactivate (state->renderer);
@@ -1067,10 +1067,12 @@ update_display (state_t *state)
 }
 
 static void
-on_escape_pressed (state_t *state)
+toggle_between_splash_and_details (state_t *state)
 {
+  ply_trace ("toggling between splash and details");
   if (state->boot_splash != NULL)
     {
+      ply_trace ("hiding and freeing current splash");
       ply_boot_splash_hide (state->boot_splash);
       ply_boot_splash_free (state->boot_splash);
       state->boot_splash = NULL;
@@ -1087,6 +1089,13 @@ on_escape_pressed (state_t *state)
       state->showing_details = false;
     }
   update_display (state);
+}
+
+static void
+on_escape_pressed (state_t *state)
+{
+  ply_trace ("escape key pressed");
+  toggle_between_splash_and_details (state);
 }
 
 static void

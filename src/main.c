@@ -239,7 +239,7 @@ find_system_default_splash (state_t *state)
 
   ply_trace ("System default splash is configured to be '%s'", splash_string);
 
-  asprintf (&state->override_splash_path,
+  asprintf (&state->system_default_splash_path,
             PLYMOUTH_THEME_PATH "%s/%s.plymouth",
             splash_string, splash_string);
   free (splash_string);
@@ -268,7 +268,7 @@ find_distribution_default_splash (state_t *state)
 
   ply_trace ("Distribution default splash is configured to be '%s'", splash_string);
 
-  asprintf (&state->override_splash_path,
+  asprintf (&state->distribution_default_splash_path,
             PLYMOUTH_THEME_PATH "%s/%s.plymouth",
             splash_string, splash_string);
   free (splash_string);

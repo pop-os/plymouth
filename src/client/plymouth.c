@@ -735,6 +735,42 @@ get_kernel_command_line (state_t *state)
   return true;
 }
 
+static void
+on_update_root_fs_request (state_t    *state,
+                           const char *command)
+{
+
+  char *root_dir;
+  bool is_read_write;
+
+  root_dir = NULL;
+  is_read_write = false;
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "new-root-dir", &root_dir,
+                                          "read-write", &is_read_write,
+                                          NULL);
+
+  if (root_dir != NULL)
+    {
+      ply_boot_client_tell_daemon_to_change_root (state->client, root_dir,
+                                                  (ply_boot_client_response_handler_t)
+                                                  on_success,
+                                                  (ply_boot_client_response_handler_t)
+                                                  on_failure, state);
+
+    }
+
+  if (is_read_write)
+    {
+      ply_boot_client_tell_daemon_system_is_initialized (state->client,
+                                                         (ply_boot_client_response_handler_t)
+                                                         on_success,
+                                                         (ply_boot_client_response_handler_t)
+                                                         on_failure, state);
+    }
+}
+
 int
 main (int    argc,
       char **argv)
@@ -769,6 +805,16 @@ main (int    argc,
                                   "update", "Tell boot daemon an update about boot progress", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "details", "Tell boot daemon there were errors during boot", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "wait", "Wait for boot daemon to quit", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "update-root-fs", "Tell daemon about root filesystem changes",
+                                  (ply_command_handler_t)
+                                  on_update_root_fs_request, &state,
+                                  "new-root-dir", "Root filesystem is about to change",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
+                                  "read-write", "Root filesystem is no longer read-only",
+                                  PLY_COMMAND_OPTION_TYPE_FLAG,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,

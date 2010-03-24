@@ -2,7 +2,3 @@
 # upgrades.
 [Daemon]
 Theme=fade-in
-Foo=bar
-
-[z]
-ffoo=yo

@@ -314,7 +314,7 @@ char *script_obj_as_string (script_obj_t *obj)              /* reply is strduppe
     }
   if (script_obj_is_null (obj))
     return strdup("#NULL");
-  asprintf (&reply, "#(0x%x)", (int) obj);
+  asprintf (&reply, "#(0x%p)", obj);
   return reply;
 }
 

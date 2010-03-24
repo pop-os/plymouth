@@ -302,7 +302,18 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
       this_obj = script_evaluate (state, name_exp->data.dual.sub_a);
       char *this_key_name = script_obj_as_string (this_key);
       script_obj_unref (this_key);
-      func_obj = script_obj_hash_get_element (this_obj, this_key_name);
+      func_obj = script_obj_hash_peek_element (this_obj, this_key_name);
+
+      if (!func_obj && script_obj_is_string (this_obj))
+        {
+          script_obj_t *string_hash = script_obj_hash_peek_element (state->global, "String");
+          func_obj = script_obj_hash_peek_element (string_hash, this_key_name);
+          script_obj_unref (func_obj);
+        }
+
+      if (!func_obj)
+        func_obj = script_obj_hash_get_element (this_obj, this_key_name);
+
       free(this_key_name);
     }
   else if (name_exp->type == SCRIPT_EXP_TYPE_TERM_VAR)

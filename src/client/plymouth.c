@@ -771,6 +771,28 @@ on_update_root_fs_request (state_t    *state,
     }
 }
 
+static void
+on_show_splash_request (state_t    *state,
+                        const char *command)
+{
+    ply_boot_client_tell_daemon_to_show_splash (state->client,
+                                               (ply_boot_client_response_handler_t)
+                                               on_success,
+                                               (ply_boot_client_response_handler_t)
+                                               on_failure, state);
+}
+
+static void
+on_hide_splash_request (state_t    *state,
+                        const char *command)
+{
+    ply_boot_client_tell_daemon_to_hide_splash (state->client,
+                                               (ply_boot_client_response_handler_t)
+                                               on_success,
+                                               (ply_boot_client_response_handler_t)
+                                               on_failure, state);
+}
+
 int
 main (int    argc,
       char **argv)
@@ -815,6 +837,18 @@ main (int    argc,
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   "read-write", "Root filesystem is no longer read-only",
                                   PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "show-splash", "Tell daemon to show splash screen",
+                                  (ply_command_handler_t)
+                                  on_show_splash_request, &state,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "hide-splash", "Tell daemon to hide splash screen",
+                                  (ply_command_handler_t)
+                                  on_hide_splash_request, &state,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,

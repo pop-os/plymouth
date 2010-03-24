@@ -146,6 +146,7 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
 
   head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
 
+  ply_trace ("Creating %dx%d renderer head", head->area.width, head->area.height);
   ply_pixel_buffer_fill_with_color (head->pixel_buffer, NULL,
                                     0.0, 0.0, 0.0, 1.0);
 
@@ -155,6 +156,7 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
 static void
 ply_renderer_head_free (ply_renderer_head_t *head)
 {
+  ply_trace ("freeing %dx%d renderer head", head->area.width, head->area.height);
   ply_pixel_buffer_free (head->pixel_buffer);
   drmModeFreeConnector (head->connector);
   free (head);
@@ -186,6 +188,7 @@ ply_renderer_head_map (ply_renderer_backend_t *backend,
 
   assert (head != NULL);
 
+  ply_trace ("Creating buffer for %dx%d renderer head", head->area.width, head->area.height);
   head->scan_out_buffer_id =
     backend->driver_interface->create_buffer (backend->driver,
                                               head->area.width, head->area.height,
@@ -194,6 +197,7 @@ ply_renderer_head_map (ply_renderer_backend_t *backend,
   if (head->scan_out_buffer_id == 0)
     return false;
 
+  ply_trace ("Mapping buffer for %dx%d renderer head", head->area.width, head->area.height);
   if (!backend->driver_interface->map_buffer (backend->driver,
                                               head->scan_out_buffer_id))
     {
@@ -208,6 +212,8 @@ ply_renderer_head_map (ply_renderer_backend_t *backend,
    */
   ply_renderer_head_redraw (backend, head);
 
+  ply_trace ("Setting scan out buffer of %dx%d head to our buffer",
+             head->area.width, head->area.height);
   if (!ply_renderer_head_set_scan_out_buffer (backend, head,
                                               head->scan_out_buffer_id))
     {
@@ -224,6 +230,7 @@ static void
 ply_renderer_head_unmap (ply_renderer_backend_t *backend,
                          ply_renderer_head_t    *head)
 {
+  ply_trace ("unmapping %dx%d renderer head", head->area.width, head->area.height);
   backend->driver_interface->unmap_buffer (backend->driver,
                                            head->scan_out_buffer_id);
 
@@ -311,6 +318,8 @@ create_backend (const char *device_name,
   else
     backend->device_name = strdup ("/dev/dri/card0");
 
+  ply_trace ("creating renderer backend for device", backend->device_name);
+
   backend->device_fd = -1;
 
   backend->loop = ply_event_loop_get_default ();
@@ -324,6 +333,7 @@ create_backend (const char *device_name,
 static void
 destroy_backend (ply_renderer_backend_t *backend)
 {
+  ply_trace ("destroying renderer backend for device", backend->device_name);
   free_heads (backend);
   ply_list_free (backend->heads);
 
@@ -373,6 +383,7 @@ activate (ply_renderer_backend_t *backend)
 {
   ply_list_node_t *node;
 
+  ply_trace ("taking master and scanning out");
   backend->is_active = true;
 
   drmSetMaster (backend->device_fd);
@@ -423,10 +434,12 @@ load_driver (ply_renderer_backend_t *backend)
   int device_fd;
 
   driver_name = find_driver_for_device (backend->device_name);
+  ply_trace ("Attempting to load driver '%s'", driver_name);
   device_fd = drmOpen (driver_name, NULL);
 
   if (device_fd < 0)
     {
+      ply_trace ("drmOpen failed");
       free (driver_name);
       return false;
     }
@@ -473,6 +486,7 @@ unload_driver (ply_renderer_backend_t *backend)
   if (backend->driver == NULL)
     return;
 
+  ply_trace ("unloading driver");
   assert (backend->driver_interface != NULL);
 
   backend->driver_interface->destroy_driver (backend->driver);
@@ -520,6 +534,8 @@ open_device (ply_renderer_backend_t *backend)
 static void
 close_device (ply_renderer_backend_t *backend)
 {
+  ply_trace ("closing device");
+
   free_heads (backend);
 
   ply_terminal_stop_watching_for_active_vt_change (backend->terminal,
@@ -1013,6 +1029,8 @@ ply_renderer_head_redraw (ply_renderer_backend_t *backend,
                           ply_renderer_head_t    *head)
 {
   ply_region_t *region;
+
+  ply_trace ("Redrawing %dx%d renderer head", head->area.width, head->area.height);
 
   region = ply_pixel_buffer_get_updated_areas (head->pixel_buffer);
 

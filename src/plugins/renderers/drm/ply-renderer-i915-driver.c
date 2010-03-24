@@ -85,6 +85,7 @@ create_driver (int device_fd)
   driver->manager = drm_intel_bufmgr_gem_init (driver->device_fd, page_size);
   if (driver->manager == NULL)
     {
+      ply_trace ("intel buffer manager could not be initialized");
       free (driver);
       return NULL;
     }
@@ -166,12 +167,17 @@ ply_renderer_buffer_new_from_id (ply_renderer_driver_t *driver,
   fb = drmModeGetFB (driver->device_fd, buffer_id);
 
   if (fb == NULL)
-    return NULL;
+    {
+      ply_trace ("could not get FB with buffer id %u", buffer_id);
+      return NULL;
+    }
 
   buffer_object = create_intel_bo_from_handle (driver, fb->handle);
 
   if (buffer_object == NULL)
     {
+      ply_trace ("could not create buffer object from handle %lu",
+                 (unsigned long) fb->handle);
       drmModeFreeFB (fb);
       return NULL;
     }

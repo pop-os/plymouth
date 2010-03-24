@@ -793,6 +793,29 @@ on_hide_splash_request (state_t    *state,
                                                on_failure, state);
 }
 
+static void
+on_update_request (state_t    *state,
+                   const char *command)
+{
+  char *status;
+
+  status = NULL;
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "status", &status,
+                                          NULL);
+
+  if (status != NULL)
+    {
+      ply_boot_client_update_daemon (state->client, status,
+                                     (ply_boot_client_response_handler_t)
+                                     on_success,
+                                     (ply_boot_client_response_handler_t)
+                                     on_failure, state);
+
+    }
+}
+
 int
 main (int    argc,
       char **argv)
@@ -827,6 +850,14 @@ main (int    argc,
                                   "update", "Tell boot daemon an update about boot progress", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "details", "Tell boot daemon there were errors during boot", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "wait", "Wait for boot daemon to quit", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "update", "Tell daemon about boot status changes",
+                                  (ply_command_handler_t)
+                                  on_update_request, &state,
+                                  "status", "Tell daemon the current boot status",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,

@@ -259,7 +259,7 @@ find_distribution_default_splash (state_t *state)
 
   if (ply_key_file_load (key_file))
     {
-      ply_trace ("failed to load " PLYMOUTH_POLICY_DIR "plymouthd.conf");
+      ply_trace ("failed to load " PLYMOUTH_POLICY_DIR "plymouthd.defaults");
       ply_key_file_free (key_file);
       return;
     }

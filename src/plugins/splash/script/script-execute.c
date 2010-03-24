@@ -308,7 +308,7 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
         {
           script_obj_t *string_hash = script_obj_hash_peek_element (state->global, "String");
           func_obj = script_obj_hash_peek_element (string_hash, this_key_name);
-          script_obj_unref (func_obj);
+          script_obj_unref (string_hash);
         }
 
       if (!func_obj)

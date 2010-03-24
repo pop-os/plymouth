@@ -323,7 +323,7 @@ static script_obj_t *script_evaluate_func (script_state_t *state,
     }
   else
     {
-      func_obj = script_evaluate (state, exp->data.function_exe.name);
+      func_obj = script_evaluate (state, name_exp);
     }
   
   ply_list_t *parameter_expressions = exp->data.function_exe.parameters;

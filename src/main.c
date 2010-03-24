@@ -289,7 +289,8 @@ show_default_splash (state_t *state)
     }
 
   find_system_default_splash (state);
-  if (state->boot_splash == NULL)
+  if (state->boot_splash == NULL &&
+      state->system_default_splash_path != NULL)
     {
       ply_trace ("Trying system default splash");
       state->boot_splash = start_boot_splash (state,
@@ -297,7 +298,8 @@ show_default_splash (state_t *state)
     }
 
   find_distribution_default_splash (state);
-  if (state->boot_splash == NULL)
+  if (state->boot_splash == NULL &&
+      state->distribution_default_splash_path != NULL)
     {
       ply_trace ("Trying distribution default splash");
       state->boot_splash = start_boot_splash (state,

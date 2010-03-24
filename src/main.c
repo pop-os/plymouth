@@ -228,7 +228,7 @@ find_system_default_splash (state_t *state)
   ply_trace ("Trying to load " PLYMOUTH_CONF_DIR "plymouthd.conf");
   key_file = ply_key_file_new (PLYMOUTH_CONF_DIR "plymouthd.conf");
 
-  if (ply_key_file_load (key_file))
+  if (!ply_key_file_load (key_file))
     {
       ply_trace ("failed to load " PLYMOUTH_CONF_DIR "plymouthd.conf");
       ply_key_file_free (key_file);
@@ -257,7 +257,7 @@ find_distribution_default_splash (state_t *state)
   ply_trace ("Trying to load " PLYMOUTH_POLICY_DIR "plymouthd.defaults");
   key_file = ply_key_file_new (PLYMOUTH_POLICY_DIR "plymouthd.defaults");
 
-  if (ply_key_file_load (key_file))
+  if (!ply_key_file_load (key_file))
     {
       ply_trace ("failed to load " PLYMOUTH_POLICY_DIR "plymouthd.defaults");
       ply_key_file_free (key_file);

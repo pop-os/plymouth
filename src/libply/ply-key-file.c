@@ -220,6 +220,7 @@ ply_key_file_load_groups (ply_key_file_t *key_file)
   int items_matched;
   char *group_name;
   bool added_group = false;
+  bool has_comments = false;
   
   do
     {
@@ -239,6 +240,7 @@ ply_key_file_load_groups (ply_key_file_t *key_file)
           getline (&line_to_toss, &number_of_bytes,
                    key_file->fp);
           free (line_to_toss);
+          has_comments = true;
           items_matched = 0;
           continue;
         }
@@ -264,6 +266,11 @@ ply_key_file_load_groups (ply_key_file_t *key_file)
       added_group = true;
     }
   while (items_matched != EOF);
+
+  if (!added_group && has_comments)
+    {
+      ply_trace ("key file has comments but no groups");
+    }
 
   return added_group;
 }

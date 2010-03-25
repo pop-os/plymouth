@@ -58,14 +58,14 @@ function read_theme_name_from_file ()
 
 function get_default_theme ()
 {
-	THEME_NAME=$(read_theme_name_from_file ${PLYMOUTH_CONFDIR}/plymouthd.conf)
-	if [ -z "$THEME_NAME" -o ! -r "${PLYMOUTH_DATADIR}/plymouth/themes/$THEME_NAME/$THEME_NAME.plymouth" ]; then
-		THEME_NAME=$(read_theme_name_from_file ${PLYMOUTH_POLICYDIR}/plymouthd.defaults)
+        THEME_NAME=$(read_theme_name_from_file ${PLYMOUTH_CONFDIR}/plymouthd.conf)
+        if [ -z "$THEME_NAME" -o ! -r "${PLYMOUTH_DATADIR}/plymouth/themes/$THEME_NAME/$THEME_NAME.plymouth" ]; then
+                THEME_NAME=$(read_theme_name_from_file ${PLYMOUTH_POLICYDIR}/plymouthd.defaults)
         fi
 
-	if [ -z "$THEME_NAME" -o ! -r "${PLYMOUTH_DATADIR}/plymouth/themes/$THEME_NAME/$THEME_NAME.plymouth" ]; then
-		THEME_NAME=$(basename $(readlink ${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth) .plymouth)
-	fi
+        if [ -z "$THEME_NAME" -o ! -r "${PLYMOUTH_DATADIR}/plymouth/themes/$THEME_NAME/$THEME_NAME.plymouth" ]; then
+                THEME_NAME=$(basename $(readlink ${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth) .plymouth)
+        fi
         [ -z "$THEME_NAME" ] || echo $THEME_NAME && exit 1
 }
 

@@ -1346,8 +1346,6 @@ add_displays_and_keyboard_to_boot_splash (state_t           *state,
 
       node = next_node;
     }
-
-  ply_keyboard_watch_for_input (state->keyboard);
 }
 
 static ply_boot_splash_t *
@@ -1395,6 +1393,8 @@ start_boot_splash (state_t    *state,
       ply_restore_errno ();
       return NULL;
     }
+
+  ply_keyboard_watch_for_input (state->keyboard);
 
   update_display (state);
   return splash;

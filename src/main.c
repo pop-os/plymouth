@@ -1220,7 +1220,6 @@ set_keyboard (state_t        *state,
   ply_keyboard_add_enter_handler (keyboard,
                                   (ply_keyboard_enter_handler_t)
                                   on_enter, state);
-  ply_keyboard_watch_for_input (keyboard);
 }
 static void
 add_display_and_keyboard_for_terminal (state_t    *state,
@@ -1347,6 +1346,8 @@ add_displays_and_keyboard_to_boot_splash (state_t           *state,
 
       node = next_node;
     }
+
+  ply_keyboard_watch_for_input (state->keyboard);
 }
 
 static ply_boot_splash_t *

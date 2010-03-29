@@ -1182,6 +1182,22 @@ on_enter (state_t                  *state,
       free (entry_trigger);
       update_display (state);
     }
+  else
+    {
+      for (node = ply_list_get_first_node (state->keystroke_triggers); node;
+                        node = ply_list_get_next_node (state->keystroke_triggers, node))
+        {
+          ply_keystroke_watch_t* keystroke_trigger = ply_list_node_get_data (node);
+          if (!keystroke_trigger->keys || strstr(keystroke_trigger->keys, "\n"))  /* assume strstr works on utf8 arrays */
+            {
+              ply_trigger_pull (keystroke_trigger->trigger, line);
+              ply_list_remove_node (state->keystroke_triggers, node);
+              free(keystroke_trigger);
+              return;
+            }
+        }
+      return;
+    }
 }
 
 static void

@@ -773,9 +773,11 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
       ply_list_append_data (backend->heads, head);
     }
 
+#ifdef PLY_ENABLE_GDM_TRANSITION
   /* If the driver doesn't support mapping the fb console
    * then we can't get a smooth crossfade transition to
-   * the display manager unless we use the /dev/fb interface.
+   * the display manager unless we use the /dev/fb interface
+   * or the plymouth deactivate interface.
    *
    * In multihead configurations, we'd rather have working
    * multihead, but otherwise bail now.
@@ -790,6 +792,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
       free_heads (backend);
       return false;
     }
+#endif
 
   return ply_list_get_length (backend->heads) > 0;
 }

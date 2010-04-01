@@ -224,9 +224,10 @@ start_script_animation (ply_boot_splash_plugin_t *plugin)
   script_return_t ret = script_execute (plugin->script_state,
                                         plugin->script_main_op);
   script_obj_unref (ret.object);
-  ply_keyboard_add_input_handler (plugin->keyboard,
-                                  (ply_keyboard_input_handler_t)
-                                  on_keyboard_input, plugin);
+  if (plugin->keyboard != NULL)
+    ply_keyboard_add_input_handler (plugin->keyboard,
+                                    (ply_keyboard_input_handler_t)
+                                    on_keyboard_input, plugin);
   on_timeout (plugin);
 
   return true;

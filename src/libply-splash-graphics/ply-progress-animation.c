@@ -201,7 +201,7 @@ ply_progress_animation_draw_area (ply_progress_animation_t *progress_animation,
   frame_data = ply_pixel_buffer_get_argb32_data (progress_animation->last_rendered_frame);
 
   ply_pixel_buffer_fill_with_argb32_data (buffer,
-                                          &progress_animation->frame_area, 0, 0,
+                                          &progress_animation->frame_area,
                                           frame_data);
 }
 
@@ -289,7 +289,7 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
               fill_area.width = progress_animation->frame_area.width;
               fill_area.height = progress_animation->frame_area.height;
               ply_pixel_buffer_fill_with_argb32_data (progress_animation->last_rendered_frame,
-                                                      &fill_area, 0, 0,
+                                                      &fill_area,
                                                       previous_frame_data);
             }
           else
@@ -303,7 +303,7 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
               fill_area.width = progress_animation->frame_area.width;
               fill_area.height = progress_animation->frame_area.height;
               ply_pixel_buffer_fill_with_argb32_data_at_opacity (progress_animation->last_rendered_frame,
-                                                                 &fill_area, 0, 0,
+                                                                 &fill_area,
                                                                  previous_frame_data, fade_out_opacity);
             }
 
@@ -314,7 +314,7 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
           fill_area.width = progress_animation->frame_area.width;
           fill_area.height = progress_animation->frame_area.height;
           ply_pixel_buffer_fill_with_argb32_data_at_opacity (progress_animation->last_rendered_frame,
-                                                             &fill_area, 0, 0,
+                                                             &fill_area,
                                                              frame_data, fade_percentage);
 
           width = MAX(ply_image_get_width (frames[frame_number]), ply_image_get_width (frames[frame_number - 1]));
@@ -338,7 +338,7 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
       fill_area.width = progress_animation->frame_area.width;
       fill_area.height = progress_animation->frame_area.height;
       ply_pixel_buffer_fill_with_argb32_data (progress_animation->last_rendered_frame,
-                                              &fill_area, 0, 0,
+                                              &fill_area,
                                               frame_data);
     }
 

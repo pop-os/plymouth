@@ -506,14 +506,14 @@ void
 ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (ply_pixel_buffer_t *buffer,
                                                              ply_rectangle_t    *fill_area,
                                                              ply_rectangle_t    *clip_area,
-                                                             unsigned long       x,
-                                                             unsigned long       y,
                                                              uint32_t           *data,
                                                              double              opacity)
 {
   unsigned long row, column;
   uint8_t opacity_as_byte;
   ply_rectangle_t cropped_area;
+  unsigned long x;
+  unsigned long y;
 
   assert (buffer != NULL);
 
@@ -528,8 +528,8 @@ ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (ply_pixel_buffer_t 
   if (cropped_area.width == 0 || cropped_area.height == 0)
     return;
 
-  x += cropped_area.x - fill_area->x;
-  y += cropped_area.y - fill_area->y;
+  x = cropped_area.x - fill_area->x;
+  y = cropped_area.y - fill_area->y;
   opacity_as_byte = (uint8_t) (opacity * 255.0);
 
   for (row = y; row < y + cropped_area.height; row++)
@@ -557,27 +557,23 @@ ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (ply_pixel_buffer_t 
 void
 ply_pixel_buffer_fill_with_argb32_data_at_opacity (ply_pixel_buffer_t *buffer,
                                                    ply_rectangle_t    *fill_area,
-                                                   unsigned long       x,
-                                                   unsigned long       y,
                                                    uint32_t           *data,
                                                    double              opacity)
 {
   ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (buffer,
                                                                fill_area,
-                                                               NULL, x, y,
+                                                               NULL,
                                                                data, opacity);
 }
 
 void
 ply_pixel_buffer_fill_with_argb32_data (ply_pixel_buffer_t *buffer,
                                         ply_rectangle_t    *fill_area,
-                                        unsigned long       x,
-                                        unsigned long       y,
                                         uint32_t           *data)
 {
   ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (buffer,
                                                                fill_area,
-                                                               NULL, x, y,
+                                                               NULL,
                                                                data, 1.0);
 }
 
@@ -585,13 +581,11 @@ void
 ply_pixel_buffer_fill_with_argb32_data_with_clip (ply_pixel_buffer_t *buffer,
                                                   ply_rectangle_t    *fill_area,
                                                   ply_rectangle_t    *clip_area,
-                                                  unsigned long       x,
-                                                  unsigned long       y,
                                                   uint32_t           *data)
 {
   ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (buffer,
                                                                fill_area,
-                                                               clip_area, x, y,
+                                                               clip_area,
                                                                data, 1.0);
 }
 

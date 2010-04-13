@@ -380,7 +380,7 @@ ply_animation_draw_area (ply_animation_t    *animation,
   frame_data = ply_image_get_data (frames[frame_index]);
 
   ply_pixel_buffer_fill_with_argb32_data (buffer,
-                                          &animation->frame_area, 0, 0,
+                                          &animation->frame_area,
                                           frame_data);
 }
 

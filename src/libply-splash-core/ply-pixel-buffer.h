@@ -67,27 +67,19 @@ void ply_pixel_buffer_fill_with_gradient (ply_pixel_buffer_t *buffer,
 
 void ply_pixel_buffer_fill_with_argb32_data (ply_pixel_buffer_t *buffer,
                                              ply_rectangle_t    *fill_area,
-                                             unsigned long       x,
-                                             unsigned long       y,
                                              uint32_t           *data);
 void ply_pixel_buffer_fill_with_argb32_data_at_opacity (ply_pixel_buffer_t *buffer,
                                                         ply_rectangle_t    *fill_area,
-                                                        unsigned long       x,
-                                                        unsigned long       y,
                                                         uint32_t           *data,
                                                         double              opacity);
 
 void ply_pixel_buffer_fill_with_argb32_data_with_clip (ply_pixel_buffer_t *buffer,
                                                        ply_rectangle_t    *fill_area,
                                                        ply_rectangle_t    *clip_area,
-                                                       unsigned long       x,
-                                                       unsigned long       y,
                                                        uint32_t           *data);
 void ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (ply_pixel_buffer_t *buffer,
                                                                   ply_rectangle_t    *fill_area,
                                                                   ply_rectangle_t    *clip_area,
-                                                                  unsigned long       x,
-                                                                  unsigned long       y,
                                                                   uint32_t           *data,
                                                                   double              opacity);
 

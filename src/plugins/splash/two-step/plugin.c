@@ -685,7 +685,7 @@ on_draw (view_t                   *view,
 
       box_data = ply_image_get_data (plugin->box_image);
       ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
-                                              &view->box_area, 0, 0,
+                                              &view->box_area,
                                               box_data);
 
       ply_entry_draw_area (view->entry,
@@ -697,7 +697,7 @@ on_draw (view_t                   *view,
 
       lock_data = ply_image_get_data (plugin->lock_image);
       ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
-                                              &view->lock_area, 0, 0,
+                                              &view->lock_area,
                                               lock_data);
     }
   else
@@ -723,7 +723,7 @@ on_draw (view_t                   *view,
           image_area.x = screen_area.width - image_area.width - 20;
           image_area.y = screen_area.height - image_area.height - 20;
 
-          ply_pixel_buffer_fill_with_argb32_data (pixel_buffer, &image_area, 0, 0, ply_image_get_data (plugin->corner_image));
+          ply_pixel_buffer_fill_with_argb32_data (pixel_buffer, &image_area, ply_image_get_data (plugin->corner_image));
 
         }
     }

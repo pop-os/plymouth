@@ -375,7 +375,7 @@ ply_throbber_draw_area (ply_throbber_t     *throbber,
   frame_data = ply_image_get_data (frames[throbber->frame_number]);
 
   ply_pixel_buffer_fill_with_argb32_data (buffer,
-                                          &throbber->frame_area, 0, 0,
+                                          &throbber->frame_area,
                                           frame_data);
 }
 

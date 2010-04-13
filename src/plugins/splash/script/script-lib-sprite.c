@@ -477,7 +477,6 @@ static void script_lib_sprite_draw_area (script_lib_display_t *display,
       ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (pixel_buffer,
                                                                    &sprite_area,
                                                                    &clip_area,
-                                                                   0, 0,
                                                                    ply_pixel_buffer_get_argb32_data (sprite->image),
                                                                    sprite->opacity);
     }

@@ -670,7 +670,6 @@ remove_displays_and_keyboard (state_t *state)
   if (state->keyboard != NULL)
     {
       ply_trace ("removing keyboard");
-      ply_keyboard_stop_watching_for_input (state->keyboard);
       ply_keyboard_free (state->keyboard);
       state->keyboard = NULL;
     }
@@ -845,12 +844,6 @@ deactivate_splash (state_t *state)
       ply_renderer_deactivate (state->renderer);
     }
 
-  if (state->keyboard != NULL)
-    {
-      ply_trace ("deactivating keyboard");
-      ply_keyboard_stop_watching_for_input (state->keyboard);
-    }
-
   if ((state->session != NULL) && state->is_attached)
     {
       ply_trace ("deactivating terminal session");
@@ -921,6 +914,13 @@ on_deactivate (state_t       *state,
   state->deactivate_trigger = deactivate_trigger;
 
   ply_trace ("deactivating");
+
+  if (state->keyboard != NULL)
+    {
+      ply_trace ("deactivating keyboard");
+      ply_keyboard_stop_watching_for_input (state->keyboard);
+    }
+
   if (state->boot_splash != NULL)
     {
       ply_boot_splash_become_idle (state->boot_splash,
@@ -991,8 +991,14 @@ on_quit (state_t       *state,
   ply_trace ("time to quit, closing log");
   if (state->session != NULL)
     ply_terminal_session_close_log (state->session);
-  ply_trace ("unloading splash");
 
+  if (state->keyboard != NULL)
+    {
+      ply_trace ("deactivating keyboard");
+      ply_keyboard_stop_watching_for_input (state->keyboard);
+    }
+
+  ply_trace ("unloading splash");
   if (state->is_inactive && !retain_splash)
     {
       /* We've been deactivated and X failed to start

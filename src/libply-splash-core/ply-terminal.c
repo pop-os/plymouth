@@ -61,6 +61,7 @@ struct _ply_terminal
   ply_event_loop_t *loop;
 
   struct termios original_term_attributes;
+  struct termios original_locked_term_attributes;
 
   char *name;
   int   fd;
@@ -79,6 +80,7 @@ struct _ply_terminal
   int number_of_columns;
 
   uint32_t original_term_attributes_saved : 1;
+  uint32_t original_locked_term_attributes_saved : 1;
   uint32_t supports_text_color : 1;
   uint32_t is_open : 1;
   uint32_t is_active : 1;
@@ -168,6 +170,7 @@ bool
 ply_terminal_set_unbuffered_input (ply_terminal_t *terminal)
 {
   struct termios term_attributes;
+  struct termios locked_term_attributes;
 
   tcgetattr (terminal->fd, &term_attributes);
 
@@ -185,6 +188,18 @@ ply_terminal_set_unbuffered_input (ply_terminal_t *terminal)
   if (tcsetattr (terminal->fd, TCSANOW, &term_attributes) != 0)
     return false;
 
+  if (ioctl (terminal->fd, TIOCGLCKTRMIOS, &locked_term_attributes) == 0)
+    {
+      terminal->original_locked_term_attributes = locked_term_attributes;
+      terminal->original_locked_term_attributes_saved = true;
+
+      memset (&locked_term_attributes, 0xff, sizeof (locked_term_attributes));
+      if (ioctl (terminal->fd, TIOCSLCKTRMIOS, &locked_term_attributes) < 0)
+        {
+          ply_trace ("couldn't lock terminal settings: %m");
+        }
+    }
+
   terminal->is_unbuffered = true;
 
   return true;
@@ -197,6 +212,16 @@ ply_terminal_set_buffered_input (ply_terminal_t *terminal)
 
   if (!terminal->is_unbuffered)
     return true;
+
+  if (terminal->original_locked_term_attributes_saved)
+    {
+      if (ioctl (terminal->fd, TIOCSLCKTRMIOS,
+                 &terminal->original_locked_term_attributes) < 0)
+        {
+          ply_trace ("couldn't unlock terminal settings: %m");
+        }
+      terminal->original_locked_term_attributes_saved = false;
+    }
 
   tcgetattr (terminal->fd, &term_attributes);
 

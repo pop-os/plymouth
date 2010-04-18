@@ -378,11 +378,10 @@ ply_animation_draw_area (ply_animation_t    *animation,
   frame_index = MIN(animation->frame_number, number_of_frames - 1);
 
   frames = (ply_pixel_buffer_t * const *) ply_array_get_elements (animation->frames);
-  frame_data = ply_pixel_buffer_get_argb32_data (frames[frame_index]);
-
-  ply_pixel_buffer_fill_with_argb32_data (buffer,
-                                          &animation->frame_area,
-                                          frame_data);
+  ply_pixel_buffer_fill_with_buffer (buffer,
+                                     frames[frame_index],
+                                     animation->frame_area.x,
+                                     animation->frame_area.y);
 }
 
 long

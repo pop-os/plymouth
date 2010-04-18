@@ -173,7 +173,7 @@ ply_entry_draw_area (ply_entry_t        *entry,
   if (entry->is_hidden)
     return;
 
-  text_field_buffer = ply_image_convert_get_buffer (entry->text_field_image);
+  text_field_buffer = ply_image_get_buffer (entry->text_field_image);
 
   ply_pixel_buffer_fill_with_buffer (pixel_buffer,
                                      text_field_buffer,
@@ -182,7 +182,7 @@ ply_entry_draw_area (ply_entry_t        *entry,
 
   if (entry->is_password)
     {
-      bullet_buffer = ply_image_convert_get_buffer (entry->bullet_image);
+      bullet_buffer = ply_image_get_buffer (entry->bullet_image);
       ply_pixel_buffer_get_size (bullet_buffer, &bullet_area);
 
       if (entry->number_of_bullets <= entry->max_number_of_visible_bullets)

@@ -280,6 +280,17 @@ ply_entry_set_text (ply_entry_t *entry, const char* text)
 }
 
 void
+ply_entry_set_text_color (ply_entry_t *entry,
+                          float        red,
+                          float        green,
+                          float        blue,
+                          float        alpha)
+{
+  ply_label_set_color (entry->label, red, green, blue, alpha);
+}
+
+
+void
 ply_entry_show (ply_entry_t         *entry,
                 ply_event_loop_t    *loop,
                 ply_pixel_display_t *display,

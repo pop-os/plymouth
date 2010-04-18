@@ -261,12 +261,6 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
           faded_data = ply_pixel_buffer_get_argb32_data (progress_animation->last_rendered_frame);
 
           image_fade_merge (frames[frame_number - 1], frames[frame_number], fade_percentage, width, height, faded_data);
-
-          ply_pixel_display_draw_area (progress_animation->display,
-                                       progress_animation->frame_area.x,
-                                       progress_animation->frame_area.y,
-                                       progress_animation->frame_area.width,
-                                       progress_animation->frame_area.height);
         }
       else
         {

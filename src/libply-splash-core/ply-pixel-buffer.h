@@ -43,6 +43,10 @@ ply_pixel_buffer_t *ply_pixel_buffer_new (unsigned long width,
 void ply_pixel_buffer_free (ply_pixel_buffer_t *buffer);
 void ply_pixel_buffer_get_size (ply_pixel_buffer_t *buffer,
                                 ply_rectangle_t    *size);
+
+unsigned long ply_pixel_buffer_get_width (ply_pixel_buffer_t *buffer);
+unsigned long ply_pixel_buffer_get_height (ply_pixel_buffer_t *buffer);
+
 ply_region_t *ply_pixel_buffer_get_updated_areas (ply_pixel_buffer_t *buffer);
 
 void ply_pixel_buffer_fill_with_color (ply_pixel_buffer_t *buffer,

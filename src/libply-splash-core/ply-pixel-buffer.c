@@ -287,6 +287,20 @@ ply_pixel_buffer_get_size (ply_pixel_buffer_t *buffer,
   *size = buffer->area;
 }
 
+unsigned long 
+ply_pixel_buffer_get_width (ply_pixel_buffer_t *buffer)
+{
+  assert (buffer != NULL);
+  return buffer->area.width;
+}
+
+unsigned long 
+ply_pixel_buffer_get_height (ply_pixel_buffer_t *buffer)
+{
+  assert (buffer != NULL);
+  return buffer->area.height;
+}
+
 ply_region_t *
 ply_pixel_buffer_get_updated_areas (ply_pixel_buffer_t *buffer)
 {

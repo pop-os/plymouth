@@ -274,11 +274,8 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
           if (progress_animation->transition == PLY_PROGRESS_ANIMATION_TRANSITION_FADE_OVER)
             {
               ply_pixel_buffer_free (progress_animation->last_rendered_frame);
-              progress_animation->frame_area.width = ply_image_get_width (frames[frame_number - 1]);
-              progress_animation->frame_area.height = ply_image_get_height (frames[frame_number - 1]);
-
-              progress_animation->last_rendered_frame = ply_pixel_buffer_new (progress_animation->frame_area.width,
-                                                                              progress_animation->frame_area.height);
+              progress_animation->last_rendered_frame = ply_pixel_buffer_new (ply_image_get_width (frames[frame_number - 1]),
+                                                                              ply_image_get_height (frames[frame_number - 1]));
               ply_pixel_buffer_fill_with_buffer (progress_animation->last_rendered_frame,
                                                  previous_frame_buffer,
                                                  0,
@@ -287,9 +284,6 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
           else
             {
               fade_out_opacity = 1.0 - fade_percentage;
-              progress_animation->frame_area.width = ply_image_get_width (frames[frame_number - 1]);
-              progress_animation->frame_area.height = ply_image_get_height (frames[frame_number - 1]);
-
               ply_pixel_buffer_fill_with_buffer_at_opacity (progress_animation->last_rendered_frame,
                                                             previous_frame_buffer,
                                                             0,
@@ -297,8 +291,6 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
                                                             fade_out_opacity);
             }
 
-          progress_animation->frame_area.width = ply_image_get_width (frames[frame_number]);
-          progress_animation->frame_area.height = ply_image_get_height (frames[frame_number]);
           ply_pixel_buffer_fill_with_buffer_at_opacity (progress_animation->last_rendered_frame,
                                                         current_frame_buffer,
                                                         0,

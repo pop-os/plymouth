@@ -373,11 +373,10 @@ ply_throbber_draw_area (ply_throbber_t     *throbber,
     return;
 
   frames = (ply_image_t * const *) ply_array_get_elements (throbber->frames);
-  frame_data = ply_pixel_buffer_get_argb32_data (frames[throbber->frame_number]);
-
-  ply_pixel_buffer_fill_with_argb32_data (buffer,
-                                          &throbber->frame_area,
-                                          frame_data);
+  ply_pixel_buffer_fill_with_buffer (buffer,
+                                     frames[throbber->frame_number],
+                                     throbber->frame_area.x,
+                                     throbber->frame_area.y);
 }
 
 long

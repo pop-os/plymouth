@@ -94,6 +94,7 @@ ply_entry_new (const char *image_dir)
   entry->bullet_image = ply_image_new (image_path);
   free (image_path);
   entry->label = ply_label_new ();
+  ply_label_set_color (entry->label, 0, 0, 0, 1);
 
   entry->number_of_bullets = 0;
   entry->text = strdup("");
@@ -219,6 +220,11 @@ ply_entry_draw_area (ply_entry_t        *entry,
   else
     {
       ply_label_set_text (entry->label, entry->text);
+      ply_label_show (entry->label,
+                      NULL,
+                      entry->area.x,
+                      entry->area.y + entry->area.height / 2
+                       - ply_label_get_height (entry->label) / 2);
       ply_label_draw_area (entry->label, pixel_buffer,
                            entry->area.x, entry->area.y,
                            entry->area.width, entry->area.height);

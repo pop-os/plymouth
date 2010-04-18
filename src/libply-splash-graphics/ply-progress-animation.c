@@ -252,7 +252,7 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
       if (progress_animation->transition == PLY_PROGRESS_ANIMATION_TRANSITION_MERGE_FADE)
         {
           width = MAX(ply_image_get_width (frames[frame_number]), ply_image_get_width (frames[frame_number - 1]));
-          height = MAX(ply_image_get_height (frames[frame_number]), ply_image_get_width (frames[frame_number - 1]));
+          height = MAX(ply_image_get_height (frames[frame_number]), ply_image_get_height (frames[frame_number - 1]));
           progress_animation->frame_area.width = width;
           progress_animation->frame_area.height = height;
 
@@ -292,7 +292,7 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
                                                         fade_percentage);
 
           width = MAX(ply_image_get_width (frames[frame_number]), ply_image_get_width (frames[frame_number - 1]));
-          height = MAX(ply_image_get_height (frames[frame_number]), ply_image_get_width (frames[frame_number - 1]));
+          height = MAX(ply_image_get_height (frames[frame_number]), ply_image_get_height (frames[frame_number - 1]));
           progress_animation->frame_area.width = width;
           progress_animation->frame_area.height = height;
         }

@@ -256,6 +256,12 @@ ply_image_rotate (ply_image_t *image,
 }
 
 ply_pixel_buffer_t *
+ply_image_convert_get_buffer (ply_image_t *image)
+{
+  return image->buffer;
+}
+
+ply_pixel_buffer_t *
 ply_image_convert_to_pixel_buffer (ply_image_t *image)
 {
   ply_pixel_buffer_t *buffer;

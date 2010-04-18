@@ -474,11 +474,12 @@ static void script_lib_sprite_draw_area (script_lib_display_t *display,
 
       if ((sprite_area.x + (int) sprite_area.width) <= x) continue;
       if ((sprite_area.y + (int) sprite_area.height) <= y) continue;
-      ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (pixel_buffer,
-                                                                   &sprite_area,
-                                                                   &clip_area,
-                                                                   ply_pixel_buffer_get_argb32_data (sprite->image),
-                                                                   sprite->opacity);
+      ply_pixel_buffer_fill_with_buffer_at_opacity_with_clip (pixel_buffer,
+                                                              sprite->image,
+                                                              sprite->x - display->x,
+                                                              sprite->y - display->y,
+                                                              &clip_area,
+                                                              sprite->opacity);
     }
 }
 

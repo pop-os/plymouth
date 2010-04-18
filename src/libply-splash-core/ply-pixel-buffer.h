@@ -87,6 +87,28 @@ void ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (ply_pixel_buff
                                                                   uint32_t           *data,
                                                                   double              opacity);
 
+void ply_pixel_buffer_fill_with_buffer_at_opacity_with_clip (ply_pixel_buffer_t *canvas,
+                                                             ply_pixel_buffer_t *source,
+                                                             int                 x_offset,
+                                                             int                 y_offset,
+                                                             ply_rectangle_t    *clip_area,
+                                                             float               opacity);
+void ply_pixel_buffer_fill_with_buffer_at_opacity (ply_pixel_buffer_t *canvas,
+                                                   ply_pixel_buffer_t *source,
+                                                   int                 x_offset,
+                                                   int                 y_offset,
+                                                   float               opacity);
+void ply_pixel_buffer_fill_with_buffer_with_clip (ply_pixel_buffer_t *canvas,
+                                                  ply_pixel_buffer_t *source,
+                                                  int                 x_offset,
+                                                  int                 y_offset,
+                                                  ply_rectangle_t    *clip_area);
+void ply_pixel_buffer_fill_with_buffer (ply_pixel_buffer_t *canvas,
+                                        ply_pixel_buffer_t *source,
+                                        int                 x_offset,
+                                        int                 y_offset);
+
+
 void ply_pixel_buffer_push_clip_area (ply_pixel_buffer_t *buffer,
                                       ply_rectangle_t    *clip_area);
 void ply_pixel_buffer_pop_clip_area (ply_pixel_buffer_t *buffer);

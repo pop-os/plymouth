@@ -208,7 +208,7 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
   int number_of_frames;
   int frame_number;
   ply_image_t * const * frames;
-  uint32_t *previous_frame_data, *frame_data;
+  ply_pixel_buffer_t *previous_frame_buffer, *current_frame_buffer;
 
   if (progress_animation->is_hidden)
     return;
@@ -232,7 +232,7 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
 
   progress_animation->frame_area.x = progress_animation->area.x;
   progress_animation->frame_area.y = progress_animation->area.y;
-  frame_data = ply_image_get_data (frames[frame_number]);
+  current_frame_buffer = ply_image_get_buffer (frames[frame_number]);
 
   if (progress_animation->is_transitioning)
     {
@@ -270,9 +270,7 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
         }
       else
         {
-          ply_rectangle_t fill_area;
-
-          previous_frame_data = ply_image_get_data (frames[frame_number - 1]);
+          previous_frame_buffer = ply_image_get_buffer (frames[frame_number - 1]);
           if (progress_animation->transition == PLY_PROGRESS_ANIMATION_TRANSITION_FADE_OVER)
             {
               ply_pixel_buffer_free (progress_animation->last_rendered_frame);
@@ -281,13 +279,10 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
 
               progress_animation->last_rendered_frame = ply_pixel_buffer_new (progress_animation->frame_area.width,
                                                                               progress_animation->frame_area.height);
-              fill_area.x = 0;
-              fill_area.y = 0;
-              fill_area.width = progress_animation->frame_area.width;
-              fill_area.height = progress_animation->frame_area.height;
-              ply_pixel_buffer_fill_with_argb32_data (progress_animation->last_rendered_frame,
-                                                      &fill_area,
-                                                      previous_frame_data);
+              ply_pixel_buffer_fill_with_buffer (progress_animation->last_rendered_frame,
+                                                 previous_frame_buffer,
+                                                 0,
+                                                 0);
             }
           else
             {
@@ -295,24 +290,20 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
               progress_animation->frame_area.width = ply_image_get_width (frames[frame_number - 1]);
               progress_animation->frame_area.height = ply_image_get_height (frames[frame_number - 1]);
 
-              fill_area.x = 0;
-              fill_area.y = 0;
-              fill_area.width = progress_animation->frame_area.width;
-              fill_area.height = progress_animation->frame_area.height;
-              ply_pixel_buffer_fill_with_argb32_data_at_opacity (progress_animation->last_rendered_frame,
-                                                                 &fill_area,
-                                                                 previous_frame_data, fade_out_opacity);
+              ply_pixel_buffer_fill_with_buffer_at_opacity (progress_animation->last_rendered_frame,
+                                                            previous_frame_buffer,
+                                                            0,
+                                                            0,
+                                                            fade_out_opacity);
             }
 
           progress_animation->frame_area.width = ply_image_get_width (frames[frame_number]);
           progress_animation->frame_area.height = ply_image_get_height (frames[frame_number]);
-          fill_area.x = 0;
-          fill_area.y = 0;
-          fill_area.width = progress_animation->frame_area.width;
-          fill_area.height = progress_animation->frame_area.height;
-          ply_pixel_buffer_fill_with_argb32_data_at_opacity (progress_animation->last_rendered_frame,
-                                                             &fill_area,
-                                                             frame_data, fade_percentage);
+          ply_pixel_buffer_fill_with_buffer_at_opacity (progress_animation->last_rendered_frame,
+                                                        current_frame_buffer,
+                                                        0,
+                                                        0,
+                                                        fade_percentage);
 
           width = MAX(ply_image_get_width (frames[frame_number]), ply_image_get_width (frames[frame_number - 1]));
           height = MAX(ply_image_get_height (frames[frame_number]), ply_image_get_width (frames[frame_number - 1]));
@@ -322,21 +313,16 @@ ply_progress_animation_draw (ply_progress_animation_t *progress_animation)
     }
   else
     {
-      ply_rectangle_t fill_area;
-
       ply_pixel_buffer_free (progress_animation->last_rendered_frame);
       progress_animation->frame_area.width = ply_image_get_width (frames[frame_number]);
       progress_animation->frame_area.height = ply_image_get_height (frames[frame_number]);
       progress_animation->last_rendered_frame = ply_pixel_buffer_new (progress_animation->frame_area.width,
                                                                       progress_animation->frame_area.height);
 
-      fill_area.x = 0;
-      fill_area.y = 0;
-      fill_area.width = progress_animation->frame_area.width;
-      fill_area.height = progress_animation->frame_area.height;
-      ply_pixel_buffer_fill_with_argb32_data (progress_animation->last_rendered_frame,
-                                              &fill_area,
-                                              frame_data);
+      ply_pixel_buffer_fill_with_buffer (progress_animation->last_rendered_frame,
+                                         current_frame_buffer,
+                                         0,
+                                         0);
     }
 
   progress_animation->previous_frame_number = frame_number;

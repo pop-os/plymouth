@@ -193,16 +193,13 @@ ply_progress_animation_draw_area (ply_progress_animation_t *progress_animation,
                                   unsigned long             width,
                                   unsigned long             height)
 {
-  uint32_t *frame_data;
-
   if (progress_animation->is_hidden)
     return;
 
-  frame_data = ply_pixel_buffer_get_argb32_data (progress_animation->last_rendered_frame);
-
-  ply_pixel_buffer_fill_with_argb32_data (buffer,
-                                          &progress_animation->frame_area,
-                                          frame_data);
+  ply_pixel_buffer_fill_with_buffer (buffer,
+                                     progress_animation->last_rendered_frame,
+                                     progress_animation->frame_area.x,
+                                     progress_animation->frame_area.y);
 }
 
 void

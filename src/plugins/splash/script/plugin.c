@@ -163,8 +163,6 @@ add_script_env_var (const char *group_name,
   new_env_var->value = strdup (value);
 
   ply_list_append_data (script_env_vars, new_env_var);
-
-  ply_trace ("%s %s %s", group_name, key, value);
 }
 
 static ply_boot_splash_plugin_t *

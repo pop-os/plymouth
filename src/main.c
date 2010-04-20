@@ -91,6 +91,7 @@ typedef struct
   ply_list_t *keystroke_triggers;
   ply_list_t *entry_triggers;
   ply_buffer_t *entry_buffer;
+  ply_list_t *messages;
   ply_command_parser_t *command_parser;
   ply_mode_t mode;
   ply_renderer_t *renderer;
@@ -169,6 +170,23 @@ on_update (state_t     *state,
   if (state->boot_splash != NULL)
     ply_boot_splash_update_status (state->boot_splash,
                                    status);
+}
+
+static void
+show_messages (state_t *state)
+{
+  ply_list_node_t *node = ply_list_get_first_node (state->messages);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      char *message = ply_list_node_get_data (node);
+
+      ply_trace ("displaying messages");
+
+      ply_boot_splash_display_message (state->boot_splash, message);
+      next_node = ply_list_get_next_node (state->messages, node);
+      node = next_node;
+    }
 }
 
 static void
@@ -374,6 +392,7 @@ on_display_message (state_t       *state,
   ply_trace ("displaying message %s", message);
   if (state->boot_splash != NULL)
     ply_boot_splash_display_message (state->boot_splash, message);
+  ply_list_append_data (state->messages, strdup(message));
 }
 
 static void
@@ -719,6 +738,7 @@ on_show_splash (state_t *state)
       show_detailed_splash (state);
       state->showing_details = true;
     }
+  show_messages (state);
 }
 
 static void
@@ -1123,6 +1143,7 @@ toggle_between_splash_and_details (state_t *state)
       state->showing_details = false;
     }
   update_display (state);
+  show_messages (state);
 }
 
 static void
@@ -1680,6 +1701,7 @@ initialize_environment (state_t *state)
   state->entry_buffer = ply_buffer_new();
   state->pixel_displays = ply_list_new ();
   state->text_displays = ply_list_new ();
+  state->messages = ply_list_new ();
   state->keyboard = NULL;
 
   if (!state->default_tty)

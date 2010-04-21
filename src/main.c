@@ -1290,7 +1290,6 @@ add_display_and_keyboard_for_terminal (state_t    *state,
   display = ply_text_display_new (state->terminal);
 
   ply_list_append_data (state->text_displays, display);
-  state->keyboard = keyboard;
   set_keyboard (state, keyboard);
 }
 

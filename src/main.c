@@ -221,10 +221,8 @@ find_override_splash (state_t *state)
       char *end;
       splash_string = strdup (splash_string + strlen ("plymouth:splash="));
 
-      end = strstr (splash_string, " ");
-
-      if (end != NULL)
-        *end = '\0';
+      end = splash_string + strcspn (splash_string, " \n");
+      *end = '\0';
 
       ply_trace ("Splash is configured to be '%s'", splash_string);
 
@@ -1558,12 +1556,8 @@ check_verbosity (state_t *state)
 
           path += strlen (" plymouth:debug=file:");
           debug_buffer_path = strdup (path);
-          end = strstr (debug_buffer_path, " ");
-
-          if (end != NULL)
-            *end = '\0';
-
-          debug_buffer_path = path;
+          end = debug_buffer_path + strcspn (debug_buffer_path, " \n");
+          *end = '\0';
         }
 
         if (debug_buffer == NULL)

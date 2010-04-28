@@ -1541,8 +1541,8 @@ check_verbosity (state_t *state)
   path = NULL;
   if ((strstr (state->kernel_command_line, " plymouth:debug ") != NULL)
      || (strstr (state->kernel_command_line, "plymouth:debug ") != NULL)
-     || (strstr (state->kernel_command_line, " plymouth:debug") != NULL)
-     || (path = strstr (state->kernel_command_line, " plymouth:debug=file:")) != NULL)
+     || (path = strstr (state->kernel_command_line, " plymouth:debug=file:")) != NULL
+     || (strstr (state->kernel_command_line, " plymouth:debug") != NULL))
     {
 #ifdef LOG_TO_DEBUG_FILE
       int fd;

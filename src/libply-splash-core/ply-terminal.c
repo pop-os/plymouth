@@ -346,7 +346,11 @@ get_active_vt (ply_terminal_t *terminal)
     return -1;
 
   if (terminal->initial_vt_number < 0)
-    terminal->initial_vt_number = vt_state.v_active;
+    {
+      terminal->initial_vt_number = vt_state.v_active;
+      ply_trace ("Remembering that initial vt is %d",
+                 terminal->initial_vt_number);
+    }
 
   return vt_state.v_active;
 }
@@ -761,7 +765,11 @@ ply_terminal_activate_vt (ply_terminal_t *terminal)
     return true;
 
   if (!set_active_vt (terminal, terminal->vt_number))
-    return false;
+    {
+      ply_trace ("unable to set active vt to %d: %m",
+                 terminal->vt_number);
+      return false;
+    }
 
   return true;
 }
@@ -800,16 +808,22 @@ ply_terminal_deactivate_vt (ply_terminal_t *terminal)
 
   if (ply_terminal_is_active (terminal))
     {
+      ply_trace ("Attempting to set active vt back to %d from %d",
+                 terminal->initial_vt_number, old_vt_number);
       if (!set_active_vt (terminal, terminal->initial_vt_number))
         {
-          ply_trace ("Couldn't number to initial VT");
+          ply_trace ("Couldn't move console to initial vt: %m");
           return false;
         }
+    }
+  else
+    {
+      ply_trace ("terminal for vt %d is inactive", terminal->vt_number);
     }
 
   if (!deallocate_vt (terminal, old_vt_number))
     {
-      ply_trace ("Couldn't deallocate vt %d", old_vt_number);
+      ply_trace ("couldn't deallocate vt %d: %m", old_vt_number);
       return false;
     }
 

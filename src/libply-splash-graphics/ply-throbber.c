@@ -183,6 +183,7 @@ on_timeout (ply_throbber_t *throbber)
 
   if (!should_continue)
     {
+      throbber->is_stopped = true;
       if (throbber->stop_trigger != NULL)
         {
           ply_trigger_pull (throbber->stop_trigger, NULL);

@@ -1003,6 +1003,10 @@ on_quit (state_t       *state,
       return;
     }
 
+  if (state->system_initialized)
+    ply_progress_save_cache (state->progress,
+                             get_cache_file_for_mode (state->mode));
+
   state->quit_trigger = quit_trigger;
   state->should_retain_splash = retain_splash;
 
@@ -1958,9 +1962,6 @@ main (int    argc,
   ply_trace ("entering event loop");
   exit_code = ply_event_loop_run (state.loop);
   ply_trace ("exited event loop");
-
-  ply_progress_save_cache (state.progress,
-                           get_cache_file_for_mode (state.mode));
 
   ply_boot_splash_free (state.boot_splash);
   state.boot_splash = NULL;

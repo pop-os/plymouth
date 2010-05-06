@@ -55,6 +55,10 @@
 #define FRAMES_PER_SECOND 30
 #endif
 
+#ifndef THROBBER_DURATION
+#define THROBBER_DURATION 2.0
+#endif
+
 struct _ply_throbber
 {
   ply_array_t *frames;
@@ -133,6 +137,7 @@ animate_at_time (ply_throbber_t *throbber,
   int number_of_frames;
   ply_pixel_buffer_t * const * frames;
   bool should_continue;
+  double percent_in_sequence;
 
   number_of_frames = ply_array_get_size (throbber->frames);
 
@@ -140,8 +145,8 @@ animate_at_time (ply_throbber_t *throbber,
     return true;
 
   should_continue = true;
-
-  throbber->frame_number = (.5 * sin (time) + .5) * number_of_frames;
+  percent_in_sequence = fmod (time, THROBBER_DURATION) / THROBBER_DURATION;
+  throbber->frame_number = (int) (number_of_frames * percent_in_sequence);
 
   if (throbber->stop_trigger != NULL)
     {

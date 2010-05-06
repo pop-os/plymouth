@@ -73,6 +73,11 @@ typedef enum {
    PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY
 } ply_boot_splash_display_type_t;
 
+typedef enum {
+   PROGRESS_FUNCTION_TYPE_WWOODS,
+   PROGRESS_FUNCTION_TYPE_LINEAR,
+} progress_function_t;
+
 typedef struct
 {
   ply_boot_splash_plugin_t *plugin;
@@ -105,6 +110,8 @@ struct _ply_boot_splash_plugin
 
   uint32_t background_start_color;
   uint32_t background_end_color;
+
+  progress_function_t progress_function;
 
   ply_trigger_t *idle_trigger;
   ply_trigger_t *stop_trigger;
@@ -411,6 +418,7 @@ create_plugin (ply_key_file_t *key_file)
   char *transition;
   char *transition_duration;
   char *color;
+  char *progress_function;
 
   srand ((int) ply_get_timestamp ());
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
@@ -482,6 +490,27 @@ create_plugin (ply_key_file_t *key_file)
     plugin->background_end_color = PLYMOUTH_BACKGROUND_END_COLOR;
 
   free (color);
+
+  progress_function = ply_key_file_get_value (key_file, "two-step", "ProgressFunction");
+
+  if (progress_function != NULL)
+    {
+      if (strcmp (progress_function, "wwoods") == 0)
+        {
+          ply_trace ("Using wwoods progress function");
+          plugin->progress_function = PROGRESS_FUNCTION_TYPE_WWOODS;
+        }
+      else if (strcmp (progress_function, "linear") == 0)
+        {
+          ply_trace ("Using linear progress function");
+          plugin->progress_function = PROGRESS_FUNCTION_TYPE_LINEAR;
+        }
+      else
+        {
+          ply_trace ("unknown progress function %s, defaulting to linear", progress_function);
+          plugin->progress_function = PROGRESS_FUNCTION_TYPE_LINEAR;
+        }
+    }
 
   plugin->views = ply_list_new ();
 
@@ -892,11 +921,19 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
       double total_duration;
 
       percent_done *= (1 / SHOW_ANIMATION_PERCENT);
-      total_duration = duration / percent_done;
 
-      /* Fun made-up smoothing function to make the growth asymptotic:
-       * fraction(time,estimate)=1-2^(-(time^1.45)/estimate) */
-      percent_done = 1.0 - pow (2.0, -pow (duration, 1.45) / total_duration) * (1.0 - percent_done);
+      switch (plugin->progress_function)
+        {
+          /* Fun made-up smoothing function to make the growth asymptotic:
+           * fraction(time,estimate)=1-2^(-(time^1.45)/estimate) */
+          case PROGRESS_FUNCTION_TYPE_WWOODS:
+            total_duration = duration / percent_done;
+            percent_done = 1.0 - pow (2.0, -pow (duration, 1.45) / total_duration) * (1.0 - percent_done);
+            break;
+
+          case PROGRESS_FUNCTION_TYPE_LINEAR:
+            break;
+        }
 
       update_progress_animation (plugin, percent_done);
     }

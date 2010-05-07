@@ -66,7 +66,11 @@ function get_default_theme ()
         if [ -z "$THEME_NAME" -o ! -r "${PLYMOUTH_DATADIR}/plymouth/themes/$THEME_NAME/$THEME_NAME.plymouth" ]; then
                 THEME_NAME=$(basename $(readlink ${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth) .plymouth)
         fi
-        [ -z "$THEME_NAME" ] || echo $THEME_NAME && exit 1
+        if [ -z "$THEME_NAME" ]; then
+                THEME_NAME="text"
+        fi
+
+        echo $THEME_NAME
 }
 
 DO_RESET=0

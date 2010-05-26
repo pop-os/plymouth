@@ -175,6 +175,12 @@ on_update (state_t     *state,
 static void
 show_messages (state_t *state)
 {
+  if (state->boot_splash == NULL)
+    {
+      ply_trace ("not displaying messages, since no boot splash");
+      return;
+    }
+
   ply_list_node_t *node = ply_list_get_first_node (state->messages);
   while (node != NULL)
     {
@@ -201,8 +207,7 @@ show_detailed_splash (state_t *state)
 
   if (state->boot_splash == NULL)
     {
-      ply_trace ("Could not start detailed splash screen, exiting");
-      exit (1);
+      ply_trace ("Could not start detailed splash screen, this could be a problem.");
     }
 }
 

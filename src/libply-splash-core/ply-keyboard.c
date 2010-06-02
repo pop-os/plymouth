@@ -359,6 +359,13 @@ ply_keyboard_watch_for_terminal_input (ply_keyboard_t *keyboard)
   assert (keyboard != NULL);
 
   terminal_fd = ply_terminal_get_fd (keyboard->provider.if_terminal->terminal);
+
+  if (terminal_fd < 0 || !ply_terminal_is_open (keyboard->provider.if_terminal->terminal))
+    {
+      ply_trace ("terminal associated with keyboard isn't open");
+      return false;
+    }
+
   keyboard->provider.if_terminal->input_watch = ply_event_loop_watch_fd (keyboard->loop, terminal_fd, PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
                                                                          (ply_event_handler_t) on_terminal_data,
                                                                          (ply_event_handler_t) on_terminal_disconnected,

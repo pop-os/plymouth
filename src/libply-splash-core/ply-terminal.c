@@ -462,7 +462,10 @@ ply_terminal_open_device (ply_terminal_t *terminal)
   terminal->fd = open (terminal->name, O_RDWR | O_NOCTTY);
 
   if (terminal->fd < 0)
-    return false;
+    {
+      ply_trace ("Unable to open terminal device '%s': %m");
+      return false;
+    }
 
   terminal->fd_watch = ply_event_loop_watch_fd (terminal->loop, terminal->fd,
                                                    PLY_EVENT_LOOP_FD_STATUS_NONE,

@@ -634,6 +634,27 @@ on_keystroke_request (state_t    *state,
 }
 
 static void
+on_keystroke_ignore (state_t    *state,
+                     const char *command)
+{
+  char *keys;
+
+  keys = NULL;
+  
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "keys", &keys,
+                                          NULL);
+
+  ply_boot_client_ask_daemon_to_ignore_keystroke (state->client,
+                                                  keys,
+                                                  (ply_boot_client_answer_handler_t)
+                                                  on_success,
+                                                  (ply_boot_client_response_handler_t)
+                                                  on_failure, state);
+}
+
+static void
 on_progress_pause_request (state_t    *state,
                            const char *command)
 {
@@ -924,6 +945,14 @@ main (int    argc,
                                   "command", "Command to send keystroke to via standard input",
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   "keys", "Keys to become sensitive to",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "ignore-keystroke", "Remove sensitivity to a keystroke",
+                                  (ply_command_handler_t)
+                                  on_keystroke_ignore, &state,
+                                  "keys", "Keys to remove sensitivity to",
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 

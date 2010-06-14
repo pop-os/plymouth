@@ -708,6 +708,65 @@ find_encoder_for_connector (ply_renderer_backend_t *backend,
 }
 
 static bool
+modes_are_equal (drmModeModeInfo *a,
+                 drmModeModeInfo *b)
+{
+  return a->clock == b->clock &&
+         a->hdisplay == b->hdisplay &&
+         a->hsync_start == b->hsync_start &&
+         a->hsync_end == b->hsync_end &&
+         a->htotal == b->htotal &&
+         a->hskew == b->hskew &&
+         a->vdisplay == b->vdisplay &&
+         a->vsync_start == b->vsync_start &&
+         a->vsync_end == b->vsync_end &&
+         a->vtotal == b->vtotal &&
+         a->vscan == b->vscan &&
+         a->vrefresh == b->vrefresh &&
+         a->flags == b->flags &&
+         a->type == b->type;
+
+}
+
+static int
+find_index_of_mode (ply_renderer_backend_t *backend,
+                    drmModeConnector       *connector,
+                    drmModeModeInfo        *mode)
+{
+  int i;
+
+  for (i = 0; i < connector->count_modes; i++)
+    {
+      if (modes_are_equal (&connector->modes[i], mode))
+        {
+          ply_trace ("Found connector mode index %d for mode %dx%d",
+                     i, mode->hdisplay, mode->vdisplay);
+
+          return i;
+        }
+    }
+
+  return -1;
+}
+
+static int
+get_index_of_active_mode (ply_renderer_backend_t *backend,
+                          drmModeCrtc            *controller,
+                          drmModeConnector       *connector)
+{
+  if (!controller->mode_valid)
+    {
+      ply_trace ("No valid mode currently active on monitor");
+      return -1;
+    }
+
+  ply_trace ("Looking for connector mode index of active mode %dx%d",
+             controller->mode.hdisplay, controller->mode.vdisplay);
+
+  return find_index_of_mode (backend, connector, &controller->mode);
+}
+
+static bool
 create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 {
   int i;
@@ -761,13 +820,15 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 
       controller_id = controller->crtc_id;
 
-      /* The kernel orders the mode list such that the one picked by default is
-       * the first one.
-       *
-       * FIXME: This falls over if the mode is explicitly overridden on
-       * the kernel command line
+      connector_mode_index = get_index_of_active_mode (backend, controller, connector);
+
+      /* If we couldn't find the current active mode, fall back to the first available.
        */
-      connector_mode_index = 0;
+      if (connector_mode_index < 0)
+        {
+          ply_trace ("falling back to first available mode");
+          connector_mode_index = 0;
+        }
 
       console_buffer_id = controller->buffer_id;
       drmModeFreeCrtc (controller);

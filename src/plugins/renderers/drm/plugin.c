@@ -578,17 +578,28 @@ controller_is_available (ply_renderer_backend_t *backend,
   return true;
 }
 
-static uint32_t
+static drmModeCrtc *
 find_controller_for_encoder (ply_renderer_backend_t *backend,
                              drmModeEncoder         *encoder)
 {
   int i;
   uint32_t possible_crtcs;
+  drmModeCrtc *controller;
+
+  controller = NULL;
 
   /* Monitor is already lit. We'll use the same controller.
    */
   if (encoder->crtc_id != 0)
-    return encoder->crtc_id;
+    {
+      controller = drmModeGetCrtc (backend->device_fd, encoder->crtc_id);
+
+      if (controller != NULL)
+        {
+          ply_trace ("Found already lit monitor");
+          return controller;
+        }
+    }
 
   /* Monitor cable is plugged in, but the monitor isn't lit
    * yet. Let's pick an available controller and light it up
@@ -610,10 +621,14 @@ find_controller_for_encoder (ply_renderer_backend_t *backend,
         continue;
 
       assert (i < backend->resources->count_crtcs);
-      return backend->resources->crtcs[i];
+      controller = drmModeGetCrtc (backend->device_fd,
+                                   backend->resources->crtcs[i]);
+
+      if (controller != NULL)
+        break;
     }
 
-  return 0;
+  return controller;
 }
 
 static bool
@@ -692,26 +707,6 @@ find_encoder_for_connector (ply_renderer_backend_t *backend,
   return find_unused_encoder_for_connector (backend, connector);
 }
 
-static uint32_t
-get_console_buffer_id (ply_renderer_backend_t *backend,
-                       uint32_t                controller_id)
-{
-  drmModeCrtc *controller;
-  uint32_t console_buffer_id;
-
-  console_buffer_id = 0;
-  controller = drmModeGetCrtc (backend->device_fd, controller_id);
-
-  if (controller == NULL)
-    return 0;
-
-  console_buffer_id = controller->buffer_id;
-
-  drmModeFreeCrtc (controller);
-
-  return console_buffer_id;
-}
-
 static bool
 create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 {
@@ -722,8 +717,9 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
     {
       ply_renderer_head_t *head;
       drmModeEncoder *encoder;
-      uint32_t controller_id;
       uint32_t encoder_id;
+      drmModeCrtc *controller;
+      uint32_t controller_id;
       uint32_t console_buffer_id;
       int connector_mode_index;
 
@@ -754,14 +750,16 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
         }
 
       encoder_id = encoder->encoder_id;
-      controller_id = find_controller_for_encoder (backend, encoder);
+      controller = find_controller_for_encoder (backend, encoder);
       drmModeFreeEncoder (encoder);
 
-      if (controller_id == 0)
+      if (controller == NULL)
         {
           drmModeFreeConnector (connector);
           continue;
         }
+
+      controller_id = controller->crtc_id;
 
       /* The kernel orders the mode list such that the one picked by default is
        * the first one.
@@ -771,7 +769,8 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
        */
       connector_mode_index = 0;
 
-      console_buffer_id = get_console_buffer_id (backend, controller_id);
+      console_buffer_id = controller->buffer_id;
+      drmModeFreeCrtc (controller);
 
       head = ply_renderer_head_new (backend, connector, connector_mode_index,
                                     encoder_id, controller_id,

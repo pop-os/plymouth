@@ -72,7 +72,7 @@ struct _ply_renderer_head
   unsigned long row_stride;
 
   drmModeConnector *connector;
-  drmModeModeInfo *mode;
+  int connector_mode_index;
 
   uint32_t controller_id;
   uint32_t encoder_id;
@@ -123,12 +123,13 @@ static bool open_input_source (ply_renderer_backend_t      *backend,
 static ply_renderer_head_t *
 ply_renderer_head_new (ply_renderer_backend_t *backend,
                        drmModeConnector       *connector,
+                       int                     connector_mode_index,
                        uint32_t                encoder_id,
                        uint32_t                controller_id,
-                       uint32_t                console_buffer_id,
-                       drmModeModeInfo        *mode)
+                       uint32_t                console_buffer_id)
 {
   ply_renderer_head_t *head;
+  drmModeModeInfo *mode;
 
   head = calloc (1, sizeof (ply_renderer_head_t));
 
@@ -137,7 +138,10 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
   head->encoder_id = encoder_id;
   head->controller_id = controller_id;
   head->console_buffer_id = console_buffer_id;
-  head->mode = mode;
+  head->connector_mode_index = connector_mode_index;
+
+  assert (connector_mode_index < connector->count_modes);
+  mode = &head->connector->modes[head->connector_mode_index];
 
   head->area.x = 0;
   head->area.y = 0;
@@ -167,11 +171,15 @@ ply_renderer_head_set_scan_out_buffer (ply_renderer_backend_t *backend,
                                        ply_renderer_head_t    *head,
                                        uint32_t                buffer_id)
 {
+  drmModeModeInfo *mode;
+
+  assert (head->connector_mode_index < head->connector->count_modes);
+  mode = &head->connector->modes[head->connector_mode_index];
 
   /* Tell the controller to use the allocated scan out buffer
    */
   if (drmModeSetCrtc (backend->device_fd, head->controller_id, buffer_id,
-                      0, 0, &head->connector->connector_id, 1, head->mode) < 0)
+                      0, 0, &head->connector->connector_id, 1, mode) < 0)
     return false;
 
   return true;
@@ -546,13 +554,6 @@ close_device (ply_renderer_backend_t *backend)
   unload_driver (backend);
 }
 
-static drmModeModeInfo *
-get_active_mode_for_connector (ply_renderer_backend_t *backend,
-                               drmModeConnector       *connector)
-{
-  return &connector->modes[0];
-}
-
 static bool
 controller_is_available (ply_renderer_backend_t *backend,
                          uint32_t                controller_id)
@@ -724,7 +725,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
       uint32_t controller_id;
       uint32_t encoder_id;
       uint32_t console_buffer_id;
-      drmModeModeInfo *mode;
+      int connector_mode_index;
 
       connector = drmModeGetConnector (backend->device_fd,
                                        backend->resources->connectors[i]);
@@ -762,13 +763,19 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
           continue;
         }
 
-      mode = get_active_mode_for_connector (backend, connector);
+      /* The kernel orders the mode list such that the one picked by default is
+       * the first one.
+       *
+       * FIXME: This falls over if the mode is explicitly overridden on
+       * the kernel command line
+       */
+      connector_mode_index = 0;
 
       console_buffer_id = get_console_buffer_id (backend, controller_id);
 
-      head = ply_renderer_head_new (backend, connector, encoder_id,
-                                    controller_id, console_buffer_id,
-                                    mode);
+      head = ply_renderer_head_new (backend, connector, connector_mode_index,
+                                    encoder_id, controller_id,
+                                    console_buffer_id);
 
       ply_list_append_data (backend->heads, head);
     }

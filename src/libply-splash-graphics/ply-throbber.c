@@ -381,8 +381,8 @@ ply_throbber_draw_area (ply_throbber_t     *throbber,
   frames = (ply_image_t * const *) ply_array_get_elements (throbber->frames);
   ply_pixel_buffer_fill_with_buffer (buffer,
                                      frames[throbber->frame_number],
-                                     throbber->frame_area.x,
-                                     throbber->frame_area.y);
+                                     throbber->x,
+                                     throbber->y);
 }
 
 long

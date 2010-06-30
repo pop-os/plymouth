@@ -305,6 +305,11 @@ main (int argc, char *argv[])
 
   window = create_window (buffer);
 
+  if (seen_errors == 2)
+    gtk_window_set_icon_name (GTK_WINDOW (window), GTK_STOCK_DIALOG_WARNING);
+  else
+    gtk_window_set_icon_name (GTK_WINDOW (window), GTK_STOCK_INFO);
+
   if (show_icon)
     {
       menu = gtk_menu_new ();

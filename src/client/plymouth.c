@@ -363,6 +363,13 @@ on_key_answer (key_answer_state_t *answer_state,
                const char         *answer,
                ply_boot_client_t  *client)
 {
+
+  if (answer == NULL)
+    {
+      ply_event_loop_exit (answer_state->state->loop, 1);
+      return;
+    }
+
   if (answer_state->command != NULL)
     {
       answer_via_command (answer_state->command, answer, NULL);
@@ -373,9 +380,7 @@ on_key_answer (key_answer_state_t *answer_state,
         write (STDOUT_FILENO, answer, strlen (answer));
     }
 
-  if (answer != NULL)
-    ply_event_loop_exit (answer_state->state->loop, 0);
-  ply_event_loop_exit (answer_state->state->loop, 1);
+  ply_event_loop_exit (answer_state->state->loop, 0);
 }
 
 static void

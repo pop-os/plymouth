@@ -224,6 +224,7 @@ create_window (GtkTextBuffer *buffer)
   GtkWidget *terminal;
   GtkWidget *bbox;
   GtkWidget *close_button;
+  PangoFontDescription *description;
   PangoTabArray *tabs;
   int width, height;
 
@@ -244,6 +245,11 @@ create_window (GtkTextBuffer *buffer)
                                        GTK_SHADOW_IN);
   terminal = gtk_text_view_new_with_buffer (buffer);
   gtk_text_view_set_editable (GTK_TEXT_VIEW (terminal), FALSE);
+
+  description = pango_font_description_from_string ("monospace");
+  gtk_widget_modify_font (terminal, description);
+  pango_font_description_free (description);
+
   tabs = pango_tab_array_new_with_positions (1, TRUE, PANGO_TAB_LEFT, width - 130);
   gtk_text_view_set_tabs (GTK_TEXT_VIEW (terminal), tabs);
   gtk_text_view_set_left_margin (GTK_TEXT_VIEW (terminal), 12);

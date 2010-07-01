@@ -109,6 +109,7 @@ typedef struct
   uint32_t should_be_attached : 1;
   uint32_t should_retain_splash : 1;
   uint32_t is_inactive : 1;
+  uint32_t should_force_details : 1;
 
   char *kernel_console_tty;
   char *override_splash_path;
@@ -629,7 +630,7 @@ plymouth_should_show_default_splash (state_t *state)
   };
   int i;
 
-  if (state->kernel_console_tty != NULL)
+  if (state->should_force_details)
     return false;
 
   for (i = 0; strings[i] != NULL; i++)
@@ -1629,6 +1630,8 @@ check_for_consoles (state_t    *state,
       char *end;
       ply_trace ("serial console found!");
 
+      state->should_force_details = true;
+
       free (state->kernel_console_tty);
       state->kernel_console_tty = strdup (console_key + strlen (" console="));
 
@@ -1686,6 +1689,28 @@ redirect_standard_io_to_device (const char *device)
 
   return true;
 }
+static const char *
+find_fallback_tty (state_t *state)
+{
+  static const char *tty_list[] =
+    {
+      "/dev/ttyS0",
+      "/dev/hvc0",
+      "/dev/xvc0",
+      "/dev/ttySG0",
+      "/dev/tty0",
+      NULL
+    };
+  int i;
+
+  for (i = 0; tty_list[i] != NULL; i++)
+    {
+      if (ply_character_device_exists (tty_list[i]))
+        return tty_list[i];
+    }
+
+  return state->default_tty;
+}
 
 static bool
 initialize_environment (state_t *state)
@@ -1714,6 +1739,16 @@ initialize_environment (state_t *state)
         }
       else
         state->default_tty = BOOT_TTY;
+
+      ply_trace ("checking if '%s' exists", state->default_tty);
+      if (!ply_character_device_exists (state->default_tty))
+        {
+          ply_trace ("nope, forcing details mode");
+          state->should_force_details = true;
+
+          state->default_tty = find_fallback_tty (state);
+          ply_trace ("going to go with '%s'", state->default_tty);
+        }
     }
 
   check_for_consoles (state, state->default_tty, false);

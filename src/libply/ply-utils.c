@@ -632,6 +632,17 @@ ply_file_exists (const char *file)
   return S_ISREG (file_info.st_mode);
 }
 
+bool
+ply_character_device_exists (const char *device)
+{
+  struct stat file_info;
+
+  if (stat (device, &file_info) < 0)
+    return false;
+
+  return S_ISCHR (file_info.st_mode);
+}
+
 void 
 ply_list_directory (const char *path)
 {

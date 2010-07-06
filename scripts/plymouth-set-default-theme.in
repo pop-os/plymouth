@@ -38,7 +38,7 @@ function list_themes ()
 {
         for theme in ${PLYMOUTH_DATADIR}/plymouth/themes/*/*.plymouth; do
                 [ -f $theme ] || continue;
-                echo "$(basename $theme .plymouth)"
+                echo "$(basename "$theme" .plymouth)"
         done
 }
 
@@ -65,7 +65,7 @@ function get_default_theme ()
 
         if [ -z "$THEME_NAME" -o ! -r "${PLYMOUTH_DATADIR}/plymouth/themes/$THEME_NAME/$THEME_NAME.plymouth" \
              -a -L "${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth" ]; then
-                THEME_NAME=$(basename $(readlink ${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth) .plymouth)
+                THEME_NAME=$(basename "$(readlink ${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth)" .plymouth)
         fi
         if [ -z "$THEME_NAME" -o ! -r "${PLYMOUTH_DATADIR}/plymouth/themes/$THEME_NAME/$THEME_NAME.plymouth" ]; then
                 THEME_NAME="text"

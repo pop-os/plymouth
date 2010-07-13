@@ -102,7 +102,7 @@ inst ${PLYMOUTH_PLUGIN_PATH}/renderers/frame-buffer.so $INITRDDIR
 
 if [ -d ${PLYMOUTH_DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME} ]; then
     for x in ${PLYMOUTH_DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME}/* ; do
-        [ ! -f "$x" ] && break
+        [ ! -f "$x" ] && continue
         inst $x $INITRDDIR
     done
 fi

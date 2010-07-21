@@ -644,11 +644,23 @@ on_error (state_t *state)
 static bool
 plymouth_should_ignore_show_splash_calls (state_t *state)
 {
+  const char *init_string;
+  size_t length;
+
   ply_trace ("checking if plymouth should be running");
   if (state->mode != PLY_MODE_BOOT || command_line_has_argument (state->kernel_command_line, "plymouth.force-splash"))
       return false;
 
-  return command_line_get_string_after_prefix (state->kernel_command_line, "init=") != NULL;
+  if (command_line_has_argument (state->kernel_command_line, "plymouth.ignore-show-splash"))
+      return true;
+
+  init_string = command_line_get_string_after_prefix (state->kernel_command_line, "init=");
+
+  length = strcspn (init_string, " \n");
+  if (length > 2 && ply_string_has_prefix (init_string + length - 2, "sh"))
+    return true;
+
+  return false;
 }
 
 static bool

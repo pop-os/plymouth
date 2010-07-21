@@ -1510,7 +1510,8 @@ start_boot_splash (state_t    *state,
       return NULL;
     }
 
-  ply_keyboard_watch_for_input (state->keyboard);
+  if (state->keyboard != NULL)
+    ply_keyboard_watch_for_input (state->keyboard);
 
   update_display (state);
   return splash;

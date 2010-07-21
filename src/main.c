@@ -212,29 +212,64 @@ show_detailed_splash (state_t *state)
     }
 }
 
+static const char *
+command_line_get_string_after_prefix (const char *command_line,
+                                      const char *prefix)
+{
+  char *argument;
+
+  argument = strstr (command_line, prefix);
+
+  if (argument == NULL)
+    return NULL;
+
+  if (argument == command_line ||
+      argument[-1] == ' ')
+    return argument + strlen (prefix);
+
+  return NULL;
+}
+
+static bool
+command_line_has_argument (const char *command_line,
+                           const char *argument)
+{
+    const char *string;
+
+    string = command_line_get_string_after_prefix (command_line, argument);
+
+    if (string == NULL)
+      return false;
+
+    if (string[0] != ' ' && string[0] != '\0')
+      return false;
+
+    return true;
+}
+
 static void
 find_override_splash (state_t *state)
 {
-  char *splash_string;
+  const char *splash_string;
 
   if (state->override_splash_path != NULL)
       return;
 
-  splash_string = strstr (state->kernel_command_line, "plymouth:splash=");
-
+  splash_string = command_line_get_string_after_prefix (state->kernel_command_line,
+                                                        "plymouth:splash=");
   if (splash_string != NULL)
     {
-      char *end;
-      splash_string = strdup (splash_string + strlen ("plymouth:splash="));
+      const char *end;
+      int length;
 
       end = splash_string + strcspn (splash_string, " \n");
-      *end = '\0';
+      length = end - splash_string;
 
-      ply_trace ("Splash is configured to be '%s'", splash_string);
+      ply_trace ("Splash is configured to be '%*.*s'", length, length, splash_string);
 
       asprintf (&state->override_splash_path,
-                PLYMOUTH_THEME_PATH "%s/%s.plymouth",
-                splash_string, splash_string);
+                PLYMOUTH_THEME_PATH "%*.*s/%*.*s.plymouth",
+                length, length, splash_string, length, length, splash_string);
     }
 }
 
@@ -609,10 +644,10 @@ static bool
 plymouth_should_ignore_show_splash_calls (state_t *state)
 {
   ply_trace ("checking if plymouth should be running");
-  if (state->mode != PLY_MODE_BOOT || ply_string_has_prefix (state->kernel_command_line, "plymouth:force-splash") || strstr (state->kernel_command_line, " plymouth:force-splash") != NULL)
+  if (state->mode != PLY_MODE_BOOT || command_line_has_argument (state->kernel_command_line, "plymouth:force-splash"))
       return false;
 
-  return ply_string_has_prefix (state->kernel_command_line, "init=") || strstr (state->kernel_command_line, " init=") != NULL;
+  return command_line_get_string_after_prefix (state->kernel_command_line, "init=") != NULL;
 }
 
 static bool
@@ -621,12 +656,7 @@ plymouth_should_show_default_splash (state_t *state)
   ply_trace ("checking if plymouth should show default splash");
 
   const char const *strings[] = {
-      " single ", " single\n", "^single ",
-      " 1 ", " 1\n", "^1 ",
-      " s ", " s\n", "^s ",
-      " S ", " S\n", "^S ",
-      " -s ", " -s\n", "^-s ",
-      NULL
+      "single", "1", "s", "S", "-S", NULL
   };
   int i;
 
@@ -635,21 +665,33 @@ plymouth_should_show_default_splash (state_t *state)
 
   for (i = 0; strings[i] != NULL; i++)
     {
-      int cmp;
-      if (strings[i][0] == '^')
-          cmp = strncmp(state->kernel_command_line, strings[i]+1,
-                        strlen(strings[i]+1)) == 0;
-      else
-          cmp = strstr (state->kernel_command_line, strings[i]) != NULL;
-
-      if (cmp)
+      if (command_line_has_argument (state->kernel_command_line, strings[i]))
         {
-          ply_trace ("kernel command line has option \"%s\"", strings[i]);
+          ply_trace ("no default splash because kernel command line has option \"%s\"", strings[i]);
           return false;
         }
     }
 
-  return strstr (state->kernel_command_line, "rhgb") != NULL || (strstr (state->kernel_command_line, "splash") != NULL && strstr(state->kernel_command_line, "splash=verbose") == NULL);
+  if (command_line_has_argument (state->kernel_command_line, "splash=verbose"))
+    {
+      ply_trace ("no default splash because kernel command line has option \"splash=verbose\"");
+      return false;
+    }
+
+  if (command_line_has_argument (state->kernel_command_line, "rhgb"))
+    {
+      ply_trace ("using default splash because kernel command line has option \"rhgb\"");
+      return true;
+    }
+
+  if (command_line_has_argument (state->kernel_command_line, "splash"))
+    {
+      ply_trace ("using default splash because kernel command line has option \"splash\"");
+      return true;
+    }
+
+  ply_trace ("no default splash because kernel command line lacks \"splash\" or \"rhgb\"");
+  return false;
 }
 
 static void
@@ -1542,15 +1584,14 @@ get_kernel_command_line (state_t *state)
 static void
 check_verbosity (state_t *state)
 {
-  char *path;
+  const char *path;
 
   ply_trace ("checking if tracing should be enabled");
 
-  path = NULL;
-  if ((strstr (state->kernel_command_line, " plymouth:debug ") != NULL)
-     || (strstr (state->kernel_command_line, "plymouth:debug ") != NULL)
-     || (path = strstr (state->kernel_command_line, " plymouth:debug=file:")) != NULL
-     || (strstr (state->kernel_command_line, " plymouth:debug") != NULL))
+  path = command_line_get_string_after_prefix (state->kernel_command_line,
+                                               "plymouth:debug=file:");
+  if (path != NULL ||
+      command_line_has_argument (state->kernel_command_line, "plymouth:debug"))
     {
 #ifdef LOG_TO_DEBUG_FILE
       int fd;
@@ -1564,7 +1605,6 @@ check_verbosity (state_t *state)
         {
           char *end;
 
-          path += strlen (" plymouth:debug=file:");
           debug_buffer_path = strdup (path);
           end = debug_buffer_path + strcspn (debug_buffer_path, " \n");
           *end = '\0';
@@ -1599,9 +1639,7 @@ check_logging (state_t *state)
 {
   ply_trace ("checking if console messages should be redirected and logged");
 
-  if ((strstr (state->kernel_command_line, " plymouth:nolog ") != NULL)
-     || (strstr (state->kernel_command_line, "plymouth:nolog ") != NULL)
-     || (strstr (state->kernel_command_line, " plymouth:nolog") != NULL))
+  if (command_line_has_argument (state->kernel_command_line, "plymouth:nolog"))
     {
       ply_trace ("logging won't be enabled!");
       state->no_boot_log = true;
@@ -1618,14 +1656,16 @@ check_for_consoles (state_t    *state,
                     const char *default_tty,
                     bool        should_add_displays)
 {
-  char *console_key;
-  char *remaining_command_line;
+  const char *console;
+  const char *remaining_command_line;
 
   ply_trace ("checking for consoles%s",
              should_add_displays? " and adding displays": "");
 
   remaining_command_line = state->kernel_command_line;
-  while ((console_key = strstr (remaining_command_line, " console=")) != NULL)
+
+  while ((console = command_line_get_string_after_prefix (remaining_command_line,
+                                                          "console=")) != NULL)
     {
       char *end;
       ply_trace ("serial console found!");
@@ -1633,16 +1673,16 @@ check_for_consoles (state_t    *state,
       state->should_force_details = true;
 
       free (state->kernel_console_tty);
-      state->kernel_console_tty = strdup (console_key + strlen (" console="));
+      state->kernel_console_tty = strdup (console);
 
-      remaining_command_line = console_key + strlen (" console=");
+      remaining_command_line = console;
 
       end = strpbrk (state->kernel_console_tty, " \n\t\v,");
 
       if (end != NULL)
         {
           *end = '\0';
-          remaining_command_line += end - state->kernel_console_tty;
+          console += end - state->kernel_console_tty;
         }
 
       if (strcmp (state->kernel_console_tty, "tty0") == 0 || strcmp (state->kernel_console_tty, "/dev/tty0") == 0)

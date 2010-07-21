@@ -656,9 +656,12 @@ plymouth_should_ignore_show_splash_calls (state_t *state)
 
   init_string = command_line_get_string_after_prefix (state->kernel_command_line, "init=");
 
-  length = strcspn (init_string, " \n");
-  if (length > 2 && ply_string_has_prefix (init_string + length - 2, "sh"))
-    return true;
+  if (init_string)
+    {
+      length = strcspn (init_string, " \n");
+      if (length > 2 && ply_string_has_prefix (init_string + length - 2, "sh"))
+	return true;
+    }
 
   return false;
 }

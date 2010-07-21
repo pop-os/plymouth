@@ -256,7 +256,8 @@ find_override_splash (state_t *state)
       return;
 
   splash_string = command_line_get_string_after_prefix (state->kernel_command_line,
-                                                        "plymouth:splash=");
+                                                        "plymouth.splash=");
+
   if (splash_string != NULL)
     {
       const char *end;
@@ -644,7 +645,7 @@ static bool
 plymouth_should_ignore_show_splash_calls (state_t *state)
 {
   ply_trace ("checking if plymouth should be running");
-  if (state->mode != PLY_MODE_BOOT || command_line_has_argument (state->kernel_command_line, "plymouth:force-splash"))
+  if (state->mode != PLY_MODE_BOOT || command_line_has_argument (state->kernel_command_line, "plymouth.force-splash"))
       return false;
 
   return command_line_get_string_after_prefix (state->kernel_command_line, "init=") != NULL;
@@ -1559,6 +1560,8 @@ static bool
 get_kernel_command_line (state_t *state)
 {
   int fd;
+  const char *remaining_command_line;
+  char *key;
 
   ply_trace ("opening /proc/cmdline");
   fd = open ("proc/cmdline", O_RDONLY);
@@ -1576,7 +1579,22 @@ get_kernel_command_line (state_t *state)
       return false;
     }
 
+
+  /* we now use plymouth.argument for kernel commandline arguments.
+   * It used to be plymouth:argument. This bit just rewrites all : to be .
+   */
+  remaining_command_line = state->kernel_command_line;
+  while ((key = strstr (remaining_command_line, "plymouth:")) != NULL)
+    {
+      char *colon;
+
+      colon = key + strlen ("plymouth");
+      *colon = '.';
+
+      remaining_command_line = colon + 1;
+    }
   ply_trace ("Kernel command line is: '%s'", state->kernel_command_line);
+
   close (fd);
   return true;
 }
@@ -1589,9 +1607,9 @@ check_verbosity (state_t *state)
   ply_trace ("checking if tracing should be enabled");
 
   path = command_line_get_string_after_prefix (state->kernel_command_line,
-                                               "plymouth:debug=file:");
+                                               "plymouth.debug=file:");
   if (path != NULL ||
-      command_line_has_argument (state->kernel_command_line, "plymouth:debug"))
+      command_line_has_argument (state->kernel_command_line, "plymouth.debug"))
     {
 #ifdef LOG_TO_DEBUG_FILE
       int fd;
@@ -1639,7 +1657,7 @@ check_logging (state_t *state)
 {
   ply_trace ("checking if console messages should be redirected and logged");
 
-  if (command_line_has_argument (state->kernel_command_line, "plymouth:nolog"))
+  if (command_line_has_argument (state->kernel_command_line, "plymouth.nolog"))
     {
       ply_trace ("logging won't be enabled!");
       state->no_boot_log = true;

@@ -466,7 +466,7 @@ ply_terminal_open_device (ply_terminal_t *terminal)
 
   if (terminal->fd < 0)
     {
-      ply_trace ("Unable to open terminal device '%s': %m");
+      ply_trace ("Unable to open terminal device '%s': %m", terminal->name);
       return false;
     }
 

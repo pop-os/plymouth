@@ -701,6 +701,24 @@ ply_open_module (const char *module_path)
   return handle;
 }
 
+ply_module_handle_t *
+ply_open_built_in_module (void)
+{
+  ply_module_handle_t *handle;
+
+  handle = (ply_module_handle_t *) dlopen (NULL,
+                                           RTLD_NODELETE |RTLD_NOW | RTLD_LOCAL);
+
+  if (handle == NULL)
+    {
+      ply_trace("Could not load built-in module: %s\n",  dlerror ());
+      if (errno == 0)
+        errno = ELIBACC;
+    }
+
+  return handle;
+}
+
 ply_module_function_t
 ply_module_look_up_function (ply_module_handle_t *handle,
                              const char          *function_name)

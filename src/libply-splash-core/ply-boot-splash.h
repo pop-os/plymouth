@@ -45,7 +45,9 @@ ply_boot_splash_t *ply_boot_splash_new (const char   *  theme_path,
                                         const char   *  plugin_dir,
                                         ply_buffer_t *  boot_buffer,
                                         ply_terminal_t *terminal);
+
 bool ply_boot_splash_load (ply_boot_splash_t *splash);
+bool ply_boot_splash_load_built_in (ply_boot_splash_t *splash);
 void ply_boot_splash_unload (ply_boot_splash_t *splash);
 void ply_boot_splash_set_keyboard (ply_boot_splash_t *splash,
                                    ply_keyboard_t *keyboard);

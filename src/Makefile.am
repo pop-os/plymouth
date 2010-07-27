@@ -21,6 +21,7 @@ plymouthd_SOURCES =                                                            \
                    ply-boot-protocol.h                                        \
                    ply-boot-server.h                                          \
                    ply-boot-server.c                                          \
+                   plugins/splash/details/plugin.c                  \
                    main.c
 
 plymouthdrundir = $(localstatedir)/run/plymouth

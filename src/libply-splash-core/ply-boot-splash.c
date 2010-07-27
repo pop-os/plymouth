@@ -335,6 +335,51 @@ ply_boot_splash_load (ply_boot_splash_t *splash)
   return true;
 }
 
+bool
+ply_boot_splash_load_built_in (ply_boot_splash_t *splash)
+{
+  get_plugin_interface_function_t get_boot_splash_plugin_interface;
+
+  assert (splash != NULL);
+
+  splash->module_handle = ply_open_built_in_module ();
+
+  if (splash->module_handle == NULL)
+    return false;
+
+  get_boot_splash_plugin_interface = (get_plugin_interface_function_t)
+      ply_module_look_up_function (splash->module_handle,
+                                   "ply_boot_splash_plugin_get_interface");
+
+  if (get_boot_splash_plugin_interface == NULL)
+    {
+      ply_save_errno ();
+      ply_close_module (splash->module_handle);
+      splash->module_handle = NULL;
+      ply_restore_errno ();
+      return false;
+    }
+
+  splash->plugin_interface = get_boot_splash_plugin_interface ();
+
+  if (splash->plugin_interface == NULL)
+    {
+      ply_save_errno ();
+      ply_close_module (splash->module_handle);
+      splash->module_handle = NULL;
+      ply_restore_errno ();
+      return false;
+    }
+
+  splash->plugin = splash->plugin_interface->create_plugin (NULL);
+
+  assert (splash->plugin != NULL);
+
+  splash->is_loaded = true;
+
+  return true;
+}
+
 void
 ply_boot_splash_unload (ply_boot_splash_t *splash)
 {

@@ -90,6 +90,8 @@ bool ply_character_device_exists (const char *device);
 void ply_list_directory (const char *dir);
 
 ply_module_handle_t *ply_open_module (const char *module_path);
+ply_module_handle_t *ply_open_built_in_module (void);
+
 ply_module_function_t ply_module_look_up_function (ply_module_handle_t *handle,
                                                    const char  *function_name);
 void ply_close_module (ply_module_handle_t *handle);

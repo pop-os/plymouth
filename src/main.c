@@ -23,6 +23,7 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <ctype.h>
 #include <limits.h>
 #include <dirent.h>
 #include <fcntl.h>
@@ -241,7 +242,7 @@ command_line_has_argument (const char *command_line,
     if (string == NULL)
       return false;
 
-    if (string[0] != ' ' && string[0] != '\0')
+    if (!isspace ((int) string[0]) && string[0] != '\0')
       return false;
 
     return true;

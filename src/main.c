@@ -44,6 +44,7 @@
 #include "ply-boot-server.h"
 #include "ply-boot-splash.h"
 #include "ply-event-loop.h"
+#include "ply-hashtable.h"
 #include "ply-list.h"
 #include "ply-logger.h"
 #include "ply-terminal-session.h"
@@ -1714,28 +1715,38 @@ check_logging (state_t *state)
 }
 
 static void
+add_display_and_keyboard_for_console (const char *console,
+                                      const char *null,
+                                      state_t    *state)
+{
+  add_display_and_keyboard_for_terminal (state, console);
+}
+
+static void
 check_for_consoles (state_t    *state,
                     const char *default_tty,
                     bool        should_add_displays)
 {
   const char *console;
   const char *remaining_command_line;
+  ply_hashtable_t *consoles;
 
   ply_trace ("checking for consoles%s",
              should_add_displays? " and adding displays": "");
 
   remaining_command_line = state->kernel_command_line;
 
+  consoles = ply_hashtable_new (ply_hashtable_string_hash,
+                                ply_hashtable_string_compare);
   while ((console = command_line_get_string_after_prefix (remaining_command_line,
                                                           "console=")) != NULL)
     {
       char *end;
-      ply_trace ("serial console found!");
 
       state->should_force_details = true;
 
-      free (state->kernel_console_tty);
-      state->kernel_console_tty = strdup (console);
+      ply_trace ("serial console %s found!", console);
+      ply_hashtable_insert (consoles, strdup (console), NULL);
 
       remaining_command_line = console;
 
@@ -1746,21 +1757,30 @@ check_for_consoles (state_t    *state,
           *end = '\0';
           console += end - state->kernel_console_tty;
         }
-
-      if (strcmp (state->kernel_console_tty, "tty0") == 0 || strcmp (state->kernel_console_tty, "/dev/tty0") == 0)
-        {
-          free (state->kernel_console_tty);
-          state->kernel_console_tty = strdup (default_tty);
-        }
-
-      if (should_add_displays)
-        add_display_and_keyboard_for_terminal (state, state->kernel_console_tty);
     }
 
-    ply_trace ("There are currently %d text displays",
-               ply_list_get_length (state->text_displays));
-    if (should_add_displays && ply_list_get_length (state->text_displays) == 0)
-      add_default_displays_and_keyboard (state);
+  free (state->kernel_console_tty);
+
+  if (strcmp (console, "tty0") == 0 || strcmp (console, "/dev/tty0") == 0)
+      state->kernel_console_tty = strdup (default_tty);
+  else
+      state->kernel_console_tty = strdup (console);
+
+  if (should_add_displays)
+    {
+      ply_hashtable_foreach (consoles,
+                             (ply_hashtable_foreach_func_t *)
+                             add_display_and_keyboard_for_console,
+                             state);
+    }
+
+  ply_hashtable_foreach (consoles, (ply_hashtable_foreach_func_t *) free, NULL);
+  ply_hashtable_free (consoles);
+
+  ply_trace ("After processing serial consoles there are now %d text displays",
+             ply_list_get_length (state->text_displays));
+  if (should_add_displays && ply_list_get_length (state->text_displays) == 0)
+    add_default_displays_and_keyboard (state);
 }
 
 static bool

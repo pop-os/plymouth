@@ -1760,11 +1760,15 @@ check_for_consoles (state_t    *state,
     }
 
   free (state->kernel_console_tty);
+  state->kernel_console_tty = NULL;
 
-  if (strcmp (console, "tty0") == 0 || strcmp (console, "/dev/tty0") == 0)
-      state->kernel_console_tty = strdup (default_tty);
-  else
-      state->kernel_console_tty = strdup (console);
+  if (console != NULL)
+    {
+      if (strcmp (console, "tty0") == 0 || strcmp (console, "/dev/tty0") == 0)
+          state->kernel_console_tty = strdup (default_tty);
+      else
+          state->kernel_console_tty = strdup (console);
+    }
 
   if (should_add_displays)
     {

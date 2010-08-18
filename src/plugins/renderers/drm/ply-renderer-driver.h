@@ -45,7 +45,8 @@ typedef struct
                            uint32_t               buffer_id,
                            unsigned long         *width,
                            unsigned long         *height,
-                           unsigned long         *row_stride);
+                           unsigned long         *row_stride,
+                           unsigned int          *color_depth);
 
     bool (* map_buffer) (ply_renderer_driver_t *driver,
                          uint32_t               buffer_id);

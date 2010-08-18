@@ -767,6 +767,29 @@ get_index_of_active_mode (ply_renderer_backend_t *backend,
 }
 
 static bool
+buffer_has_reasonable_color_depth (ply_renderer_backend_t *backend,
+                                   uint32_t                buffer_id)
+{
+
+  unsigned int color_depth;
+  bool has_reasonable_color_depth;
+
+  if (!backend->driver_interface->fetch_buffer (backend->driver,
+                                                buffer_id,
+                                                NULL, NULL, NULL, &color_depth))
+    return false;
+
+  if (color_depth == 24 || color_depth == 32)
+    has_reasonable_color_depth = true;
+  else
+    has_reasonable_color_depth = false;
+
+  backend->driver_interface->destroy_buffer (backend->driver, buffer_id);
+
+  return has_reasonable_color_depth;
+}
+
+static bool
 create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 {
   int i;
@@ -832,6 +855,13 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 
       console_buffer_id = controller->buffer_id;
       drmModeFreeCrtc (controller);
+
+      if (!buffer_has_reasonable_color_depth (backend, console_buffer_id))
+        {
+          ply_trace ("frame buffer console doesn't have usable color depth");
+          free_heads (backend);
+          return false;
+        }
 
       head = ply_renderer_head_new (backend, connector, connector_mode_index,
                                     encoder_id, controller_id,

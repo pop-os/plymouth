@@ -59,7 +59,6 @@ struct _ply_renderer_buffer
   unsigned long width;
   unsigned long height;
   unsigned long row_stride;
-  unsigned int color_depth;
 
   uint32_t added_fb : 1;
 };
@@ -113,8 +112,7 @@ ply_renderer_buffer_new (ply_renderer_driver_t *driver,
                          uint32_t id,
                          unsigned long width,
                          unsigned long height,
-                         unsigned long row_stride,
-                         unsigned int color_depth)
+                         unsigned long row_stride)
 {
   ply_renderer_buffer_t *buffer;
 
@@ -124,10 +122,9 @@ ply_renderer_buffer_new (ply_renderer_driver_t *driver,
   buffer->width = width;
   buffer->height = height;
   buffer->row_stride = row_stride;
-  buffer->color_depth = color_depth;
 
-  ply_trace ("returning %lux%lu buffer with stride %lu and color depth %u",
-             width, height, row_stride, color_depth);
+  ply_trace ("returning %lux%lu buffer with stride %lu",
+             width, height, row_stride);
 
   return buffer;
 }
@@ -193,7 +190,7 @@ ply_renderer_buffer_new_from_id (ply_renderer_driver_t *driver,
     }
 
   buffer = ply_renderer_buffer_new (driver, buffer_object, buffer_id,
-                                    fb->width, fb->height, fb->pitch, fb->depth);
+                                    fb->width, fb->height, fb->pitch);
   drmModeFreeFB (fb);
 
   return buffer;
@@ -216,8 +213,7 @@ fetch_buffer (ply_renderer_driver_t *driver,
               uint32_t               buffer_id,
               unsigned long         *width,
               unsigned long         *height,
-              unsigned long         *row_stride,
-              unsigned int          *color_depth)
+              unsigned long         *row_stride)
 {
   ply_renderer_buffer_t *buffer;
 
@@ -248,11 +244,8 @@ fetch_buffer (ply_renderer_driver_t *driver,
   if (row_stride != NULL)
     *row_stride = buffer->row_stride;
 
-  if (color_depth != NULL)
-    *color_depth = buffer->color_depth;
-
-  ply_trace ("fetched %lux%lu buffer with stride %lu and color depth %u",
-             buffer->width, buffer->height, buffer->row_stride, buffer->color_depth);
+  ply_trace ("fetched %lux%lu buffer with stride %lu",
+             buffer->width, buffer->height, buffer->row_stride);
   return true;
 }
 
@@ -289,7 +282,7 @@ create_buffer (ply_renderer_driver_t *driver,
 
   buffer = ply_renderer_buffer_new (driver,
                                     buffer_object, buffer_id,
-                                    width, height, *row_stride, 24);
+                                    width, height, *row_stride);
   buffer->added_fb = true;
   ply_hashtable_insert (driver->buffers,
                         (void *) (uintptr_t) buffer_id,

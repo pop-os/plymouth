@@ -932,8 +932,7 @@ ply_renderer_head_set_scan_out_buffer_to_console (ply_renderer_backend_t *backen
 
   if (!backend->driver_interface->fetch_buffer (backend->driver,
                                                head->console_buffer_id,
-                                               &width, &height, &row_stride,
-                                               NULL))
+                                               &width, &height, &row_stride))
     return false;
 
   if (!backend->driver_interface->map_buffer (backend->driver,

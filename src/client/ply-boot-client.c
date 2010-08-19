@@ -311,7 +311,7 @@ ply_boot_client_process_incoming_replies (ply_boot_client_t *client)
           goto out;
         }
 
-      array = ply_array_new ();
+      array = ply_array_new (PLY_ARRAY_ELEMENT_TYPE_POINTER);
 
       p = answer;
       q = p;
@@ -319,13 +319,13 @@ ply_boot_client_process_incoming_replies (ply_boot_client_t *client)
         {
           if (*q == '\0')
             {
-              ply_array_add_element (array, strdup (p));
+              ply_array_add_pointer_element (array, strdup (p));
               p = q + 1;
             }
         }
       free (answer);
 
-      answers = (char **) ply_array_steal_elements (array);
+      answers = (char **) ply_array_steal_pointer_elements (array);
       ply_array_free (array);
 
       ((ply_boot_client_multiple_answers_handler_t) request->handler) (request->user_data, (const char * const *) answers, client);

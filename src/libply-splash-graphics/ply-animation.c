@@ -84,7 +84,7 @@ ply_animation_new (const char *image_dir,
 
   animation = calloc (1, sizeof (ply_animation_t));
 
-  animation->frames = ply_array_new ();
+  animation->frames = ply_array_new (PLY_ARRAY_ELEMENT_TYPE_POINTER);
   animation->frames_prefix = strdup (frames_prefix);
   animation->image_dir = strdup (image_dir);
   animation->frame_number = 0;
@@ -106,7 +106,7 @@ ply_animation_remove_frames (ply_animation_t *animation)
   int i;
   ply_pixel_buffer_t **frames;
 
-  frames = (ply_pixel_buffer_t **) ply_array_steal_elements (animation->frames);
+  frames = (ply_pixel_buffer_t **) ply_array_steal_pointer_elements (animation->frames);
   for (i = 0; frames[i] != NULL; i++)
     ply_pixel_buffer_free (frames[i]);
   free (frames);
@@ -147,7 +147,7 @@ animate_at_time (ply_animation_t *animation,
   if (animation->stop_requested)
     should_continue = false;
 
-  frames = (ply_pixel_buffer_t * const *) ply_array_get_elements (animation->frames);
+  frames = (ply_pixel_buffer_t * const *) ply_array_get_pointer_elements (animation->frames);
   ply_pixel_buffer_get_size (frames[animation->frame_number], &animation->frame_area);
   animation->frame_area.x = animation->x;
   animation->frame_area.y = animation->y;
@@ -217,7 +217,7 @@ ply_animation_add_frame (ply_animation_t *animation,
 
   frame = ply_image_convert_to_pixel_buffer (image);
 
-  ply_array_add_element (animation->frames, frame);
+  ply_array_add_pointer_element (animation->frames, frame);
 
   animation->width = MAX (animation->width, ply_pixel_buffer_get_width (frame));
   animation->height = MAX (animation->height, ply_pixel_buffer_get_height (frame));
@@ -377,7 +377,7 @@ ply_animation_draw_area (ply_animation_t    *animation,
   number_of_frames = ply_array_get_size (animation->frames);
   frame_index = MIN(animation->frame_number, number_of_frames - 1);
 
-  frames = (ply_pixel_buffer_t * const *) ply_array_get_elements (animation->frames);
+  frames = (ply_pixel_buffer_t * const *) ply_array_get_pointer_elements (animation->frames);
   ply_pixel_buffer_fill_with_buffer (buffer,
                                      frames[frame_index],
                                      animation->frame_area.x,

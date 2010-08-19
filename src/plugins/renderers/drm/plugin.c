@@ -46,10 +46,12 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
+#include "ply-array.h"
 #include "ply-buffer.h"
 #include "ply-event-loop.h"
 #include "ply-list.h"
 #include "ply-logger.h"
+#include "ply-hashtable.h"
 #include "ply-rectangle.h"
 #include "ply-region.h"
 #include "ply-terminal.h"
@@ -71,8 +73,9 @@ struct _ply_renderer_head
 
   unsigned long row_stride;
 
-  drmModeConnector *connector;
-  int connector_mode_index;
+  ply_array_t *connector_ids;
+  drmModeConnector *connector0;
+  int connector0_mode_index;
 
   uint32_t controller_id;
   uint32_t encoder_id;
@@ -106,6 +109,7 @@ struct _ply_renderer_backend
 
   ply_renderer_input_source_t input_source;
   ply_list_t *heads;
+  ply_hashtable_t *heads_by_connector_id;
 
   int32_t dither_red;
   int32_t dither_green;
@@ -119,6 +123,34 @@ static void ply_renderer_head_redraw (ply_renderer_backend_t *backend,
                                       ply_renderer_head_t    *head);
 static bool open_input_source (ply_renderer_backend_t      *backend,
                                ply_renderer_input_source_t *input_source);
+
+static bool
+ply_renderer_head_add_connector (ply_renderer_head_t *head,
+                                 drmModeConnector    *connector,
+                                 int                  connector_mode_index)
+{
+  drmModeModeInfo *mode;
+
+  mode = &connector->modes[connector_mode_index];
+
+  if (mode->hdisplay != head->area.width || mode->vdisplay != head->area.height)
+    {
+      ply_trace ("Tried to add connector with resolution %dx%d to %dx%d head",
+                 (int) mode->hdisplay, (int) mode->vdisplay,
+                 (int) head->area.width, (int) head->area.height);
+      return false;
+    }
+  else
+    {
+      ply_trace ("Adding connector with id %d to %dx%d head",
+                 (int) connector->connector_id,
+                 (int) head->area.width, (int) head->area.height);
+    }
+
+  ply_array_add_uint32_element (head->connector_ids, connector->connector_id);
+
+  return true;
+}
 
 static ply_renderer_head_t *
 ply_renderer_head_new (ply_renderer_backend_t *backend,
@@ -134,19 +166,24 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
   head = calloc (1, sizeof (ply_renderer_head_t));
 
   head->backend = backend;
-  head->connector = connector;
   head->encoder_id = encoder_id;
+  head->connector_ids = ply_array_new (PLY_ARRAY_ELEMENT_TYPE_UINT32);
   head->controller_id = controller_id;
   head->console_buffer_id = console_buffer_id;
-  head->connector_mode_index = connector_mode_index;
 
   assert (connector_mode_index < connector->count_modes);
-  mode = &head->connector->modes[head->connector_mode_index];
+  mode = &connector->modes[connector_mode_index];
+
+  head->connector0 = connector;
+  head->connector0_mode_index = connector_mode_index;
 
   head->area.x = 0;
   head->area.y = 0;
   head->area.width = mode->hdisplay;
   head->area.height = mode->vdisplay;
+
+  ply_renderer_head_add_connector (head, connector, connector_mode_index);
+  assert (ply_array_get_size (head->connector_ids) > 0);
 
   head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
 
@@ -162,7 +199,8 @@ ply_renderer_head_free (ply_renderer_head_t *head)
 {
   ply_trace ("freeing %ldx%ld renderer head", head->area.width, head->area.height);
   ply_pixel_buffer_free (head->pixel_buffer);
-  drmModeFreeConnector (head->connector);
+
+  ply_array_free (head->connector_ids);
   free (head);
 }
 
@@ -172,15 +210,23 @@ ply_renderer_head_set_scan_out_buffer (ply_renderer_backend_t *backend,
                                        uint32_t                buffer_id)
 {
   drmModeModeInfo *mode;
+  uint32_t *connector_ids;
+  int number_of_connectors;
 
-  assert (head->connector_mode_index < head->connector->count_modes);
-  mode = &head->connector->modes[head->connector_mode_index];
+  connector_ids = (uint32_t *) ply_array_get_uint32_elements (head->connector_ids);
+  number_of_connectors = ply_array_get_size (head->connector_ids);
 
-  /* Tell the controller to use the allocated scan out buffer
-   */
+  mode = &head->connector0->modes[head->connector0_mode_index];
+
+  /* Tell the controller to use the allocated scan out buffer on each connectors
+  */
   if (drmModeSetCrtc (backend->device_fd, head->controller_id, buffer_id,
-                      0, 0, &head->connector->connector_id, 1, mode) < 0)
-    return false;
+                      0, 0, connector_ids, number_of_connectors, mode) < 0)
+    {
+      ply_trace ("Couldn't set scan out buffer for head with controller id %d",
+                 head->controller_id);
+      return false;
+    }
 
   return true;
 }
@@ -343,7 +389,6 @@ destroy_backend (ply_renderer_backend_t *backend)
 {
   ply_trace ("destroying renderer backend for device %s", backend->device_name);
   free_heads (backend);
-  ply_list_free (backend->heads);
 
   free (backend->device_name);
 
@@ -771,6 +816,9 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 {
   int i;
   drmModeConnector *connector;
+  ply_hashtable_t *heads_by_controller_id;
+
+  heads_by_controller_id = ply_hashtable_new (NULL, NULL);
 
   for (i = 0; i < backend->resources->count_connectors; i++)
     {
@@ -833,12 +881,33 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
       console_buffer_id = controller->buffer_id;
       drmModeFreeCrtc (controller);
 
-      head = ply_renderer_head_new (backend, connector, connector_mode_index,
-                                    encoder_id, controller_id,
-                                    console_buffer_id);
+      head = ply_hashtable_lookup (heads_by_controller_id,
+                                   (void *) (intptr_t) controller_id);
 
-      ply_list_append_data (backend->heads, head);
+      if (head == NULL)
+        {
+          head = ply_renderer_head_new (backend, connector, connector_mode_index,
+                                        encoder_id, controller_id,
+                                        console_buffer_id);
+
+          ply_list_append_data (backend->heads, head);
+
+          ply_hashtable_insert (heads_by_controller_id,
+                                (void *) (intptr_t) controller_id,
+                                head);
+        }
+      else
+        {
+          if (!ply_renderer_head_add_connector (head, connector, connector_mode_index))
+            {
+              ply_trace ("couldn't connect monitor to existing head");
+            }
+
+          drmModeFreeConnector (connector);
+        }
     }
+
+  ply_hashtable_free (heads_by_controller_id);
 
 #ifdef PLY_ENABLE_GDM_TRANSITION
   /* If the driver doesn't support mapping the fb console
@@ -852,12 +921,21 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
   if (!backend->driver_supports_mapping_console &&
       ply_list_get_length (backend->heads) == 1)
     {
-      ply_trace ("Only one monitor configured, and driver doesn't "
-                 "support mapping console, so letting frame-buffer "
-                 "take over");
+      ply_list_node_t *node;
+      ply_renderer_head_t *head;
 
-      free_heads (backend);
-      return false;
+      node = ply_list_get_first_node (backend->heads);
+      head = (ply_renderer_head_t *) ply_list_node_get_data (node);
+
+      if (ply_array_get_size (head->connector_ids) == 1)
+        {
+          ply_trace ("Only one monitor configured, and driver doesn't "
+                     "support mapping console, so letting frame-buffer "
+                     "take over");
+
+          free_heads (backend);
+          return false;
+        }
     }
 #endif
 

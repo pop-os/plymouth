@@ -237,7 +237,7 @@ ply_animation_add_frames (ply_animation_t *animation)
 
   number_of_entries = scandir (animation->image_dir, &entries, NULL, versionsort);
 
-  if (number_of_entries < 0)
+  if (number_of_entries <= 0)
     return false;
 
   load_finished = false;
@@ -263,6 +263,13 @@ ply_animation_add_frames (ply_animation_t *animation)
       free (entries[i]);
       entries[i] = NULL;
     }
+
+  if (ply_array_get_size (animation->frames) == 0)
+    {
+      ply_trace ("%s directory had no files starting with %s\n",
+                 animation->image_dir, animation->frames_prefix);
+      goto out;
+    }
   load_finished = true;
 
 out:
@@ -270,7 +277,7 @@ out:
     {
       ply_animation_remove_frames (animation);
 
-      while (entries[i] != NULL)
+      while (i < number_of_entries)
         {
           free (entries[i]);
           i++;

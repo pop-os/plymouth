@@ -731,7 +731,8 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
       ply_progress_animation_hide (view->progress_animation);
       if (trigger != NULL)
         ply_trigger_ignore_next_pull (trigger);
-      ply_throbber_stop (view->throbber, trigger);
+      if (view->throbber != NULL)
+        ply_throbber_stop (view->throbber, trigger);
       ply_animation_stop (view->end_animation);
 
       node = next_node;

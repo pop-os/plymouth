@@ -200,6 +200,7 @@ ply_renderer_head_free (ply_renderer_head_t *head)
   ply_trace ("freeing %ldx%ld renderer head", head->area.width, head->area.height);
   ply_pixel_buffer_free (head->pixel_buffer);
 
+  drmModeFreeConnector (head->connector0);
   ply_array_free (head->connector_ids);
   free (head);
 }

@@ -64,7 +64,7 @@ struct _ply_label_plugin_control
   uint32_t is_hidden : 1;
 };
 
-ply_label_plugin_control_t *
+static ply_label_plugin_control_t *
 create_control (void)
 {
   ply_label_plugin_control_t *label;
@@ -76,7 +76,7 @@ create_control (void)
   return label;
 }
 
-void
+static void
 destroy_control (ply_label_plugin_control_t *label)
 {
   if (label == NULL)
@@ -85,13 +85,13 @@ destroy_control (ply_label_plugin_control_t *label)
   free (label);
 }
 
-long
+static long
 get_width_of_control (ply_label_plugin_control_t *label)
 {
   return label->area.width;
 }
 
-long
+static long
 get_height_of_control (ply_label_plugin_control_t *label)
 {
   return label->area.height;
@@ -163,7 +163,7 @@ size_control (ply_label_plugin_control_t *label)
   cairo_destroy (cairo_context);
 }
 
-void
+static void
 draw_control (ply_label_plugin_control_t *label,
               ply_pixel_buffer_t         *pixel_buffer,
               long                        x,
@@ -211,7 +211,7 @@ draw_control (ply_label_plugin_control_t *label,
   cairo_destroy (cairo_context);
 }
 
-void
+static void
 set_text_for_control (ply_label_plugin_control_t *label,
                       const char                 *text)
 {
@@ -231,7 +231,7 @@ set_text_for_control (ply_label_plugin_control_t *label,
     }
 }
 
-void
+static void
 set_color_for_control (ply_label_plugin_control_t *label,
                        float                       red,
                        float                       green,
@@ -249,7 +249,7 @@ set_color_for_control (ply_label_plugin_control_t *label,
                                  label->area.width, label->area.height);
 }
 
-bool
+static bool
 show_control (ply_label_plugin_control_t *label,
               ply_pixel_display_t        *display,
               long                        x,
@@ -276,7 +276,7 @@ show_control (ply_label_plugin_control_t *label,
   return true;
 }
 
-void
+static void
 hide_control (ply_label_plugin_control_t *label)
 {
   label->is_hidden = true;
@@ -289,7 +289,7 @@ hide_control (ply_label_plugin_control_t *label)
   label->loop = NULL;
 }
 
-bool
+static bool
 is_control_hidden (ply_label_plugin_control_t *label)
 {
   return label->is_hidden;

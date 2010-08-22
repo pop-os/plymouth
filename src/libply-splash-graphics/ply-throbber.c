@@ -223,8 +223,8 @@ ply_throbber_add_frame (ply_throbber_t *throbber,
 
   ply_array_add_pointer_element (throbber->frames, frame);
 
-  throbber->width = MAX (throbber->width, ply_pixel_buffer_get_width (frame));
-  throbber->height = MAX (throbber->height, ply_pixel_buffer_get_height (frame));
+  throbber->width = MAX (throbber->width, (long) ply_pixel_buffer_get_width (frame));
+  throbber->height = MAX (throbber->height, (long)ply_pixel_buffer_get_height (frame));
 
   return true;
 }

@@ -1969,7 +1969,7 @@ main (int    argc,
   char *mode_string = NULL;
   char *tty = NULL;
 
-  state.command_parser = ply_command_parser_new ("plymouthd", "Boot splash control server");
+  state.command_parser = ply_command_parser_new ("plymouthd", "Splash server");
 
   state.loop = ply_event_loop_get_default ();
 

@@ -99,6 +99,16 @@ CFLAGS="$OLD_CFLAGS"
 AC_SUBST(DRM_CFLAGS)
 AC_SUBST(DRM_LIBS)
 
+AC_ARG_ENABLE(libkms, AS_HELP_STRING([--enable-libkms],[enable building with libkms support]),enable_libkms=$enableval,enable_libkms=yes)
+AM_CONDITIONAL(ENABLE_LIBKMS,  [test "$enable_libkms" = yes])
+
+if test x$enable_libkms = xyes; then
+  PKG_CHECK_MODULES(LIBKMS, [libkms])
+  AC_SUBST(LIBKMS_CFLAGS)
+  AC_SUBST(LIBKMS_LIBS)
+  AC_DEFINE(PLY_ENABLE_LIBKMS, 1, [Enable support for libkms abstraction over drm drivers])
+fi
+
 AC_ARG_ENABLE(tracing, AS_HELP_STRING([--enable-tracing],[enable verbose tracing code]),enable_tracing=$enableval,enable_tracing=yes)
 
 if test x$enable_tracing = xyes; then

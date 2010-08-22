@@ -63,6 +63,10 @@
 #include "ply-renderer-radeon-driver.h"
 #include "ply-renderer-nouveau-driver.h"
 
+#ifdef PLY_ENABLE_LIBKMS
+#include "ply-renderer-libkms-driver.h"
+#endif
+
 #define BYTES_PER_PIXEL (4)
 
 struct _ply_renderer_head
@@ -513,12 +517,16 @@ load_driver (ply_renderer_backend_t *backend)
       backend->driver_interface = ply_renderer_nouveau_driver_get_interface ();
       backend->driver_supports_mapping_console = false;
     }
-  free (driver_name);
 
   if (backend->driver_interface == NULL)
     {
+#ifdef PLY_ENABLE_LIBKMS
+      backend->driver_interface = ply_renderer_libkms_driver_get_interface ();
+      backend->driver_supports_mapping_console = false;
+#else
       close (device_fd);
       return false;
+#endif
     }
 
   backend->driver = backend->driver_interface->create_driver (device_fd);

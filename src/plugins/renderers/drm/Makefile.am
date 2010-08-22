@@ -24,4 +24,11 @@ drm_la_SOURCES = $(srcdir)/plugin.c                                           \
 		 $(srcdir)/ply-renderer-nouveau-driver.h                      \
 		 $(srcdir)/ply-renderer-nouveau-driver.c
 
+if ENABLE_LIBKMS
+drm_la_LIBADD += $(LIBKMS_LIBS)
+drm_la_CFLAGS += $(LIBKMS_CFLAGS)
+drm_la_SOURCES += $(srcdir)/ply-renderer-libkms-driver.h                      \
+		  $(srcdir)/ply-renderer-libkms-driver.c
+endif
+
 MAINTAINERCLEANFILES = Makefile.in

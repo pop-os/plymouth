@@ -202,7 +202,7 @@ struct _ply_boot_splash_plugin
   uint32_t is_animating : 1;
 };
 
-
+ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 
 static view_t *

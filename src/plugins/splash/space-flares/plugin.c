@@ -642,7 +642,8 @@ free_sprite (sprite_t* sprite)
  return;
 }
 
-int sprite_compare_z(void *data_a, void *data_b)
+static int
+sprite_compare_z (void *data_a, void *data_b)
 {
  sprite_t *sprite_a = data_a;
  sprite_t *sprite_b = data_b;
@@ -1180,7 +1181,7 @@ on_timeout (ply_boot_splash_plugin_t *plugin)
                                     on_timeout, plugin);
 }
 
-void
+static void
 on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
                   double                    percent_done)
@@ -1283,7 +1284,7 @@ draw_background (view_t             *view,
                  int                 y,
                  int                 width,
                  int                 height);
-void
+static void
 on_draw (view_t                   *view,
          ply_pixel_buffer_t       *pixel_buffer,
          int                       x,
@@ -1468,7 +1469,8 @@ remove_pixel_display (ply_boot_splash_plugin_t *plugin,
 }
 
 
-void highlight_image (ply_image_t *highlighted_image, ply_image_t *orig_image, int distance)
+static void
+highlight_image (ply_image_t *highlighted_image, ply_image_t *orig_image, int distance)
 {
  int x, y;
  int orig_width = ply_image_get_width(orig_image);

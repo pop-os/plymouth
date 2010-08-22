@@ -97,7 +97,6 @@ ply_rectangle_find_overlap (ply_rectangle_t *rectangle1,
 
   if (h_collision != H_COLLISION_NONE)
     {
-      
       if (rectangle2->y >= rectangle1->y && (rectangle2->y + (int)rectangle2->height) <= (rectangle1->y + (int)rectangle1->height))
         {
           if (rectangle2->y == rectangle1->y && rectangle2->height == rectangle1->height)

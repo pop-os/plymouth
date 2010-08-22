@@ -104,6 +104,8 @@ struct _ply_boot_splash_plugin
   uint32_t is_animating : 1;
 };
 
+ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
+
 static void
 view_show_prompt (view_t     *view,
                   const char *prompt)

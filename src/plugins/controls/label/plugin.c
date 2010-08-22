@@ -256,7 +256,7 @@ show_control (ply_label_plugin_control_t *label,
               long                        y)
 {
   ply_rectangle_t dirty_area;
-  
+
   dirty_area = label->area;
   label->display = display;
   label->area.x = x;

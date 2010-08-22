@@ -64,6 +64,8 @@ struct _ply_label_plugin_control
   uint32_t is_hidden : 1;
 };
 
+ply_label_plugin_interface_t * ply_label_plugin_get_interface (void);
+
 static ply_label_plugin_control_t *
 create_control (void)
 {

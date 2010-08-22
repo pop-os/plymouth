@@ -373,7 +373,6 @@ ply_throbber_draw_area (ply_throbber_t     *throbber,
                         unsigned long       height)
 {
   ply_pixel_buffer_t * const * frames;
-  uint32_t *frame_data;
 
   if (throbber->is_stopped)
     return;

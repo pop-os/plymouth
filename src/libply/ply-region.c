@@ -498,7 +498,7 @@ cover_with_rect(char             cover[COVER_SIZE][COVER_SIZE],
     }
 }
 
-int
+static int
 do_test (void)
 {
   ply_rectangle_t rectangle;

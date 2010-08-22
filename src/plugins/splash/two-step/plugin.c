@@ -126,6 +126,8 @@ struct _ply_boot_splash_plugin
   uint32_t is_idle : 1;
 };
 
+ply_boot_splash_plugin_interface_t * ply_boot_splash_plugin_get_interface (void);
+
 static void stop_animation (ply_boot_splash_plugin_t *plugin,
                             ply_trigger_t            *idle_trigger);
 

@@ -518,6 +518,8 @@ load_driver (ply_renderer_backend_t *backend)
       backend->driver_supports_mapping_console = false;
     }
 
+  free (driver_name);
+
   if (backend->driver_interface == NULL)
     {
 #ifdef PLY_ENABLE_LIBKMS

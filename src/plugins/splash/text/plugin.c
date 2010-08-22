@@ -85,6 +85,8 @@ typedef struct
 
 } view_t;
 
+ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
+
 static void hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                                 ply_event_loop_t         *loop);
 

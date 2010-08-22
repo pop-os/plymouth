@@ -859,7 +859,7 @@ main (int    argc,
 
   state.loop = ply_event_loop_new ();
   state.client = ply_boot_client_new ();
-  state.command_parser = ply_command_parser_new ("plymouth", "Boot splash control client");
+  state.command_parser = ply_command_parser_new ("plymouth", "Splash control client");
 
   ply_command_parser_add_options (state.command_parser,
                                   "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,

@@ -504,7 +504,7 @@ do_test (void)
   ply_rectangle_t rectangle;
   char cover[COVER_SIZE][COVER_SIZE];
   int i;
-  unsigned long x, y, width, height;
+  unsigned long x, y;
   ply_region_t *region;
   ply_list_node_t *node;
 

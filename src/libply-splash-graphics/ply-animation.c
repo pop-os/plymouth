@@ -374,7 +374,6 @@ ply_animation_draw_area (ply_animation_t    *animation,
                          unsigned long       height)
 {
   ply_pixel_buffer_t * const * frames;
-  uint32_t *frame_data;
   int number_of_frames;
   int frame_index;
   

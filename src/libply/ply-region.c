@@ -517,7 +517,7 @@ do_test (void)
           cover[y][x] = 0;
         }
     }
-  
+
   for (i = 0; i < RECTANGLE_COUNT; i++)
     {
       rectangle.x = random() % COVER_SIZE-5;
@@ -532,10 +532,10 @@ do_test (void)
       cover_with_rect(cover, &rectangle, 100); /* 100 means covered by origial squares */
       ply_region_add_rectangle (region, &rectangle);
     }
-  
+
   printf("Converted to:\n");
   int count = 0;
-  
+
   ply_list_t *rectangle_list = ply_region_get_rectangle_list (region);
   for (node = ply_list_get_first_node (rectangle_list);
        node;
@@ -551,9 +551,9 @@ do_test (void)
       count++;
     }
   printf("Rectangles in:%d out:%d\n", RECTANGLE_COUNT, count);
-  
+
   count=0;
-  
+
   for (y = 0; y < COVER_SIZE; y++)
     {
       printf("%03d ", y);

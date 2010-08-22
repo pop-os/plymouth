@@ -479,7 +479,7 @@ cover_with_rect(char             cover[COVER_SIZE][COVER_SIZE],
                 char             value)
 {      /* is value is not zero, the entry will be set to the value,
           otherwise entry is incremented*/
-  int x, y;
+  unsigned long x, y;
   for (y=0; y<rectangle->height; y++)
     {
       for (x=0; x<rectangle->width; x++)
@@ -503,7 +503,8 @@ do_test (void)
 {
   ply_rectangle_t rectangle;
   char cover[COVER_SIZE][COVER_SIZE];
-  int x, y, i, width, height;
+  int i;
+  unsigned long x, y, width, height;
   ply_region_t *region;
   ply_list_node_t *node;
 

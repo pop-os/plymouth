@@ -219,8 +219,8 @@ ply_animation_add_frame (ply_animation_t *animation,
 
   ply_array_add_pointer_element (animation->frames, frame);
 
-  animation->width = MAX (animation->width, ply_pixel_buffer_get_width (frame));
-  animation->height = MAX (animation->height, ply_pixel_buffer_get_height (frame));
+  animation->width = MAX (animation->width, (long) ply_pixel_buffer_get_width (frame));
+  animation->height = MAX (animation->height,  (long) ply_pixel_buffer_get_height (frame));
 
   return true;
 }

@@ -53,6 +53,8 @@ bool ply_label_is_hidden (ply_label_t *label);
 
 void ply_label_set_text (ply_label_t *label,
                          const char  *text);
+void ply_label_set_font (ply_label_t *label,
+                         const char  *fontdesc);
 void ply_label_set_color (ply_label_t *label,
                           float        red,
                           float        green,

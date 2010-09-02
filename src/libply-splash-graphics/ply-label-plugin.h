@@ -52,6 +52,8 @@ typedef struct
 
   void (* set_text_for_control) (ply_label_plugin_control_t *label,
                                  const char                 *text);
+  void (* set_font_for_control) (ply_label_plugin_control_t *label,
+                                 const char                 *fontdesc);
   void (* set_color_for_control) (ply_label_plugin_control_t *label,
                                   float                       red,
                                   float                       green,

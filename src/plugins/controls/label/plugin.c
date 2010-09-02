@@ -56,6 +56,7 @@ struct _ply_label_plugin_control
   ply_rectangle_t     area;
 
   char               *text;
+  char               *fontdesc;
   float               red;
   float               green;
   float               blue;
@@ -173,7 +174,7 @@ size_control (ply_label_plugin_control_t *label)
 
   cairo_context = get_cairo_context_for_sizing (label);
 
-  pango_layout = init_pango_text_layout(cairo_context, label->text, "Sans 12");
+  pango_layout = init_pango_text_layout(cairo_context, label->text, label->fontdesc);
 
   pango_layout_get_size (pango_layout, &text_width, &text_height);
   label->area.width = (long) ((double) text_width / PANGO_SCALE);
@@ -202,7 +203,7 @@ draw_control (ply_label_plugin_control_t *label,
 
   cairo_context = get_cairo_context_for_pixel_buffer (label, pixel_buffer);
 
-  pango_layout = init_pango_text_layout(cairo_context, label->text, "Sans 12");
+  pango_layout = init_pango_text_layout(cairo_context, label->text, label->fontdesc);
 
   pango_layout_get_size (pango_layout, &text_width, &text_height);
   label->area.width = (long) ((double) text_width / PANGO_SCALE);
@@ -236,6 +237,29 @@ set_text_for_control (ply_label_plugin_control_t *label,
       dirty_area = label->area;
       free (label->text);
       label->text = strdup (text);
+      size_control (label);
+      if (!label->is_hidden && label->display != NULL)
+        ply_pixel_display_draw_area (label->display,
+                                     dirty_area.x, dirty_area.y,
+                                     dirty_area.width, dirty_area.height);
+
+    }
+}
+
+static void
+set_font_for_control (ply_label_plugin_control_t *label,
+                      const char                 *fontdesc)
+{
+  ply_rectangle_t dirty_area;
+
+  if (label->fontdesc != fontdesc)
+    {
+      dirty_area = label->area;
+      free (label->fontdesc);
+      if (fontdesc)
+        label->fontdesc = strdup (fontdesc);
+      else
+        label->fontdesc = NULL;
       size_control (label);
       if (!label->is_hidden && label->display != NULL)
         ply_pixel_display_draw_area (label->display,
@@ -321,6 +345,7 @@ ply_label_plugin_get_interface (void)
       .draw_control = draw_control,
       .is_control_hidden = is_control_hidden,
       .set_text_for_control = set_text_for_control,
+      .set_font_for_control = set_font_for_control,
       .set_color_for_control = set_color_for_control,
       .get_width_of_control = get_width_of_control,
       .get_height_of_control = get_height_of_control

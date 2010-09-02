@@ -135,6 +135,30 @@ get_cairo_context_for_sizing (ply_label_plugin_control_t *label)
   return cairo_context;
 }
 
+static PangoLayout*
+init_pango_text_layout (cairo_t *cairo_context,
+			char *text,
+			char *font_description)
+{
+  PangoLayout          *pango_layout;
+  PangoFontDescription *description;
+
+  pango_layout = pango_cairo_create_layout (cairo_context);
+
+  if (!font_description)
+    description = pango_font_description_from_string ("Sans 12");
+  else
+    description = pango_font_description_from_string (font_description);
+
+  pango_layout_set_font_description (pango_layout, description);
+  pango_font_description_free (description);
+
+  pango_layout_set_text (pango_layout, text, -1);
+  pango_cairo_update_layout (cairo_context, pango_layout);
+
+  return pango_layout;
+}
+
 static void
 size_control (ply_label_plugin_control_t *label)
 {
@@ -149,14 +173,8 @@ size_control (ply_label_plugin_control_t *label)
 
   cairo_context = get_cairo_context_for_sizing (label);
 
-  pango_layout = pango_cairo_create_layout (cairo_context);
+  pango_layout = init_pango_text_layout(cairo_context, label->text, "Sans 12");
 
-  description = pango_font_description_from_string ("Sans 12");
-  pango_layout_set_font_description (pango_layout, description);
-  pango_font_description_free (description);
-
-  pango_layout_set_text (pango_layout, label->text, -1);
-  pango_cairo_update_layout (cairo_context, pango_layout);
   pango_layout_get_size (pango_layout, &text_width, &text_height);
   label->area.width = (long) ((double) text_width / PANGO_SCALE);
   label->area.height = (long) ((double) text_height / PANGO_SCALE);
@@ -184,14 +202,8 @@ draw_control (ply_label_plugin_control_t *label,
 
   cairo_context = get_cairo_context_for_pixel_buffer (label, pixel_buffer);
 
-  pango_layout = pango_cairo_create_layout (cairo_context);
+  pango_layout = init_pango_text_layout(cairo_context, label->text, "Sans 12");
 
-  description = pango_font_description_from_string ("Sans 12");
-  pango_layout_set_font_description (pango_layout, description);
-  pango_font_description_free (description);
-
-  pango_layout_set_text (pango_layout, label->text, -1);
-  pango_cairo_update_layout (cairo_context, pango_layout);
   pango_layout_get_size (pango_layout, &text_width, &text_height);
   label->area.width = (long) ((double) text_width / PANGO_SCALE);
   label->area.height = (long) ((double) text_height / PANGO_SCALE);

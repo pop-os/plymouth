@@ -50,7 +50,7 @@ bool ply_boot_splash_load (ply_boot_splash_t *splash);
 bool ply_boot_splash_load_built_in (ply_boot_splash_t *splash);
 void ply_boot_splash_unload (ply_boot_splash_t *splash);
 void ply_boot_splash_set_keyboard (ply_boot_splash_t *splash,
-                                   ply_keyboard_t *keyboard);
+                                   ply_keyboard_t    *keyboard);
 void ply_boot_splash_unset_keyboard (ply_boot_splash_t *splash);
 void ply_boot_splash_add_pixel_display (ply_boot_splash_t   *splash,
                                         ply_pixel_display_t *display);
@@ -70,22 +70,22 @@ void ply_boot_splash_update_output (ply_boot_splash_t *splash,
                                     size_t             size);
 void ply_boot_splash_root_mounted (ply_boot_splash_t *splash);
 void ply_boot_splash_hide (ply_boot_splash_t *splash);
-void ply_boot_splash_display_normal  (ply_boot_splash_t              *splash);
-void ply_boot_splash_display_message (ply_boot_splash_t              *splash,
-                                      const char                     *message);
-void ply_boot_splash_display_password (ply_boot_splash_t             *splash,
-                                       const char                    *prompt,
-                                       int                            bullets);
-void ply_boot_splash_display_question (ply_boot_splash_t             *splash,
-                                       const char                    *prompt,
-                                       const char                    *entry_text);
+void ply_boot_splash_display_normal  (ply_boot_splash_t *splash);
+void ply_boot_splash_display_message (ply_boot_splash_t *splash,
+                                      const char        *message);
+void ply_boot_splash_display_password (ply_boot_splash_t *splash,
+                                       const char        *prompt,
+                                       int                bullets);
+void ply_boot_splash_display_question (ply_boot_splash_t *splash,
+                                       const char        *prompt,
+                                       const char        *entry_text);
 void ply_boot_splash_attach_to_event_loop (ply_boot_splash_t *splash,
                                            ply_event_loop_t  *loop);
 void ply_boot_splash_attach_progress (ply_boot_splash_t *splash,
                                       ply_progress_t    *progress);
-void ply_boot_splash_become_idle (ply_boot_splash_t               *splash,
+void ply_boot_splash_become_idle (ply_boot_splash_t                 *splash,
                                   ply_boot_splash_on_idle_handler_t  idle_handler,
-                                  void                            *user_data);
+                                  void                              *user_data);
 
 
 #endif

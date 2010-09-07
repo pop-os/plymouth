@@ -585,8 +585,8 @@ on_question_request (state_t    *state,
 }
 
 static void
-on_message_request (state_t    *state,
-                    const char *command)
+on_display_message_request (state_t    *state,
+                            const char *command)
 {
   char *text;
 
@@ -603,6 +603,29 @@ on_message_request (state_t    *state,
                                                       on_success,
                                                       (ply_boot_client_response_handler_t)
                                                       on_failure, state);
+      free (text);
+    }
+}
+
+static void
+on_hide_message_request (state_t    *state,
+                         const char *command)
+{
+  char *text;
+
+  text = NULL;
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "text", &text,
+                                          NULL);
+  if (text != NULL)
+    {
+      ply_boot_client_tell_daemon_to_hide_message (state->client,
+                                                   text,
+                                                   (ply_boot_client_response_handler_t)
+                                                   on_success,
+                                                   (ply_boot_client_response_handler_t)
+                                                   on_failure, state);
       free (text);
     }
 }
@@ -936,9 +959,17 @@ main (int    argc,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,
-                                  "message", "Display a message",
+                                  "display-message", "Display a message",
                                   (ply_command_handler_t)
-                                  on_message_request, &state,
+                                  on_display_message_request, &state,
+                                  "text", "The message text",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "hide-message", "Hide a message",
+                                  (ply_command_handler_t)
+                                  on_hide_message_request, &state,
                                   "text", "The message text",
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);

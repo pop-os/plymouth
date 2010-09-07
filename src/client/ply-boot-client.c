@@ -556,6 +556,20 @@ ply_boot_client_tell_daemon_to_display_message (ply_boot_client_t               
 }
 
 void
+ply_boot_client_tell_daemon_to_hide_message (ply_boot_client_t                  *client,
+                                             const char                         *message,
+                                             ply_boot_client_response_handler_t  handler,
+                                             ply_boot_client_response_handler_t  failed_handler,
+                                             void                               *user_data)
+{
+  assert (client != NULL);
+  assert (message != NULL);
+
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_HIDE_MESSAGE,
+                                 message, handler, failed_handler, user_data);
+}
+
+void
 ply_boot_client_tell_daemon_system_is_initialized (ply_boot_client_t                  *client,
                                                    ply_boot_client_response_handler_t  handler,
                                                    ply_boot_client_response_handler_t  failed_handler,

@@ -551,7 +551,7 @@ ply_boot_client_tell_daemon_to_display_message (ply_boot_client_t               
   assert (client != NULL);
   assert (message != NULL);
 
-  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_MESSAGE,
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_SHOW_MESSAGE,
                                  message, handler, failed_handler, user_data);
 }
 

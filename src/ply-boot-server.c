@@ -542,7 +542,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       free(command);
       return;
     }
-  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_MESSAGE) == 0)
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_SHOW_MESSAGE) == 0)
     {
       ply_trace ("got message request");
       if (server->display_message_handler != NULL)

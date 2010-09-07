@@ -464,20 +464,20 @@ on_hide_message (state_t       *state,
   node = ply_list_get_first_node (state->messages);
   while (node != NULL)
     {
-    ply_list_node_t *next_node;
-    char *list_message;
+      ply_list_node_t *next_node;
+      char *list_message;
 
-    list_message = ply_list_node_get_data (node);
-    next_node = ply_list_get_next_node (state->messages, node);
+      list_message = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (state->messages, node);
 
-    if (strcmp (list_message, message) == 0)
-      {
-        free (list_message);
-        ply_list_remove_node (state->messages, node);
-      }
-    node = next_node;
-  }
-  
+      if (strcmp (list_message, message) == 0)
+        {
+          free (list_message);
+          ply_list_remove_node (state->messages, node);
+          ply_boot_splash_hide_message (state->boot_splash, message);
+        }
+      node = next_node;
+    }
 }
 
 static void

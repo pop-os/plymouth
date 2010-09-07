@@ -635,14 +635,6 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
     }
 }
 
-void ply_boot_splash_display_normal  (ply_boot_splash_t              *splash)
-{
-  assert (splash != NULL);
-  assert (splash->plugin_interface != NULL);
-  assert (splash->plugin != NULL);
-  if (splash->plugin_interface->display_normal != NULL)
-      splash->plugin_interface->display_normal (splash->plugin);
-}
 void ply_boot_splash_display_message (ply_boot_splash_t             *splash,
                                       const char                    *message)
 {
@@ -652,6 +644,16 @@ void ply_boot_splash_display_message (ply_boot_splash_t             *splash,
   if (splash->plugin_interface->display_message != NULL)
     splash->plugin_interface->display_message (splash->plugin, message);
 }
+
+void ply_boot_splash_display_normal  (ply_boot_splash_t              *splash)
+{
+  assert (splash != NULL);
+  assert (splash->plugin_interface != NULL);
+  assert (splash->plugin != NULL);
+  if (splash->plugin_interface->display_normal != NULL)
+    splash->plugin_interface->display_normal (splash->plugin);
+}
+
 void ply_boot_splash_display_password (ply_boot_splash_t             *splash,
                                        const char                    *prompt,
                                        int                            bullets)
@@ -660,8 +662,9 @@ void ply_boot_splash_display_password (ply_boot_splash_t             *splash,
   assert (splash->plugin_interface != NULL);
   assert (splash->plugin != NULL);
   if (splash->plugin_interface->display_password != NULL)
-      splash->plugin_interface->display_password (splash->plugin, prompt, bullets);
+    splash->plugin_interface->display_password (splash->plugin, prompt, bullets);
 }
+
 void ply_boot_splash_display_question (ply_boot_splash_t             *splash,
                                        const char                    *prompt,
                                        const char                    *entry_text)
@@ -670,7 +673,7 @@ void ply_boot_splash_display_question (ply_boot_splash_t             *splash,
   assert (splash->plugin_interface != NULL);
   assert (splash->plugin != NULL);
   if (splash->plugin_interface->display_question != NULL)
-      splash->plugin_interface->display_question (splash->plugin, prompt, entry_text);
+    splash->plugin_interface->display_question (splash->plugin, prompt, entry_text);
 }
 
 

@@ -61,6 +61,7 @@ struct _ply_boot_server
   ply_boot_server_ask_for_password_handler_t ask_for_password_handler;
   ply_boot_server_ask_question_handler_t ask_question_handler;
   ply_boot_server_display_message_handler_t display_message_handler;
+  ply_boot_server_hide_message_handler_t hide_message_handler;
   ply_boot_server_watch_for_keystroke_handler_t watch_for_keystroke_handler;
   ply_boot_server_ignore_keystroke_handler_t ignore_keystroke_handler;
   ply_boot_server_progress_pause_handler_t progress_pause_handler;
@@ -79,6 +80,7 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
                      ply_boot_server_ask_for_password_handler_t ask_for_password_handler,
                      ply_boot_server_ask_question_handler_t ask_question_handler,
                      ply_boot_server_display_message_handler_t display_message_handler,
+                     ply_boot_server_hide_message_handler_t hide_message_handler,
                      ply_boot_server_watch_for_keystroke_handler_t watch_for_keystroke_handler,
                      ply_boot_server_ignore_keystroke_handler_t ignore_keystroke_handler,
                      ply_boot_server_progress_pause_handler_t progress_pause_handler,
@@ -105,6 +107,7 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
   server->ask_for_password_handler = ask_for_password_handler;
   server->ask_question_handler = ask_question_handler;
   server->display_message_handler = display_message_handler;
+  server->hide_message_handler = hide_message_handler;
   server->watch_for_keystroke_handler = watch_for_keystroke_handler;
   server->ignore_keystroke_handler = ignore_keystroke_handler;
   server->progress_pause_handler = progress_pause_handler;
@@ -544,9 +547,15 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_SHOW_MESSAGE) == 0)
     {
-      ply_trace ("got message request");
+      ply_trace ("got show message request");
       if (server->display_message_handler != NULL)
         server->display_message_handler(server->user_data, argument, server);
+    }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_HIDE_MESSAGE) == 0)
+    {
+      ply_trace ("got hide message request");
+      if (server->hide_message_handler != NULL)
+        server->hide_message_handler(server->user_data, argument, server);
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_KEYSTROKE) == 0)
     {
@@ -807,6 +816,13 @@ on_display_message (ply_event_loop_t *loop)
 }
 
 static void
+on_hide_message (ply_event_loop_t *loop)
+{
+  printf ("got hide message request\n");
+  return;
+}
+
+static void
 on_watch_for_keystroke (ply_event_loop_t *loop)
 {
   printf ("got keystroke request\n");
@@ -861,6 +877,7 @@ main (int    argc,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
                                 (ply_boot_server_ask_question_handler_t) on_ask_question,
                                 (ply_boot_server_display_message_handler_t) on_display_message,
+                                (ply_boot_server_hide_message_handler_t) on_hide_message,
                                 (ply_boot_server_watch_for_keystroke_handler_t) on_watch_for_keystroke,
                                 (ply_boot_server_ignore_keystroke_handler_t) on_ignore_keystroke,
                                 (ply_boot_server_progress_pause_handler_t) on_progress_pause,

@@ -454,6 +454,33 @@ on_display_message (state_t       *state,
 }
 
 static void
+on_hide_message (state_t       *state,
+                 const char    *message)
+{
+  ply_list_node_t *node;
+  
+  ply_trace ("hiding message %s", message);
+  
+  node = ply_list_get_first_node (state->messages);
+  while (node != NULL)
+    {
+    ply_list_node_t *next_node;
+    char *list_message;
+
+    list_message = ply_list_node_get_data (node);
+    next_node = ply_list_get_next_node (state->messages, node);
+
+    if (strcmp (list_message, message) == 0)
+      {
+        free (list_message);
+        ply_list_remove_node (state->messages, node);
+      }
+    node = next_node;
+  }
+  
+}
+
+static void
 on_watch_for_keystroke (state_t      *state,
                      const char    *keys,
                      ply_trigger_t *trigger)
@@ -1139,7 +1166,7 @@ start_boot_server (state_t *state)
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
                                 (ply_boot_server_ask_question_handler_t) on_ask_question,
                                 (ply_boot_server_display_message_handler_t) on_display_message,
-                                (ply_boot_server_hide_message_handler_t) NULL,
+                                (ply_boot_server_hide_message_handler_t) on_hide_message,
                                 (ply_boot_server_watch_for_keystroke_handler_t) on_watch_for_keystroke,
                                 (ply_boot_server_ignore_keystroke_handler_t) on_ignore_keystroke,
                                 (ply_boot_server_progress_pause_handler_t) on_progress_pause,

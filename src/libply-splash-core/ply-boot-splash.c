@@ -645,6 +645,16 @@ void ply_boot_splash_display_message (ply_boot_splash_t             *splash,
     splash->plugin_interface->display_message (splash->plugin, message);
 }
 
+void ply_boot_splash_hide_message (ply_boot_splash_t             *splash,
+                                      const char                 *message)
+{
+  assert (splash != NULL);
+  assert (splash->plugin_interface != NULL);
+  assert (splash->plugin != NULL);
+  if (splash->plugin_interface->hide_message != NULL)
+    splash->plugin_interface->hide_message (splash->plugin, message);
+}
+
 void ply_boot_splash_display_normal  (ply_boot_splash_t              *splash)
 {
   assert (splash != NULL);

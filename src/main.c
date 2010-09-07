@@ -1609,7 +1609,7 @@ get_kernel_command_line (state_t *state)
   char *key;
 
   ply_trace ("opening /proc/cmdline");
-  fd = open ("proc/cmdline", O_RDONLY);
+  fd = open ("/proc/cmdline", O_RDONLY);
 
   if (fd < 0)
     {

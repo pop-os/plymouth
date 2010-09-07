@@ -965,7 +965,9 @@ main (int    argc,
                                   "text", "The message text",
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
-
+  ply_command_parser_add_command_alias (state.command_parser,
+                                        "display-message",
+                                        "message");
   ply_command_parser_add_command (state.command_parser,
                                   "hide-message", "Hide a message",
                                   (ply_command_handler_t)

@@ -992,7 +992,6 @@ pid_t
 ply_get_process_parent_pid (pid_t pid)
 {
   char *path;
-  char *stat;
   FILE *fp;
   int ppid;
 
@@ -1007,7 +1006,6 @@ ply_get_process_parent_pid (pid_t pid)
       goto out;
     }
 
-  stat = calloc (PAGE_SIZE, sizeof (char));
   if (fscanf (fp, "%*d %*s %*c %d", &ppid) != 1)
     {
       ply_trace ("Could not parse %s: %m", path);

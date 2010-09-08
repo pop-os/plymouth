@@ -110,6 +110,9 @@ int ply_utf8_character_get_size (const char   *string,
 int ply_utf8_string_get_length (const char   *string,
                                 size_t        n);
 
+char *ply_get_process_command_line (pid_t pid);
+pid_t ply_get_process_parent_pid (pid_t pid);
+
 #endif
 
 #endif /* PLY_UTILS_H */

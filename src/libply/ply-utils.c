@@ -40,6 +40,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <sys/user.h>
 #include <time.h>
 #include <linux/fs.h>
 #include <linux/vt.h>
@@ -939,4 +940,93 @@ ply_utf8_string_get_length (const char   *string,
   return count;
 }
 
+char *
+ply_get_process_command_line (pid_t pid)
+{
+  char *path;
+  char *command_line;
+  ssize_t bytes_read;
+  int fd;
+  ssize_t i;
+
+  path = NULL;
+  command_line = NULL;
+
+  asprintf (&path, "/proc/%ld/cmdline", (long) pid);
+
+  fd = open (path, O_RDONLY);
+
+  if (fd < 0)
+    {
+      ply_trace ("Could not open %s: %m", path);
+      goto error;
+    }
+
+  command_line = calloc (PAGE_SIZE, sizeof (char));
+  bytes_read = read (fd, command_line, PAGE_SIZE - 1);
+  if (bytes_read < 0)
+    {
+      ply_trace ("Could not read %s: %m", path);
+      close (fd);
+      goto error;
+    }
+  close (fd);
+  free (path);
+
+  for (i = 0; i < bytes_read - 1; i++)
+    {
+      if (command_line[i] == '\0')
+        command_line[i] = ' ';
+    }
+  command_line[i] = '\0';
+
+  return command_line;
+
+error:
+  free (path);
+  free (command_line);
+  return NULL;
+}
+
+pid_t
+ply_get_process_parent_pid (pid_t pid)
+{
+  char *path;
+  char *stat;
+  FILE *fp;
+  int ppid;
+
+  asprintf (&path, "/proc/%ld/stat", (long) pid);
+
+  ppid = 0;
+  fp = fopen (path, "r");
+
+  if (fp == NULL)
+    {
+      ply_trace ("Could not open %s: %m", path);
+      goto out;
+    }
+
+  stat = calloc (PAGE_SIZE, sizeof (char));
+  if (fscanf (fp, "%*d %*s %*c %d", &ppid) != 1)
+    {
+      ply_trace ("Could not parse %s: %m", path);
+      goto out;
+    }
+
+  if (ppid <= 0)
+    {
+      ply_trace ("%s is returning invalid parent pid %d", path, ppid);
+      ppid = 0;
+      goto out;
+    }
+
+out:
+  free (path);
+
+  if (fp != NULL)
+    fclose (fp);
+
+  return (pid_t) ppid;
+}
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

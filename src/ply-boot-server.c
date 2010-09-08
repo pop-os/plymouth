@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -38,11 +39,15 @@
 #include "ply-trigger.h"
 #include "ply-utils.h"
 
-typedef struct 
+typedef struct
 {
   int fd;
   ply_fd_watch_t *watch;
   ply_boot_server_t *server;
+  uid_t uid;
+  pid_t pid;
+
+  uint32_t credentials_read : 1;
 } ply_boot_connection_t;
 
 struct _ply_boot_server
@@ -198,6 +203,8 @@ ply_boot_connection_read_request (ply_boot_connection_t  *connection,
   assert (connection != NULL);
   assert (connection->fd >= 0);
 
+  connection->credentials_read = false;
+
   if (!ply_read (connection->fd, header, sizeof (header)))
     return false;
 
@@ -224,20 +231,30 @@ ply_boot_connection_read_request (ply_boot_connection_t  *connection,
           return false;
         }
     }
+
+  if (!ply_get_credentials_from_fd (connection->fd, &connection->pid, &connection->uid, NULL))
+    {
+      ply_trace ("couldn't read credentials from connection: %m");
+      free (*argument);
+      free (*command);
+      return false;
+    }
+  connection->credentials_read = true;
+
   return true;
 }
 
 static bool
 ply_boot_connection_is_from_root (ply_boot_connection_t *connection)
 {
-  uid_t uid;
+  if (!connection->credentials_read)
+    {
+      ply_trace ("Asked if connection is from root, but haven't checked credentials yet");
+      return false;
+    }
 
-  if (!ply_get_credentials_from_fd (connection->fd, NULL, &uid, NULL))
-    return false;
-
-  return uid == 0;
+  return connection->uid == 0;
 }
-
 
 static void
 ply_boot_connection_send_answer (ply_boot_connection_t *connection,
@@ -326,6 +343,24 @@ ply_boot_connection_on_keystroke_answer (ply_boot_connection_t *connection,
 }
 
 static void
+print_connection_process_identity (ply_boot_connection_t *connection)
+{
+  char *command_line, *parent_command_line;
+  pid_t parent_pid;
+
+  command_line = ply_get_process_command_line (connection->pid);
+  parent_pid = ply_get_process_parent_pid (connection->pid);
+  parent_command_line = ply_get_process_command_line (parent_pid);
+
+  ply_trace ("connection is from pid %ld (%s) with parent pid %ld (%s)",
+             (long) connection->pid, command_line,
+             (long) parent_pid, parent_command_line);
+
+  free (command_line);
+  free (parent_command_line);
+}
+
+static void
 ply_boot_connection_on_request (ply_boot_connection_t *connection)
 {
   ply_boot_server_t *server;
@@ -343,6 +378,9 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       ply_trace ("could not read connection request");
       return;
     }
+
+  if (ply_is_tracing ())
+    print_connection_process_identity (connection);
 
   if (!ply_boot_connection_is_from_root (connection))
     {

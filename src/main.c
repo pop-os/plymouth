@@ -1755,8 +1755,9 @@ check_for_consoles (state_t    *state,
                     const char *default_tty,
                     bool        should_add_displays)
 {
-  const char *console;
+  const char *console_string;
   const char *remaining_command_line;
+  char *console;
   ply_hashtable_t *consoles;
 
   ply_trace ("checking for consoles%s",
@@ -1766,25 +1767,26 @@ check_for_consoles (state_t    *state,
 
   consoles = ply_hashtable_new (ply_hashtable_string_hash,
                                 ply_hashtable_string_compare);
-  while ((console = command_line_get_string_after_prefix (remaining_command_line,
-                                                          "console=")) != NULL)
+  while ((console_string = command_line_get_string_after_prefix (remaining_command_line,
+                                                                 "console=")) != NULL)
     {
       char *end;
 
+      remaining_command_line = console_string;
+
       state->should_force_details = true;
 
-      ply_trace ("serial console %s found!", console);
-      ply_hashtable_insert (consoles, strdup (console), NULL);
+      console = strdup (console_string);
 
-      remaining_command_line = console;
-
-      end = strpbrk (state->kernel_console_tty, " \n\t\v,");
+      end = strpbrk (console, " \n\t\v,");
 
       if (end != NULL)
-        {
-          *end = '\0';
-          console += end - state->kernel_console_tty;
-        }
+        *end = '\0';
+
+      ply_trace ("serial console %s found!", console);
+      ply_hashtable_insert (consoles, console, NULL);
+
+      remaining_command_line += strlen (console);
     }
 
   free (state->kernel_console_tty);

@@ -399,7 +399,7 @@ show_default_splash (state_t *state)
     }
 
   if (state->boot_splash == NULL)
-    ply_error ("could not start boot splash: %m");
+    ply_error ("plymouthd: could not start boot splash: %m");
 }
 
 static void
@@ -2085,7 +2085,7 @@ main (int    argc,
 
       if (daemon_handle == NULL)
         {
-          ply_error ("cannot daemonize: %m");
+          ply_error ("plymouthd: cannot daemonize: %m");
           return EX_UNAVAILABLE;
         }
     }
@@ -2113,7 +2113,7 @@ main (int    argc,
           return 0;
         }
 
-      ply_error ("could not setup basic operating environment: %m");
+      ply_error ("plymouthd: could not setup basic operating environment: %m");
       if (! no_daemon)
         ply_detach_daemon (daemon_handle, EX_OSERR);
       return EX_OSERR;
@@ -2126,7 +2126,7 @@ main (int    argc,
       state.should_be_attached = attach_to_session;
       if (!attach_to_running_session (&state))
         {
-          ply_error ("could not create session: %m");
+          ply_error ("plymouthd: could not redirect console session: %m");
           if (! no_daemon)
             ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
           return EX_UNAVAILABLE;
@@ -2137,7 +2137,7 @@ main (int    argc,
 
   if (state.boot_server == NULL)
     {
-      ply_error ("could not log bootup: %m");
+      ply_error ("plymouthd: could not log bootup: %m");
       if (! no_daemon)
         ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
       return EX_UNAVAILABLE;
@@ -2146,7 +2146,7 @@ main (int    argc,
   if (! no_daemon)
     if (!ply_detach_daemon (daemon_handle, 0))
       {
-        ply_error ("could not tell parent to exit: %m");
+        ply_error ("plymouthd: could not tell parent to exit: %m");
         return EX_UNAVAILABLE;
       }
 

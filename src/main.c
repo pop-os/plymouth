@@ -2020,7 +2020,7 @@ main (int    argc,
 
       help_string = ply_command_parser_get_help_string (state.command_parser);
 
-      ply_error ("%s", help_string);
+      ply_error_without_new_line ("%s", help_string);
 
       free (help_string);
       return EX_USAGE;

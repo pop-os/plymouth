@@ -41,6 +41,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/user.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <linux/fs.h>
 #include <linux/vt.h>
@@ -846,7 +847,20 @@ ply_create_daemon (const char *pid_file)
 
       if (!ply_read (receiver_fd, &byte, sizeof (uint8_t)))
         {
-          ply_error ("could not read byte from child: %m");
+          int status;
+
+          if (waitpid (pid, &status, WNOHANG) <= 0)
+            {
+              ply_error ("failed to read status from child immediately after starting to daemonize");
+            }
+          else if (WIFEXITED (status))
+            {
+              ply_error ("unexpectedly exited with status %d immediately after starting to daemonize", (int) WEXITSTATUS (status));
+            }
+          else if (WIFSIGNALED (status))
+            {
+              ply_error ("unexpectedly died from signal %s immediately after starting to daemonize", strsignal (WTERMSIG (status)));
+            }
           _exit (1);
         }
 

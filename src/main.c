@@ -1879,6 +1879,8 @@ initialize_environment (state_t *state)
   check_verbosity (state);
   check_logging (state);
 
+  ply_trace ("source built on %s", __DATE__);
+
   state->keystroke_triggers = ply_list_new ();
   state->entry_triggers = ply_list_new ();
   state->entry_buffer = ply_buffer_new();

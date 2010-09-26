@@ -480,6 +480,7 @@ ply_terminal_session_on_hangup (ply_terminal_session_t *session)
 
   assert (session != NULL);
 
+  ply_trace ("got hang up on terminal session fd");
   hangup_handler = session->hangup_handler;
   output_handler = session->output_handler;
   user_data = session->user_data;
@@ -489,6 +490,7 @@ ply_terminal_session_on_hangup (ply_terminal_session_t *session)
   ply_logger_flush (session->logger);
 
   session->is_running = false;
+  ply_trace ("stopping terminal logging");
   ply_terminal_session_stop_logging (session);
   session->hangup_handler = NULL;
 
@@ -501,6 +503,7 @@ ply_terminal_session_on_hangup (ply_terminal_session_t *session)
    */
   if (created_terminal_device)
     {
+      ply_trace ("Attempting to reattach to console");
       ply_terminal_session_attach (session, attach_flags,
                                    output_handler, hangup_handler,
                                    -1, user_data);
@@ -515,6 +518,7 @@ ply_terminal_session_start_logging (ply_terminal_session_t *session)
   assert (session != NULL);
   assert (session->logger != NULL);
 
+  ply_trace ("logging incoming console messages");
   if (!ply_logger_is_logging (session->logger))
     ply_logger_toggle_logging (session->logger);
 
@@ -538,6 +542,7 @@ ply_terminal_session_stop_logging (ply_terminal_session_t *session)
   assert (session != NULL);
   assert (session->logger != NULL);
 
+  ply_trace ("stopping logging of incoming console messages");
   if (ply_logger_is_logging (session->logger))
     ply_logger_toggle_logging (session->logger);
 

@@ -48,6 +48,7 @@ struct _ply_terminal_session
   ply_event_loop_t *loop;
   char **argv;
   ply_fd_watch_t   *fd_watch;
+  ply_terminal_session_flags_t attach_flags;
 
   ply_terminal_session_output_handler_t output_handler;
   ply_terminal_session_hangup_handler_t hangup_handler;
@@ -390,6 +391,7 @@ ply_terminal_session_attach (ply_terminal_session_t               *session,
   session->output_handler = output_handler;
   session->hangup_handler = hangup_handler;
   session->user_data = user_data;
+  session->attach_flags = flags;
   ply_terminal_session_start_logging (session);
 
   return true;
@@ -470,11 +472,19 @@ ply_terminal_session_on_new_data (ply_terminal_session_t *session,
 static void
 ply_terminal_session_on_hangup (ply_terminal_session_t *session)
 {
-  ply_terminal_session_hangup_handler_t hangup_handler;
+  ply_terminal_session_hangup_handler_t  hangup_handler;
+  ply_terminal_session_output_handler_t  output_handler;
+  void                                  *user_data;
+  ply_terminal_session_flags_t           attach_flags;
+  bool                                   created_terminal_device;
 
   assert (session != NULL);
 
   hangup_handler = session->hangup_handler;
+  output_handler = session->output_handler;
+  user_data = session->user_data;
+  attach_flags = session->attach_flags;
+  created_terminal_device = session->created_terminal_device;
 
   ply_logger_flush (session->logger);
 
@@ -486,6 +496,15 @@ ply_terminal_session_on_hangup (ply_terminal_session_t *session)
     hangup_handler (session->user_data, session);
 
   ply_terminal_session_detach (session);
+
+  /* session ripped away, try to take it back
+   */
+  if (created_terminal_device)
+    {
+      ply_terminal_session_attach (session, attach_flags,
+                                   output_handler, hangup_handler,
+                                   -1, user_data);
+    }
 }
 
 static void 

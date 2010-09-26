@@ -159,7 +159,7 @@ on_session_output (state_t    *state,
 }
 
 static void
-on_session_finished (state_t *state)
+on_session_hangup (state_t *state)
 {
   ply_trace ("got hang up on terminal session fd");
 }
@@ -1607,8 +1607,8 @@ attach_to_running_session (state_t *state)
   if (!ply_terminal_session_attach (session, flags,
                                  (ply_terminal_session_output_handler_t)
                                  on_session_output,
-                                 (ply_terminal_session_done_handler_t)
-                                 (should_be_redirected? on_session_finished: NULL),
+                                 (ply_terminal_session_hangup_handler_t)
+                                 (should_be_redirected? on_session_hangup: NULL),
                                  -1, state))
     {
       ply_save_errno ();

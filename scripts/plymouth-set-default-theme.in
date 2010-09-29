@@ -193,4 +193,4 @@ sed -i -e '/^Theme[[:blank:]]*=.*/d' ${PLYMOUTH_CONFDIR}/plymouthd.conf
 sed -i -e "s/^\([[]Daemon[]]\)\n*/\1\nTheme=${THEME_NAME}/" ${PLYMOUTH_CONFDIR}/plymouthd.conf
 
 [ $DO_INITRD_REBUILD -ne 0 ] && (${PLYMOUTH_LIBEXECDIR}/plymouth/plymouth-update-initrd)
-
+exit 0

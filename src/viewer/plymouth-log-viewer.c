@@ -332,7 +332,8 @@ main (int argc, char *argv[])
       else
         exit (0);
 
-      gtk_status_icon_set_tooltip (icon, _("Boot messages"));
+      gtk_status_icon_set_tooltip (icon, _("Console output from services during system startup"));
+      gtk_status_icon_set_title (icon, _("Boot messages"));
 
       g_signal_connect (icon, "activate", G_CALLBACK (activate_icon), window);
       g_signal_connect (icon, "popup-menu", G_CALLBACK (popup_menu), menu);

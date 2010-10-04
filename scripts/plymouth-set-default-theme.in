@@ -188,7 +188,7 @@ fi
 [ -L ${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth ] && rm -f ${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth
 
 [ -d ${PLYMOUTH_CONFDIR} ] || mkdir -p ${PLYMOUTH_CONFDIR}
-grep -q '^[[]Daemon[]]' ${PLYMOUTH_CONFDIR}/plymouthd.conf 2> /null || echo '[Daemon]' >> ${PLYMOUTH_CONFDIR}/plymouthd.conf
+grep -q '^[[]Daemon[]]' ${PLYMOUTH_CONFDIR}/plymouthd.conf 2> /dev/null || echo '[Daemon]' >> ${PLYMOUTH_CONFDIR}/plymouthd.conf
 sed -i -e '/^Theme[[:blank:]]*=.*/d' ${PLYMOUTH_CONFDIR}/plymouthd.conf
 sed -i -e "s/^\([[]Daemon[]]\)\n*/\1\nTheme=${THEME_NAME}/" ${PLYMOUTH_CONFDIR}/plymouthd.conf
 

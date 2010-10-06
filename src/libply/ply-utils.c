@@ -29,6 +29,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <poll.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -146,9 +147,9 @@ ply_open_unix_socket (void)
 }
 
 static struct sockaddr *
-create_unix_address_from_path (const char *path,
-                               bool        is_abstract,
-                               size_t     *address_size)
+create_unix_address_from_path (const char             *path,
+                               ply_unix_socket_type_t  type,
+                               size_t                 *address_size)
 {
   struct sockaddr_un *address; 
 
@@ -159,26 +160,39 @@ create_unix_address_from_path (const char *path,
   address->sun_family = AF_UNIX;
 
   /* a socket is marked as abstract if its path has the
-   * NUL byte at the beginning of the buffer instead of
-   * the end
+   * NUL byte at the beginning of the buffer.
    * 
    * Note, we depend on the memory being zeroed by the calloc
    * call above.
    */
-  if (!is_abstract)
+  if (type == PLY_UNIX_SOCKET_TYPE_ABSTRACT)
     strncpy (address->sun_path, path, sizeof (address->sun_path) - 1);
   else
     strncpy (address->sun_path + 1, path, sizeof (address->sun_path) - 1);
 
-  if (address_size != NULL)
-    *address_size = sizeof (struct sockaddr_un);
+  assert (address_size != NULL);
+
+  /* it's very popular to trim the trailing zeros off the end of the path these
+   * days for abstract sockets.  Unfortunately, the 0s are part of the name, so
+   * both client and server have to agree.
+   */
+  if (type == PLY_UNIX_SOCKET_TYPE_TRIMMED_ABSTRACT)
+    {
+      *address_size = offsetof (struct sockaddr_un, sun_path)
+                      + 1 /* NUL */ +
+                      strlen (address->sun_path + 1) /* path */;
+    }
+  else
+    {
+      *address_size = sizeof (struct sockaddr_un);
+    }
 
   return (struct sockaddr *) address;
 }
 
 int
-ply_connect_to_unix_socket (const char *path,
-                            bool        is_abstract)
+ply_connect_to_unix_socket (const char             *path,
+                            ply_unix_socket_type_t  type)
 {
   struct sockaddr *address; 
   size_t address_size;
@@ -192,7 +206,7 @@ ply_connect_to_unix_socket (const char *path,
   if (fd < 0)
     return -1;
 
-  address = create_unix_address_from_path (path, is_abstract, &address_size);
+  address = create_unix_address_from_path (path, type, &address_size);
 
   if (connect (fd, address, address_size) < 0)
     {
@@ -209,8 +223,8 @@ ply_connect_to_unix_socket (const char *path,
 }
 
 int
-ply_listen_to_unix_socket (const char *path,
-                           bool        is_abstract)
+ply_listen_to_unix_socket (const char             *path,
+                           ply_unix_socket_type_t  type)
 {
   struct sockaddr *address; 
   size_t address_size;
@@ -224,7 +238,7 @@ ply_listen_to_unix_socket (const char *path,
   if (fd < 0)
     return -1;
 
-  address = create_unix_address_from_path (path, is_abstract, &address_size);
+  address = create_unix_address_from_path (path, type, &address_size);
 
   if (bind (fd, address, address_size) < 0)
     {
@@ -246,7 +260,7 @@ ply_listen_to_unix_socket (const char *path,
       return -1;
     }
 
-  if (!is_abstract)
+  if (type == PLY_UNIX_SOCKET_TYPE_CONCRETE)
     {
       if (fchmod (fd, 0600) < 0)
         {

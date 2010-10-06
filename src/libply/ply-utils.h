@@ -45,16 +45,23 @@ typedef void (* ply_module_function_t) (void);
 
 typedef intptr_t ply_daemon_handle_t;
 
+typedef enum
+{
+  PLY_UNIX_SOCKET_TYPE_CONCRETE = 0,
+  PLY_UNIX_SOCKET_TYPE_ABSTRACT,
+  PLY_UNIX_SOCKET_TYPE_TRIMMED_ABSTRACT
+} ply_unix_socket_type_t;
+
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
 
 #define ply_round_to_multiple(n, m) (((n) + (((m) - 1))) & ~((m) - 1))
 
 bool ply_open_unidirectional_pipe (int *sender_fd,
                                    int *receiver_fd);
-int ply_connect_to_unix_socket (const char *path,
-                                bool        is_abstract);
+int ply_connect_to_unix_socket (const char             *path,
+                                ply_unix_socket_type_t  type);
 int ply_listen_to_unix_socket (const char *path,
-                               bool        is_abstract);
+                                ply_unix_socket_type_t  type);
 bool ply_get_credentials_from_fd (int    fd,
                                   pid_t *pid,
                                   uid_t *uid,

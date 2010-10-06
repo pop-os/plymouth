@@ -180,11 +180,20 @@ ply_boot_client_connect (ply_boot_client_t *client,
   assert (client->disconnect_handler_user_data == NULL);
 
   client->socket_fd =
-      ply_connect_to_unix_socket (PLY_BOOT_PROTOCOL_SOCKET_PATH,
-                                  PLY_UNIX_SOCKET_TYPE_ABSTRACT);
+      ply_connect_to_unix_socket (PLY_BOOT_PROTOCOL_TRIMMED_ABSTRACT_SOCKET_PATH,
+                                  PLY_UNIX_SOCKET_TYPE_TRIMMED_ABSTRACT);
 
   if (client->socket_fd < 0)
-    return false;
+    {
+      ply_trace ("could not connect to " PLY_BOOT_PROTOCOL_TRIMMED_ABSTRACT_SOCKET_PATH ": %m");
+      ply_trace ("trying old fallback path " PLY_BOOT_PROTOCOL_OLD_ABSTRACT_SOCKET_PATH);
+
+      client->socket_fd =
+          ply_connect_to_unix_socket (PLY_BOOT_PROTOCOL_OLD_ABSTRACT_SOCKET_PATH,
+                                      PLY_UNIX_SOCKET_TYPE_ABSTRACT);
+      ply_trace ("could not connect to " PLY_BOOT_PROTOCOL_OLD_ABSTRACT_SOCKET_PATH ": %m");
+      return false;
+    }
 
   client->disconnect_handler = disconnect_handler;
   client->disconnect_handler_user_data = user_data;

@@ -180,7 +180,7 @@ ply_boot_client_connect (ply_boot_client_t *client,
   assert (client->disconnect_handler_user_data == NULL);
 
   client->socket_fd =
-      ply_connect_to_unix_socket (PLY_BOOT_PROTOCOL_SOCKET_PATH + 1,
+      ply_connect_to_unix_socket (PLY_BOOT_PROTOCOL_SOCKET_PATH,
                                   PLY_UNIX_SOCKET_TYPE_ABSTRACT);
 
   if (client->socket_fd < 0)

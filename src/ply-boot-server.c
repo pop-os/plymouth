@@ -179,7 +179,7 @@ ply_boot_server_listen (ply_boot_server_t *server)
   assert (server != NULL);
 
   server->socket_fd =
-      ply_listen_to_unix_socket (PLY_BOOT_PROTOCOL_SOCKET_PATH + 1,
+      ply_listen_to_unix_socket (PLY_BOOT_PROTOCOL_SOCKET_PATH,
                                  PLY_UNIX_SOCKET_TYPE_ABSTRACT);
 
   if (server->socket_fd < 0)

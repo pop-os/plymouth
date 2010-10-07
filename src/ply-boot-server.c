@@ -398,10 +398,18 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
   if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_UPDATE) == 0)
     {
+
+      if (!ply_write (connection->fd,
+                      PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+        ply_error ("could not write bytes: %m");
+
       ply_trace ("got update request");
       if (server->update_handler != NULL)
         server->update_handler (server->user_data, argument, server);
       free (argument);
+      free (command);
+      return;
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_SYSTEM_INITIALIZED) == 0)
     {

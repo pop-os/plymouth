@@ -1765,6 +1765,7 @@ check_for_consoles (state_t    *state,
 
   remaining_command_line = state->kernel_command_line;
 
+  console = NULL;
   consoles = ply_hashtable_new (ply_hashtable_string_hash,
                                 ply_hashtable_string_compare);
   while ((console_string = command_line_get_string_after_prefix (remaining_command_line,

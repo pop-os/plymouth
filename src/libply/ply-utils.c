@@ -59,10 +59,6 @@
 #define PLY_ERRNO_STACK_SIZE 256
 #endif
 
-#ifndef PLY_SOCKET_CONNECTION_BACKLOG
-#define PLY_SOCKET_CONNECTION_BACKLOG 32
-#endif
-
 #ifndef PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG
 #define PLY_SUPER_SECRET_LAZY_UNMOUNT_FLAG 2
 #endif
@@ -252,7 +248,7 @@ ply_listen_to_unix_socket (const char             *path,
 
   free (address);
 
-  if (listen (fd, PLY_SOCKET_CONNECTION_BACKLOG) < 0)
+  if (listen (fd, SOMAXCONN) < 0)
     {
       ply_save_errno ();
       close (fd);

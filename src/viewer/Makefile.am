@@ -3,6 +3,7 @@ EXTRA_DIST=
 
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)
+if WITH_LOG_VIEWER
 plymouth_log_viewerdir = $(bindir)
 plymouth_log_viewer_PROGRAMS = plymouth-log-viewer
 
@@ -14,6 +15,7 @@ if START_FROM_GDM
 gdmautostartdir = $(datadir)/gdm/autostart/LoginWindow
 gdmautostart_DATA = plymouth-log-viewer.desktop
 EXTRA_DIST += plymouth-log-viewer.desktop
+endif
 endif
 
 MAINTAINERCLEANFILES = Makefile.in

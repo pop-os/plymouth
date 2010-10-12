@@ -138,6 +138,9 @@ fi
 AC_SUBST(plymouthclientdir)
 AC_SUBST(plymouthdaemondir)
 
+AS_AC_EXPAND(PLYMOUTH_CLIENT_DIR, $plymouthclientdir)
+AS_AC_EXPAND(PLYMOUTH_DAEMON_DIR, $plymouthdaemondir)
+
 AC_ARG_WITH(rhgb-compat-link, AS_HELP_STRING([--with-rhgb-compat-link],[Install /usr/bin/rhgb-client compatability symlink]),with_rhgb_compat_link=${withval},with_rhgb_compat_link=yes)
 AM_CONDITIONAL(WITH_RHGB_COMPAT_LINK,  [test "$with_rhgb_compat_link" = yes])
 

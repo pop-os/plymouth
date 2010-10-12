@@ -9,6 +9,8 @@
 [ -z "$PLYMOUTH_THEME_NAME" ] && PLYMOUTH_THEME_NAME=$(plymouth-set-default-theme)
 [ -z "$PLYMOUTH_CONFDIR" ] && PLYMOUTH_CONFDIR="@PLYMOUTH_CONF_DIR@"
 [ -z "$PLYMOUTH_POLICYDIR" ] && PLYMOUTH_POLICYDIR="@PLYMOUTH_POLICY_DIR@"
+[ -z "$PLYMOUTH_DAEMON_PATH" ] && PLYMOUTH_DAEMON_PATH="@PLYMOUTH_DAEMON_DIR@/plymouthd"
+[ -z "$PLYMOUTH_CLIENT_PATH" ] && PLYMOUTH_CLIENT_PATH="@PLYMOUTH_CLIENT_DIR@/plymouth"
 
 if [ -z "$PLYMOUTH_POPULATE_SOURCE_FUNCTIONS" ]; then
 
@@ -72,8 +74,8 @@ set_verbose $verbose || :
 [ -z "$INITRDDIR" ] && usage error
 
 mkdir -p ${INITRDDIR}${PLYMOUTH_DATADIR}/plymouth/themes
-inst /sbin/plymouthd $INITRDDIR /bin/plymouthd
-inst /bin/plymouth $INITRDDIR
+inst ${PLYMOUTH_DAEMON_PATH} $INITRDDIR /bin/plymouthd
+inst ${PLYMOUTH_CLIENT_PATH} $INITRDDIR /bin/plymouth
 inst ${PLYMOUTH_DATADIR}/plymouth/themes/text/text.plymouth $INITRDDIR
 inst ${PLYMOUTH_PLUGIN_PATH}/text.so $INITRDDIR
 inst ${PLYMOUTH_DATADIR}/plymouth/themes/details/details.plymouth $INITRDDIR

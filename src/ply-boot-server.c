@@ -271,7 +271,7 @@ ply_boot_connection_send_answer (ply_boot_connection_t *connection,
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER,
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER)))
-        ply_error ("could not write bytes: %m");
+        ply_trace ("could not write bytes: %m");
     }
   else
     {
@@ -284,7 +284,7 @@ ply_boot_connection_send_answer (ply_boot_connection_t *connection,
                              size) ||
           !ply_write (connection->fd,
                       answer, size))
-          ply_error ("could not write bytes: %m");
+          ply_trace ("could not write bytes: %m");
 
     }
 
@@ -311,7 +311,7 @@ ply_boot_connection_on_deactivated (ply_boot_connection_t *connection)
                   PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
                   strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
     {
-      ply_error ("could not write bytes: %m");
+      ply_trace ("could not write bytes: %m");
     }
 }
 
@@ -323,7 +323,7 @@ ply_boot_connection_on_quit_complete (ply_boot_connection_t *connection)
                   PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
                   strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
     {
-      ply_error ("could not write bytes: %m");
+      ply_trace ("could not write bytes: %m");
     }
 }
 
@@ -390,7 +390,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK,
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
-        ply_error ("could not write bytes: %m");
+        ply_trace ("could not write bytes: %m");
 
       free (command);
       return;
@@ -402,7 +402,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
-        ply_error ("could not write bytes: %m");
+        ply_trace ("could not write bytes: %m");
 
       ply_trace ("got update request");
       if (server->update_handler != NULL)
@@ -548,7 +548,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
           if (!ply_write (connection->fd,
                           PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER,
                           strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER)))
-              ply_error ("could not write bytes: %m");
+              ply_trace ("could not write bytes: %m");
         }
       else
         {
@@ -563,7 +563,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                                  size) ||
               !ply_write (connection->fd,
                           ply_buffer_get_bytes (buffer), size))
-              ply_error ("could not write bytes: %m");
+              ply_trace ("could not write bytes: %m");
         }
 
       ply_buffer_free (buffer);
@@ -667,7 +667,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
           if (!ply_write (connection->fd,
                           PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK,
                           strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
-            ply_error ("could not write bytes: %m");
+            ply_trace ("could not write bytes: %m");
 
           free(command);
           return;
@@ -680,7 +680,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK,
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
-        ply_error ("could not write bytes: %m");
+        ply_trace ("could not write bytes: %m");
 
       free(command);
       return;
@@ -690,7 +690,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                   PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
                   strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
     {
-      ply_error ("could not write bytes: %m");
+      ply_trace ("could not write bytes: %m");
     }
   free(command);
 }

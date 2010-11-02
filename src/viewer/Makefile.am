@@ -14,8 +14,9 @@ plymouth_log_viewer_SOURCES = $(srcdir)/plymouth-log-viewer.c
 if START_FROM_GDM
 gdmautostartdir = $(datadir)/gdm/autostart/LoginWindow
 gdmautostart_DATA = plymouth-log-viewer.desktop
+endif
+endif
+
 EXTRA_DIST += plymouth-log-viewer.desktop
-endif
-endif
 
 MAINTAINERCLEANFILES = Makefile.in

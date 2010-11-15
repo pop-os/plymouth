@@ -1974,7 +1974,7 @@ on_crash (int signum)
     if (debug_buffer != NULL)
       {
         dump_debug_buffer_to_file ();
-        pause ();
+        sleep (30);
       }
 
     if (pid_file != NULL)

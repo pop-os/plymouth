@@ -161,7 +161,7 @@ create_unix_address_from_path (const char             *path,
    * Note, we depend on the memory being zeroed by the calloc
    * call above.
    */
-  if (type == PLY_UNIX_SOCKET_TYPE_ABSTRACT)
+  if (type == PLY_UNIX_SOCKET_TYPE_CONCRETE)
     strncpy (address->sun_path, path, sizeof (address->sun_path) - 1);
   else
     strncpy (address->sun_path + 1, path, sizeof (address->sun_path) - 1);

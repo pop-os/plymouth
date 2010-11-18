@@ -191,8 +191,11 @@ ply_boot_client_connect (ply_boot_client_t *client,
       client->socket_fd =
           ply_connect_to_unix_socket (PLY_BOOT_PROTOCOL_OLD_ABSTRACT_SOCKET_PATH,
                                       PLY_UNIX_SOCKET_TYPE_ABSTRACT);
-      ply_trace ("could not connect to " PLY_BOOT_PROTOCOL_OLD_ABSTRACT_SOCKET_PATH ": %m");
-      return false;
+      if (client->socket_fd < 0)
+        {
+          ply_trace ("could not connect to " PLY_BOOT_PROTOCOL_OLD_ABSTRACT_SOCKET_PATH ": %m");
+          return false;
+        }
     }
 
   client->disconnect_handler = disconnect_handler;

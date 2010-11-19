@@ -271,16 +271,17 @@ ply_terminal_write (ply_terminal_t *terminal,
 {
   va_list args;
   char *string;
+  int size;
 
   assert (terminal != NULL);
   assert (format != NULL);
 
   string = NULL;
   va_start (args, format);
-  vasprintf (&string, format, args);
+  size = vasprintf (&string, format, args);
   va_end (args);
 
-  write (terminal->fd, string, strlen (string));
+  write (terminal->fd, string, size);
   free (string);
 }
 

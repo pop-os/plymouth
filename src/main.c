@@ -1856,7 +1856,6 @@ find_fallback_tty (state_t *state)
       "/dev/hvc0",
       "/dev/xvc0",
       "/dev/ttySG0",
-      "/dev/tty0",
       NULL
     };
   int i;

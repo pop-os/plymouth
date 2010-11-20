@@ -1784,6 +1784,12 @@ check_for_consoles (state_t    *state,
       if (end != NULL)
         *end = '\0';
 
+      if (strcmp (console, "tty0") == 0 || strcmp (console, "/dev/tty0") == 0)
+        {
+          free (console);
+          console = strdup (default_tty);
+        }
+
       ply_trace ("serial console %s found!", console);
       ply_hashtable_insert (consoles, console, NULL);
 
@@ -1794,12 +1800,7 @@ check_for_consoles (state_t    *state,
   state->kernel_console_tty = NULL;
 
   if (console != NULL)
-    {
-      if (strcmp (console, "tty0") == 0 || strcmp (console, "/dev/tty0") == 0)
-          state->kernel_console_tty = strdup (default_tty);
-      else
-          state->kernel_console_tty = strdup (console);
-    }
+    state->kernel_console_tty = strdup (console);
 
   if (should_add_displays)
     {

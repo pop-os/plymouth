@@ -59,9 +59,15 @@
 #include "ply-renderer.h"
 #include "ply-renderer-plugin.h"
 #include "ply-renderer-driver.h"
+#ifdef PLY_ENABLE_LIBDRM_INTEL
 #include "ply-renderer-i915-driver.h"
+#endif
+#ifdef PLY_ENABLE_LIBDRM_RADEON
 #include "ply-renderer-radeon-driver.h"
+#endif
+#ifdef PLY_ENABLE_LIBDRM_NOUVEAU
 #include "ply-renderer-nouveau-driver.h"
+#endif
 
 #ifdef PLY_ENABLE_LIBKMS
 #include "ply-renderer-libkms-driver.h"
@@ -501,22 +507,28 @@ load_driver (ply_renderer_backend_t *backend)
       free (driver_name);
       return false;
     }
-
-  if (strcmp (driver_name, "i915") == 0)
+  backend->driver_interface = NULL;
+#ifdef PLY_ENABLE_LIBDRM_INTEL
+  if (backend->driver_interface == NULL && strcmp (driver_name, "i915") == 0)
     {
       backend->driver_interface = ply_renderer_i915_driver_get_interface ();
       backend->driver_supports_mapping_console = true;
     }
-  else if (strcmp (driver_name, "radeon") == 0)
+#endif
+#ifdef PLY_ENABLE_LIBDRM_RADEON
+  if (backend->driver_interface == NULL && strcmp (driver_name, "radeon") == 0)
     {
       backend->driver_interface = ply_renderer_radeon_driver_get_interface ();
       backend->driver_supports_mapping_console = false;
     }
-  else if (strcmp (driver_name, "nouveau") == 0)
+#endif
+#ifdef PLY_ENABLE_LIBDRM_NOUVEAU
+  if (backend->driver_interface == NULL && strcmp (driver_name, "nouveau") == 0)
     {
       backend->driver_interface = ply_renderer_nouveau_driver_get_interface ();
       backend->driver_supports_mapping_console = false;
     }
+#endif
 
   free (driver_name);
 

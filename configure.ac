@@ -56,58 +56,158 @@ PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.12.0 ])
 AC_SUBST(GTK_CFLAGS)
 AC_SUBST(GTK_LIBS)
 
-PKG_CHECK_MODULES(DRM, [libdrm libdrm_intel libdrm_radeon libdrm_nouveau])
+AC_ARG_ENABLE(libdrm_intel, AS_HELP_STRING([--enable-libdrm_intel],[enable building with libdrm_intel support]),enable_libdrm_intel=$enableval,enable_libdrm_intel=yes)
+AM_CONDITIONAL(ENABLE_LIBDRM_INTEL,  [test "$enable_libdrm_intel" = yes])
 
-OLD_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS $DRM_CFLAGS"
-AC_MSG_CHECKING([if i915_drm.h, radeon_drm.h and nouveau_drm.h are in include path])
-AC_COMPILE_IFELSE(AC_LANG_PROGRAM(
-[[
-  #include <stdint.h>
-  #include <stdlib.h>
-  #include "i915_drm.h"
-  #include "radeon_drm.h"
-  #include "nouveau_drm.h"
-]],[[]]),[found_drm_kernel_headers=yes],[found_drm_kernel_headers=no])
-
-if test "$found_drm_kernel_headers" = "yes"; then
-  AC_MSG_RESULT([yes])
-else
-  AC_MSG_RESULT([no])
-  AC_MSG_CHECKING([if we can find them anyway])
-
-  MORE_DRM_CFLAGS="-I`$PKG_CONFIG --variable includedir libdrm`/drm"
-  CFLAGS="$CFLAGS $MORE_DRM_CFLAGS"
+if test x$enable_libdrm_intel = xyes; then
+  PKG_CHECK_MODULES(DRM_INTEL, [libdrm libdrm_intel])
+  OLD_CFLAGS="$CFLAGS"
+  CFLAGS="$CFLAGS $DRM_INTEL_CFLAGS"
+  AC_MSG_CHECKING([if i915_drm.h is in include path])
   AC_COMPILE_IFELSE(AC_LANG_PROGRAM(
   [[
     #include <stdint.h>
     #include <stdlib.h>
     #include "i915_drm.h"
-    #include "radeon_drm.h"
-    #include "nouveau_drm.h"
-  ]],[[]]),[found_drm_kernel_headers=yes],[found_drm_kernel_headers=no])
+  ]],[[]]),[found_drm_intel_kernel_headers=yes],[found_drm_intel_kernel_headers=no])
 
-  if test "$found_drm_kernel_headers" = "yes"; then
+  if test "$found_drm_intel_kernel_headers" = "yes"; then
     AC_MSG_RESULT([yes])
-    DRM_CFLAGS="$DRM_CFLAGS $MORE_DRM_CFLAGS"
   else
     AC_MSG_RESULT([no])
-    AC_MSG_ERROR([Could not find i915_drm.h, radeon_drm.h and/or nouveau_drm.h])
+    AC_MSG_CHECKING([if we can find them anyway])
+
+    MORE_DRM_CFLAGS="-I`$PKG_CONFIG --variable includedir libdrm`/drm"
+    CFLAGS="$CFLAGS $MORE_DRM_CFLAGS"
+    AC_COMPILE_IFELSE(AC_LANG_PROGRAM(
+    [[
+      #include <stdint.h>
+      #include <stdlib.h>
+      #include "i915_drm.h"
+    ]],[[]]),[found_drm_intel_kernel_headers=yes],[found_drm_intel_kernel_headers=no])
+
+    if test "$found_drm_intel_kernel_headers" = "yes"; then
+      AC_MSG_RESULT([yes])
+      DRM_INTEL_CFLAGS="$DRM_INTEL_CFLAGS $MORE_DRM_CFLAGS"
+    else
+      AC_MSG_RESULT([no])
+      AC_MSG_ERROR([Could not find i915_drm.h])
+    fi
   fi
+
+  AC_SUBST(DRM_INTEL_CFLAGS)
+  AC_SUBST(DRM_INTEL_LIBS)
+  AC_DEFINE(PLY_ENABLE_LIBDRM_INTEL, 1, [Enable support for libdrm_intel driver])
 fi
-CFLAGS="$OLD_CFLAGS"
-AC_SUBST(DRM_CFLAGS)
-AC_SUBST(DRM_LIBS)
+
+AC_ARG_ENABLE(libdrm_radeon, AS_HELP_STRING([--enable-libdrm_radeon],[enable building with libdrm_radeon support]),enable_libdrm_radeon=$enableval,enable_libdrm_radeon=yes)
+AM_CONDITIONAL(ENABLE_LIBDRM_RADEON,  [test "$enable_libdrm_radeon" = yes])
+
+if test x$enable_libdrm_radeon = xyes; then
+  PKG_CHECK_MODULES(DRM_RADEON, [libdrm libdrm_radeon])
+  OLD_CFLAGS="$CFLAGS"
+  CFLAGS="$CFLAGS $DRM_RADEON_CFLAGS"
+  AC_MSG_CHECKING([if radeon_drm.h is in include path])
+  AC_COMPILE_IFELSE(AC_LANG_PROGRAM(
+  [[
+    #include <stdint.h>
+    #include <stdlib.h>
+    #include "radeon_drm.h"
+  ]],[[]]),[found_drm_radeon_kernel_headers=yes],[found_drm_radeon_kernel_headers=no])
+
+  if test "$found_drm_radeon_kernel_headers" = "yes"; then
+    AC_MSG_RESULT([yes])
+  else
+    AC_MSG_RESULT([no])
+    AC_MSG_CHECKING([if we can find them anyway])
+
+    MORE_DRM_CFLAGS="-I`$PKG_CONFIG --variable includedir libdrm`/drm"
+    CFLAGS="$CFLAGS $MORE_DRM_RADEON_CFLAGS"
+    AC_COMPILE_IFELSE(AC_LANG_PROGRAM(
+    [[
+      #include <stdint.h>
+      #include <stdlib.h>
+      #include "radeon_drm.h"
+    ]],[[]]),[found_drm_radeon_kernel_headers=yes],[found_drm_radeon_kernel_headers=no])
+
+    if test "$found_drm_radeon_kernel_headers" = "yes"; then
+      AC_MSG_RESULT([yes])
+      DRM_RADEON_CFLAGS="$DRM_RADEON_CFLAGS $MORE_DRM_CFLAGS"
+    else
+      AC_MSG_RESULT([no])
+      AC_MSG_ERROR([Could not find radeon_drm.h])
+    fi
+  fi
+
+  AC_SUBST(DRM_RADEON_CFLAGS)
+  AC_SUBST(DRM_RADEON_LIBS)
+  AC_DEFINE(PLY_ENABLE_LIBDRM_RADEON, 1, [Enable support for libdrm_radeon driver])
+fi
+
+AC_ARG_ENABLE(libdrm_nouveau, AS_HELP_STRING([--enable-libdrm_nouveau],[enable building with libdrm_nouveau support]),enable_libdrm_nouveau=$enableval,enable_libdrm_nouveau=yes)
+AM_CONDITIONAL(ENABLE_LIBDRM_NOUVEAU,  [test "$enable_libdrm_nouveau" = yes])
+
+if test x$enable_libdrm_nouveau = xyes; then
+  PKG_CHECK_MODULES(DRM_NOUVEAU, [libdrm libdrm_nouveau])
+  OLD_CFLAGS="$CFLAGS"
+  CFLAGS="$CFLAGS $DRM_NOUVEAU_CFLAGS"
+  AC_MSG_CHECKING([if nouveau_drm.h is in include path])
+  AC_COMPILE_IFELSE(AC_LANG_PROGRAM(
+  [[
+    #include <stdint.h>
+    #include <stdlib.h>
+    #include "nouveau_drm.h"
+  ]],[[]]),[found_drm_nouveau_kernel_headers=yes],[found_drm_nouveau_kernel_headers=no])
+
+  if test "$found_drm_nouveau_kernel_headers" = "yes"; then
+    AC_MSG_RESULT([yes])
+  else
+    AC_MSG_RESULT([no])
+    AC_MSG_CHECKING([if we can find them anyway])
+
+    MORE_DRM_CFLAGS="-I`$PKG_CONFIG --variable includedir libdrm`/drm"
+    CFLAGS="$CFLAGS $MORE_DRM_CFLAGS"
+    AC_COMPILE_IFELSE(AC_LANG_PROGRAM(
+    [[
+      #include <stdint.h>
+      #include <stdlib.h>
+      #include "nouveau_drm.h"
+    ]],[[]]),[found_drm_nouveau_kernel_headers=yes],[found_drm_nouveau_kernel_headers=no])
+
+    if test "$found_drm_nouveau_kernel_headers" = "yes"; then
+      AC_MSG_RESULT([yes])
+      DRM_NOUVEAU_CFLAGS="$DRM_NOUVEAU_CFLAGS $MORE_DRM_CFLAGS"
+    else
+      AC_MSG_RESULT([no])
+      AC_MSG_ERROR([Could not find nouveau_drm.h])
+    fi
+  fi
+
+  AC_SUBST(DRM_NOUVEAU_CFLAGS)
+  AC_SUBST(DRM_NOUVEAU_LIBS)
+  AC_DEFINE(PLY_ENABLE_LIBDRM_NOUVEAU, 1, [Enable support for libdrm_nouveau driver])
+fi
 
 AC_ARG_ENABLE(libkms, AS_HELP_STRING([--enable-libkms],[enable building with libkms support]),enable_libkms=$enableval,enable_libkms=yes)
 AM_CONDITIONAL(ENABLE_LIBKMS,  [test "$enable_libkms" = yes])
 
 if test x$enable_libkms = xyes; then
-  PKG_CHECK_MODULES(LIBKMS, [libkms])
+  PKG_CHECK_MODULES(LIBKMS, [libdrm libkms])
   AC_SUBST(LIBKMS_CFLAGS)
   AC_SUBST(LIBKMS_LIBS)
   AC_DEFINE(PLY_ENABLE_LIBKMS, 1, [Enable support for libkms abstraction over drm drivers])
 fi
+
+DRM_CFLAGS="$DRM_INTEL_CFLAGS $DRM_RADEON_CFLAGS $DRM_NOUVEAU_CFLAGS $LIBKMS_CFLAG"
+DRM_LIBS="$DRM_INTEL_LIBS $DRM_RADEON_LIBS $DRM_NOUVEAU_LIBS $LIBKMS_LIBS"
+AC_SUBST(DRM_CFLAGS)
+AC_SUBST(DRM_LIBS)
+
+AM_CONDITIONAL(ENABLE_DRM_RENDERER,
+               [test x$enable_libdrm_intel = xyes   \
+                  -o x$enable_libdrm_radeon = xyes  \
+                  -o x$enable_libdrm_nouveau = xyes \
+                  -o x$enable_libkms = xyes])
 
 AC_ARG_ENABLE(tracing, AS_HELP_STRING([--enable-tracing],[enable verbose tracing code]),enable_tracing=$enableval,enable_tracing=yes)
 

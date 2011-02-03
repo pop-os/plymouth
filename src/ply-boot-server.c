@@ -350,15 +350,23 @@ print_connection_process_identity (ply_boot_connection_t *connection)
   pid_t parent_pid;
 
   command_line = ply_get_process_command_line (connection->pid);
-  parent_pid = ply_get_process_parent_pid (connection->pid);
-  parent_command_line = ply_get_process_command_line (parent_pid);
 
-  ply_trace ("connection is from pid %ld (%s) with parent pid %ld (%s)",
-             (long) connection->pid, command_line,
-             (long) parent_pid, parent_command_line);
+  if (connection->pid == 1)
+    {
+      ply_trace ("connection is from toplevel init process (%s)", command_line);
+    }
+  else
+    {
+      parent_pid = ply_get_process_parent_pid (connection->pid); parent_command_line = ply_get_process_command_line (parent_pid);
+
+      ply_trace ("connection is from pid %ld (%s) with parent pid %ld (%s)",
+                 (long) connection->pid, command_line,
+                 (long) parent_pid, parent_command_line);
+
+      free (parent_command_line);
+    }
 
   free (command_line);
-  free (parent_command_line);
 }
 
 static void

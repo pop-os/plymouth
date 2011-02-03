@@ -271,7 +271,7 @@ ply_boot_connection_send_answer (ply_boot_connection_t *connection,
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER,
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER)))
-        ply_trace ("could not write bytes: %m");
+        ply_trace ("could not finish writing no answer reply: %m");
     }
   else
     {
@@ -284,7 +284,7 @@ ply_boot_connection_send_answer (ply_boot_connection_t *connection,
                              size) ||
           !ply_write (connection->fd,
                       answer, size))
-          ply_trace ("could not write bytes: %m");
+          ply_trace ("could not finish writing answer: %m");
 
     }
 
@@ -311,7 +311,7 @@ ply_boot_connection_on_deactivated (ply_boot_connection_t *connection)
                   PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
                   strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
     {
-      ply_trace ("could not write bytes: %m");
+      ply_trace ("could not finish writing deactivate reply: %m");
     }
 }
 
@@ -323,7 +323,7 @@ ply_boot_connection_on_quit_complete (ply_boot_connection_t *connection)
                   PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
                   strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
     {
-      ply_trace ("could not write bytes: %m");
+      ply_trace ("could not finish writing quit reply: %m");
     }
 }
 
@@ -398,7 +398,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK,
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
-        ply_trace ("could not write bytes: %m");
+        ply_trace ("could not finish writing is-not-root nak: %m");
 
       free (command);
       return;
@@ -410,7 +410,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
-        ply_trace ("could not write bytes: %m");
+        ply_trace ("could not finish writing update reply: %m");
 
       ply_trace ("got update request");
       if (server->update_handler != NULL)
@@ -553,10 +553,12 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       */
       if (buffer_size == 0)
         {
+          ply_trace ("Responding with 'no answer' reply since there are currently "
+                     "no cached answers");
           if (!ply_write (connection->fd,
                           PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER,
                           strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NO_ANSWER)))
-              ply_trace ("could not write bytes: %m");
+              ply_trace ("could not finish writing no answer reply: %m");
         }
       else
         {
@@ -571,7 +573,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                                  size) ||
               !ply_write (connection->fd,
                           ply_buffer_get_bytes (buffer), size))
-              ply_trace ("could not write bytes: %m");
+              ply_trace ("could not finish writing cached answer reply: %m");
         }
 
       ply_buffer_free (buffer);
@@ -675,7 +677,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
           if (!ply_write (connection->fd,
                           PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK,
                           strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
-            ply_trace ("could not write bytes: %m");
+            ply_trace ("could not finish writing nak: %m");
 
           free(command);
           return;
@@ -688,7 +690,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK,
                       strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_NAK)))
-        ply_trace ("could not write bytes: %m");
+          ply_trace ("could not finish writing ping reply: %m");
 
       free(command);
       return;
@@ -698,7 +700,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
                   PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
                   strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
     {
-      ply_trace ("could not write bytes: %m");
+      ply_trace ("could not finish writing ack: %m");
     }
   free(command);
 }

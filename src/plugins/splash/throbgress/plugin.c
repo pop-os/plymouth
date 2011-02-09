@@ -350,11 +350,7 @@ view_show_prompt (view_t     *view,
 
   if (prompt != NULL)
     {
-      int label_width, label_height;
-
       ply_label_set_text (view->label, prompt);
-      label_width = ply_label_get_width (view->label);
-      label_height = ply_label_get_height (view->label);
 
       x = view->box_area.x + view->lock_area.width / 2;
       y = view->box_area.y + view->box_area.height;
@@ -429,10 +425,7 @@ draw_background (view_t             *view,
                  int                 width,
                  int                 height)
 {
-  ply_boot_splash_plugin_t *plugin;
   ply_rectangle_t area;
-
-  plugin = view->plugin;
 
   area.x = x;
   area.y = y;
@@ -553,13 +546,6 @@ on_draw (view_t                   *view,
          int                       height)
 {
   ply_boot_splash_plugin_t *plugin;
-  ply_rectangle_t area;
-
-  area.x = x;
-  area.y = y;
-  area.width = width;
-  area.height = height;
-
   plugin = view->plugin;
 
   draw_background (view, pixel_buffer, x, y, width, height);

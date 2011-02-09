@@ -2142,6 +2142,12 @@ main (int    argc,
     {
       ply_trace ("could not log bootup: %m");
 
+      if (state.is_attached)
+        {
+          ply_trace ("detaching from session");
+          ply_terminal_session_detach (state.session);
+        }
+
       if (daemon_handle != NULL)
         ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
       return EX_UNAVAILABLE;

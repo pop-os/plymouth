@@ -311,11 +311,9 @@ flush_area (const char      *src,
             unsigned long    dst_row_stride,
             ply_rectangle_t *area_to_flush)
 {
-  unsigned long x1, y1, x2, y2, y;
+  unsigned long y1, y2, y;
 
-  x1 = area_to_flush->x;
   y1 = area_to_flush->y;
-  x2 = x1 + area_to_flush->width;
   y2 = y1 + area_to_flush->height;
 
   if (area_to_flush->width * 4 == src_row_stride &&

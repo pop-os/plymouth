@@ -57,7 +57,7 @@
 
 #define NUMBER_OF_INDICATOR_COLUMNS 6
 
-static char *os_string = "";
+static char *os_string;
 
 struct _ply_text_progress_bar
 {
@@ -124,11 +124,13 @@ out:
 void
 ply_text_progress_bar_draw (ply_text_progress_bar_t *progress_bar)
 {
-    int i, width = progress_bar->number_of_columns - 2 - strlen (os_string);
+    int i, width;
     double brown_fraction, blue_fraction, white_fraction;
 
     if (progress_bar->is_hidden)
       return;
+
+    width = progress_bar->number_of_columns - 2 - strlen (os_string);
 
     ply_text_display_set_cursor_position (progress_bar->display,
                                           progress_bar->column,

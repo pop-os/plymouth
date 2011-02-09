@@ -1998,7 +1998,7 @@ main (int    argc,
   bool no_daemon = false;
   bool debug = false;
   bool attach_to_session;
-  ply_daemon_handle_t *daemon_handle;
+  ply_daemon_handle_t *daemon_handle = NULL;
   char *mode_string = NULL;
   char *tty = NULL;
 
@@ -2111,13 +2111,13 @@ main (int    argc,
     {
       if (errno == 0)
         {
-          if (! no_daemon)
+          if (daemon_handle != NULL)
             ply_detach_daemon (daemon_handle, 0);
           return 0;
         }
 
       ply_error ("plymouthd: could not setup basic operating environment: %m");
-      if (! no_daemon)
+      if (daemon_handle != NULL)
         ply_detach_daemon (daemon_handle, EX_OSERR);
       return EX_OSERR;
     }
@@ -2141,17 +2141,17 @@ main (int    argc,
   if (state.boot_server == NULL)
     {
       ply_error ("plymouthd: could not log bootup: %m");
-      if (! no_daemon)
+      if (daemon_handle != NULL)
         ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
       return EX_UNAVAILABLE;
     }
 
-  if (! no_daemon)
-    if (!ply_detach_daemon (daemon_handle, 0))
-      {
-        ply_error ("plymouthd: could not tell parent to exit: %m");
-        return EX_UNAVAILABLE;
-      }
+  if (daemon_handle != NULL
+      && !ply_detach_daemon (daemon_handle, 0))
+    {
+      ply_error ("plymouthd: could not tell parent to exit: %m");
+      return EX_UNAVAILABLE;
+    }
 
   state.progress = ply_progress_new ();
 

@@ -484,9 +484,7 @@ cover_with_rect(char             cover[COVER_SIZE][COVER_SIZE],
     {
       for (x=0; x<rectangle->width; x++)
         {
-          if (rectangle->x + x >= 0 &&
-              rectangle->y + y >= 0 &&
-              rectangle->x + x < COVER_SIZE &&
+          if (rectangle->x + x < COVER_SIZE &&
               rectangle->y + y < COVER_SIZE)
             {
               if (value)
@@ -524,7 +522,7 @@ do_test (void)
       rectangle.y = random() % COVER_SIZE-5;
       rectangle.width = 1 + random() % 20;
       rectangle.height = 1 + random() % 20;
-      printf("Adding X=%d Y=%d W=%d H=%d\n",
+      printf("Adding X=%ld Y=%ld W=%ld H=%ld\n",
               rectangle.x,
               rectangle.y,
               rectangle.width,
@@ -542,7 +540,7 @@ do_test (void)
        node = ply_list_get_next_node (rectangle_list, node))
     {
       ply_rectangle_t *small_rectangle = ply_list_node_get_data (node);
-      printf("Processed X=%d Y=%d W=%d H=%d\n",
+      printf("Processed X=%ld Y=%ld W=%ld H=%ld\n",
              small_rectangle->x,
              small_rectangle->y, 
              small_rectangle->width, 
@@ -556,7 +554,7 @@ do_test (void)
 
   for (y = 0; y < COVER_SIZE; y++)
     {
-      printf("%03d ", y);
+      printf("%03ld ", y);
       for (x = 0; x < COVER_SIZE; x++)
         {
           if (cover[y][x] >= 100)

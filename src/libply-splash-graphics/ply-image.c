@@ -115,7 +115,7 @@ ply_image_load (ply_image_t *image)
 {
   png_struct *png;
   png_info *info;
-  png_uint_32 width, height, bytes_per_row, row;
+  png_uint_32 width, height, row;
   int bits_per_pixel, color_type, interlace_method;
   png_byte **rows;
   uint32_t *bytes;
@@ -145,7 +145,6 @@ ply_image_load (ply_image_t *image)
   png_get_IHDR (png, info,
                 &width, &height, &bits_per_pixel,
                 &color_type, &interlace_method, NULL, NULL);
-  bytes_per_row = 4 * width;
 
   if (color_type == PNG_COLOR_TYPE_PALETTE)
     png_set_palette_to_rgb (png);

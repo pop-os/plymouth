@@ -142,10 +142,16 @@ animate_at_time (ply_animation_t *animation,
   should_continue = true;
 
   if (animation->frame_number > number_of_frames - 1)
-    return false;
+    {
+      ply_trace ("reached last frame of animation");
+      return false;
+    }
 
   if (animation->stop_requested)
-    should_continue = false;
+    {
+      ply_trace ("stopping animation in the middle of sequence");
+      should_continue = false;
+    }
 
   frames = (ply_pixel_buffer_t * const *) ply_array_get_pointer_elements (animation->frames);
   ply_pixel_buffer_get_size (frames[animation->frame_number], &animation->frame_area);
@@ -187,6 +193,7 @@ on_timeout (ply_animation_t *animation)
     {
       if (animation->stop_trigger != NULL)
         {
+          ply_trace ("firing off stop trigger");
           ply_trigger_pull (animation->stop_trigger, NULL);
           animation->stop_trigger = NULL;
         }
@@ -230,6 +237,7 @@ ply_animation_add_frames (ply_animation_t *animation)
 {
   struct dirent **entries;
   int number_of_entries;
+  int number_of_frames;
   int i;
   bool load_finished;
 
@@ -264,12 +272,18 @@ ply_animation_add_frames (ply_animation_t *animation)
       entries[i] = NULL;
     }
 
-  if (ply_array_get_size (animation->frames) == 0)
+  number_of_frames = ply_array_get_size (animation->frames);
+  if (number_of_frames == 0)
     {
       ply_trace ("%s directory had no files starting with %s\n",
                  animation->image_dir, animation->frames_prefix);
       goto out;
     }
+  else
+    {
+      ply_trace ("animation has %d frames\n", number_of_frames);
+    }
+
   load_finished = true;
 
 out:
@@ -292,7 +306,14 @@ bool
 ply_animation_load (ply_animation_t *animation)
 {
   if (ply_array_get_size (animation->frames) != 0)
-    ply_animation_remove_frames (animation);
+    {
+      ply_animation_remove_frames (animation);
+      ply_trace ("reloading animation with new set of frames");
+    }
+  else
+    {
+      ply_trace ("loading frames for animation");
+    }
 
   if (!ply_animation_add_frames (animation))
     return false;
@@ -311,6 +332,8 @@ ply_animation_start (ply_animation_t    *animation,
 
   if (!animation->is_stopped)
     return true;
+
+  ply_trace ("starting animation");
 
   animation->loop = ply_event_loop_get_default ();
   animation->display = display;
@@ -336,6 +359,8 @@ ply_animation_stop_now (ply_animation_t *animation)
 {
   animation->is_stopped = true;
 
+  ply_trace ("stopping animation now");
+
   if (animation->loop != NULL)
     {
       ply_event_loop_stop_watching_for_timeout (animation->loop,
@@ -356,6 +381,7 @@ ply_animation_stop (ply_animation_t *animation)
       return;
     }
 
+  ply_trace ("stopping animation next time through the loop");
   animation->stop_requested = true;
 }
 

@@ -78,6 +78,8 @@ ply_array_get_size (ply_array_t *array)
 {
   int size;
 
+  assert (array->element_type == PLY_ARRAY_ELEMENT_TYPE_POINTER ||
+          array->element_type == PLY_ARRAY_ELEMENT_TYPE_UINT32);
 
   switch (array->element_type)
     {

@@ -2129,7 +2129,7 @@ main (int    argc,
       state.should_be_attached = attach_to_session;
       if (!attach_to_running_session (&state))
         {
-          ply_error ("plymouthd: could not redirect console session: %m");
+          ply_trace ("could not redirect console session: %m");
           if (! no_daemon)
             ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
           return EX_UNAVAILABLE;
@@ -2140,7 +2140,8 @@ main (int    argc,
 
   if (state.boot_server == NULL)
     {
-      ply_error ("plymouthd: could not log bootup: %m");
+      ply_trace ("could not log bootup: %m");
+
       if (daemon_handle != NULL)
         ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
       return EX_UNAVAILABLE;

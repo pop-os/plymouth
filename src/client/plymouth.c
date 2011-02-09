@@ -548,13 +548,11 @@ on_question_request (state_t    *state,
 {
   char *prompt;
   char *program;
-  int number_of_tries;
   bool dont_pause;
   question_answer_state_t *question_answer_state;
 
   prompt = NULL;
   program = NULL;
-  number_of_tries = 0;
   dont_pause = false;
   
   ply_command_parser_get_command_options (state->command_parser,
@@ -636,11 +634,9 @@ on_keystroke_request (state_t    *state,
 {
   char *keys;
   char *program;
-  bool remove;
 
   keys = NULL;
   program = NULL;
-  remove = false;
   
   ply_command_parser_get_command_options (state->command_parser,
                                           command,

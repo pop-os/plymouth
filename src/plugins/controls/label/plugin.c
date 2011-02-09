@@ -165,7 +165,6 @@ size_control (ply_label_plugin_control_t *label)
 {
   cairo_t              *cairo_context;
   PangoLayout          *pango_layout;
-  PangoFontDescription *description;
   int                   text_width;
   int                   text_height;
 
@@ -194,7 +193,6 @@ draw_control (ply_label_plugin_control_t *label,
 {
   cairo_t              *cairo_context;
   PangoLayout          *pango_layout;
-  PangoFontDescription *description;
   int                   text_width;
   int                   text_height;
 

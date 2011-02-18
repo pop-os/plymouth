@@ -166,11 +166,54 @@ ply_terminal_reset_colors (ply_terminal_t *terminal)
   ply_terminal_restore_color_palette (terminal);
 }
 
+static void
+ply_terminal_unlock (ply_terminal_t *terminal)
+{
+  struct termios locked_term_attributes;
+
+  assert (terminal != NULL);
+
+  if (terminal->original_locked_term_attributes_saved)
+    locked_term_attributes = terminal->original_locked_term_attributes;
+  else
+    memset (&locked_term_attributes, 0x0, sizeof (locked_term_attributes));
+
+  if (ioctl (terminal->fd, TIOCSLCKTRMIOS,
+             &locked_term_attributes) < 0)
+    {
+      ply_trace ("couldn't unlock terminal settings: %m");
+    }
+
+  terminal->original_locked_term_attributes_saved = false;
+}
+
+static void
+ply_terminal_lock (ply_terminal_t *terminal)
+{
+  struct termios locked_term_attributes;
+
+  assert (terminal != NULL);
+
+  if (!terminal->original_locked_term_attributes_saved &&
+      ioctl (terminal->fd, TIOCGLCKTRMIOS, &locked_term_attributes) == 0)
+    {
+      terminal->original_locked_term_attributes = locked_term_attributes;
+      terminal->original_locked_term_attributes_saved = true;
+
+      memset (&locked_term_attributes, 0xff, sizeof (locked_term_attributes));
+      if (ioctl (terminal->fd, TIOCSLCKTRMIOS, &locked_term_attributes) < 0)
+        {
+          ply_trace ("couldn't lock terminal settings: %m");
+        }
+    }
+}
+
 bool
 ply_terminal_set_unbuffered_input (ply_terminal_t *terminal)
 {
   struct termios term_attributes;
-  struct termios locked_term_attributes;
+
+  ply_terminal_unlock (terminal);
 
   tcgetattr (terminal->fd, &term_attributes);
 
@@ -191,18 +234,7 @@ ply_terminal_set_unbuffered_input (ply_terminal_t *terminal)
   if (tcsetattr (terminal->fd, TCSANOW, &term_attributes) != 0)
     return false;
 
-  if (!terminal->original_locked_term_attributes_saved &&
-      ioctl (terminal->fd, TIOCGLCKTRMIOS, &locked_term_attributes) == 0)
-    {
-      terminal->original_locked_term_attributes = locked_term_attributes;
-      terminal->original_locked_term_attributes_saved = true;
-
-      memset (&locked_term_attributes, 0xff, sizeof (locked_term_attributes));
-      if (ioctl (terminal->fd, TIOCSLCKTRMIOS, &locked_term_attributes) < 0)
-        {
-          ply_trace ("couldn't lock terminal settings: %m");
-        }
-    }
+  ply_terminal_lock (terminal);
 
   terminal->is_unbuffered = true;
 
@@ -217,15 +249,7 @@ ply_terminal_set_buffered_input (ply_terminal_t *terminal)
   if (!terminal->is_unbuffered)
     return true;
 
-  if (terminal->original_locked_term_attributes_saved)
-    {
-      if (ioctl (terminal->fd, TIOCSLCKTRMIOS,
-                 &terminal->original_locked_term_attributes) < 0)
-        {
-          ply_trace ("couldn't unlock terminal settings: %m");
-        }
-      terminal->original_locked_term_attributes_saved = false;
-    }
+  ply_terminal_unlock (terminal);
 
   tcgetattr (terminal->fd, &term_attributes);
 

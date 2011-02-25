@@ -705,7 +705,7 @@ plymouth_should_ignore_show_splash_calls (state_t *state)
     {
       length = strcspn (init_string, " \n");
       if (length > 2 && ply_string_has_prefix (init_string + length - 2, "sh"))
-	return true;
+        return true;
     }
 
   return false;

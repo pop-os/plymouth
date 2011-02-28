@@ -71,6 +71,10 @@
 #define PLY_ENABLE_CONSOLE_PRINTK 7
 #endif
 
+#ifndef PLY_MAX_COMMAND_LINE_SIZE
+#define PLY_MAX_COMMAND_LINE_SIZE 4096
+#endif
+
 static int errno_stack[PLY_ERRNO_STACK_SIZE];
 static int errno_stack_position = 0;
 
@@ -986,8 +990,8 @@ ply_get_process_command_line (pid_t pid)
       goto error;
     }
 
-  command_line = calloc (PAGE_SIZE, sizeof (char));
-  bytes_read = read (fd, command_line, PAGE_SIZE - 1);
+  command_line = calloc (PLY_MAX_COMMAND_LINE_SIZE, sizeof (char));
+  bytes_read = read (fd, command_line, PLY_MAX_COMMAND_LINE_SIZE - 1);
   if (bytes_read < 0)
     {
       ply_trace ("Could not read %s: %m", path);

@@ -272,7 +272,7 @@ ply_terminal_set_buffered_input (ply_terminal_t *terminal)
       term_attributes.c_oflag |= OPOST;
       term_attributes.c_lflag |= ECHO | ICANON | ISIG | IEXTEN;
 
-      if (tcsetattr (terminal->fd, TCSAFLUSH, &term_attributes) != 0)
+      if (tcsetattr (terminal->fd, TCSANOW, &term_attributes) != 0)
         return false;
 
       terminal->is_unbuffered = false;
@@ -280,7 +280,7 @@ ply_terminal_set_buffered_input (ply_terminal_t *terminal)
       return true;
     }
 
-  if (tcsetattr (terminal->fd, TCSAFLUSH, &terminal->original_term_attributes) != 0)
+  if (tcsetattr (terminal->fd, TCSANOW, &terminal->original_term_attributes) != 0)
     return false;
 
   terminal->is_unbuffered = false;

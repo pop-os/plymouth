@@ -1103,6 +1103,11 @@ main (int    argc,
           ply_trace ("has active vt? failed");
           return 1;
         }
+      if (should_wait)
+        {
+          ply_trace("no need to wait");
+          return 0;
+        }
     }
 
   ply_boot_client_attach_to_event_loop (state.client, state.loop);

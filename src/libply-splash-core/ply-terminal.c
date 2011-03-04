@@ -50,6 +50,14 @@
 #define TEXT_PALETTE_SIZE 48
 #endif
 
+#ifndef PLY_TERMINAL_REOPEN_TIMEOUT
+#define PLY_TERMINAL_REOPEN_TIMEOUT 1.0
+#endif
+
+#ifndef PLY_TERMINAL_REOPEN_INTERVAL
+#define PLY_TERMINAL_REOPEN_INTERVAL 0.05
+#endif
+
 typedef struct
 {
   ply_terminal_active_vt_changed_handler_t handler;
@@ -67,6 +75,7 @@ struct _ply_terminal
   int   fd;
   int   vt_number;
   int   initial_vt_number;
+  int   number_of_reopen_tries;
 
   ply_list_t *vt_change_closures;
   ply_fd_watch_t *fd_watch;
@@ -89,7 +98,14 @@ struct _ply_terminal
   uint32_t should_ignore_mode_changes : 1;
 };
 
-static bool ply_terminal_open_device (ply_terminal_t *terminal);
+typedef enum
+{
+  PLY_TERMINAL_OPEN_RESULT_INCOMPLETE,
+  PLY_TERMINAL_OPEN_RESULT_FAILURE,
+  PLY_TERMINAL_OPEN_RESULT_SUCCESS,
+} ply_terminal_open_result_t;
+
+static ply_terminal_open_result_t ply_terminal_open_device (ply_terminal_t *terminal);
 
 ply_terminal_t *
 ply_terminal_new (const char *device_name)
@@ -310,14 +326,49 @@ ply_terminal_write (ply_terminal_t *terminal,
 }
 
 static void
+ply_terminal_reopen_device (ply_terminal_t *terminal)
+{
+  ply_terminal_open_result_t open_result;
+
+  ply_trace ("trying to reopen terminal '%s' (attempt %d)",
+             terminal->name,
+             terminal->number_of_reopen_tries);
+
+  terminal->number_of_reopen_tries++;
+
+  open_result = ply_terminal_open_device (terminal);
+
+  if (open_result == PLY_TERMINAL_OPEN_RESULT_INCOMPLETE)
+    {
+      int total_retries;
+
+      total_retries = (int) (PLY_TERMINAL_REOPEN_TIMEOUT / PLY_TERMINAL_REOPEN_INTERVAL);
+
+      if (terminal->number_of_reopen_tries < total_retries)
+        {
+          ply_event_loop_watch_for_timeout (terminal->loop,
+                                            PLY_TERMINAL_REOPEN_INTERVAL,
+                                            (ply_event_loop_timeout_handler_t)
+                                            ply_terminal_reopen_device,
+                                            terminal);
+        }
+      else
+        {
+          ply_trace ("couldn't reopen tty, giving up");
+          terminal->number_of_reopen_tries = 0;
+        }
+    }
+}
+
+static void
 on_tty_disconnected (ply_terminal_t *terminal)
 {
   ply_trace ("tty disconnected (fd %d)", terminal->fd);
   terminal->fd_watch = NULL;
   terminal->fd = -1;
+  terminal->number_of_reopen_tries = 0;
 
-  ply_trace ("trying to reopen terminal '%s'", terminal->name);
-  ply_terminal_open_device (terminal);
+  ply_terminal_reopen_device (terminal);
 }
 
 static bool
@@ -479,7 +530,7 @@ ply_terminal_stop_watching_for_vt_changes (ply_terminal_t *terminal)
   ioctl (terminal->fd, VT_SETMODE, &mode);
 }
 
-static bool
+static ply_terminal_open_result_t
 ply_terminal_open_device (ply_terminal_t *terminal)
 {
   assert (terminal != NULL);
@@ -492,7 +543,19 @@ ply_terminal_open_device (ply_terminal_t *terminal)
   if (terminal->fd < 0)
     {
       ply_trace ("Unable to open terminal device '%s': %m", terminal->name);
-      return false;
+
+      /* The kernel will apparently return EIO spurriously when opening a tty that's
+       * in the process of closing down.  There's more information here:
+       *
+       * https://bugs.launchpad.net/ubuntu/+source/linux/+bug/554172/comments/245
+       *
+       * Work around it here.
+       */
+      if (errno == EIO)
+        return PLY_TERMINAL_OPEN_RESULT_INCOMPLETE;
+
+      terminal->number_of_reopen_tries = 0;
+      return PLY_TERMINAL_OPEN_RESULT_FAILURE;
     }
 
   terminal->fd_watch = ply_event_loop_watch_fd (terminal->loop, terminal->fd,
@@ -506,12 +569,15 @@ ply_terminal_open_device (ply_terminal_t *terminal)
   if (!ply_terminal_set_unbuffered_input (terminal))
     ply_trace ("terminal '%s' will be line buffered", terminal->name);
 
-  return true;
+  terminal->number_of_reopen_tries = 0;
+  return PLY_TERMINAL_OPEN_RESULT_SUCCESS;
 }
 
 bool
 ply_terminal_open (ply_terminal_t *terminal)
 {
+  ply_terminal_open_result_t open_result;
+
   assert (terminal != NULL);
 
   if (terminal->is_open)
@@ -522,7 +588,8 @@ ply_terminal_open (ply_terminal_t *terminal)
 
   ply_trace ("trying to open terminal '%s'", terminal->name);
 
-  if (!ply_terminal_open_device (terminal))
+  open_result = ply_terminal_open_device (terminal);
+  if (open_result != PLY_TERMINAL_OPEN_RESULT_SUCCESS)
     {
       ply_trace ("could not open %s : %m", terminal->name);
       return false;
@@ -745,10 +812,19 @@ ply_terminal_free (ply_terminal_t *terminal)
     return;
 
   if (terminal->loop != NULL)
-    ply_event_loop_stop_watching_for_exit (terminal->loop,
-                                           (ply_event_loop_exit_handler_t)
-                                           ply_terminal_detach_from_event_loop,
-                                           terminal);
+    {
+      ply_event_loop_stop_watching_for_exit (terminal->loop,
+                                             (ply_event_loop_exit_handler_t)
+                                             ply_terminal_detach_from_event_loop,
+                                             terminal);
+
+      if (terminal->number_of_reopen_tries > 0)
+        {
+          ply_event_loop_stop_watching_for_timeout (terminal->loop,
+                                                    (ply_event_loop_timeout_handler_t)
+                                                    ply_terminal_reopen_device, terminal);
+        }
+    }
 
   if (terminal->is_open)
     ply_terminal_close (terminal);

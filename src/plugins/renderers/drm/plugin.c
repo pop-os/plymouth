@@ -620,36 +620,10 @@ close_device (ply_renderer_backend_t *backend)
   unload_driver (backend);
 }
 
-static bool
-controller_is_available (ply_renderer_backend_t *backend,
-                         uint32_t                controller_id)
-{
-  ply_list_node_t *node;
-
-  node = ply_list_get_first_node (backend->heads);
-  while (node != NULL)
-    {
-      ply_list_node_t *next_node;
-      ply_renderer_head_t *head;
-
-      head = (ply_renderer_head_t *) ply_list_node_get_data (node);
-      next_node = ply_list_get_next_node (backend->heads, node);
-
-      if (head->controller_id == controller_id)
-        return false;
-
-      node = next_node;
-    }
-
-  return true;
-}
-
 static drmModeCrtc *
 find_controller_for_encoder (ply_renderer_backend_t *backend,
                              drmModeEncoder         *encoder)
 {
-  int i;
-  uint32_t possible_crtcs;
   drmModeCrtc *controller;
 
   controller = NULL;
@@ -665,81 +639,6 @@ find_controller_for_encoder (ply_renderer_backend_t *backend,
           ply_trace ("Found already lit monitor");
           return controller;
         }
-    }
-
-  /* Monitor cable is plugged in, but the monitor isn't lit
-   * yet. Let's pick an available controller and light it up
-   * ourselves.
-   */
-  for (i = 0,
-       possible_crtcs = encoder->possible_crtcs;
-       possible_crtcs != 0x0;
-       i++, possible_crtcs >>= 1)
-    {
-      /* controller isn't compatible with encoder
-       */
-      if ((possible_crtcs & 0x1) == 0)
-        continue;
-
-      /* controller is already being used
-       */
-      if (!controller_is_available (backend, backend->resources->crtcs[i]))
-        continue;
-
-      assert (i < backend->resources->count_crtcs);
-      controller = drmModeGetCrtc (backend->device_fd,
-                                   backend->resources->crtcs[i]);
-
-      if (controller != NULL)
-        break;
-    }
-
-  return controller;
-}
-
-static bool
-encoder_is_available (ply_renderer_backend_t *backend,
-                      uint32_t                encoder_id)
-{
-  ply_list_node_t *node;
-
-  node = ply_list_get_first_node (backend->heads);
-  while (node != NULL)
-    {
-      ply_list_node_t *next_node;
-      ply_renderer_head_t *head;
-
-      head = (ply_renderer_head_t *) ply_list_node_get_data (node);
-      next_node = ply_list_get_next_node (backend->heads, node);
-
-      if (head->encoder_id == encoder_id)
-        return false;
-
-      node = next_node;
-    }
-
-  return true;
-}
-
-static drmModeEncoder *
-find_unused_encoder_for_connector (ply_renderer_backend_t *backend,
-                                   drmModeConnector       *connector)
-{
-  int i;
-  drmModeEncoder *encoder;
-
-  for (i = 0; i < connector->count_encoders; i++)
-    {
-      encoder = drmModeGetEncoder (backend->device_fd,
-                                   connector->encoders[i]);
-
-      if (encoder == NULL)
-        continue;
-
-      if (encoder_is_available (backend, encoder->encoder_id))
-        return encoder;
-
-      drmModeFreeEncoder (encoder);
     }
 
   return NULL;
@@ -768,9 +667,7 @@ find_encoder_for_connector (ply_renderer_backend_t *backend,
       drmModeFreeEncoder (encoder);
     }
 
-  /* No encoder yet, pick one
-   */
-  return find_unused_encoder_for_connector (backend, connector);
+  return NULL;
 }
 
 static bool

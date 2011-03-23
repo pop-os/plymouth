@@ -211,8 +211,9 @@ view_load (view_t *view)
   ply_trace ("loading progress animation");
   if (!ply_progress_animation_load (view->progress_animation))
     {
-      ply_trace ("progress animation wouldn't load");
-      return false;
+      ply_trace ("optional progress animation wouldn't load");
+      ply_progress_animation_free (view->progress_animation);
+      view->progress_animation = NULL;
     }
 
   if (view->throbber != NULL)
@@ -364,7 +365,8 @@ static void
 on_view_throbber_stopped (view_t *view)
 {
   ply_trace ("hiding progress animation");
-  ply_progress_animation_hide (view->progress_animation);
+  if (view->progress_animation != NULL)
+      ply_progress_animation_hide (view->progress_animation);
   view_start_end_animation (view, view->end_trigger);
   view->end_trigger = NULL;
 }
@@ -422,15 +424,17 @@ view_start_progress_animation (view_t *view)
       return;
     }
 
-  width = ply_progress_animation_get_width (view->progress_animation);
-  height = ply_progress_animation_get_height (view->progress_animation);
-  x = plugin->animation_horizontal_alignment * screen_width - width / 2.0;
-  y = plugin->animation_vertical_alignment * screen_height - height / 2.0;
-  ply_progress_animation_show (view->progress_animation,
-                               view->display, x, y);
+  if (view->progress_animation != NULL)
+    {
+      width = ply_progress_animation_get_width (view->progress_animation);
+      height = ply_progress_animation_get_height (view->progress_animation);
+      x = plugin->animation_horizontal_alignment * screen_width - width / 2.0;
+      y = plugin->animation_vertical_alignment * screen_height - height / 2.0;
+      ply_progress_animation_show (view->progress_animation,
+                                   view->display, x, y);
 
-  ply_pixel_display_draw_area (view->display, x, y, width, height);
-
+      ply_pixel_display_draw_area (view->display, x, y, width, height);
+    }
 }
 
 static void
@@ -697,8 +701,11 @@ start_end_animation (ply_boot_splash_plugin_t *plugin,
         }
       else
         {
-          ply_trace ("hiding progress animation");
-          ply_progress_animation_hide (view->progress_animation);
+          if (view->progress_animation != NULL)
+            {
+              ply_trace ("hiding progress animation");
+              ply_progress_animation_hide (view->progress_animation);
+            }
           view_start_end_animation (view, trigger);
         }
 
@@ -760,8 +767,11 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
       view = ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (plugin->views, node);
 
-      ply_trace ("hiding progress animation");
-      ply_progress_animation_hide (view->progress_animation);
+      if (view->progress_animation != NULL)
+        {
+          ply_trace ("hiding progress animation");
+          ply_progress_animation_hide (view->progress_animation);
+        }
       if (trigger != NULL)
         ply_trigger_ignore_next_pull (trigger);
       if (view->throbber != NULL)
@@ -863,7 +873,7 @@ on_draw (view_t                   *view,
           ply_throbber_draw_area (view->throbber, pixel_buffer,
                                   x, y, width, height);
         }
-      if (!ply_progress_animation_is_hidden (view->progress_animation))
+      if (view->progress_animation != NULL && !ply_progress_animation_is_hidden (view->progress_animation))
         {
           ply_progress_animation_draw_area (view->progress_animation,
                                             pixel_buffer,
@@ -889,7 +899,11 @@ on_draw (view_t                   *view,
         {
           long sprite_height;
 
-          sprite_height = ply_progress_animation_get_height (view->progress_animation);
+
+          if (view->progress_animation != NULL)
+            sprite_height = ply_progress_animation_get_height (view->progress_animation);
+          else
+            sprite_height = 0;
 
           if (view->throbber != NULL)
             sprite_height = MAX (ply_throbber_get_height (view->throbber),
@@ -1049,8 +1063,9 @@ update_progress_animation (ply_boot_splash_plugin_t *plugin,
       view = ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (plugin->views, node);
 
-      ply_progress_animation_set_percent_done (view->progress_animation,
-                                               percent_done);
+      if (view->progress_animation != NULL)
+        ply_progress_animation_set_percent_done (view->progress_animation,
+                                                 percent_done);
 
       node = next_node;
     }

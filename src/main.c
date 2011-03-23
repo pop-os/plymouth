@@ -103,6 +103,7 @@ typedef struct
   ply_trigger_t *quit_trigger;
 
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
+  uint32_t kernel_command_line_is_set : 1;
   uint32_t no_boot_log : 1;
   uint32_t showing_details : 1;
   uint32_t system_initialized : 1;
@@ -1636,6 +1637,9 @@ get_kernel_command_line (state_t *state)
   const char *remaining_command_line;
   char *key;
 
+  if (state->kernel_command_line_is_set)
+    return true;
+
   ply_trace ("opening /proc/cmdline");
   fd = open ("/proc/cmdline", O_RDONLY);
 
@@ -1669,6 +1673,8 @@ get_kernel_command_line (state_t *state)
   ply_trace ("Kernel command line is: '%s'", state->kernel_command_line);
 
   close (fd);
+
+  state->kernel_command_line_is_set = true;
   return true;
 }
 
@@ -2000,6 +2006,7 @@ main (int    argc,
   bool attach_to_session;
   ply_daemon_handle_t *daemon_handle = NULL;
   char *mode_string = NULL;
+  char *kernel_command_line = NULL;
   char *tty = NULL;
 
   state.command_parser = ply_command_parser_new ("plymouthd", "Splash server");
@@ -2014,6 +2021,7 @@ main (int    argc,
                                   "debug-file", "File to output debugging information to", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "mode", "Mode is one of: boot, shutdown", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "pid-file", "Write the pid of the daemon to a file", PLY_COMMAND_OPTION_TYPE_STRING,
+                                  "kernel-command-line", "Fake kernel command line to use", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "tty", "TTY to use instead of default", PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
 
@@ -2038,6 +2046,7 @@ main (int    argc,
                                   "debug-file", &debug_buffer_path,
                                   "pid-file", &pid_file,
                                   "tty", &tty,
+                                  "kernel-command-line", &kernel_command_line,
                                   NULL);
 
   if (should_help)
@@ -2071,6 +2080,13 @@ main (int    argc,
   if (tty != NULL)
     {
       state.default_tty = tty;
+    }
+
+  if (kernel_command_line != NULL)
+    {
+      strncpy (state.kernel_command_line, kernel_command_line, sizeof (state.kernel_command_line));
+      state.kernel_command_line[sizeof (state.kernel_command_line) - 1] = '\0';
+      state.kernel_command_line_is_set = true;
     }
 
   if (geteuid () != 0)

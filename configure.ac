@@ -426,6 +426,7 @@ AC_CONFIG_FILES([Makefile
            themes/details/Makefile
            themes/solar/Makefile
            themes/glow/Makefile
+           themes/spinner/Makefile
            themes/script/Makefile
            images/Makefile
 	   scripts/plymouth-generate-initrd

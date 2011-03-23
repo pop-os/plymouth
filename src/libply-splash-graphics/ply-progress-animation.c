@@ -347,6 +347,7 @@ ply_progress_animation_add_frames (ply_progress_animation_t *progress_animation)
 {
   struct dirent **entries;
   int number_of_entries;
+  int number_of_frames;
   int i;
   bool load_finished;
 
@@ -380,7 +381,18 @@ ply_progress_animation_add_frames (ply_progress_animation_t *progress_animation)
       free (entries[i]);
       entries[i] = NULL;
     }
-  load_finished = true;
+
+  number_of_frames = ply_array_get_size (progress_animation->frames);
+  if (number_of_frames == 0)
+    {
+      ply_trace ("could not find any progress animation frames");
+      load_finished = false;
+    }
+  else
+    {
+      ply_trace ("found %d progress animation frames", number_of_frames);
+      load_finished = true;
+    }
 
 out:
   if (!load_finished)

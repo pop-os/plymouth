@@ -294,7 +294,10 @@ ply_boot_client_process_incoming_replies (ply_boot_client_t *client)
       if (size > 0)
         {
           if (!ply_read (client->socket_fd, answer, size))
-            goto out;
+            {
+              free (answer);
+              goto out;
+            }
         }
 
       answer[size] = '\0';

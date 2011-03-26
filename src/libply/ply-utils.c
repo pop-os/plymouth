@@ -551,9 +551,6 @@ ply_close_open_fds (void)
       fd = -1;
       filename_as_number = strtol (entry->d_name, &byte_after_number, 10);
 
-      if (byte_after_number != NULL)
-        continue;
-
       if ((*byte_after_number != '\0') ||
           (filename_as_number < 0) ||
           (filename_as_number > INT_MAX)) 

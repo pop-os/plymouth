@@ -1501,6 +1501,24 @@ add_displays_and_keyboard_to_boot_splash (state_t           *state,
     }
 }
 
+#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
+static void
+tell_systemd_to_print_details (state_t *state)
+{
+  ply_trace ("telling systemd to start printing details");
+  if (kill (1, SIGRTMIN + 20) < 0)
+    ply_trace ("could not tell systemd to print details: %m");
+}
+
+static void
+tell_systemd_to_stop_printing_details (state_t *state)
+{
+  ply_trace ("telling systemd to stop printing details");
+  if (kill (1, SIGRTMIN + 21) < 0)
+    ply_trace ("could not tell systemd to stop printing details: %m");
+}
+#endif
+
 static ply_boot_splash_t *
 start_boot_splash (state_t    *state,
                    const char *theme_path,
@@ -1614,6 +1632,10 @@ attach_to_running_session (state_t *state)
   state->is_attached = true;
   state->session = session;
 
+#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
+  tell_systemd_to_print_details (state);
+#endif
+
   return true;
 }
 
@@ -1625,6 +1647,10 @@ detach_from_running_session (state_t *state)
 
   if (!state->is_attached)
     return;
+
+#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
+  tell_systemd_to_stop_printing_details (state);
+#endif
 
   ply_trace ("detaching from terminal session");
   ply_terminal_session_detach (state->session);

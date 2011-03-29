@@ -133,6 +133,7 @@ static void add_display_and_keyboard_for_terminal (state_t    *state,
 static void add_default_displays_and_keyboard (state_t *state);
 
 static bool attach_to_running_session (state_t *state);
+static void detach_from_running_session (state_t *state);
 static void on_escape_pressed (state_t *state);
 static void dump_details_and_quit_splash (state_t *state);
 static void update_display (state_t *state);
@@ -828,12 +829,10 @@ on_show_splash (state_t *state)
   if (!state->is_attached && state->should_be_attached && has_display)
     attach_to_running_session (state);
 
-  if (!has_display && state->is_attached)
+  if (!has_display)
     {
-      ply_trace ("no open seats, detaching session");
-      ply_terminal_session_detach (state->session);
-      state->is_redirected = false;
-      state->is_attached = false;
+      ply_trace ("no open seats");
+      detach_from_running_session (state);
     }
 
   if (plymouth_should_show_default_splash (state))
@@ -882,13 +881,7 @@ quit_splash (state_t *state)
       state->terminal = NULL;
     }
 
-  if (state->session != NULL)
-    {
-      ply_trace ("detaching session");
-      ply_terminal_session_detach (state->session);
-      state->is_redirected = false;
-      state->is_attached = false;
-    }
+  detach_from_running_session (state);
 }
 
 static void
@@ -972,13 +965,7 @@ deactivate_splash (state_t *state)
       ply_renderer_deactivate (state->renderer);
     }
 
-  if ((state->session != NULL) && state->is_attached)
-    {
-      ply_trace ("deactivating terminal session");
-      ply_terminal_session_detach (state->session);
-      state->is_redirected = false;
-      state->is_attached = false;
-    }
+  detach_from_running_session (state);
 
   if (state->terminal != NULL)
     {
@@ -1630,6 +1617,21 @@ attach_to_running_session (state_t *state)
   return true;
 }
 
+static void
+detach_from_running_session (state_t *state)
+{
+  if (state->session == NULL)
+    return;
+
+  if (!state->is_attached)
+    return;
+
+  ply_trace ("detaching from terminal session");
+  ply_terminal_session_detach (state->session);
+  state->is_redirected = false;
+  state->is_attached = false;
+}
+
 static bool
 get_kernel_command_line (state_t *state)
 {
@@ -2158,11 +2160,7 @@ main (int    argc,
     {
       ply_trace ("could not log bootup: %m");
 
-      if (state.is_attached)
-        {
-          ply_trace ("detaching from session");
-          ply_terminal_session_detach (state.session);
-        }
+      detach_from_running_session (&state);
 
       if (daemon_handle != NULL)
         ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);

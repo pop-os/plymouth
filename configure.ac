@@ -245,7 +245,7 @@ AM_CONDITIONAL(ENABLE_UPSTART_MONITORING, [test "$enable_upstart_monitoring" = y
 AC_ARG_ENABLE(systemd-integration, AS_HELP_STRING([--enable-systemd-integration],[coordinate boot up with systemd]),enable_systemd_integration=$enableval,enable_systemd_integration=no)
 AM_CONDITIONAL(ENABLE_SYSTEMD_INTEGRATION, [test "$enable_systemd_integration" = yes])
 
-if text x$enable_systemd_integration = xyes; then
+if test x$enable_systemd_integration = xyes; then
   AC_DEFINE(PLY_ENABLE_SYSTEMD_INTEGRATION, 1, [Coordinate boot up with systemd])
 fi
 

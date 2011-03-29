@@ -148,6 +148,8 @@ static void check_for_consoles (state_t    *state,
                                 const char *default_tty,
                                 bool        should_add_displays);
 static void toggle_between_splash_and_details (state_t *state);
+static void tell_systemd_to_print_details (state_t *state);
+static void tell_systemd_to_stop_printing_details (state_t *state);
 
 static void
 on_session_output (state_t    *state,
@@ -1107,6 +1109,10 @@ on_quit (state_t       *state,
   state->quit_trigger = quit_trigger;
   state->should_retain_splash = retain_splash;
 
+#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
+  tell_systemd_to_stop_printing_details (state);
+#endif
+
   ply_trace ("time to quit, closing log");
   if (state->session != NULL)
     ply_terminal_session_close_log (state->session);
@@ -1576,6 +1582,11 @@ start_boot_splash (state_t    *state,
       return NULL;
     }
 
+#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
+  if (state->is_attached)
+    tell_systemd_to_print_details (state);
+#endif
+
   if (state->keyboard != NULL)
     ply_keyboard_watch_for_input (state->keyboard);
 
@@ -1632,10 +1643,6 @@ attach_to_running_session (state_t *state)
   state->is_attached = true;
   state->session = session;
 
-#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
-  tell_systemd_to_print_details (state);
-#endif
-
   return true;
 }
 
@@ -1647,10 +1654,6 @@ detach_from_running_session (state_t *state)
 
   if (!state->is_attached)
     return;
-
-#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
-  tell_systemd_to_stop_printing_details (state);
-#endif
 
   ply_trace ("detaching from terminal session");
   ply_terminal_session_detach (state->session);

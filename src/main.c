@@ -69,13 +69,13 @@ typedef enum {
   PLY_MODE_UPDATES
 } ply_mode_t;
 
-typedef struct 
+typedef struct
 {
   const char    *keys;
   ply_trigger_t *trigger;
 } ply_keystroke_watch_t;
 
-typedef struct 
+typedef struct
 {
   enum {PLY_ENTRY_TRIGGER_TYPE_PASSWORD,
         PLY_ENTRY_TRIGGER_TYPE_QUESTION}
@@ -578,9 +578,9 @@ on_hide_message (state_t       *state,
                  const char    *message)
 {
   ply_list_node_t *node;
-  
+
   ply_trace ("hiding message %s", message);
-  
+
   node = ply_list_get_first_node (state->messages);
   while (node != NULL)
     {
@@ -1310,6 +1310,9 @@ on_quit (state_t       *state,
       return;
     }
 
+  /* Tell everybody (i.e. systemd) that Plymouth is gone home */
+  unlink ("/run/initramfs/plymouth");
+
   if (state->system_initialized)
     {
       ply_trace ("system initialized so saving boot-duration file");
@@ -1407,7 +1410,7 @@ static void
 update_display (state_t *state)
 {
   if (!state->boot_splash) return;
-  
+
   ply_list_node_t *node;
   node = ply_list_get_first_node (state->entry_triggers);
   if (node)
@@ -1418,7 +1421,7 @@ update_display (state_t *state)
           int bullets = ply_utf8_string_get_length (ply_buffer_get_bytes (state->entry_buffer),
                                                     ply_buffer_get_size (state->entry_buffer));
           bullets = MAX(0, bullets);
-          ply_boot_splash_display_password (state->boot_splash, 
+          ply_boot_splash_display_password (state->boot_splash,
                                             entry_trigger->prompt,
                                             bullets);
         }
@@ -2258,6 +2261,14 @@ main (int    argc,
     {
       if (errno == 0)
         {
+          int fd;
+
+          /* Tell everybody (i.e. systemd) that Plymouth is in town */
+          mkdir("/run/initramfs", 0755);
+          fd = open ("/run/initramfs/plymouth", O_WRONLY|O_CREAT|O_CLOEXEC, 0644);
+          if (fd >= 0)
+            close(fd);
+
           if (daemon_handle != NULL)
             ply_detach_daemon (daemon_handle, 0);
           return 0;
@@ -2358,7 +2369,7 @@ main (int    argc,
   ply_progress_free (state.progress);
 
   ply_trace ("exiting with code %d", exit_code);
-  
+
   if (debug_buffer != NULL)
     {
       dump_debug_buffer_to_file ();

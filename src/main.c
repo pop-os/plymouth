@@ -1955,6 +1955,10 @@ initialize_environment (state_t *state)
   else
     redirect_standard_io_to_device (state->default_tty);
 
+  ply_trace ("Making sure " PLYMOUTH_RUNTIME_DIR " exists");
+  if (!ply_create_directory (PLYMOUTH_RUNTIME_DIR))
+    ply_trace ("could not create " PLYMOUTH_RUNTIME_DIR ": %m");
+
   ply_trace ("initialized minimal work environment");
   return true;
 }

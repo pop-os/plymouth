@@ -255,15 +255,19 @@ AM_CONDITIONAL(WITH_SYSTEM_ROOT_INSTALL,  [test "$with_system_root_install" = ye
 if test x$with_system_root_install = xyes; then
   plymouthclientdir=/bin
   plymouthdaemondir=/sbin
+  plymouthruntimedir=/run/plymouth
 else
   plymouthclientdir=$bindir
   plymouthdaemondir=$sbindir
+  plymouthruntimedir=$localstatedir/run/plymouth
 fi
 AC_SUBST(plymouthclientdir)
 AC_SUBST(plymouthdaemondir)
+AC_SUBST(plymouthruntimedir)
 
 AS_AC_EXPAND(PLYMOUTH_CLIENT_DIR, $plymouthclientdir)
 AS_AC_EXPAND(PLYMOUTH_DAEMON_DIR, $plymouthdaemondir)
+AS_AC_EXPAND(PLYMOUTH_RUNTIME_DIR, $plymouthruntimedir)
 
 AC_ARG_WITH(rhgb-compat-link, AS_HELP_STRING([--with-rhgb-compat-link],[Install /usr/bin/rhgb-client compatability symlink]),with_rhgb_compat_link=${withval},with_rhgb_compat_link=yes)
 AM_CONDITIONAL(WITH_RHGB_COMPAT_LINK,  [test "$with_rhgb_compat_link" = yes])

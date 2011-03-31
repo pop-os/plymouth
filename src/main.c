@@ -1443,7 +1443,7 @@ add_default_displays_and_keyboard (state_t *state)
 
   terminal = ply_terminal_new (state->default_tty);
 
-  renderer = ply_renderer_new (NULL, terminal);
+  renderer = ply_renderer_new (NULL, NULL, terminal);
 
   if (!ply_renderer_open (renderer))
     {

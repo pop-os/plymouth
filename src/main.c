@@ -939,7 +939,7 @@ quit_program (state_t *state)
 
 #ifdef PLY_ENABLE_GDM_TRANSITION
   if (state->should_retain_splash &&
-      state->mode == PLY_BOOT_SPLASH_MODE_BOOT_UP)
+      state->mode == PLY_MODE_BOOT)
     {
       tell_gdm_to_transition ();
     }

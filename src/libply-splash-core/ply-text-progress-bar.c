@@ -98,27 +98,64 @@ ply_text_progress_bar_free (ply_text_progress_bar_t *progress_bar)
 static void
 get_os_string (void)
 {
-   int fd;
-   char *buf, *pos, *pos2;
-   struct stat sbuf;
-   
-   fd = open(RELEASE_FILE, O_RDONLY);
-   if (fd == -1) return;
-   if (fstat(fd, &sbuf) == -1) return;
-   buf = calloc(sbuf.st_size + 1, sizeof(char));
-   read(fd, buf, sbuf.st_size);
-   close(fd);
-   
-   pos = strstr(buf, " release ");
-   if (!pos) goto out;
-   pos2 = strstr(pos, " (");
-   if (!pos2) goto out;
-   *pos = '\0';
-   pos+= 9;
-   *pos2 = '\0';
-   asprintf(&os_string," %s %s", buf, pos);
+  int fd;
+  char *buf, *pos, *pos2;
+  struct stat sbuf;
+
+  fd = open (RELEASE_FILE, O_RDONLY);
+  if (fd == -1)
+    return;
+
+  if (fstat (fd, &sbuf) == -1)
+    return;
+
+  buf = calloc (sbuf.st_size + 1, sizeof(char));
+  read (fd, buf, sbuf.st_size);
+  close (fd);
+
+  if (strcmp (RELEASE_FILE, "/etc/os-release") == 0)
+    {
+      char key[] = "PRETTY_NAME=";
+
+      for (pos = strstr (buf, key);
+           pos != NULL;
+           pos = strstr (pos, key))
+        {
+          if (pos == buf || pos[-1] == '\n')
+            break;
+        }
+
+      if (pos != NULL)
+        {
+          pos += strlen (key);
+          pos2 = strstr (pos, "\n");
+
+          if (pos2 != NULL)
+            *pos2 = '\0';
+
+          asprintf (&os_string, " %s", pos);
+        }
+      goto out;
+    }
+
+  pos = strstr (buf, " release ");
+
+  if (pos == NULL)
+    goto out;
+
+  pos2 = strstr (pos, " (");
+
+  if (pos2 == NULL)
+    goto out;
+
+  *pos = '\0';
+  pos += strlen (" release ");
+
+  *pos2 = '\0';
+  asprintf (&os_string, " %s %s", buf, pos);
+
 out:
-   free(buf);
+  free (buf);
 }
 
 void

@@ -2222,6 +2222,11 @@ main (int    argc,
       return EX_UNAVAILABLE;
     }
 
+  state.progress = ply_progress_new ();
+
+  ply_progress_load_cache (state.progress,
+                           get_cache_file_for_mode (state.mode));
+
   if (pid_file != NULL)
     write_pid_file (pid_file);
 
@@ -2231,11 +2236,6 @@ main (int    argc,
       ply_error ("plymouthd: could not tell parent to exit: %m");
       return EX_UNAVAILABLE;
     }
-
-  state.progress = ply_progress_new ();
-
-  ply_progress_load_cache (state.progress,
-                           get_cache_file_for_mode (state.mode));
 
   ply_trace ("entering event loop");
   exit_code = ply_event_loop_run (state.loop);

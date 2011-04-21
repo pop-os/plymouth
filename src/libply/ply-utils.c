@@ -836,7 +836,7 @@ ply_show_new_kernel_messages (bool should_show)
 }
 
 ply_daemon_handle_t *
-ply_create_daemon (const char *pid_file)
+ply_create_daemon (void)
 {
   pid_t pid;
   int sender_fd, receiver_fd;
@@ -873,22 +873,6 @@ ply_create_daemon (const char *pid_file)
               ply_error ("unexpectedly died from signal %s immediately after starting to daemonize", strsignal (WTERMSIG (status)));
             }
           _exit (1);
-        }
-
-      if ((byte == 0) && (pid_file != NULL))
-        {
-          FILE *pidf;
-
-          pidf = fopen (pid_file, "w");
-          if (!pidf)
-            {
-              ply_error ("could not write pid file %s: %m", pid_file);
-            }
-          else
-            {
-              fprintf (pidf, "%d\n", (int)pid);
-              fclose (pidf);
-            }
         }
 
       _exit ((int) byte);

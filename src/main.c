@@ -2034,6 +2034,23 @@ on_crash (int signum)
     raise(signum);
 }
 
+static void
+write_pid_file (const char *filename)
+{
+  FILE *fp;
+
+  fp = fopen (filename, "w");
+  if (fp == NULL)
+    {
+      ply_error ("could not write pid file %s: %m", filename);
+    }
+  else
+    {
+      fprintf (fp, "%d\n", (int) getpid ());
+      fclose (fp);
+    }
+}
+
 int
 main (int    argc,
       char **argv)
@@ -2140,7 +2157,7 @@ main (int    argc,
 
   if (! no_daemon)
     {
-      daemon_handle = ply_create_daemon (pid_file);
+      daemon_handle = ply_create_daemon ();
 
       if (daemon_handle == NULL)
         {
@@ -2204,6 +2221,9 @@ main (int    argc,
         ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
       return EX_UNAVAILABLE;
     }
+
+  if (pid_file != NULL)
+    write_pid_file (pid_file);
 
   if (daemon_handle != NULL
       && !ply_detach_daemon (daemon_handle, 0))

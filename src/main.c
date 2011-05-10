@@ -1717,18 +1717,20 @@ get_kernel_command_line (state_t *state)
 static void
 check_verbosity (state_t *state)
 {
+  const char *stream;
   const char *path;
 
   ply_trace ("checking if tracing should be enabled");
 
+  stream = command_line_get_string_after_prefix (state->kernel_command_line,
+                                                 "plymouth.debug=stream:");
+
   path = command_line_get_string_after_prefix (state->kernel_command_line,
                                                "plymouth.debug=file:");
-  if (path != NULL ||
+  if (stream != NULL || path != NULL ||
       command_line_has_argument (state->kernel_command_line, "plymouth.debug"))
     {
-#ifdef LOG_TO_DEBUG_FILE
       int fd;
-#endif
 
       ply_trace ("tracing should be enabled!");
       if (!ply_is_tracing ())
@@ -1746,10 +1748,20 @@ check_verbosity (state_t *state)
         if (debug_buffer == NULL)
           debug_buffer = ply_buffer_new ();
 
-#ifdef LOG_TO_DEBUG_FILE
-      fd = open ("/dev/console", O_RDWR);
-      ply_logger_set_output_fd (ply_logger_get_error_default (), fd);
-#endif
+      if (stream != NULL)
+        {
+          ply_trace ("streaming debug output to %s instead of screen", stream);
+          fd = open (stream, O_RDWR | O_NOCTTY | O_CREAT, 0600);
+
+          if (fd < 0)
+            {
+              ply_trace ("could not stream output to %s: %m", stream);
+            }
+          else
+            {
+              ply_logger_set_output_fd (ply_logger_get_error_default (), fd);
+            }
+        }
     }
   else
     ply_trace ("tracing shouldn't be enabled!");

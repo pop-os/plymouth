@@ -60,6 +60,12 @@
 
 typedef struct
 {
+  ply_terminal_input_handler_t handler;
+  void *user_data;
+} ply_terminal_input_closure_t;
+
+typedef struct
+{
   ply_terminal_active_vt_changed_handler_t handler;
   void *user_data;
 } ply_terminal_active_vt_changed_closure_t;
@@ -78,6 +84,7 @@ struct _ply_terminal
   int   number_of_reopen_tries;
 
   ply_list_t *vt_change_closures;
+  ply_list_t *input_closures;
   ply_fd_watch_t *fd_watch;
   ply_terminal_color_t foreground_color;
   ply_terminal_color_t background_color;
@@ -118,6 +125,7 @@ ply_terminal_new (const char *device_name)
 
   terminal->loop = ply_event_loop_get_default ();
   terminal->vt_change_closures = ply_list_new ();
+  terminal->input_closures = ply_list_new ();
 
   if (strncmp (device_name, "/dev/", strlen ("/dev/")) == 0)
     terminal->name = strdup (device_name);
@@ -361,6 +369,28 @@ ply_terminal_reopen_device (ply_terminal_t *terminal)
 }
 
 static void
+on_tty_input (ply_terminal_t *terminal)
+{
+
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (terminal->input_closures);
+  while (node != NULL)
+    {
+      ply_terminal_input_closure_t *closure;
+      ply_list_node_t *next_node;
+
+      closure = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (terminal->input_closures, node);
+
+      if (closure->handler != NULL)
+        closure->handler (closure->user_data, terminal);
+
+      node = next_node;
+    }
+}
+
+static void
 on_tty_disconnected (ply_terminal_t *terminal)
 {
   ply_trace ("tty disconnected (fd %d)", terminal->fd);
@@ -559,10 +589,10 @@ ply_terminal_open_device (ply_terminal_t *terminal)
     }
 
   terminal->fd_watch = ply_event_loop_watch_fd (terminal->loop, terminal->fd,
-                                                   PLY_EVENT_LOOP_FD_STATUS_NONE,
-                                                   (ply_event_handler_t) NULL,
-                                                   (ply_event_handler_t) on_tty_disconnected,
-                                                   terminal);
+                                                PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
+                                                (ply_event_handler_t) on_tty_input,
+                                                (ply_event_handler_t) on_tty_disconnected,
+                                                terminal);
 
   ply_terminal_check_for_vt (terminal);
 
@@ -805,6 +835,26 @@ free_vt_change_closures (ply_terminal_t *terminal)
   ply_list_free (terminal->vt_change_closures);
 }
 
+static void
+free_input_closures (ply_terminal_t *terminal)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (terminal->input_closures);
+  while (node != NULL)
+    {
+      ply_terminal_input_closure_t *closure;
+      ply_list_node_t *next_node;
+
+      closure = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (terminal->input_closures, node);
+
+      free (closure);
+      node = next_node;
+    }
+  ply_list_free (terminal->input_closures);
+}
+
 void
 ply_terminal_free (ply_terminal_t *terminal)
 {
@@ -830,6 +880,7 @@ ply_terminal_free (ply_terminal_t *terminal)
     ply_terminal_close (terminal);
 
   free_vt_change_closures (terminal);
+  free_input_closures (terminal);
   free (terminal->name);
   free (terminal);
 }
@@ -995,6 +1046,47 @@ ply_terminal_stop_watching_for_active_vt_change (ply_terminal_t *terminal,
         {
           free (closure);
           ply_list_remove_node (terminal->vt_change_closures, node);
+        }
+
+      node = next_node;
+    }
+}
+
+void
+ply_terminal_watch_for_input (ply_terminal_t               *terminal,
+                              ply_terminal_input_handler_t  input_handler,
+                              void                         *user_data)
+{
+  ply_terminal_input_closure_t *closure;
+
+  closure = calloc (1, sizeof (*closure));
+  closure->handler = input_handler;
+  closure->user_data = user_data;
+
+  ply_list_append_data (terminal->input_closures, closure);
+}
+
+void
+ply_terminal_stop_watching_for_input (ply_terminal_t               *terminal,
+                                      ply_terminal_input_handler_t  input_handler,
+                                      void                         *user_data)
+{
+  ply_list_node_t *node;
+
+  node = ply_list_get_first_node (terminal->input_closures);
+  while (node != NULL)
+    {
+      ply_terminal_input_closure_t *closure;
+      ply_list_node_t *next_node;
+
+      closure = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (terminal->input_closures, node);
+
+      if (closure->handler == input_handler &&
+          closure->user_data == user_data)
+        {
+          free (closure);
+          ply_list_remove_node (terminal->input_closures, node);
         }
 
       node = next_node;

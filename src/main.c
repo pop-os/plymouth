@@ -1839,7 +1839,7 @@ check_for_consoles (state_t    *state,
         *end = '\0';
 
       if (strcmp (console, "tty0") == 0 || strcmp (console, "/dev/tty0") == 0 ||
-          strcmp (console, "tty") == 0 || strcmp (console, "tty") == 0)
+          strcmp (console, "tty") == 0 || strcmp (console, "/dev/tty") == 0)
         {
           free (console);
           console = strdup (default_tty);

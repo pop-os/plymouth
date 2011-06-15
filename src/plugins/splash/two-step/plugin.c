@@ -664,6 +664,7 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
   if (plugin->header_image != NULL)
     ply_image_free (plugin->header_image);
 
+  free (plugin->animation_dir);
   free_views (plugin);
   free (plugin);
 }

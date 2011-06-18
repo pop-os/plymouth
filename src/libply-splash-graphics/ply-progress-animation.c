@@ -368,14 +368,15 @@ ply_progress_animation_add_frames (ply_progress_animation_t *progress_animation)
           && strcmp (entries[i]->d_name + strlen (entries[i]->d_name) - 4, ".png") == 0)
         {
           char *filename;
+          bool r;
 
           filename = NULL;
           asprintf (&filename, "%s/%s", progress_animation->image_dir, entries[i]->d_name);
 
-          if (!ply_progress_animation_add_frame (progress_animation, filename))
-            goto out;
-
+          r = ply_progress_animation_add_frame (progress_animation, filename);
           free (filename);
+          if (!r)
+            goto out;
         }
 
       free (entries[i]);
@@ -399,7 +400,7 @@ out:
     {
       ply_progress_animation_remove_frames (progress_animation);
 
-      while (entries[i] != NULL)
+      while (i < number_of_entries)
         {
           free (entries[i]);
           i++;

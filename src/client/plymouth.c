@@ -49,6 +49,7 @@ typedef struct
   ply_event_loop_t     *loop;
   ply_boot_client_t    *client;
   ply_command_parser_t *command_parser;
+  bool                  nowait;
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
 } state_t;
 
@@ -299,7 +300,8 @@ on_password_answer (password_answer_state_t   *answer_state,
                                                        (WEXITSTATUS (exit_status) ? on_failure : on_success),
                                                        (ply_boot_client_response_handler_t)
                                                        on_failure,
-                                                       answer_state->state);
+                                                       answer_state->state,
+                                                       false);
     }
   else
     ply_event_loop_exit (answer_state->state->loop, WEXITSTATUS (exit_status));
@@ -333,7 +335,8 @@ on_question_answer (question_answer_state_t   *answer_state,
                                                          on_success,
                                                          (ply_boot_client_response_handler_t)
                                                          on_failure,
-                                                         answer_state->state);
+                                                         answer_state->state,
+                                                         false);
       else
         ply_event_loop_exit (answer_state->state->loop, 0);
     }
@@ -345,7 +348,8 @@ on_question_answer (question_answer_state_t   *answer_state,
                                                          on_failure,
                                                          (ply_boot_client_response_handler_t)
                                                          on_failure,
-                                                         answer_state->state);
+                                                         answer_state->state,
+                                                         false);
       else
         ply_event_loop_exit (answer_state->state->loop, 1);
     }
@@ -520,7 +524,8 @@ on_password_request (state_t    *state,
                                                      on_password_request_execute,
                                                      (ply_boot_client_response_handler_t)
                                                      on_password_answer_failure,
-                                                     password_answer_state);
+                                                     password_answer_state,
+                                                     false);
     }
   else
     {
@@ -574,7 +579,8 @@ on_question_request (state_t    *state,
                                                      on_question_request_execute,
                                                      (ply_boot_client_response_handler_t)
                                                      on_question_answer_failure,
-                                                     question_answer_state);
+                                                     question_answer_state,
+                                                     false);
     }
   else
     {
@@ -600,7 +606,7 @@ on_display_message_request (state_t    *state,
                                                       (ply_boot_client_response_handler_t)
                                                       on_success,
                                                       (ply_boot_client_response_handler_t)
-                                                      on_failure, state);
+                                                      on_failure, state, state->nowait);
       free (text);
     }
 }
@@ -623,7 +629,7 @@ on_hide_message_request (state_t    *state,
                                                    (ply_boot_client_response_handler_t)
                                                    on_success,
                                                    (ply_boot_client_response_handler_t)
-                                                   on_failure, state);
+                                                   on_failure, state, state->nowait);
       free (text);
     }
 }
@@ -675,7 +681,7 @@ on_keystroke_ignore (state_t    *state,
                                                   (ply_boot_client_answer_handler_t)
                                                   on_success,
                                                   (ply_boot_client_response_handler_t)
-                                                  on_failure, state);
+                                                  on_failure, state, state->nowait);
 }
 
 static void
@@ -686,7 +692,7 @@ on_progress_pause_request (state_t    *state,
                                                 (ply_boot_client_response_handler_t)
                                                 on_success,
                                                 (ply_boot_client_response_handler_t)
-                                                on_failure, state);
+                                                on_failure, state, state->nowait);
 }
 
 
@@ -698,7 +704,7 @@ on_progress_unpause_request (state_t    *state,
                                                   (ply_boot_client_response_handler_t)
                                                   on_success,
                                                   (ply_boot_client_response_handler_t)
-                                                  on_failure, state);
+                                                  on_failure, state, state->nowait);
 }
 
 static void
@@ -709,7 +715,7 @@ on_report_error_request (state_t    *state,
                                            (ply_boot_client_response_handler_t)
                                            on_success,
                                            (ply_boot_client_response_handler_t)
-                                           on_failure, state);
+                                           on_failure, state, state->nowait);
 
 }
 
@@ -721,7 +727,7 @@ on_deactivate_request (state_t    *state,
                                              (ply_boot_client_response_handler_t)
                                              on_success,
                                              (ply_boot_client_response_handler_t)
-                                             on_failure, state);
+                                             on_failure, state, state->nowait);
 }
 
 static void
@@ -732,7 +738,7 @@ on_reactivate_request (state_t    *state,
                                              (ply_boot_client_response_handler_t)
                                              on_success,
                                              (ply_boot_client_response_handler_t)
-                                             on_failure, state);
+                                             on_failure, state, state->nowait);
 }
 
 static void
@@ -752,7 +758,8 @@ on_quit_request (state_t    *state,
                                        (ply_boot_client_response_handler_t)
                                        on_success,
                                        (ply_boot_client_response_handler_t)
-                                       on_failure, state);
+                                       on_failure, state,
+                                       state->nowait);
 }
 
 static bool
@@ -803,7 +810,7 @@ on_update_root_fs_request (state_t    *state,
                                                   (ply_boot_client_response_handler_t)
                                                   on_success,
                                                   (ply_boot_client_response_handler_t)
-                                                  on_failure, state);
+                                                  on_failure, state, state->nowait);
 
     }
 
@@ -813,7 +820,7 @@ on_update_root_fs_request (state_t    *state,
                                                          (ply_boot_client_response_handler_t)
                                                          on_success,
                                                          (ply_boot_client_response_handler_t)
-                                                         on_failure, state);
+                                                         on_failure, state, state->nowait);
     }
 }
 
@@ -825,7 +832,7 @@ on_show_splash_request (state_t    *state,
                                                (ply_boot_client_response_handler_t)
                                                on_success,
                                                (ply_boot_client_response_handler_t)
-                                               on_failure, state);
+                                               on_failure, state, state->nowait);
 }
 
 static void
@@ -836,7 +843,7 @@ on_hide_splash_request (state_t    *state,
                                                (ply_boot_client_response_handler_t)
                                                on_success,
                                                (ply_boot_client_response_handler_t)
-                                               on_failure, state);
+                                               on_failure, state, state->nowait);
 }
 
 static void
@@ -857,7 +864,7 @@ on_update_request (state_t    *state,
                                      (ply_boot_client_response_handler_t)
                                      on_success,
                                      (ply_boot_client_response_handler_t)
-                                     on_failure, state);
+                                     on_failure, state, state->nowait);
 
     }
 }
@@ -896,6 +903,7 @@ main (int    argc,
                                   "update", "Tell boot daemon an update about boot progress", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "details", "Tell boot daemon there were errors during boot", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "wait", "Wait for boot daemon to quit", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                  "nowait", "Don't wait for boot daemon to reply", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,
@@ -1052,6 +1060,7 @@ main (int    argc,
                                   "ignore-keystroke", &ignore_keystroke,
                                   "update", &status,
                                   "wait", &should_wait,
+                                  "nowait", &state.nowait,
                                   "details", &report_error,
                                   NULL);
 
@@ -1117,20 +1126,20 @@ main (int    argc,
                                                (ply_boot_client_response_handler_t)
                                                on_success,
                                                (ply_boot_client_response_handler_t)
-                                               on_failure, &state);
+                                               on_failure, &state, state.nowait);
   else if (should_hide_splash)
     ply_boot_client_tell_daemon_to_hide_splash (state.client,
                                                (ply_boot_client_response_handler_t)
                                                on_success,
                                                (ply_boot_client_response_handler_t)
-                                               on_failure, &state);
+                                               on_failure, &state, state.nowait);
   else if (should_quit)
     ply_boot_client_tell_daemon_to_quit (state.client,
                                          false,
                                          (ply_boot_client_response_handler_t)
                                          on_success,
                                          (ply_boot_client_response_handler_t)
-                                         on_failure, &state);
+                                         on_failure, &state, state.nowait);
   else if (should_ping)
     ply_boot_client_ping_daemon (state.client,
                                  (ply_boot_client_response_handler_t)
@@ -1142,13 +1151,13 @@ main (int    argc,
                                               (ply_boot_client_response_handler_t)
                                               on_success,
                                               (ply_boot_client_response_handler_t)
-                                              on_failure, &state);
+                                              on_failure, &state, state.nowait);
   else if (status != NULL)
     ply_boot_client_update_daemon (state.client, status,
                                    (ply_boot_client_response_handler_t)
                                    on_success, 
                                    (ply_boot_client_response_handler_t)
-                                   on_failure, &state);
+                                   on_failure, &state, state.nowait);
   else if (should_ask_for_password)
     {
       password_answer_state_t answer_state = { 0 };
@@ -1169,20 +1178,20 @@ main (int    argc,
                                            (ply_boot_client_answer_handler_t)
                                            on_success,
                                            (ply_boot_client_response_handler_t)
-                                           on_failure, &state);
+                                           on_failure, &state, state.nowait);
     }
   else if (should_sysinit)
     ply_boot_client_tell_daemon_system_is_initialized (state.client,
                                    (ply_boot_client_response_handler_t)
                                    on_success, 
                                    (ply_boot_client_response_handler_t)
-                                   on_failure, &state);
+                                   on_failure, &state, state.nowait);
   else if (chroot_dir)
     ply_boot_client_tell_daemon_to_change_root (state.client, chroot_dir,
                                    (ply_boot_client_response_handler_t)
                                    on_success,
                                    (ply_boot_client_response_handler_t)
-                                   on_failure, &state);
+                                   on_failure, &state, state.nowait);
 
   else if (should_wait)
     {} // Do nothing
@@ -1191,7 +1200,7 @@ main (int    argc,
                                              (ply_boot_client_response_handler_t)
                                              on_success,
                                              (ply_boot_client_response_handler_t)
-                                             on_failure, &state);
+                                             on_failure, &state, state.nowait);
 
   exit_code = ply_event_loop_run (state.loop);
 

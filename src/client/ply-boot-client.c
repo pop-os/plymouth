@@ -59,7 +59,6 @@ typedef struct
   ply_boot_client_response_handler_t handler;
   ply_boot_client_response_handler_t failed_handler;
   void *user_data;
-  bool nowait;
 } ply_boot_client_request_t;
 
 static void ply_boot_client_cancel_request (ply_boot_client_t         *client,
@@ -212,8 +211,7 @@ ply_boot_client_request_new (ply_boot_client_t                  *client,
                              const char                         *request_argument,
                              ply_boot_client_response_handler_t  handler,
                              ply_boot_client_response_handler_t  failed_handler,
-                             void                               *user_data,
-                             bool                                nowait)
+                             void                               *user_data)
 {
   ply_boot_client_request_t *request;
 
@@ -228,7 +226,6 @@ ply_boot_client_request_new (ply_boot_client_t                  *client,
   request->handler = handler;
   request->failed_handler = failed_handler;
   request->user_data = user_data;
-  request->nowait = nowait;
 
   return request;
 }
@@ -436,15 +433,6 @@ ply_boot_client_send_request (ply_boot_client_t         *client,
     }
   free (request_string);
 
-  if (request->nowait)
-    {
-      if (request->handler != NULL)
-        request->handler (request->user_data, client);
-
-      request->handler = NULL;
-      request->failed_handler = NULL;
-    }
-
   if (client->daemon_has_reply_watch == NULL)
     {
       assert (ply_list_get_length (client->requests_waiting_for_replies) == 0);
@@ -480,7 +468,7 @@ ply_boot_client_process_pending_requests (ply_boot_client_t *client)
 
   if (ply_list_get_length (client->requests_to_send) == 0)
     {
-      if (client->daemon_can_take_request_watch != NULL)
+      if (client->daemon_has_reply_watch != NULL)
         {
           assert (client->loop != NULL);
 
@@ -497,8 +485,7 @@ ply_boot_client_queue_request (ply_boot_client_t                  *client,
                                const char                         *request_argument,
                                ply_boot_client_response_handler_t  handler,
                                ply_boot_client_response_handler_t  failed_handler,
-                               void                               *user_data,
-                               bool                                nowait)
+                               void                               *user_data)
 {
   assert (client != NULL);
   assert (client->loop != NULL);
@@ -530,8 +517,7 @@ ply_boot_client_queue_request (ply_boot_client_t                  *client,
 
       request = ply_boot_client_request_new (client, request_command,
                                              request_argument,
-                                             handler, failed_handler, user_data,
-                                             nowait);
+                                             handler, failed_handler, user_data);
       ply_list_append_data (client->requests_to_send, request);
     }
 }
@@ -545,7 +531,7 @@ ply_boot_client_ping_daemon (ply_boot_client_t                  *client,
   assert (client != NULL);
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PING,
-                                 NULL, handler, failed_handler, user_data, false);
+                                 NULL, handler, failed_handler, user_data);
 }
 
 void
@@ -553,13 +539,12 @@ ply_boot_client_update_daemon (ply_boot_client_t                  *client,
                                const char                         *status,
                                ply_boot_client_response_handler_t  handler,
                                ply_boot_client_response_handler_t  failed_handler,
-                               void                               *user_data,
-                               bool                                nowait)
+                               void                               *user_data)
 {
   assert (client != NULL);
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_UPDATE,
-                                 status, handler, failed_handler, user_data, nowait);
+                                 status, handler, failed_handler, user_data);
 }
 
 void
@@ -567,14 +552,13 @@ ply_boot_client_tell_daemon_to_change_root (ply_boot_client_t                  *
                                             const char                         *root_dir,
                                             ply_boot_client_response_handler_t  handler,
                                             ply_boot_client_response_handler_t  failed_handler,
-                                            void                               *user_data,
-                                            bool                                nowait)
+                                            void                               *user_data)
 {
   assert (client != NULL);
   assert (root_dir != NULL);
 
   ply_boot_client_queue_request(client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_NEWROOT,
-                                root_dir, handler, failed_handler, user_data, nowait);
+                                root_dir, handler, failed_handler, user_data);
 }
 
 void
@@ -582,14 +566,13 @@ ply_boot_client_tell_daemon_to_display_message (ply_boot_client_t               
                                                 const char                         *message,
                                                 ply_boot_client_response_handler_t  handler,
                                                 ply_boot_client_response_handler_t  failed_handler,
-                                                void                               *user_data,
-                                                bool                                nowait)
+                                                void                               *user_data)
 {
   assert (client != NULL);
   assert (message != NULL);
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_SHOW_MESSAGE,
-                                 message, handler, failed_handler, user_data, nowait);
+                                 message, handler, failed_handler, user_data);
 }
 
 void
@@ -597,28 +580,26 @@ ply_boot_client_tell_daemon_to_hide_message (ply_boot_client_t                  
                                              const char                         *message,
                                              ply_boot_client_response_handler_t  handler,
                                              ply_boot_client_response_handler_t  failed_handler,
-                                             void                               *user_data,
-                                             bool                                nowait)
+                                             void                               *user_data)
 {
   assert (client != NULL);
   assert (message != NULL);
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_HIDE_MESSAGE,
-                                 message, handler, failed_handler, user_data, nowait);
+                                 message, handler, failed_handler, user_data);
 }
 
 void
 ply_boot_client_tell_daemon_system_is_initialized (ply_boot_client_t                  *client,
                                                    ply_boot_client_response_handler_t  handler,
                                                    ply_boot_client_response_handler_t  failed_handler,
-                                                   void                               *user_data,
-                                                   bool                                nowait)
+                                                   void                               *user_data)
 {
   assert (client != NULL);
 
   ply_boot_client_queue_request (client,
                                  PLY_BOOT_PROTOCOL_REQUEST_TYPE_SYSTEM_INITIALIZED,
-                                 NULL, handler, failed_handler, user_data, nowait);
+                                 NULL, handler, failed_handler, user_data);
 }
 
 void
@@ -633,7 +614,7 @@ ply_boot_client_ask_daemon_for_password (ply_boot_client_t                  *cli
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PASSWORD,
                                  prompt, (ply_boot_client_response_handler_t)
-                                 handler, failed_handler, user_data, false);
+                                 handler, failed_handler, user_data);
 }
 
 void
@@ -646,7 +627,7 @@ ply_boot_client_ask_daemon_for_cached_passwords (ply_boot_client_t              
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_CACHED_PASSWORD,
                                  NULL, (ply_boot_client_response_handler_t)
-                                 handler, failed_handler, user_data, false);
+                                 handler, failed_handler, user_data);
 }
 
 void
@@ -660,7 +641,7 @@ ply_boot_client_ask_daemon_question     (ply_boot_client_t                    *c
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_QUESTION,
                                  prompt, (ply_boot_client_response_handler_t)
-                                 handler, failed_handler, user_data, false);
+                                 handler, failed_handler, user_data);
 }
 
 void
@@ -674,7 +655,7 @@ ply_boot_client_ask_daemon_to_watch_for_keystroke (ply_boot_client_t           *
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_KEYSTROKE,
                                  keys, (ply_boot_client_response_handler_t)
-                                 handler, failed_handler, user_data, false);
+                                 handler, failed_handler, user_data);
 }
 
 void
@@ -682,66 +663,61 @@ ply_boot_client_ask_daemon_to_ignore_keystroke (ply_boot_client_t               
                                          const char                                *keys,
                                          ply_boot_client_answer_handler_t           handler,
                                          ply_boot_client_response_handler_t         failed_handler,
-                                         void                                      *user_data,
-                                         bool                                       nowait)
+                                         void                                      *user_data)
 {
   assert (client != NULL);
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_KEYSTROKE_REMOVE,
                                  keys, (ply_boot_client_response_handler_t)
-                                 handler, failed_handler, user_data, nowait);
+                                 handler, failed_handler, user_data);
 }
 
 void
 ply_boot_client_tell_daemon_to_show_splash (ply_boot_client_t                  *client,
                                             ply_boot_client_response_handler_t  handler,
                                             ply_boot_client_response_handler_t  failed_handler,
-                                            void                               *user_data,
-                                            bool                                nowait)
+                                            void                               *user_data)
 {
   assert (client != NULL);
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_SHOW_SPLASH,
-                                 NULL, handler, failed_handler, user_data, nowait);
+                                 NULL, handler, failed_handler, user_data);
 }
 
 void
 ply_boot_client_tell_daemon_to_hide_splash (ply_boot_client_t                  *client,
                                             ply_boot_client_response_handler_t  handler,
                                             ply_boot_client_response_handler_t  failed_handler,
-                                            void                               *user_data,
-                                            bool                                nowait)
+                                            void                               *user_data)
 {
   assert (client != NULL);
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_HIDE_SPLASH,
-                                 NULL, handler, failed_handler, user_data, nowait);
+                                 NULL, handler, failed_handler, user_data);
 }
 
 void
 ply_boot_client_tell_daemon_to_deactivate (ply_boot_client_t                  *client,
                                            ply_boot_client_response_handler_t  handler,
                                            ply_boot_client_response_handler_t  failed_handler,
-                                           void                               *user_data,
-                                           bool                                nowait)
+                                           void                               *user_data)
 {
   assert (client != NULL);
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_DEACTIVATE,
-                                 NULL, handler, failed_handler, user_data, nowait);
+                                 NULL, handler, failed_handler, user_data);
 }
 
 void
 ply_boot_client_tell_daemon_to_reactivate (ply_boot_client_t                  *client,
                                            ply_boot_client_response_handler_t  handler,
                                            ply_boot_client_response_handler_t  failed_handler,
-                                           void                               *user_data,
-                                           bool                                nowait)
+                                           void                               *user_data)
 {
   assert (client != NULL);
 
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_REACTIVATE,
-                                 NULL, handler, failed_handler, user_data, nowait);
+                                 NULL, handler, failed_handler, user_data);
 }
 
 void
@@ -749,8 +725,7 @@ ply_boot_client_tell_daemon_to_quit (ply_boot_client_t                  *client,
                                      bool                                retain_splash,
                                      ply_boot_client_response_handler_t  handler,
                                      ply_boot_client_response_handler_t  failed_handler,
-                                     void                               *user_data,
-                                     bool                                nowait)
+                                     void                               *user_data)
 {
   char arg[2] = "";
 
@@ -758,51 +733,47 @@ ply_boot_client_tell_daemon_to_quit (ply_boot_client_t                  *client,
 
   arg[0] = (char) (retain_splash != false);
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_QUIT,
-                                 arg, handler, failed_handler, user_data, nowait);
+                                 arg, handler, failed_handler, user_data);
 }
 
 void
 ply_boot_client_tell_daemon_to_progress_pause (ply_boot_client_t                  *client,
                                                ply_boot_client_response_handler_t  handler,
                                                ply_boot_client_response_handler_t  failed_handler,
-                                               void                               *user_data,
-                                               bool                                nowait)
+                                               void                               *user_data)
 {
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PROGRESS_PAUSE,
-                                 NULL, handler, failed_handler, user_data, nowait);
+                                 NULL, handler, failed_handler, user_data);
 }
 
 void
 ply_boot_client_tell_daemon_to_progress_unpause (ply_boot_client_t                  *client,
                                                  ply_boot_client_response_handler_t  handler,
                                                  ply_boot_client_response_handler_t  failed_handler,
-                                                 void                               *user_data,
-                                                 bool                                nowait)
+                                                 void                               *user_data)
 {
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PROGRESS_UNPAUSE,
-                                 NULL, handler, failed_handler, user_data, nowait);
+                                 NULL, handler, failed_handler, user_data);
 }
 
 void
 ply_boot_client_ask_daemon_has_active_vt (ply_boot_client_t                  *client,
                                           ply_boot_client_response_handler_t  handler,
                                           ply_boot_client_response_handler_t  failed_handler,
-                                          void                               *user_data,
-                                          bool                                nowait)
+                                          void                               *user_data)
 {
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_HAS_ACTIVE_VT,
-                                 NULL, handler, failed_handler, user_data, nowait);
+                                 NULL, handler, failed_handler, user_data);
 }
 
 void
 ply_boot_client_tell_daemon_about_error (ply_boot_client_t                  *client,
                                          ply_boot_client_response_handler_t  handler,
                                          ply_boot_client_response_handler_t  failed_handler,
-                                         void                               *user_data,
-                                         bool                                nowait)
+                                         void                               *user_data)
 {
   ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_ERROR,
-                                 NULL, handler, failed_handler, user_data, nowait);
+                                 NULL, handler, failed_handler, user_data);
 }
 
 void

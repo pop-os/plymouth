@@ -447,6 +447,7 @@ draw_background (view_t             *view,
                  int                 width,
                  int                 height)
 {
+  ply_boot_splash_plugin_t *plugin;
   ply_rectangle_t area;
 
   plugin = view->plugin;

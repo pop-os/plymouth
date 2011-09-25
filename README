@@ -33,7 +33,7 @@ the control interface to plymouthd.
 It supports things like plymouth --show-splash, or plymouth
 --ask-for-password, which trigger the associated action in plymouthd.
 
-plymouth supports various "splash" plugins which are analagous to
+plymouth supports various "splash" plugins which are analogous to
 screensavers, but happen at boot time.  Currently there are three
 graphical splash plugins: solar, fade-in, and spinfinity.  There are
 also three non-graphical plugins which are for text mode and the

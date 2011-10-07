@@ -1255,12 +1255,9 @@ void
 ply_event_loop_process_pending_events (ply_event_loop_t *loop)
 {
   int number_of_received_events, i;
-  struct epoll_event *events = NULL;
+  static struct epoll_event events[PLY_EVENT_LOOP_NUM_EVENT_HANDLERS];
 
   assert (loop != NULL);
-
-  events =
-        alloca (PLY_EVENT_LOOP_NUM_EVENT_HANDLERS * sizeof (struct epoll_event));
 
   memset (events, -1,
           PLY_EVENT_LOOP_NUM_EVENT_HANDLERS * sizeof (struct epoll_event));

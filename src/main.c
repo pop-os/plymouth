@@ -1689,6 +1689,7 @@ get_kernel_command_line (state_t *state)
   if (read (fd, state->kernel_command_line, sizeof (state->kernel_command_line)) < 0)
     {
       ply_trace ("couldn't read it: %m");
+      close (fd);
       return false;
     }
 

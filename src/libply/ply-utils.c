@@ -553,8 +553,10 @@ ply_close_open_fds (void)
 
       if ((*byte_after_number != '\0') ||
           (filename_as_number < 0) ||
-          (filename_as_number > INT_MAX)) 
+          (filename_as_number > INT_MAX)) {
+        closedir (dir);
         return false;
+      }
 
       fd = (int) filename_as_number;
 

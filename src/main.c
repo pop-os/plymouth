@@ -1827,6 +1827,7 @@ check_for_consoles (state_t    *state,
                                                                  "console=")) != NULL)
     {
       char *end;
+      size_t console_length;
 
       remaining_command_line = console_string;
 
@@ -1839,6 +1840,8 @@ check_for_consoles (state_t    *state,
       if (end != NULL)
         *end = '\0';
 
+      console_length = strlen (console);
+
       if (strcmp (console, "tty0") == 0 || strcmp (console, "/dev/tty0") == 0 ||
           strcmp (console, "tty") == 0 || strcmp (console, "/dev/tty") == 0)
         {
@@ -1849,7 +1852,7 @@ check_for_consoles (state_t    *state,
       ply_trace ("serial console %s found!", console);
       ply_hashtable_insert (consoles, console, NULL);
 
-      remaining_command_line += strlen (console);
+      remaining_command_line += console_length;
     }
 
   free (state->kernel_console_tty);

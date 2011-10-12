@@ -106,8 +106,10 @@ get_os_string (void)
   if (fd == -1)
     return;
 
-  if (fstat (fd, &sbuf) == -1)
+  if (fstat (fd, &sbuf) == -1) {
+    close (fd);
     return;
+  }
 
   buf = calloc (sbuf.st_size + 1, sizeof(char));
   read (fd, buf, sbuf.st_size);

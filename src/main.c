@@ -127,8 +127,8 @@ static ply_boot_splash_t *start_boot_splash (state_t    *state,
                                              const char *theme_path,
                                              bool        fall_back_if_neccessary);
 
-static void add_display_and_keyboard_for_terminal (state_t    *state,
-                                                   const char *tty_name);
+static void add_display_and_keyboard_for_terminal (state_t        *state,
+                                                   ply_terminal_t *terminal);
 
 static void add_default_displays_and_keyboard (state_t *state);
 
@@ -1383,18 +1383,14 @@ set_keyboard (state_t        *state,
                                   on_enter, state);
 }
 static void
-add_display_and_keyboard_for_terminal (state_t    *state,
-                                       const char *tty_name)
+add_display_and_keyboard_for_terminal (state_t        *state,
+                                       ply_terminal_t *terminal)
 {
   ply_text_display_t *display;
   ply_keyboard_t *keyboard;
 
-  ply_trace ("adding display and keyboard for %s", tty_name);
-
-  state->terminal = ply_terminal_new (tty_name);
-
-  keyboard = ply_keyboard_new_for_terminal (state->terminal);
-  display = ply_text_display_new (state->terminal);
+  keyboard = ply_keyboard_new_for_terminal (terminal);
+  display = ply_text_display_new (terminal);
 
   ply_list_append_data (state->text_displays, display);
   set_keyboard (state, keyboard);
@@ -1436,30 +1432,27 @@ add_default_displays_and_keyboard (state_t *state)
 {
   ply_renderer_t *renderer;
   ply_keyboard_t *keyboard;
-  ply_terminal_t *terminal;
   ply_text_display_t *text_display;
 
   ply_trace ("adding default displays and keyboard");
 
-  terminal = ply_terminal_new (state->default_tty);
+  state->terminal = ply_terminal_new (state->default_tty);
 
   /* force frame-buffer plugin for shutdown so it sticks around after getting killed */
   if (state->mode == PLY_MODE_SHUTDOWN)
-    renderer = ply_renderer_new (PLYMOUTH_PLUGIN_PATH "renderers/frame-buffer.so", NULL, terminal);
+    renderer = ply_renderer_new (PLYMOUTH_PLUGIN_PATH "renderers/frame-buffer.so", NULL, state->terminal);
   else
-    renderer = ply_renderer_new (NULL, NULL, terminal);
+    renderer = ply_renderer_new (NULL, NULL, state->terminal);
 
   if (!ply_renderer_open (renderer))
     {
       ply_trace ("could not open renderer /dev/fb");
       ply_renderer_free (renderer);
-      ply_terminal_free (terminal);
 
-      add_display_and_keyboard_for_terminal (state, state->default_tty);
+      ply_trace ("adding text display and keyboard for %s", state->default_tty);
+      add_display_and_keyboard_for_terminal (state, state->terminal);
       return;
     }
-
-  state->terminal = terminal;
 
   keyboard = ply_keyboard_new_for_renderer (renderer);
   set_keyboard (state, keyboard);
@@ -1801,7 +1794,15 @@ add_display_and_keyboard_for_console (const char *console,
                                       const char *null,
                                       state_t    *state)
 {
-  add_display_and_keyboard_for_terminal (state, console);
+  ply_terminal_t *terminal;
+
+  terminal = ply_terminal_new (console);
+
+  if (strcmp (console, state->default_tty) == 0)
+    state->terminal = terminal;
+
+  ply_trace ("adding display and keyboard for console %s", console);
+  add_display_and_keyboard_for_terminal (state, terminal);
 }
 
 static void
@@ -1827,6 +1828,7 @@ check_for_consoles (state_t    *state,
     {
       char *end;
       size_t console_length;
+      char *console_device;
 
       remaining_command_line = console_string;
 
@@ -1848,9 +1850,20 @@ check_for_consoles (state_t    *state,
           console = strdup (default_tty);
         }
 
-      ply_trace ("serial console %s found!", console);
-      ply_hashtable_insert (consoles, console, NULL);
+      if (strncmp (console, "/dev/", strlen ("/dev/")) == 0)
+        {
+          console_device = console;
+          console = NULL;
+        }
+      else
+        {
+          asprintf (&console_device, "/dev/%s", console);
+          free (console);
+          console = NULL;
+        }
 
+      ply_trace ("console %s found!", console_device);
+      ply_hashtable_insert (consoles, console_device, NULL);
       remaining_command_line += console_length;
     }
 

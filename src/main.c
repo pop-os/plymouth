@@ -97,7 +97,7 @@ typedef struct
   ply_command_parser_t *command_parser;
   ply_mode_t mode;
   ply_renderer_t *renderer;
-  ply_terminal_t *terminal;
+  ply_terminal_t *local_console_terminal;
 
   ply_trigger_t *deactivate_trigger;
   ply_trigger_t *quit_trigger;
@@ -871,16 +871,16 @@ quit_splash (state_t *state)
       state->renderer = NULL;
     }
 
-  if (state->terminal != NULL)
+  if (state->local_console_terminal != NULL)
     {
       if (!state->should_retain_splash)
         {
           ply_trace ("Not retaining splash, so deallocating VT");
-          ply_terminal_deactivate_vt (state->terminal);
+          ply_terminal_deactivate_vt (state->local_console_terminal);
         }
-      ply_terminal_close (state->terminal);
-      ply_terminal_free (state->terminal);
-      state->terminal = NULL;
+      ply_terminal_close (state->local_console_terminal);
+      ply_terminal_free (state->local_console_terminal);
+      state->local_console_terminal = NULL;
     }
 
   detach_from_running_session (state);
@@ -970,12 +970,12 @@ deactivate_splash (state_t *state)
 
   detach_from_running_session (state);
 
-  if (state->terminal != NULL)
+  if (state->local_console_terminal != NULL)
     {
       ply_trace ("deactivating terminal");
-      ply_terminal_stop_watching_for_vt_changes (state->terminal);
-      ply_terminal_set_buffered_input (state->terminal);
-      ply_terminal_ignore_mode_changes (state->terminal, true);
+      ply_terminal_stop_watching_for_vt_changes (state->local_console_terminal);
+      ply_terminal_set_buffered_input (state->local_console_terminal);
+      ply_terminal_ignore_mode_changes (state->local_console_terminal, true);
     }
 
   state->is_inactive = true;
@@ -1059,11 +1059,11 @@ on_reactivate (state_t *state)
   if (!state->is_inactive)
     return;
 
-  if (state->terminal != NULL)
+  if (state->local_console_terminal != NULL)
     {
-      ply_terminal_watch_for_vt_changes (state->terminal);
-      ply_terminal_set_unbuffered_input (state->terminal);
-      ply_terminal_ignore_mode_changes (state->terminal, false);
+      ply_terminal_watch_for_vt_changes (state->local_console_terminal);
+      ply_terminal_set_unbuffered_input (state->local_console_terminal);
+      ply_terminal_ignore_mode_changes (state->local_console_terminal, false);
     }
 
   if ((state->session != NULL) && state->should_be_attached)
@@ -1146,8 +1146,8 @@ on_quit (state_t       *state,
 static bool
 on_has_active_vt (state_t *state)
 {
-  if (state->terminal != NULL)
-    return ply_terminal_is_active (state->terminal);
+  if (state->local_console_terminal != NULL)
+    return ply_terminal_is_active (state->local_console_terminal);
   else
     return false;
 }
@@ -1436,13 +1436,13 @@ add_default_displays_and_keyboard (state_t *state)
 
   ply_trace ("adding default displays and keyboard");
 
-  state->terminal = ply_terminal_new (state->default_tty);
+  state->local_console_terminal = ply_terminal_new (state->default_tty);
 
   /* force frame-buffer plugin for shutdown so it sticks around after getting killed */
   if (state->mode == PLY_MODE_SHUTDOWN)
-    renderer = ply_renderer_new (PLYMOUTH_PLUGIN_PATH "renderers/frame-buffer.so", NULL, state->terminal);
+    renderer = ply_renderer_new (PLYMOUTH_PLUGIN_PATH "renderers/frame-buffer.so", NULL, state->local_console_terminal);
   else
-    renderer = ply_renderer_new (NULL, NULL, state->terminal);
+    renderer = ply_renderer_new (NULL, NULL, state->local_console_terminal);
 
   if (!ply_renderer_open (renderer))
     {
@@ -1450,7 +1450,7 @@ add_default_displays_and_keyboard (state_t *state)
       ply_renderer_free (renderer);
 
       ply_trace ("adding text display and keyboard for %s", state->default_tty);
-      add_display_and_keyboard_for_terminal (state, state->terminal);
+      add_display_and_keyboard_for_terminal (state, state->local_console_terminal);
       return;
     }
 
@@ -1459,7 +1459,7 @@ add_default_displays_and_keyboard (state_t *state)
 
   add_pixel_displays_from_renderer (state, renderer);
 
-  text_display = ply_text_display_new (state->terminal);
+  text_display = ply_text_display_new (state->local_console_terminal);
   ply_list_append_data (state->text_displays, text_display);
 
   state->renderer = renderer;
@@ -1799,7 +1799,7 @@ add_display_and_keyboard_for_console (const char *console,
   terminal = ply_terminal_new (console);
 
   if (strcmp (console, state->default_tty) == 0)
-    state->terminal = terminal;
+    state->local_console_terminal = terminal;
 
   ply_trace ("adding display and keyboard for console %s", console);
   add_display_and_keyboard_for_terminal (state, terminal);

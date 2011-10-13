@@ -850,9 +850,62 @@ on_show_splash (state_t *state)
   show_messages (state);
 }
 
+static ply_list_t *
+get_tracked_terminals (state_t *state)
+{
+  ply_list_t *terminals;
+  ply_list_node_t *node;
+
+  terminals = ply_list_new ();
+
+  node = ply_list_get_first_node (state->text_displays);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_text_display_t *display;
+      ply_terminal_t *terminal;
+
+      next_node = ply_list_get_next_node (state->text_displays, node);
+      display = ply_list_node_get_data (node);
+      terminal = ply_text_display_get_terminal (display);
+
+      ply_list_append_data (terminals, terminal);
+
+      node = next_node;
+    }
+
+  return terminals;
+}
+
+static void
+free_terminals (state_t    *state,
+                ply_list_t *terminals)
+{
+  ply_list_node_t *node;
+  node = ply_list_get_first_node (terminals);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      ply_terminal_t *terminal;
+
+      next_node = ply_list_get_next_node (state->text_displays, node);
+      terminal = ply_list_node_get_data (node);
+
+      ply_terminal_close (terminal);
+      ply_terminal_free (terminal);
+      ply_list_remove_node (terminals, node);
+
+      node = next_node;
+    }
+
+  ply_list_free (terminals);
+}
+
 static void
 quit_splash (state_t *state)
 {
+  ply_list_t *terminals;
+
   ply_trace ("quiting splash");
   if (state->boot_splash != NULL)
     {
@@ -860,6 +913,8 @@ quit_splash (state_t *state)
       ply_boot_splash_free (state->boot_splash);
       state->boot_splash = NULL;
     }
+
+  terminals = get_tracked_terminals (state);
 
   ply_trace ("removing displays and keyboard");
   remove_displays_and_keyboard (state);
@@ -878,10 +933,9 @@ quit_splash (state_t *state)
           ply_trace ("Not retaining splash, so deallocating VT");
           ply_terminal_deactivate_vt (state->local_console_terminal);
         }
-      ply_terminal_close (state->local_console_terminal);
-      ply_terminal_free (state->local_console_terminal);
       state->local_console_terminal = NULL;
     }
+  free_terminals (state, terminals);
 
   detach_from_running_session (state);
 }

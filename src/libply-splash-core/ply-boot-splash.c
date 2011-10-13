@@ -58,7 +58,6 @@ struct _ply_boot_splash
   ply_module_handle_t *module_handle;
   const ply_boot_splash_plugin_interface_t *plugin_interface;
   ply_boot_splash_plugin_t *plugin;
-  ply_terminal_t *terminal;
   ply_keyboard_t *keyboard;
   ply_buffer_t *boot_buffer;
   ply_trigger_t *idle_trigger;
@@ -87,8 +86,7 @@ static void ply_boot_splash_detach_from_event_loop (ply_boot_splash_t *splash);
 ply_boot_splash_t *
 ply_boot_splash_new (const char     *theme_path,
                      const char     *plugin_dir,
-                     ply_buffer_t   *boot_buffer,
-                     ply_terminal_t *terminal)
+                     ply_buffer_t   *boot_buffer)
 {
   ply_boot_splash_t *splash;
 
@@ -102,7 +100,6 @@ ply_boot_splash_new (const char     *theme_path,
   splash->is_shown = false;
 
   splash->boot_buffer = boot_buffer;
-  splash->terminal = terminal;
   splash->pixel_displays = ply_list_new ();
   splash->text_displays = ply_list_new ();
 
@@ -151,6 +148,32 @@ refresh_displays (ply_boot_splash_t *splash)
     }
 }
 
+static ply_terminal_t *
+find_local_console_terminal (ply_boot_splash_t *splash)
+{
+  ply_list_node_t *node;
+  node = ply_list_get_first_node (splash->text_displays);
+
+  while (node != NULL)
+    {
+      ply_text_display_t *display;
+      ply_terminal_t *terminal;
+      ply_list_node_t *next_node;
+
+      display = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (splash->text_displays, node);
+
+      terminal = ply_text_display_get_terminal (display);
+
+      if (terminal != NULL && ply_terminal_is_vt (terminal))
+        return terminal;
+
+      node = next_node;
+    }
+
+  return NULL;
+}
+
 static void
 on_keyboard_input (ply_boot_splash_t *splash,
                    const char        *keyboard_input,
@@ -170,13 +193,23 @@ on_keyboard_input (ply_boot_splash_t *splash,
             ply_trace ("toggle text mode!");
             splash->should_force_text_mode = !splash->should_force_text_mode;
 
-            if (splash->should_force_text_mode)
+            if (ply_list_get_length (splash->pixel_displays) >= 1)
               {
-                ply_terminal_set_mode (splash->terminal, PLY_TERMINAL_MODE_TEXT);
-                ply_terminal_ignore_mode_changes (splash->terminal, true);
+                ply_terminal_t *terminal;
+
+                terminal = find_local_console_terminal (splash);
+
+                if (terminal != NULL)
+                  {
+                    if (splash->should_force_text_mode)
+                      {
+                        ply_terminal_set_mode (terminal, PLY_TERMINAL_MODE_TEXT);
+                        ply_terminal_ignore_mode_changes (terminal, true);
+                      }
+                    else
+                      ply_terminal_ignore_mode_changes (terminal, false);
+                  }
               }
-            else
-              ply_terminal_ignore_mode_changes (splash->terminal, false);
             ply_trace ("text mode toggled!");
           return;
 
@@ -616,7 +649,15 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
   splash->plugin_interface->hide_splash_screen (splash->plugin,
                                                 splash->loop);
 
-  ply_terminal_set_mode (splash->terminal, PLY_TERMINAL_MODE_TEXT);
+  if (ply_list_get_length (splash->pixel_displays) >= 1)
+    {
+      ply_terminal_t *terminal;
+
+      terminal = find_local_console_terminal (splash);
+
+      if (terminal != NULL)
+        ply_terminal_set_mode (terminal, PLY_TERMINAL_MODE_TEXT);
+    }
 
   splash->is_shown = false;
 
@@ -860,7 +901,7 @@ main (int    argc,
                                    (ply_keyboard_escape_handler_t) on_quit, &state);
 
   state.buffer = ply_buffer_new ();
-  state.splash = ply_boot_splash_new (theme_path, PLYMOUTH_PLUGIN_PATH, state.buffer, terminal);
+  state.splash = ply_boot_splash_new (theme_path, PLYMOUTH_PLUGIN_PATH, state.buffer);
 
   if (!ply_boot_splash_load (state.splash))
     {

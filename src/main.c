@@ -1544,8 +1544,7 @@ start_boot_splash (state_t    *state,
 
   splash = ply_boot_splash_new (theme_path,
                                 PLYMOUTH_PLUGIN_PATH,
-                                state->boot_buffer,
-                                state->terminal);
+                                state->boot_buffer);
 
   is_loaded = ply_boot_splash_load (splash);
   if (!is_loaded && fall_back_if_neccessary)

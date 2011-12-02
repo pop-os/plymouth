@@ -1859,24 +1859,77 @@ add_display_and_keyboard_for_console (const char *console,
   add_display_and_keyboard_for_terminal (state, terminal);
 }
 
+static bool
+add_consoles_from_file (state_t         *state,
+                        ply_hashtable_t *consoles,
+                        const char      *path)
+{
+  int fd;
+  char contents[512] = "";
+  const char *remaining_command_line;
+  char *console;
+
+  ply_trace ("opening %s", path);
+  fd = open (path, O_RDONLY);
+
+  if (fd < 0)
+    {
+      ply_trace ("couldn't open it: %m");
+      return false;
+    }
+
+  ply_trace ("reading file");
+  if (read (fd, contents, sizeof (contents)))
+    {
+      ply_trace ("couldn't read it: %m");
+      close (fd);
+      return false;
+    }
+  close (fd);
+
+  remaining_command_line = contents;
+
+  console = NULL;
+  while (remaining_command_line != '\0')
+    {
+      char *end;
+      size_t console_length;
+      char *console_device;
+
+      state->should_force_details = true;
+
+      console = strdup (remaining_command_line);
+
+      end = strpbrk (console, " \n\t\v");
+
+      if (end != NULL)
+        *end = '\0';
+
+      console_length = strlen (console);
+
+      asprintf (&console_device, "/dev/%s", console);
+      free (console);
+      console = NULL;
+
+      ply_trace ("console %s found!", console_device);
+      ply_hashtable_insert (consoles, console_device, console_device);
+      remaining_command_line += console_length;
+    }
+
+  return true;
+}
+
 static void
-check_for_consoles (state_t    *state,
-                    const char *default_tty,
-                    bool        should_add_displays)
+add_consoles_from_kernel_command_line (state_t         *state,
+                                       ply_hashtable_t *consoles)
 {
   const char *console_string;
   const char *remaining_command_line;
   char *console;
-  ply_hashtable_t *consoles;
-
-  ply_trace ("checking for consoles%s",
-             should_add_displays? " and adding displays": "");
 
   remaining_command_line = state->kernel_command_line;
 
   console = NULL;
-  consoles = ply_hashtable_new (ply_hashtable_string_hash,
-                                ply_hashtable_string_compare);
   while ((console_string = command_line_get_string_after_prefix (remaining_command_line,
                                                                  "console=")) != NULL)
     {
@@ -1897,13 +1950,6 @@ check_for_consoles (state_t    *state,
 
       console_length = strlen (console);
 
-      if (strcmp (console, "tty0") == 0 || strcmp (console, "/dev/tty0") == 0 ||
-          strcmp (console, "tty") == 0 || strcmp (console, "/dev/tty") == 0)
-        {
-          free (console);
-          console = strdup (default_tty);
-        }
-
       if (strncmp (console, "/dev/", strlen ("/dev/")) == 0)
         {
           console_device = console;
@@ -1917,8 +1963,45 @@ check_for_consoles (state_t    *state,
         }
 
       ply_trace ("console %s found!", console_device);
-      ply_hashtable_insert (consoles, console_device, NULL);
+      ply_hashtable_insert (consoles, console_device, console_device);
       remaining_command_line += console_length;
+    }
+}
+
+static void
+check_for_consoles (state_t    *state,
+                    const char *default_tty,
+                    bool        should_add_displays)
+{
+  char *console;
+  ply_hashtable_t *consoles;
+
+  ply_trace ("checking for consoles%s",
+             should_add_displays? " and adding displays": "");
+
+  consoles = ply_hashtable_new (ply_hashtable_string_hash,
+                                ply_hashtable_string_compare);
+
+  if (!add_consoles_from_file (state,
+                               consoles,
+                               "/sys/class/tty/console/active"))
+    {
+      ply_trace ("falling back to kernel command line");
+      add_consoles_from_kernel_command_line (state, consoles);
+    }
+
+  console = ply_hashtable_remove (consoles, (void *) "/dev/tty0");
+  if (console != NULL)
+    {
+      free (console);
+      ply_hashtable_insert (consoles, (void *) default_tty, (char *) default_tty);
+    }
+
+  console = ply_hashtable_remove (consoles, (void *) "/dev/tty");
+  if (console != NULL)
+    {
+      free (console);
+      ply_hashtable_insert (consoles, (void *) default_tty, (void *) default_tty);
     }
 
   free (state->kernel_console_tty);

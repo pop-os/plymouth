@@ -1797,6 +1797,12 @@ check_verbosity (state_t *state)
 
       if (stream != NULL)
         {
+          char *end;
+
+          stream = strdup (stream);
+          end = stream + strcspn (stream, " \n");
+          *end = '\0';
+
           ply_trace ("streaming debug output to %s instead of screen", stream);
           fd = open (stream, O_RDWR | O_NOCTTY | O_CREAT, 0600);
 
@@ -1808,6 +1814,7 @@ check_verbosity (state_t *state)
             {
               ply_logger_set_output_fd (ply_logger_get_error_default (), fd);
             }
+          free (stream);
         }
     }
   else

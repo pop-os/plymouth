@@ -2338,11 +2338,6 @@ main (int    argc,
   signal (SIGABRT, on_crash);
   signal (SIGSEGV, on_crash);
 
-  /* If we're shutting down we don't want to die until killed
-   */
-  if (state.mode == PLY_MODE_SHUTDOWN)
-    signal (SIGTERM, SIG_IGN);
-
   /* before do anything we need to make sure we have a working
    * environment.
    */

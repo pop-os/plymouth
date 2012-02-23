@@ -18,7 +18,9 @@ if [ -z "$PLYMOUTH_POPULATE_SOURCE_FUNCTIONS" ]; then
         PLYMOUTH_POPULATE_SOURCE_FUNCTIONS="${PLYMOUTH_LIBEXECDIR}/initrd-functions"
     fi
 
-    if [ -f "${PLYMOUTH_DATADIR}/dracut/dracut-functions" ]; then
+    if [ -f "${PLYMOUTH_DATADIR}/dracut/dracut-functions.sh" ]; then
+        PLYMOUTH_POPULATE_SOURCE_FUNCTIONS="${PLYMOUTH_DATADIR}/dracut/dracut-functions.sh"
+    elif [ -f "${PLYMOUTH_DATADIR}/dracut/dracut-functions" ]; then
         PLYMOUTH_POPULATE_SOURCE_FUNCTIONS="${PLYMOUTH_DATADIR}/dracut/dracut-functions"
     fi
 fi

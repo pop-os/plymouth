@@ -56,7 +56,7 @@
 #include "ply-renderer-plugin.h"
 
 #ifndef PLY_FRAME_BUFFER_DEFAULT_FB_DEVICE_NAME
-#define PLY_FRAME_BUFFER_DEFAULT_FB_DEVICE_NAME "/dev/fb"
+#define PLY_FRAME_BUFFER_DEFAULT_FB_DEVICE_NAME "/dev/fb0"
 #endif
 
 struct _ply_renderer_head

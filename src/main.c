@@ -2013,14 +2013,16 @@ check_for_consoles (state_t    *state,
   if (console != NULL)
     {
       free (console);
-      ply_hashtable_insert (consoles, (void *) strdup (default_tty), (char *) default_tty);
+      console = strdup (default_tty);
+      ply_hashtable_insert (consoles, console, console);
     }
 
   console = ply_hashtable_remove (consoles, (void *) "/dev/tty");
   if (console != NULL)
     {
       free (console);
-      ply_hashtable_insert (consoles, (void *) strdup (default_tty), (void *) default_tty);
+      console = strdup (default_tty);
+      ply_hashtable_insert (consoles, console, console);
     }
 
   free (state->kernel_console_tty);

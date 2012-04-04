@@ -22,6 +22,8 @@ if [ -z "$PLYMOUTH_POPULATE_SOURCE_FUNCTIONS" ]; then
         PLYMOUTH_POPULATE_SOURCE_FUNCTIONS="${PLYMOUTH_DATADIR}/dracut/dracut-functions.sh"
     elif [ -f "${PLYMOUTH_DATADIR}/dracut/dracut-functions" ]; then
         PLYMOUTH_POPULATE_SOURCE_FUNCTIONS="${PLYMOUTH_DATADIR}/dracut/dracut-functions"
+    elif [ -f "/usr/lib/dracut/dracut-functions.sh" ]; then
+        PLYMOUTH_POPULATE_SOURCE_FUNCTIONS="/usr/lib/dracut/dracut-functions.sh"
     fi
 fi
 

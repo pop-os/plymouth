@@ -1918,6 +1918,12 @@ add_consoles_from_file (state_t         *state,
       if (end != NULL)
         *end = '\0';
 
+      if (console[0] == '\0')
+        {
+          free (console);
+          break;
+        }
+
       console_length = strlen (console);
 
       asprintf (&console_device, "/dev/%s", console);

@@ -1892,7 +1892,7 @@ add_consoles_from_file (state_t         *state,
     }
 
   ply_trace ("reading file");
-  if (read (fd, contents, sizeof (contents)))
+  if (read (fd, contents, sizeof (contents)) <= 0)
     {
       ply_trace ("couldn't read it: %m");
       close (fd);

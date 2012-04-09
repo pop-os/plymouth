@@ -1909,8 +1909,6 @@ add_consoles_from_file (state_t         *state,
       size_t console_length;
       char *console_device;
 
-      state->should_force_details = true;
-
       console = strdup (remaining_command_line);
 
       end = strpbrk (console, " \n\t\v");
@@ -1923,6 +1921,13 @@ add_consoles_from_file (state_t         *state,
           free (console);
           break;
         }
+
+      /* if we are in a weird case force details,
+       * so the user probably doesn't care about
+       * graphical splashes
+       */
+      if (strcmp (console, "tty0") != 0)
+        state->should_force_details = true;
 
       console_length = strlen (console);
 

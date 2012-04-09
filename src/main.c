@@ -1879,7 +1879,7 @@ add_consoles_from_file (state_t         *state,
 {
   int fd;
   char contents[512] = "";
-  const char *remaining_command_line;
+  const char *remaining_file_contents;
   char *console;
 
   ply_trace ("opening %s", path);
@@ -1900,23 +1900,23 @@ add_consoles_from_file (state_t         *state,
     }
   close (fd);
 
-  remaining_command_line = contents;
+  remaining_file_contents = contents;
 
   console = NULL;
-  while (remaining_command_line != '\0')
+  while (remaining_file_contents != '\0')
     {
       char *end;
       char *console_device;
 
-      console = strdup (remaining_command_line);
-      remaining_command_line += strlen (console);
+      console = strdup (remaining_file_contents);
+      remaining_file_contents += strlen (console);
 
       end = strpbrk (console, " ");
 
       if (end != NULL)
         {
           *end = '\0';
-          remaining_command_line++;
+          remaining_file_contents++;
         }
 
       if (console[0] == '\0')

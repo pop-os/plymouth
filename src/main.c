@@ -1906,15 +1906,18 @@ add_consoles_from_file (state_t         *state,
   while (remaining_command_line != '\0')
     {
       char *end;
-      size_t console_length;
       char *console_device;
 
       console = strdup (remaining_command_line);
+      remaining_command_line += strlen (console);
 
-      end = strpbrk (console, " \n\t\v");
+      end = strpbrk (console, " ");
 
       if (end != NULL)
-        *end = '\0';
+        {
+          *end = '\0';
+          remaining_command_line++;
+        }
 
       if (console[0] == '\0')
         {
@@ -1929,15 +1932,12 @@ add_consoles_from_file (state_t         *state,
       if (strcmp (console, "tty0") != 0)
         state->should_force_details = true;
 
-      console_length = strlen (console);
-
       asprintf (&console_device, "/dev/%s", console);
       free (console);
       console = NULL;
 
       ply_trace ("console %s found!", console_device);
       ply_hashtable_insert (consoles, console_device, console_device);
-      remaining_command_line += console_length;
     }
 
   return true;

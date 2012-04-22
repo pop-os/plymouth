@@ -1880,6 +1880,8 @@ add_consoles_from_file (state_t         *state,
 {
   int fd;
   char contents[512] = "";
+  ssize_t contents_length;
+  int num_consoles;
   const char *remaining_file_contents;
   char *console;
 
@@ -1893,7 +1895,9 @@ add_consoles_from_file (state_t         *state,
     }
 
   ply_trace ("reading file");
-  if (read (fd, contents, sizeof (contents)) <= 0)
+  contents_length = read (fd, contents, sizeof (contents));
+
+  if (contents_length <= 0)
     {
       ply_trace ("couldn't read it: %m");
       close (fd);
@@ -1902,46 +1906,56 @@ add_consoles_from_file (state_t         *state,
   close (fd);
 
   remaining_file_contents = contents;
+  num_consoles = 0;
 
   console = NULL;
-  while (remaining_file_contents != '\0')
+  while (remaining_file_contents < contents + contents_length)
     {
+      size_t console_length;
       char *end;
       char *console_device;
 
-      console = strdup (remaining_file_contents);
-      remaining_file_contents += strlen (console);
+      /* Advance past any leading whitespace */
+      remaining_file_contents += strspn (remaining_file_contents, " \n\t\v");
 
-      end = strpbrk (console, " ");
-
-      if (end != NULL)
+      if (*remaining_file_contents == '\0')
         {
-          *end = '\0';
-          remaining_file_contents++;
-        }
-
-      if (console[0] == '\0')
-        {
-          free (console);
+          /* There's nothing left after the whitespace, we're done */
           break;
         }
 
-      /* if we are in a weird case force details,
-       * so the user probably doesn't care about
-       * graphical splashes
+      console = strdup (remaining_file_contents);
+
+      /* Find trailing whitespace and NUL terminate.  If strcspn
+       * doesn't find whitespace, it gives us the length of the string
+       * until the next NUL byte, which we'll just overwrite with
+       * another NUL byte anyway. */
+      console_length = strcspn (console, " \n\t\v");
+      console[console_length] = '\0';
+
+      /* If this console is anything besides tty0, then the user is sort
+       * of a weird case (uses a serial console or whatever) and they
+       * most likely don't want a graphical splash, so force details.
        */
       if (strcmp (console, "tty0") != 0)
         state->should_force_details = true;
 
-      asprintf (&console_device, "/dev/%s", console);
-      free (console);
-      console = NULL;
+      asprintf (&console_device, "/dev/%s", remaining_file_contents);
 
       ply_trace ("console %s found!", console_device);
       ply_hashtable_insert (consoles, console_device, console_device);
+      num_consoles++;
+
+      /* Move past the parsed console string, and the whitespace we
+       * may have found above.  If we found a NUL above and not whitespace,
+       * then we're going to jump past the end of the buffer and the loop
+       * will terminate
+       */
+      remaining_file_contents += console_length + 1;
     }
 
-  return true;
+  /* Fail if there was nothing to read */
+  return num_consoles > 0;
 }
 
 static void

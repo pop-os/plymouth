@@ -57,6 +57,9 @@ struct _ply_label_plugin_control
 
   char               *text;
   char               *fontdesc;
+
+  PangoAlignment      alignment;
+  long                width;
   float               red;
   float               green;
   float               blue;
@@ -75,6 +78,8 @@ create_control (void)
   label = calloc (1, sizeof (ply_label_plugin_control_t));
 
   label->is_hidden = true;
+  label->alignment = PANGO_ALIGN_LEFT;
+  label->width     = -1;
 
   return label;
 }
@@ -139,7 +144,9 @@ get_cairo_context_for_sizing (ply_label_plugin_control_t *label)
 static PangoLayout*
 init_pango_text_layout (cairo_t *cairo_context,
 			char *text,
-			char *font_description)
+                        char *font_description,
+                        PangoAlignment alignment,
+                        long width)
 {
   PangoLayout          *pango_layout;
   PangoFontDescription *description;
@@ -153,6 +160,10 @@ init_pango_text_layout (cairo_t *cairo_context,
 
   pango_layout_set_font_description (pango_layout, description);
   pango_font_description_free (description);
+
+  pango_layout_set_alignment(pango_layout, alignment);
+  if (width >= 0)
+    pango_layout_set_width(pango_layout, width * PANGO_SCALE);
 
   pango_layout_set_text (pango_layout, text, -1);
   pango_cairo_update_layout (cairo_context, pango_layout);
@@ -173,7 +184,7 @@ size_control (ply_label_plugin_control_t *label)
 
   cairo_context = get_cairo_context_for_sizing (label);
 
-  pango_layout = init_pango_text_layout(cairo_context, label->text, label->fontdesc);
+  pango_layout = init_pango_text_layout(cairo_context, label->text, label->fontdesc, label->alignment, label->width);
 
   pango_layout_get_size (pango_layout, &text_width, &text_height);
   label->area.width = (long) ((double) text_width / PANGO_SCALE);
@@ -201,7 +212,7 @@ draw_control (ply_label_plugin_control_t *label,
 
   cairo_context = get_cairo_context_for_pixel_buffer (label, pixel_buffer);
 
-  pango_layout = init_pango_text_layout(cairo_context, label->text, label->fontdesc);
+  pango_layout = init_pango_text_layout(cairo_context, label->text, label->fontdesc, label->alignment, label->width);
 
   pango_layout_get_size (pango_layout, &text_width, &text_height);
   label->area.width = (long) ((double) text_width / PANGO_SCALE);
@@ -222,6 +233,59 @@ draw_control (ply_label_plugin_control_t *label,
 
   g_object_unref (pango_layout);
   cairo_destroy (cairo_context);
+}
+
+static void
+set_alignment_for_control (ply_label_plugin_control_t *label,
+                           ply_label_alignment_t alignment)
+{
+  ply_rectangle_t dirty_area;
+  PangoAlignment pango_alignment;
+
+  switch(alignment)
+    {
+    case PLY_LABEL_ALIGN_CENTER:
+      pango_alignment = PANGO_ALIGN_CENTER;
+      break;
+    case PLY_LABEL_ALIGN_RIGHT:
+      pango_alignment = PANGO_ALIGN_RIGHT;
+      break;
+    case PLY_LABEL_ALIGN_LEFT:
+    default:
+      pango_alignment = PANGO_ALIGN_LEFT;
+      break;
+    }
+
+  if (label->alignment != pango_alignment)
+    {
+      dirty_area = label->area;
+      label->alignment = pango_alignment;
+      size_control (label);
+      if (!label->is_hidden && label->display != NULL)
+        ply_pixel_display_draw_area (label->display,
+                                     dirty_area.x, dirty_area.y,
+                                     dirty_area.width, dirty_area.height);
+
+    }
+}
+
+static void
+set_width_for_control (ply_label_plugin_control_t *label,
+                       long                        width)
+{
+  ply_rectangle_t dirty_area;
+
+  if (label->width != width)
+    {
+      dirty_area = label->area;
+      label->width = width;
+      size_control (label);
+      if (!label->is_hidden && label->display != NULL)
+        ply_pixel_display_draw_area (label->display,
+                                     dirty_area.x, dirty_area.y,
+                                     dirty_area.width, dirty_area.height);
+
+    }
 }
 
 static void
@@ -343,6 +407,8 @@ ply_label_plugin_get_interface (void)
       .draw_control = draw_control,
       .is_control_hidden = is_control_hidden,
       .set_text_for_control = set_text_for_control,
+      .set_alignment_for_control = set_alignment_for_control,
+      .set_width_for_control = set_width_for_control,
       .set_font_for_control = set_font_for_control,
       .set_color_for_control = set_color_for_control,
       .get_width_of_control = get_width_of_control,

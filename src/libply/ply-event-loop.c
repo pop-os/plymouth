@@ -1289,7 +1289,7 @@ ply_event_loop_process_pending_events (ply_event_loop_t *loop)
            }
        }
     }
-  while ((number_of_received_events < 0) && ((errno == EINTR) || (errno == EAGAIN)));
+  while (number_of_received_events < 0);
 
   /* first reference all sources, so they stay alive for the duration of this
    * iteration of the loop

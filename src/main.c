@@ -1873,7 +1873,7 @@ add_display_and_keyboard_for_console (const char *console,
   add_display_and_keyboard_for_terminal (state, terminal);
 }
 
-static bool
+static int
 add_consoles_from_file (state_t         *state,
                         ply_hashtable_t *consoles,
                         const char      *path)
@@ -1891,7 +1891,7 @@ add_consoles_from_file (state_t         *state,
   if (fd < 0)
     {
       ply_trace ("couldn't open it: %m");
-      return false;
+      return 0;
     }
 
   ply_trace ("reading file");
@@ -1901,7 +1901,7 @@ add_consoles_from_file (state_t         *state,
     {
       ply_trace ("couldn't read it: %m");
       close (fd);
-      return false;
+      return 0;
     }
   close (fd);
 
@@ -1954,20 +1954,21 @@ add_consoles_from_file (state_t         *state,
       remaining_file_contents += console_length + 1;
     }
 
-  /* Fail if there was nothing to read */
-  return num_consoles > 0;
+  return num_consoles;
 }
 
-static void
+static int
 add_consoles_from_kernel_command_line (state_t         *state,
                                        ply_hashtable_t *consoles)
 {
   const char *console_string;
   const char *remaining_command_line;
   char *console;
+  int num_consoles;
 
   remaining_command_line = state->kernel_command_line;
 
+  num_consoles = 0;
   console = NULL;
   while ((console_string = command_line_get_string_after_prefix (remaining_command_line,
                                                                  "console=")) != NULL)
@@ -2003,8 +2004,11 @@ add_consoles_from_kernel_command_line (state_t         *state,
 
       ply_trace ("console %s found!", console_device);
       ply_hashtable_insert (consoles, console_device, console_device);
+      num_consoles++;
       remaining_command_line += console_length;
     }
+
+  return num_consoles;
 }
 
 static void
@@ -2014,6 +2018,7 @@ check_for_consoles (state_t    *state,
 {
   char *console;
   ply_hashtable_t *consoles;
+  int num_consoles;
 
   ply_trace ("checking for consoles%s",
              should_add_displays? " and adding displays": "");
@@ -2021,13 +2026,15 @@ check_for_consoles (state_t    *state,
   consoles = ply_hashtable_new (ply_hashtable_string_hash,
                                 ply_hashtable_string_compare);
 
-  if (state->should_ignore_implicit_consoles ||
-      !add_consoles_from_file (state,
-                               consoles,
-                               "/sys/class/tty/console/active"))
+  num_consoles = 0;
+
+  if (!state->should_ignore_implicit_consoles)
+    num_consoles = add_consoles_from_file (state, consoles, "/sys/class/tty/console/active");
+
+  if (num_consoles == 0)
     {
       ply_trace ("falling back to kernel command line");
-      add_consoles_from_kernel_command_line (state, consoles);
+      num_consoles = add_consoles_from_kernel_command_line (state, consoles);
     }
 
   console = ply_hashtable_remove (consoles, (void *) "/dev/tty0");
@@ -2054,10 +2061,18 @@ check_for_consoles (state_t    *state,
 
   if (should_add_displays)
     {
-      ply_hashtable_foreach (consoles,
-                             (ply_hashtable_foreach_func_t *)
-                             add_display_and_keyboard_for_console,
-                             state);
+      /* Do a full graphical splash if there's no weird serial console
+       * stuff going on, otherwise just prepare text splashes
+       */
+      if ((num_consoles == 0) ||
+          ((num_consoles == 1) &&
+           (ply_hashtable_lookup (consoles, (void *) default_tty) != NULL)))
+        add_default_displays_and_keyboard (state);
+      else
+        ply_hashtable_foreach (consoles,
+                               (ply_hashtable_foreach_func_t *)
+                               add_display_and_keyboard_for_console,
+                               state);
     }
 
   ply_hashtable_foreach (consoles, (ply_hashtable_foreach_func_t *) free, NULL);
@@ -2065,8 +2080,6 @@ check_for_consoles (state_t    *state,
 
   ply_trace ("After processing serial consoles there are now %d text displays",
              ply_list_get_length (state->text_displays));
-  if (should_add_displays && ply_list_get_length (state->text_displays) == 0)
-    add_default_displays_and_keyboard (state);
 }
 
 static bool

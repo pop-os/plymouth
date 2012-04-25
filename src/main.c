@@ -113,7 +113,6 @@ typedef struct
   uint32_t should_retain_splash : 1;
   uint32_t is_inactive : 1;
   uint32_t should_force_details : 1;
-  uint32_t should_ignore_implicit_consoles : 1;
 
   char *kernel_console_tty;
   char *override_splash_path;
@@ -2026,10 +2025,7 @@ check_for_consoles (state_t    *state,
   consoles = ply_hashtable_new (ply_hashtable_string_hash,
                                 ply_hashtable_string_compare);
 
-  num_consoles = 0;
-
-  if (!state->should_ignore_implicit_consoles)
-    num_consoles = add_consoles_from_file (state, consoles, "/sys/class/tty/console/active");
+  num_consoles = add_consoles_from_file (state, consoles, "/sys/class/tty/console/active");
 
   if (num_consoles == 0)
     {
@@ -2282,7 +2278,6 @@ main (int    argc,
   bool no_daemon = false;
   bool debug = false;
   bool attach_to_session;
-  bool ignore_implicit_consoles = false;
   ply_daemon_handle_t *daemon_handle = NULL;
   char *mode_string = NULL;
   char *kernel_command_line = NULL;
@@ -2296,7 +2291,6 @@ main (int    argc,
                                   "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "attach-to-session", "Redirect console messages from screen to log", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "no-daemon", "Do not daemonize", PLY_COMMAND_OPTION_TYPE_FLAG,
-                                  "ignore-implicit-consoles", "Only use default console and consoles specified on kernel command line", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "debug", "Output debugging information", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   "debug-file", "File to output debugging information to", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "mode", "Mode is one of: boot, shutdown", PLY_COMMAND_OPTION_TYPE_STRING,
@@ -2322,7 +2316,6 @@ main (int    argc,
                                   "attach-to-session", &attach_to_session,
                                   "mode", &mode_string,
                                   "no-daemon", &no_daemon,
-                                  "ignore-implicit-consoles", &ignore_implicit_consoles,
                                   "debug", &debug,
                                   "debug-file", &debug_buffer_path,
                                   "pid-file", &pid_file,
@@ -2369,8 +2362,6 @@ main (int    argc,
       state.kernel_command_line[sizeof (state.kernel_command_line) - 1] = '\0';
       state.kernel_command_line_is_set = true;
     }
-
-  state.should_ignore_implicit_consoles = ignore_implicit_consoles;
 
   if (geteuid () != 0)
     {

@@ -2018,19 +2018,30 @@ check_for_consoles (state_t    *state,
   char *console;
   ply_hashtable_t *consoles;
   int num_consoles;
+  bool ignore_serial_consoles;
 
   ply_trace ("checking for consoles%s",
              should_add_displays? " and adding displays": "");
 
   consoles = ply_hashtable_new (ply_hashtable_string_hash,
                                 ply_hashtable_string_compare);
+  ignore_serial_consoles = command_line_has_argument (state->kernel_command_line, "plymouth.ignore-serial-consoles");
 
-  num_consoles = add_consoles_from_file (state, consoles, "/sys/class/tty/console/active");
+  num_consoles = 0;
 
-  if (num_consoles == 0)
+  if (!ignore_serial_consoles)
     {
-      ply_trace ("falling back to kernel command line");
-      num_consoles = add_consoles_from_kernel_command_line (state, consoles);
+      num_consoles = add_consoles_from_file (state, consoles, "/sys/class/tty/console/active");
+
+      if (num_consoles == 0)
+        {
+          ply_trace ("falling back to kernel command line");
+          num_consoles = add_consoles_from_kernel_command_line (state, consoles);
+        }
+    }
+  else
+    {
+      ply_trace ("ignoring all consoles but default console because of plymouth.ignore-serial-consoles");
     }
 
   console = ply_hashtable_remove (consoles, (void *) "/dev/tty0");

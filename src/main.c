@@ -1882,7 +1882,6 @@ add_consoles_from_file (state_t         *state,
   ssize_t contents_length;
   int num_consoles;
   const char *remaining_file_contents;
-  char *console;
 
   ply_trace ("opening %s", path);
   fd = open (path, O_RDONLY);
@@ -1907,11 +1906,10 @@ add_consoles_from_file (state_t         *state,
   remaining_file_contents = contents;
   num_consoles = 0;
 
-  console = NULL;
   while (remaining_file_contents < contents + contents_length)
     {
+      char *console;
       size_t console_length;
-      char *end;
       char *console_device;
 
       /* Advance past any leading whitespace */
@@ -1923,14 +1921,12 @@ add_consoles_from_file (state_t         *state,
           break;
         }
 
-      console = strdup (remaining_file_contents);
-
       /* Find trailing whitespace and NUL terminate.  If strcspn
        * doesn't find whitespace, it gives us the length of the string
        * until the next NUL byte, which we'll just overwrite with
        * another NUL byte anyway. */
-      console_length = strcspn (console, " \n\t\v");
-      console[console_length] = '\0';
+      console_length = strcspn (remaining_file_contents, " \n\t\v");
+      console = strndup (remaining_file_contents, console_length);
 
       /* If this console is anything besides tty0, then the user is sort
        * of a weird case (uses a serial console or whatever) and they
@@ -1939,7 +1935,9 @@ add_consoles_from_file (state_t         *state,
       if (strcmp (console, "tty0") != 0)
         state->should_force_details = true;
 
-      asprintf (&console_device, "/dev/%s", remaining_file_contents);
+      asprintf (&console_device, "/dev/%s", contents);
+
+      free (console);
 
       ply_trace ("console %s found!", console_device);
       ply_hashtable_insert (consoles, console_device, console_device);

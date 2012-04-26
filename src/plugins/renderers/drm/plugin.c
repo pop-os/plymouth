@@ -59,6 +59,7 @@
 #include "ply-renderer.h"
 #include "ply-renderer-plugin.h"
 #include "ply-renderer-driver.h"
+#include "ply-renderer-generic-driver.h"
 #ifdef PLY_ENABLE_LIBDRM_INTEL
 #include "ply-renderer-i915-driver.h"
 #endif
@@ -506,6 +507,25 @@ load_driver (ply_renderer_backend_t *backend)
       return false;
     }
   backend->driver_interface = NULL;
+
+/* Try intel driver first if we're supporting the legacy GDM transition
+ * since it can map the kernel console, which gives us the ability to do
+ * a more seamless transition when plymouth quits before X starts
+ */
+#if defined(PLY_ENABLE_GDM_TRANSITION) && defined(PLY_ENABLE_LIBDRM_INTEL)
+  if (backend->driver_interface == NULL && strcmp (driver_name, "i915") == 0)
+    {
+      backend->driver_interface = ply_renderer_i915_driver_get_interface ();
+      backend->driver_supports_mapping_console = true;
+    }
+#endif
+
+  if (backend->driver_interface == NULL)
+    {
+      backend->driver_interface = ply_renderer_generic_driver_get_interface (device_fd);
+      backend->driver_supports_mapping_console = false;
+    }
+
 #ifdef PLY_ENABLE_LIBDRM_INTEL
   if (backend->driver_interface == NULL && strcmp (driver_name, "i915") == 0)
     {

@@ -18,6 +18,9 @@ drm_la_LIBADD = $(PLYMOUTH_LIBS) $(DRM_LIBS)                                  \
                          ../../../libply-splash-core/libply-splash-core.la
 drm_la_SOURCES = $(srcdir)/plugin.c                                           \
                  $(srcdir)/ply-renderer-driver.h
+drm_la_SOURCES += $(srcdir)/ply-renderer-generic-driver.h                     \
+                  $(srcdir)/ply-renderer-generic-driver.c
+
 if ENABLE_LIBDRM_INTEL
 drm_la_SOURCES += $(srcdir)/ply-renderer-i915-driver.h                        \
                   $(srcdir)/ply-renderer-i915-driver.c

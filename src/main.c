@@ -1935,7 +1935,7 @@ add_consoles_from_file (state_t         *state,
       if (strcmp (console, "tty0") != 0)
         state->should_force_details = true;
 
-      asprintf (&console_device, "/dev/%s", contents);
+      asprintf (&console_device, "/dev/%s", console);
 
       free (console);
 

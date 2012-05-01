@@ -861,6 +861,28 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 }
 
 static bool
+has_32bpp_support (ply_renderer_backend_t *backend)
+{
+    uint32_t buffer_id;
+    unsigned long row_stride;
+
+    buffer_id = backend->driver_interface->create_buffer (backend->driver,
+                                                          1, 1,
+                                                          &row_stride);
+
+    if (buffer_id == 0)
+      {
+        ply_trace ("Could not create 1x1 32bpp dummy buffer");
+        return false;
+      }
+
+    backend->driver_interface->destroy_buffer (backend->driver,
+                                               buffer_id);
+
+    return true;
+}
+
+static bool
 query_device (ply_renderer_backend_t *backend)
 {
   assert (backend != NULL);
@@ -877,6 +899,12 @@ query_device (ply_renderer_backend_t *backend)
   if (!create_heads_for_active_connectors (backend))
     {
       ply_trace ("Could not initialize heads");
+      return false;
+    }
+
+  if (!has_32bpp_support (backend))
+    {
+      ply_trace ("Device doesn't support 32bpp framebuffer");
       return false;
     }
 

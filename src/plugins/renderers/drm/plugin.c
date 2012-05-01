@@ -867,12 +867,15 @@ has_32bpp_support (ply_renderer_backend_t *backend)
     unsigned long row_stride;
 
     buffer_id = backend->driver_interface->create_buffer (backend->driver,
-                                                          1, 1,
+                                                          backend->resources->min_width,
+                                                          backend->resources->min_height,
                                                           &row_stride);
 
     if (buffer_id == 0)
       {
-        ply_trace ("Could not create 1x1 32bpp dummy buffer");
+        ply_trace ("Could not create minimal (%ux%u) 32bpp dummy buffer",
+                    backend->resources->min_width,
+                    backend->resources->min_height);
         return false;
       }
 

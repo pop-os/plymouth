@@ -1081,7 +1081,8 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
                   double                    percent_done)
 {
-
+  if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_NORMAL)
+    return;
 
   if (percent_done >= SHOW_ANIMATION_PERCENT)
     {

@@ -512,7 +512,7 @@ load_driver (ply_renderer_backend_t *backend)
  * since it can map the kernel console, which gives us the ability to do
  * a more seamless transition when plymouth quits before X starts
  */
-#if defined(PLY_ENABLE_GDM_TRANSITION) && defined(PLY_ENABLE_LIBDRM_INTEL)
+#if defined(PLY_ENABLE_DEPRECATED_GDM_TRANSITION) && defined(PLY_ENABLE_LIBDRM_INTEL)
   if (backend->driver_interface == NULL && strcmp (driver_name, "i915") == 0)
     {
       backend->driver_interface = ply_renderer_i915_driver_get_interface ();
@@ -847,7 +847,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 
   ply_hashtable_free (heads_by_controller_id);
 
-#ifdef PLY_ENABLE_GDM_TRANSITION
+#ifdef PLY_ENABLE_DEPRECATED_GDM_TRANSITION
   /* If the driver doesn't support mapping the fb console
    * then we can't get a smooth crossfade transition to
    * the display manager unless we use the /dev/fb interface

@@ -973,7 +973,7 @@ on_hide_splash (state_t *state)
   dump_details_and_quit_splash (state);
 }
 
-#ifdef PLY_ENABLE_GDM_TRANSITION
+#ifdef PLY_ENABLE_DEPRECATED_GDM_TRANSITION
 static void
 tell_gdm_to_transition (void)
 {
@@ -997,7 +997,7 @@ quit_program (state_t *state)
       pid_file = NULL;
     }
 
-#ifdef PLY_ENABLE_GDM_TRANSITION
+#ifdef PLY_ENABLE_DEPRECATED_GDM_TRANSITION
   if (state->should_retain_splash &&
       state->mode == PLY_MODE_BOOT)
     {

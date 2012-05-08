@@ -20,9 +20,9 @@ inside the code.
 
 .Please improve
 **********************************************************************
-This document is a work in progress. Feel free to improve it. It is
-written using AsciiDoc and can be transformed to various output
-formats.
+This document is a work in progress. Feel free to improve it. Send
+contributions to http://bugs.freedesktop.org or to the plymouth mailing
+list (http://lists.freedesktop.org/mailman/listinfo/plymouth)
 **********************************************************************
 
 

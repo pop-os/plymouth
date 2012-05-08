@@ -885,10 +885,24 @@ has_32bpp_support (ply_renderer_backend_t *backend)
 {
     uint32_t buffer_id;
     unsigned long row_stride;
+    uint32_t min_width;
+    uint32_t min_height;
+
+    min_width = backend->resources->min_width;
+    min_height = backend->resources->min_height;
+
+    /* Some drivers set min_width/min_height to 0,
+     * but 0x0 sized buffers don't work.
+     */
+    if (min_width == 0)
+      min_width = 1;
+
+    if (min_height == 0)
+      min_height = 1;
 
     buffer_id = backend->driver_interface->create_buffer (backend->driver,
-                                                          backend->resources->min_width,
-                                                          backend->resources->min_height,
+                                                          min_width,
+                                                          min_height,
                                                           &row_stride);
 
     if (buffer_id == 0)

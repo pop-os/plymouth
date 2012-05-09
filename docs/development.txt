@@ -101,6 +101,19 @@ influence plymouth.
 
  * +plymouth.nolog+ Disable logging.
 
+
+Keyboard commands
+~~~~~~~~~~~~~~~~~
+
+plymouthd can be controlled with the keyboard. Use the following keys:
+
+ * +Esc+: Toggle between system console and plymouth boot animation.
+
+ * +Ctrl-V+: Toogle verbose mode on and off.
+
+ * +Ctrl-U+ or +Ctrl-W+: erase a line
+
+
 Debugging
 ---------
 

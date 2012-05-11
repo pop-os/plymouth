@@ -777,6 +777,17 @@ ply_boot_client_tell_daemon_about_error (ply_boot_client_t                  *cli
 }
 
 void
+ply_boot_client_flush (ply_boot_client_t *client)
+{
+  assert (client != NULL);
+
+  while (ply_list_get_length (client->requests_to_send) > 0)
+    {
+      ply_event_loop_process_pending_events (client->loop);
+    }
+}
+
+void
 ply_boot_client_disconnect (ply_boot_client_t *client)
 {
   assert (client != NULL);

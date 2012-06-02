@@ -248,6 +248,8 @@ AM_CONDITIONAL(ENABLE_SYSTEMD_INTEGRATION, [test "$enable_systemd_integration" =
 
 if test x$enable_systemd_integration = xyes; then
   AC_DEFINE(PLY_ENABLE_SYSTEMD_INTEGRATION, 1, [Coordinate boot up with systemd])
+  SYSTEMD_UNIT_DIR=/lib/systemd/system
+  AC_SUBST(SYSTEMD_UNIT_DIR)
 fi
 
 AC_ARG_WITH(system-root-install, AS_HELP_STRING([--with-system-root-install],[Install client in /bin and daemon in /sbin]),with_system_root_install=${withval},with_system_root_install=yes)
@@ -445,6 +447,15 @@ AC_CONFIG_FILES([Makefile
 	   scripts/plymouth-populate-initrd
 	   scripts/plymouth-set-default-theme
            scripts/Makefile
+           systemd-units/plymouth-halt.service
+           systemd-units/plymouth-kexec.service
+           systemd-units/plymouth-poweroff.service
+           systemd-units/plymouth-quit.service
+           systemd-units/plymouth-quit-wait.service
+           systemd-units/plymouth-read-write.service
+           systemd-units/plymouth-reboot.service
+           systemd-units/plymouth-start.service
+           systemd-units/Makefile
            docs/Makefile
 ])
 AC_OUTPUT

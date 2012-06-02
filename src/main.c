@@ -2416,6 +2416,13 @@ main (int    argc,
       return EX_OSERR;
     }
 
+  /* Make the first byte in argv be '@' so that we can survive systemd's killing
+   * spree when going from initrd to /, and so we stay alive all the way until
+   * the power is killed at shutdown.
+   * http://www.freedesktop.org/wiki/Software/systemd/RootStorageDaemons
+   */
+  argv[0][0] = '@';
+
   state.boot_buffer = ply_buffer_new ();
 
   if (attach_to_session)

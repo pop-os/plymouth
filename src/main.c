@@ -1498,11 +1498,7 @@ add_default_displays_and_keyboard (state_t *state)
 
   state->local_console_terminal = ply_terminal_new (state->default_tty);
 
-  /* force frame-buffer plugin for shutdown so it sticks around after getting killed */
-  if (state->mode == PLY_MODE_SHUTDOWN)
-    renderer = ply_renderer_new (PLYMOUTH_PLUGIN_PATH "renderers/frame-buffer.so", NULL, state->local_console_terminal);
-  else
-    renderer = ply_renderer_new (NULL, NULL, state->local_console_terminal);
+  renderer = ply_renderer_new (NULL, NULL, state->local_console_terminal);
 
   if (!ply_renderer_open (renderer))
     {

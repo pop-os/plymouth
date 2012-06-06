@@ -199,16 +199,17 @@ if test x$enable_libkms = xyes; then
   AC_DEFINE(PLY_ENABLE_LIBKMS, 1, [Enable support for libkms abstraction over drm drivers])
 fi
 
-DRM_CFLAGS="$DRM_INTEL_CFLAGS $DRM_RADEON_CFLAGS $DRM_NOUVEAU_CFLAGS $LIBKMS_CFLAG"
-DRM_LIBS="$DRM_INTEL_LIBS $DRM_RADEON_LIBS $DRM_NOUVEAU_LIBS $LIBKMS_LIBS"
+AC_ARG_ENABLE(drm, AS_HELP_STRING([--enable-drm-renderer],[enable building drm kms support]),enable_drm_renderer=$enableval,enable_drm_renderer=yes)
+AM_CONDITIONAL(ENABLE_DRM_RENDERER,  [test "$enable_drm_renderer" = yes])
+
+if test x$enable_drm_renderer = xyes; then
+  PKG_CHECK_MODULES(DRM, [libdrm])
+fi
+
+DRM_CFLAGS="$DRM_CFLAGS $DRM_INTEL_CFLAGS $DRM_RADEON_CFLAGS $DRM_NOUVEAU_CFLAGS $LIBKMS_CFLAG"
+DRM_LIBS="$DRM_LIBS $DRM_INTEL_LIBS $DRM_RADEON_LIBS $DRM_NOUVEAU_LIBS $LIBKMS_LIBS"
 AC_SUBST(DRM_CFLAGS)
 AC_SUBST(DRM_LIBS)
-
-AM_CONDITIONAL(ENABLE_DRM_RENDERER,
-               [test x$enable_libdrm_intel = xyes   \
-                  -o x$enable_libdrm_radeon = xyes  \
-                  -o x$enable_libdrm_nouveau = xyes \
-                  -o x$enable_libkms = xyes])
 
 AC_ARG_ENABLE(tracing, AS_HELP_STRING([--enable-tracing],[enable verbose tracing code]),enable_tracing=$enableval,enable_tracing=yes)
 

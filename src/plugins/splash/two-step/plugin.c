@@ -134,7 +134,8 @@ static void stop_animation (ply_boot_splash_plugin_t *plugin,
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 static void display_message (ply_boot_splash_plugin_t *plugin,
                              const char               *message);
-
+static void become_idle (ply_boot_splash_plugin_t *plugin,
+                         ply_trigger_t            *idle_trigger);
 
 static view_t *
 view_new (ply_boot_splash_plugin_t *plugin,
@@ -404,25 +405,11 @@ view_start_progress_animation (view_t *view)
       ply_pixel_display_draw_area (view->display, x, y, width, height);
     }
 
+  /* We don't really know how long shutdown will so
+   * don't show the progress animation
+   */
   if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
-    {
-      if (view->throbber != NULL)
-        {
-          ply_trigger_t *throbber_trigger;
-          throbber_trigger = ply_trigger_new (NULL);
-          ply_trigger_add_handler (throbber_trigger,
-                                   (ply_trigger_handler_t)
-                                   on_view_throbber_stopped,
-                                   view);
-          ply_throbber_stop (view->throbber, throbber_trigger);
-        }
-      else
-        {
-          view_start_end_animation (view, NULL);
-        }
-
-      return;
-    }
+    return;
 
   if (view->progress_animation != NULL)
     {
@@ -744,6 +731,13 @@ start_progress_animation (ply_boot_splash_plugin_t *plugin)
     }
 
   plugin->is_animating = true;
+
+  /* We don't really know how long shutdown will, take
+   * but it's normally really fast, so just jump to
+   * the end animation
+   */
+  if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+    become_idle (plugin, NULL);
 }
 
 static void

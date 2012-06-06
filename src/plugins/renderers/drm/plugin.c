@@ -136,6 +136,8 @@ static bool open_input_source (ply_renderer_backend_t      *backend,
                                ply_renderer_input_source_t *input_source);
 static bool reset_scan_out_buffer_if_needed (ply_renderer_backend_t *backend,
                                              ply_renderer_head_t    *head);
+static void flush_head (ply_renderer_backend_t *backend,
+                        ply_renderer_head_t    *head);
 
 static bool
 ply_renderer_head_add_connector (ply_renderer_head_t *head,
@@ -465,8 +467,16 @@ activate (ply_renderer_backend_t *backend)
       next_node = ply_list_get_next_node (backend->heads, node);
 
       if (head->scan_out_buffer_id != 0)
-        ply_renderer_head_set_scan_out_buffer (backend, head,
-                                               head->scan_out_buffer_id);
+        {
+          /* Flush out any pending drawing to the buffer
+           */
+          flush_head (backend, head);
+
+          /* Then send the buffer to the monitor
+           */
+          ply_renderer_head_set_scan_out_buffer (backend, head,
+                                                 head->scan_out_buffer_id);
+        }
 
       node = next_node;
     }

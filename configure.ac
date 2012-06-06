@@ -57,7 +57,7 @@ PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.12.0 ])
 AC_SUBST(GTK_CFLAGS)
 AC_SUBST(GTK_LIBS)
 
-AC_ARG_ENABLE(libdrm_intel, AS_HELP_STRING([--enable-libdrm_intel],[enable building with libdrm_intel support]),enable_libdrm_intel=$enableval,enable_libdrm_intel=yes)
+AC_ARG_ENABLE(libdrm_intel, AS_HELP_STRING([--enable-libdrm_intel],[enable building with libdrm_intel support]),enable_libdrm_intel=$enableval,enable_libdrm_intel=no)
 AM_CONDITIONAL(ENABLE_LIBDRM_INTEL,  [test "$enable_libdrm_intel" = yes])
 
 if test x$enable_libdrm_intel = xyes; then
@@ -101,7 +101,7 @@ if test x$enable_libdrm_intel = xyes; then
   AC_DEFINE(PLY_ENABLE_LIBDRM_INTEL, 1, [Enable support for libdrm_intel driver])
 fi
 
-AC_ARG_ENABLE(libdrm_radeon, AS_HELP_STRING([--enable-libdrm_radeon],[enable building with libdrm_radeon support]),enable_libdrm_radeon=$enableval,enable_libdrm_radeon=yes)
+AC_ARG_ENABLE(libdrm_radeon, AS_HELP_STRING([--enable-libdrm_radeon],[enable building with libdrm_radeon support]),enable_libdrm_radeon=$enableval,enable_libdrm_radeon=no)
 AM_CONDITIONAL(ENABLE_LIBDRM_RADEON,  [test "$enable_libdrm_radeon" = yes])
 
 if test x$enable_libdrm_radeon = xyes; then
@@ -145,7 +145,7 @@ if test x$enable_libdrm_radeon = xyes; then
   AC_DEFINE(PLY_ENABLE_LIBDRM_RADEON, 1, [Enable support for libdrm_radeon driver])
 fi
 
-AC_ARG_ENABLE(libdrm_nouveau, AS_HELP_STRING([--enable-libdrm_nouveau],[enable building with libdrm_nouveau support]),enable_libdrm_nouveau=$enableval,enable_libdrm_nouveau=yes)
+AC_ARG_ENABLE(libdrm_nouveau, AS_HELP_STRING([--enable-libdrm_nouveau],[enable building with libdrm_nouveau support]),enable_libdrm_nouveau=$enableval,enable_libdrm_nouveau=no)
 AM_CONDITIONAL(ENABLE_LIBDRM_NOUVEAU,  [test "$enable_libdrm_nouveau" = yes])
 
 if test x$enable_libdrm_nouveau = xyes; then
@@ -189,7 +189,7 @@ if test x$enable_libdrm_nouveau = xyes; then
   AC_DEFINE(PLY_ENABLE_LIBDRM_NOUVEAU, 1, [Enable support for libdrm_nouveau driver])
 fi
 
-AC_ARG_ENABLE(libkms, AS_HELP_STRING([--enable-libkms],[enable building with libkms support]),enable_libkms=$enableval,enable_libkms=yes)
+AC_ARG_ENABLE(libkms, AS_HELP_STRING([--enable-libkms],[enable building with libkms support]),enable_libkms=$enableval,enable_libkms=no)
 AM_CONDITIONAL(ENABLE_LIBKMS,  [test "$enable_libkms" = yes])
 
 if test x$enable_libkms = xyes; then

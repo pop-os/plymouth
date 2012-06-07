@@ -61,7 +61,8 @@
 
 typedef enum {
   PLY_MODE_BOOT,
-  PLY_MODE_SHUTDOWN
+  PLY_MODE_SHUTDOWN,
+  PLY_MODE_UPDATES
 } ply_mode_t;
 
 typedef struct 
@@ -569,6 +570,9 @@ get_cache_file_for_mode (ply_mode_t mode)
     case PLY_MODE_SHUTDOWN:
       filename = SHUTDOWN_DURATION_FILE;
       break;
+    case PLY_MODE_UPDATES:
+      filename = NULL;
+      break;
     default:
       fprintf (stderr, "Unhandled case in %s line %d\n", __FILE__, __LINE__);
       abort ();
@@ -590,6 +594,7 @@ get_log_file_for_mode (ply_mode_t mode)
       filename = PLYMOUTH_LOG_DIRECTORY "/boot.log";
       break;
     case PLY_MODE_SHUTDOWN:
+    case PLY_MODE_UPDATES:
       filename = _PATH_DEVNULL;
       break;
     default:
@@ -613,6 +618,7 @@ get_log_spool_file_for_mode (ply_mode_t mode)
       filename = PLYMOUTH_SPOOL_DIRECTORY "/boot.log";
       break;
     case PLY_MODE_SHUTDOWN:
+    case PLY_MODE_UPDATES:
       filename = NULL;
       break;
     default:
@@ -2354,6 +2360,8 @@ main (int    argc,
     {
       if (strcmp (mode_string, "shutdown") == 0)
         state.mode = PLY_MODE_SHUTDOWN;
+      else if (strcmp (mode_string, "updates") == 0)
+        state.mode = PLY_MODE_UPDATES;
       else
         state.mode = PLY_MODE_BOOT;
 

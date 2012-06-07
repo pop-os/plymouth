@@ -451,9 +451,13 @@ static void
 on_display_message (state_t       *state,
                     const char    *message)
 {
-  ply_trace ("displaying message %s", message);
   if (state->boot_splash != NULL)
-    ply_boot_splash_display_message (state->boot_splash, message);
+    {
+        ply_trace ("displaying message %s", message);
+        ply_boot_splash_display_message (state->boot_splash, message);
+    }
+  else
+    ply_trace ("not displaying message %s as no splash", message);
   ply_list_append_data (state->messages, strdup(message));
 }
 

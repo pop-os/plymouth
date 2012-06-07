@@ -182,6 +182,33 @@ on_update (state_t     *state,
 }
 
 static void
+on_change_mode (state_t     *state,
+                const char  *mode)
+{
+  if (state->boot_splash == NULL)
+    {
+      ply_trace ("no splash set");
+      return;
+    }
+
+  ply_trace ("updating mode to '%s'", mode);
+  if (strcmp (mode, "boot-up") == 0)
+    state->mode = PLY_BOOT_SPLASH_MODE_BOOT_UP;
+  else if (strcmp (mode, "shutdown") == 0)
+    state->mode = PLY_BOOT_SPLASH_MODE_SHUTDOWN;
+  else if (strcmp (mode, "updates") == 0)
+    state->mode = PLY_BOOT_SPLASH_MODE_UPDATES;
+  else
+    return;
+
+  if (!ply_boot_splash_show (state->boot_splash, state->mode))
+    {
+      ply_trace ("failed to update splash");
+      return;
+    }
+}
+
+static void
 show_messages (state_t *state)
 {
   if (state->boot_splash == NULL)
@@ -1228,6 +1255,7 @@ start_boot_server (state_t *state)
   ply_boot_server_t *server;
 
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
+                                (ply_boot_server_change_mode_handler_t) on_change_mode,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
                                 (ply_boot_server_ask_question_handler_t) on_ask_question,
                                 (ply_boot_server_display_message_handler_t) on_display_message,

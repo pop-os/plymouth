@@ -548,6 +548,19 @@ ply_boot_client_update_daemon (ply_boot_client_t                  *client,
 }
 
 void
+ply_boot_client_change_mode (ply_boot_client_t                  *client,
+                             const char                         *new_mode,
+                             ply_boot_client_response_handler_t  handler,
+                             ply_boot_client_response_handler_t  failed_handler,
+                             void                               *user_data)
+{
+  assert (client != NULL);
+
+  ply_boot_client_queue_request (client, PLY_BOOT_PROTOCOL_REQUEST_TYPE_CHANGE_MODE,
+                                 new_mode, handler, failed_handler, user_data);
+}
+
+void
 ply_boot_client_tell_daemon_to_change_root (ply_boot_client_t                  *client,
                                             const char                         *root_dir,
                                             ply_boot_client_response_handler_t  handler,

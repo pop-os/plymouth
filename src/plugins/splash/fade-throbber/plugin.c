@@ -82,6 +82,7 @@ typedef struct
   ply_list_t *stars;
   ply_entry_t *entry;
   ply_label_t *label;
+  ply_label_t *message_label;
   ply_rectangle_t lock_area;
   double logo_opacity;
 } view_t;
@@ -253,6 +254,10 @@ view_new (ply_boot_splash_plugin_t *plugin,
   view->stars = ply_list_new ();
   view->label = ply_label_new ();
 
+  view->message_label = ply_label_new ();
+  ply_label_set_text (view->message_label, "");
+  ply_label_show (view->message_label, view->display, 10, 10);
+
   return view;
 }
 
@@ -261,6 +266,7 @@ view_free (view_t *view)
 {
 
   ply_entry_free (view->entry);
+  ply_label_free (view->message_label);
   free_stars (view);
 
   free (view);
@@ -738,6 +744,10 @@ on_draw (view_t                   *view,
     draw_normal_view (view, pixel_buffer, x, y, width, height);
   else
     draw_prompt_view (view, pixel_buffer, x, y, width, height);
+
+  ply_label_draw_area (view->message_label,
+                       pixel_buffer,
+                       x, y, width, height);
 }
 
 static void
@@ -927,6 +937,28 @@ update_status (ply_boot_splash_plugin_t *plugin,
 }
 
 static void
+show_message (ply_boot_splash_plugin_t *plugin,
+              const char               *message)
+{
+  ply_trace ("Showing message '%s'", message);
+  ply_list_node_t *node;
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+      ply_label_set_text (view->message_label, message);
+      ply_pixel_display_draw_area (view->display, 10, 10,
+                                   ply_label_get_width (view->message_label),
+                                   ply_label_get_height(view->message_label));
+      node = next_node;
+    }
+}
+
+static void
 hide_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_event_loop_t         *loop)
 {
@@ -1053,6 +1085,13 @@ display_question (ply_boot_splash_plugin_t *plugin,
 }
 
 
+static void
+display_message (ply_boot_splash_plugin_t *plugin,
+                 const char               *message)
+{
+  show_message (plugin, message);
+}
+
 ply_boot_splash_plugin_interface_t *
 ply_boot_splash_plugin_get_interface (void)
 {
@@ -1068,6 +1107,7 @@ ply_boot_splash_plugin_get_interface (void)
       .display_normal = display_normal,
       .display_password = display_password,
       .display_question = display_question,
+      .display_message = display_message,
     };
 
   return &plugin_interface;

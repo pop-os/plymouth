@@ -1063,6 +1063,9 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
                   double                    percent_done)
 {
+  if (plugin->mode == PLY_BOOT_SPLASH_MODE_UPDATES)
+    return;
+
   if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_NORMAL)
     return;
 
@@ -1255,6 +1258,29 @@ show_message (ply_boot_splash_plugin_t *plugin,
 }
 
 static void
+system_update (ply_boot_splash_plugin_t *plugin,
+               int                       progress)
+{
+  ply_list_node_t *node;
+
+  if (plugin->mode != PLY_BOOT_SPLASH_MODE_UPDATES)
+    return;
+
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+      ply_progress_animation_set_percent_done (view->progress_animation,
+                                               (double) progress / 100.f);
+      node = next_node;
+    }
+}
+
+static void
 display_normal (ply_boot_splash_plugin_t *plugin)
 {
   pause_views (plugin);
@@ -1323,6 +1349,7 @@ ply_boot_splash_plugin_get_interface (void)
       .display_password = display_password,
       .display_question = display_question,
       .display_message = display_message,
+      .system_update = system_update,
     };
 
   return &plugin_interface;

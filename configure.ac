@@ -53,9 +53,14 @@ if test x$enable_pango = xyes; then
   AC_SUBST(PANGO_LIBS)
 fi
 
-PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.12.0 ])
-AC_SUBST(GTK_CFLAGS)
-AC_SUBST(GTK_LIBS)
+AC_ARG_ENABLE(gtk, AS_HELP_STRING([--enable-gtk],[enable building with gtk, disabled there is no log viewer or x11 redenderer]),enable_gtk=$enableval,enable_gtk=yes)
+AM_CONDITIONAL(ENABLE_GTK,  [test "$enable_gtk" = yes])
+
+if test x$enable_gtk = xyes; then
+  PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.12.0 ])
+  AC_SUBST(GTK_CFLAGS)
+  AC_SUBST(GTK_LIBS)
+fi
 
 AC_ARG_ENABLE(libdrm_intel, AS_HELP_STRING([--enable-libdrm_intel],[enable building with libdrm_intel support]),enable_libdrm_intel=$enableval,enable_libdrm_intel=no)
 AM_CONDITIONAL(ENABLE_LIBDRM_INTEL,  [test "$enable_libdrm_intel" = yes])
@@ -280,6 +285,9 @@ AC_ARG_WITH(log-viewer, AS_HELP_STRING([--with-log-viewer],[Install plymouth log
 AM_CONDITIONAL(WITH_LOG_VIEWER,  [test "$with_log_viewer" = yes])
 
 if test x$with_log_viewer = xyes; then
+  if test x$enable_gtk = xno; then
+    AC_MSG_ERROR([log viewer enabled bug gtk disabled])
+  fi
   AC_ARG_WITH(gdm-autostart-file, AS_HELP_STRING([--with-gdm-autostart-file],[start log viewer from gdm on boot errors]),with_gdm_autostart_file=$withval,with_gdm_autostart_file=yes)
 else
   with_gdm_autostart_file=no

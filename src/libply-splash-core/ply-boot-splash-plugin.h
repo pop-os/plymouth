@@ -65,6 +65,8 @@ typedef struct
                                ply_event_loop_t         *loop,
                                ply_buffer_t             *boot_buffer,
                                ply_boot_splash_mode_t    mode);
+  void (* system_update) (ply_boot_splash_plugin_t *plugin,
+                          int                       progress);
   void (* update_status) (ply_boot_splash_plugin_t *plugin,
                           const char               *status);
   void (* on_boot_output) (ply_boot_splash_plugin_t *plugin,

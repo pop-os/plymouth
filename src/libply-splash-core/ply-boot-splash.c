@@ -604,6 +604,23 @@ ply_boot_splash_show (ply_boot_splash_t *splash,
   return true;
 }
 
+bool
+ply_boot_splash_system_update (ply_boot_splash_t *splash,
+                               int                progress)
+{
+  assert (splash != NULL);
+  assert (splash->module_handle != NULL);
+  assert (splash->loop != NULL);
+  assert (splash->plugin_interface != NULL);
+  assert (splash->plugin != NULL);
+  assert (splash->plugin_interface->system_update != NULL);
+
+  ply_trace ("updating system %i%%", progress);
+  splash->plugin_interface->system_update (splash->plugin,
+                                           progress);
+  return true;
+}
+
 void
 ply_boot_splash_update_status (ply_boot_splash_t *splash,
                                const char        *status)

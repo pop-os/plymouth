@@ -209,6 +209,24 @@ on_change_mode (state_t     *state,
 }
 
 static void
+on_system_update (state_t     *state,
+                  int          progress)
+{
+  if (state->boot_splash == NULL)
+    {
+      ply_trace ("no splash set");
+      return;
+    }
+
+  ply_trace ("setting system update to '%i'", progress);
+  if (!ply_boot_splash_system_update (state->boot_splash, progress))
+    {
+      ply_trace ("failed to update splash");
+      return;
+    }
+}
+
+static void
 show_messages (state_t *state)
 {
   if (state->boot_splash == NULL)
@@ -1256,6 +1274,7 @@ start_boot_server (state_t *state)
 
   server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
                                 (ply_boot_server_change_mode_handler_t) on_change_mode,
+                                (ply_boot_server_system_update_handler_t) on_system_update,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,
                                 (ply_boot_server_ask_question_handler_t) on_ask_question,
                                 (ply_boot_server_display_message_handler_t) on_display_message,

@@ -1263,13 +1263,6 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
 }
 
 static void
-on_interrupt (ply_boot_splash_plugin_t *plugin)
-{
-  ply_event_loop_exit (plugin->loop, 1);
-  stop_animation (plugin);
-}
-
-static void
 detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
 {
   plugin->loop = NULL;
@@ -1696,11 +1689,6 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
   ply_event_loop_watch_for_exit (loop, (ply_event_loop_exit_handler_t)
                                  detach_from_event_loop,
                                  plugin);
-
-  ply_event_loop_watch_signal (plugin->loop,
-                               SIGINT,
-                               (ply_event_handler_t) 
-                               on_interrupt, plugin);
 
   ply_trace ("starting boot animation");
 

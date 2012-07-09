@@ -464,6 +464,8 @@ AC_CONFIG_FILES([Makefile
            systemd-units/plymouth-read-write.service
            systemd-units/plymouth-reboot.service
            systemd-units/plymouth-start.service
+           systemd-units/systemd-ask-password-plymouth.path
+           systemd-units/systemd-ask-password-plymouth.service
            systemd-units/Makefile
            docs/Makefile
 ])

@@ -12,7 +12,7 @@ systemd_unit_templates =                                                     \
 
 if ENABLE_SYSTEMD_INTEGRATION
 systemdunitdir=$(SYSTEMD_UNIT_DIR)
-systemdunit_DATA = $(systemd_unit_templates:.service.in=.service)
+systemdunit_DATA = $(systemd_unit_templates:.in=)
 endif
 
 EXTRA_DIST = $(systemd_unit_templates) $(systemdunit_DATA)

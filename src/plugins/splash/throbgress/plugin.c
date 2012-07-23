@@ -103,10 +103,14 @@ struct _ply_boot_splash_plugin
   uint32_t root_is_mounted : 1;
   uint32_t is_visible : 1;
   uint32_t is_animating : 1;
+  uint32_t is_idle : 1;
 };
 
 ply_boot_splash_plugin_interface_t * ply_boot_splash_plugin_get_interface (void);
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
+
+static void become_idle (ply_boot_splash_plugin_t *plugin,
+                         ply_trigger_t            *idle_trigger);
 
 static view_t *
 view_new (ply_boot_splash_plugin_t *plugin,
@@ -303,6 +307,8 @@ view_start_animation (view_t *view)
 
   if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
     return;
+
+  plugin->is_idle = false;
 
   width = ply_throbber_get_width (view->throbber);
   height = ply_throbber_get_height (view->throbber);
@@ -521,6 +527,9 @@ start_animation (ply_boot_splash_plugin_t *plugin)
     }
 
   plugin->is_animating = true;
+
+  if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+    plugin->is_idle = TRUE;
 }
 
 static void
@@ -804,7 +813,14 @@ static void
 become_idle (ply_boot_splash_plugin_t *plugin,
              ply_trigger_t            *idle_trigger)
 {
+  if (plugin->is_idle)
+    {
+      ply_trigger_pull (idle_trigger, NULL);
+      return;
+    }
+
   stop_animation (plugin, idle_trigger);
+  plugin->is_idle = true;
 }
 
 static void

@@ -529,7 +529,7 @@ start_animation (ply_boot_splash_plugin_t *plugin)
   plugin->is_animating = true;
 
   if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
-    plugin->is_idle = TRUE;
+    plugin->is_idle = true;
 }
 
 static void

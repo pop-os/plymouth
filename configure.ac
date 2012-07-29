@@ -309,7 +309,7 @@ AC_SUBST(background_start_color)
 AC_ARG_WITH(background-end-color-stop, AS_HELP_STRING([--with-background-end-color-stop],[first color end in background gradients used by boot splash plugins]),background_end_color=${withval},background_end_color=0x3a362f)
 AC_SUBST(background_end_color)
 
-AC_ARG_WITH(release-file, AS_HELP_STRING([--with-release-file=<path_to_release_file>],[Release File to use to detect distribution (by default /etc/system-reelase)]),RELEASE_FILE=${withval},RELEASE_FILE=/etc/system-release)
+AC_ARG_WITH(release-file, AS_HELP_STRING([--with-release-file=<path_to_release_file>],[Release File to use to detect distribution (by default /etc/system-release)]),RELEASE_FILE=${withval},RELEASE_FILE=/etc/system-release)
 
 AC_SUBST(RELEASE_FILE)
 AC_DEFINE_UNQUOTED(RELEASE_FILE, "$RELEASE_FILE", [Release file path])

@@ -82,16 +82,8 @@
 #define FOREGROUND_COLOR_BASE 30
 #endif
 
-#ifndef FOREGROUND_DEFAULT_COLOR
-#define FOREGROUND_DEFAULT_COLOR 39
-#endif
-
 #ifndef BACKGROUND_COLOR_BASE
 #define BACKGROUND_COLOR_BASE 40
-#endif
-
-#ifndef BACKGROUND_DEFAULT_COLOR
-#define BACKGROUND_DEFAULT_COLOR 49
 #endif
 
 #ifndef TEXT_PALETTE_SIZE
@@ -195,33 +187,12 @@ ply_text_display_set_background_color (ply_text_display_t   *display,
 }
 
 void
-ply_text_display_reset_background_color (ply_text_display_t *display)
-{
-
-  ply_terminal_write (display->terminal,
-                      COLOR_SEQUENCE_FORMAT,
-                      BACKGROUND_DEFAULT_COLOR);
-
-  display->background_color = color;
-}
-
-void
 ply_text_display_set_foreground_color (ply_text_display_t       *display,
                                        ply_terminal_color_t  color)
 {
   ply_terminal_write (display->terminal,
                       COLOR_SEQUENCE_FORMAT,
                       FOREGROUND_COLOR_BASE + color);
-
-  display->foreground_color = color;
-}
-
-void
-ply_text_display_reset_foreground_color (ply_text_display_t *display)
-{
-  ply_terminal_write (display->terminal,
-                      COLOR_SEQUENCE_FORMAT,
-                      FOREGROUND_DEFAULT_COLOR);
 
   display->foreground_color = color;
 }

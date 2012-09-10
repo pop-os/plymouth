@@ -2478,6 +2478,17 @@ main (int    argc,
    */
   argv[0][0] = '@';
 
+  state.boot_server = start_boot_server (&state);
+
+  if (state.boot_server == NULL)
+    {
+      ply_trace ("plymouthd is already running");
+
+      if (daemon_handle != NULL)
+        ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
+      return EX_UNAVAILABLE;
+    }
+
   state.boot_buffer = ply_buffer_new ();
 
   if (attach_to_session)
@@ -2490,19 +2501,6 @@ main (int    argc,
             ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
           return EX_UNAVAILABLE;
         }
-    }
-
-  state.boot_server = start_boot_server (&state);
-
-  if (state.boot_server == NULL)
-    {
-      ply_trace ("plymouthd is already running");
-
-      detach_from_running_session (&state);
-
-      if (daemon_handle != NULL)
-        ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
-      return EX_UNAVAILABLE;
     }
 
   state.progress = ply_progress_new ();

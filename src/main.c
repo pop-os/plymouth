@@ -2485,8 +2485,8 @@ main (int    argc,
       ply_trace ("plymouthd is already running");
 
       if (daemon_handle != NULL)
-        ply_detach_daemon (daemon_handle, EX_UNAVAILABLE);
-      return EX_UNAVAILABLE;
+        ply_detach_daemon (daemon_handle, EX_OK);
+      return EX_OK;
     }
 
   state.boot_buffer = ply_buffer_new ();

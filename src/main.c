@@ -2496,7 +2496,7 @@ main (int    argc,
 
   if (state.boot_server == NULL)
     {
-      ply_trace ("could not log bootup: %m");
+      ply_trace ("plymouthd is already running");
 
       detach_from_running_session (&state);
 

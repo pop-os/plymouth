@@ -22,7 +22,8 @@ libply_splash_core_HEADERS = \
 		    ply-renderer-plugin.h                                     \
 		    ply-terminal.h                                            \
 		    ply-text-display.h                                        \
-		    ply-text-progress-bar.h
+		    ply-text-progress-bar.h                                   \
+		    ply-text-step-bar.h
 
 libply_splash_core_la_CFLAGS = $(PLYMOUTH_CFLAGS)                               \
                              -DPLYMOUTH_BACKGROUND_COLOR=$(background_color)   \
@@ -39,6 +40,7 @@ libply_splash_core_la_SOURCES = \
 		    ply-pixel-display.c                                      \
 		    ply-text-display.c                                       \
 		    ply-text-progress-bar.c                                  \
+		    ply-text-step-bar.c                                      \
 		    ply-terminal.c                                           \
 		    ply-pixel-buffer.c                                       \
 		    ply-renderer.c                                           \

@@ -1857,23 +1857,24 @@ check_verbosity (state_t *state)
       if (stream != NULL)
         {
           char *end;
+          char *stream_copy;
 
-          stream = strdup (stream);
-          end = stream + strcspn (stream, " \n");
+          stream_copy = strdup (stream);
+          end = stream_copy + strcspn (stream_copy, " \n");
           *end = '\0';
 
-          ply_trace ("streaming debug output to %s instead of screen", stream);
-          fd = open (stream, O_RDWR | O_NOCTTY | O_CREAT, 0600);
+          ply_trace ("streaming debug output to %s instead of screen", stream_copy);
+          fd = open (stream_copy, O_RDWR | O_NOCTTY | O_CREAT, 0600);
 
           if (fd < 0)
             {
-              ply_trace ("could not stream output to %s: %m", stream);
+              ply_trace ("could not stream output to %s: %m", stream_copy);
             }
           else
             {
               ply_logger_set_output_fd (ply_logger_get_error_default (), fd);
             }
-          free (stream);
+          free (stream_copy);
         }
     }
   else

@@ -715,6 +715,9 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
   ply_list_node_t *node;
   double total_duration;
 
+  if (plugin->mode == PLY_BOOT_SPLASH_MODE_UPDATES)
+    return;
+
   total_duration = duration / percent_done;
 
   /* Fun made-up smoothing function to make the growth asymptotic:
@@ -915,6 +918,29 @@ display_message (ply_boot_splash_plugin_t *plugin,
   show_message (plugin, message);
 }
 
+static void
+system_update (ply_boot_splash_plugin_t *plugin,
+               int                       progress)
+{
+  ply_list_node_t *node;
+
+  if (plugin->mode != PLY_BOOT_SPLASH_MODE_UPDATES)
+    return;
+
+  node = ply_list_get_first_node (plugin->views);
+  while (node != NULL)
+    {
+      ply_list_node_t *next_node;
+      view_t *view;
+
+      view = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (plugin->views, node);
+      ply_progress_bar_set_percent_done (view->progress_bar, (double) progress / 100.f);
+      ply_progress_bar_draw (view->progress_bar);
+      node = next_node;
+    }
+}
+
 ply_boot_splash_plugin_interface_t *
 ply_boot_splash_plugin_get_interface (void)
 {
@@ -934,6 +960,7 @@ ply_boot_splash_plugin_get_interface (void)
       .display_password = display_password,
       .display_question = display_question,      
       .display_message = display_message,
+      .system_update = system_update,
     };
 
   return &plugin_interface;

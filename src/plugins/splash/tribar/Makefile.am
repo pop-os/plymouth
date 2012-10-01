@@ -7,17 +7,17 @@ INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)
 
 plugindir = $(libdir)/plymouth
-plugin_LTLIBRARIES = contact.la
+plugin_LTLIBRARIES = tribar.la
 
-contact_la_CFLAGS = $(PLYMOUTH_CFLAGS)                                           \
+tribar_la_CFLAGS = $(PLYMOUTH_CFLAGS)                                           \
                  -DPLYMOUTH_BACKGROUND_COLOR=$(background_color)              \
                  -DPLYMOUTH_BACKGROUND_END_COLOR=$(background_end_color)      \
                  -DPLYMOUTH_BACKGROUND_START_COLOR=$(background_start_color)
 
-contact_la_LDFLAGS = -module -avoid-version -export-dynamic
-contact_la_LIBADD = $(PLYMOUTH_LIBS)                                            \
+tribar_la_LDFLAGS = -module -avoid-version -export-dynamic
+tribar_la_LIBADD = $(PLYMOUTH_LIBS)                                            \
                  ../../../libply/libply.la                                   \
                  ../../../libply-splash-core/libply-splash-core.la
-contact_la_SOURCES = $(srcdir)/plugin.c
+tribar_la_SOURCES = $(srcdir)/plugin.c
 
 MAINTAINERCLEANFILES = Makefile.in

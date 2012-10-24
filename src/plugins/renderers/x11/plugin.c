@@ -238,34 +238,36 @@ map_to_device (ply_renderer_backend_t *backend)
       head = (ply_renderer_head_t *) ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (backend->heads, node);
 
-      head->window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-      gtk_window_set_resizable (GTK_WINDOW (head->window), FALSE);
-      gtk_widget_set_size_request (head->window,
-                                   head->area.width,
-                                   head->area.height);
-      shadow_buffer = ply_pixel_buffer_get_argb32_data (head->pixel_buffer);
-      head->image = cairo_image_surface_create_for_data ((unsigned char *) shadow_buffer,
-                                                         CAIRO_FORMAT_ARGB32,
-                                                         head->area.width, head->area.height,
-                                                         head->area.width * 4);
-      gtk_widget_set_app_paintable (head->window, TRUE);
-      gtk_widget_show_all (head->window);
-      gdk_window_set_back_pixmap (head->window->window, head->pixmap, FALSE);
-      gdk_window_set_decorations (head->window->window, GDK_DECOR_BORDER);
-      gtk_window_move (GTK_WINDOW (head->window), head->area.x, head->area.y);
+      if (head->window == NULL)
+        {
+          head->window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+          gtk_window_set_resizable (GTK_WINDOW (head->window), FALSE);
+          gtk_widget_set_size_request (head->window,
+                                       head->area.width,
+                                       head->area.height);
+          shadow_buffer = ply_pixel_buffer_get_argb32_data (head->pixel_buffer);
+          head->image = cairo_image_surface_create_for_data ((unsigned char *) shadow_buffer,
+                                                             CAIRO_FORMAT_ARGB32,
+                                                             head->area.width, head->area.height,
+                                                             head->area.width * 4);
+          gtk_widget_set_app_paintable (head->window, TRUE);
+          gtk_widget_show_all (head->window);
+          gdk_window_set_back_pixmap (head->window->window, head->pixmap, FALSE);
+          gdk_window_set_decorations (head->window->window, GDK_DECOR_BORDER);
+          gtk_window_move (GTK_WINDOW (head->window), head->area.x, head->area.y);
 
-      gtk_widget_add_events (head->window, GDK_BUTTON1_MOTION_MASK);
+          gtk_widget_add_events (head->window, GDK_BUTTON1_MOTION_MASK);
 
-      g_signal_connect (head->window, "motion-notify-event",
-                        G_CALLBACK (on_motion_notify_event),
-                        head);
-      g_signal_connect (head->window, "key-press-event",
-                        G_CALLBACK (on_key_event),
-                        &backend->input_source);
-      g_signal_connect (head->window, "delete-event",
-                        G_CALLBACK (on_window_destroy),
-                        NULL);
-
+          g_signal_connect (head->window, "motion-notify-event",
+                            G_CALLBACK (on_motion_notify_event),
+                            head);
+          g_signal_connect (head->window, "key-press-event",
+                            G_CALLBACK (on_key_event),
+                            &backend->input_source);
+          g_signal_connect (head->window, "delete-event",
+                            G_CALLBACK (on_window_destroy),
+                            NULL);
+        }
       ply_renderer_head_redraw (backend, head);
       node = next_node;
     }

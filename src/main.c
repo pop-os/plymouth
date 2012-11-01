@@ -1135,7 +1135,13 @@ static void
 on_deactivate (state_t       *state,
                ply_trigger_t *deactivate_trigger)
 {
-  if ((state->deactivate_trigger != NULL) || state->is_inactive)
+  if (state->is_inactive)
+    {
+      ply_trigger_pull (deactivate_trigger, NULL);
+      return;
+    }
+
+  if (state->deactivate_trigger != NULL)
     {
       ply_trigger_add_handler (state->deactivate_trigger,
                                (ply_trigger_handler_t)

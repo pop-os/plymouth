@@ -113,6 +113,7 @@ typedef struct
   uint32_t should_be_attached : 1;
   uint32_t should_retain_splash : 1;
   uint32_t is_inactive : 1;
+  uint32_t is_shown : 1;
   uint32_t should_force_details : 1;
 
   char *kernel_console_tty;
@@ -871,6 +872,12 @@ on_show_splash (state_t *state)
 {
   bool has_display;
 
+  if (state->is_shown)
+    {
+      ply_trace ("show splash called while already shown");
+      return;
+    }
+
   if (state->is_inactive)
     {
       ply_trace ("show splash called while inactive");
@@ -883,6 +890,8 @@ on_show_splash (state_t *state)
       dump_details_and_quit_splash (state);
       return;
     }
+
+  state->is_shown = true;
 
   check_for_consoles (state, state->default_tty, true);
 
@@ -1012,6 +1021,8 @@ dump_details_and_quit_splash (state_t *state)
   if (state->boot_splash != NULL)
     ply_boot_splash_hide (state->boot_splash);
 
+  state->is_shown = false;
+
   quit_splash (state);
 }
 
@@ -1116,6 +1127,8 @@ on_boot_splash_idle (state_t *state)
             ply_renderer_deactivate (state->renderer);
           if (state->boot_splash != NULL)
             ply_boot_splash_hide (state->boot_splash);
+
+          state->is_shown = false;
         }
 
       ply_trace ("quitting splash");

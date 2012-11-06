@@ -87,26 +87,8 @@ ply_open_unidirectional_pipe (int *sender_fd,
   assert (sender_fd != NULL);
   assert (receiver_fd != NULL);
 
-  if (pipe (pipe_fds) < 0)
+  if (pipe2 (pipe_fds, O_CLOEXEC | O_NONBLOCK) < 0)
     return false;
-
-  if (fcntl (pipe_fds[0], F_SETFD, O_NONBLOCK | FD_CLOEXEC) < 0)
-    {
-      ply_save_errno ();
-      close (pipe_fds[0]);
-      close (pipe_fds[1]);
-      ply_restore_errno ();
-      return false;
-    }
-
-  if (fcntl (pipe_fds[1], F_SETFD, O_NONBLOCK | FD_CLOEXEC) < 0)
-    {
-      ply_save_errno ();
-      close (pipe_fds[0]);
-      close (pipe_fds[1]);
-      ply_restore_errno ();
-      return false;
-    }
 
   *sender_fd = pipe_fds[1];
   *receiver_fd = pipe_fds[0];
@@ -120,19 +102,10 @@ ply_open_unix_socket (void)
   int fd;
   const int should_pass_credentials = true;
 
-  fd = socket (PF_UNIX, SOCK_STREAM, 0);
+  fd = socket (PF_UNIX, SOCK_STREAM|SOCK_CLOEXEC|SOCK_NONBLOCK, 0);
 
   if (fd < 0)
     return -1;
-
-  if (fcntl (fd, F_SETFD, O_NONBLOCK | FD_CLOEXEC) < 0)
-    {
-      ply_save_errno ();
-      close (fd);
-      ply_restore_errno ();
-
-      return -1;
-    }
 
   if (setsockopt (fd, SOL_SOCKET, SO_PASSCRED,
                   &should_pass_credentials, sizeof (should_pass_credentials)) < 0)
@@ -971,7 +944,7 @@ ply_get_process_parent_pid (pid_t pid)
   asprintf (&path, "/proc/%ld/stat", (long) pid);
 
   ppid = 0;
-  fp = fopen (path, "r");
+  fp = fopen (path, "re");
 
   if (fp == NULL)
     {

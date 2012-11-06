@@ -104,7 +104,7 @@ get_os_string (void)
 
   buf = NULL;
 
-  fd = open (RELEASE_FILE, O_RDONLY);
+  fd = open (RELEASE_FILE, O_RDONLY|O_CLOEXEC);
   if (fd == -1)
     goto out;
 

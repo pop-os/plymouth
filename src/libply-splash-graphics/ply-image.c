@@ -123,7 +123,7 @@ ply_image_load (ply_image_t *image)
   
   assert (image != NULL);
   
-  fp = fopen (image->filename, "r");
+  fp = fopen (image->filename, "re");
   if (fp == NULL)
     return false;
   

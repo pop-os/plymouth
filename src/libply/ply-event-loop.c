@@ -491,7 +491,7 @@ ply_event_loop_new (void)
 
   loop = calloc (1, sizeof (ply_event_loop_t));
 
-  loop->epoll_fd = epoll_create (PLY_EVENT_LOOP_NUM_EVENT_HANDLERS);
+  loop->epoll_fd =  epoll_create1(EPOLL_CLOEXEC);
   loop->wakeup_time = PLY_EVENT_LOOP_NO_TIMED_WAKEUP;
 
   assert (loop->epoll_fd >= 0);

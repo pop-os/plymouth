@@ -75,7 +75,7 @@ ply_key_file_open_file (ply_key_file_t *key_file)
 {
   assert (key_file != NULL);
 
-  key_file->fp = fopen (key_file->filename, "r");
+  key_file->fp = fopen (key_file->filename, "re");
 
   if (key_file->fp == NULL)
     {

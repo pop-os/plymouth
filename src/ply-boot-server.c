@@ -776,7 +776,7 @@ ply_boot_server_on_new_connection (ply_boot_server_t *server)
 
   assert (server != NULL);
 
-  fd = accept (server->socket_fd, NULL, NULL);
+  fd = accept4 (server->socket_fd, NULL, NULL, SOCK_CLOEXEC);
 
   if (fd < 0)
     return;

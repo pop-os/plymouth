@@ -6,7 +6,7 @@ AC_CONFIG_AUX_DIR(build-tools)
 AC_USE_SYSTEM_EXTENSIONS
 AC_SYS_LARGEFILE
 AC_PROG_AWK
-AC_PROG_CC
+AC_PROG_CC_STDC
 AM_PROG_CC_C_O
 AC_HEADER_STDC
 AC_C_CONST
@@ -16,7 +16,7 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_MAINTAINER_MODE([enable])
 
 PKG_PROG_PKG_CONFIG
-LT_INIT
+LT_INIT([dlopen disable-static pic-only])
 
 ## increment if the interface has additions, changes, removals.
 LT_CURRENT=3

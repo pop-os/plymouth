@@ -19,6 +19,10 @@
  *
  * Written by: Charlie Brej <cbrej@cs.man.ac.uk>
  */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -61,7 +65,7 @@ static script_scan_t *script_scan_new (void)
 
 script_scan_t *script_scan_file (const char *filename)
 {
-  int fd = open (filename, O_RDONLY);
+  int fd = open (filename, O_RDONLY|O_CLOEXEC);
   if (fd < 0) return NULL;
   script_scan_t *scan = script_scan_new ();
   scan->name = strdup (filename);

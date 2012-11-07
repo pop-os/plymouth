@@ -197,7 +197,7 @@ ply_key_file_load_group (ply_key_file_t *key_file,
       ungetc (first_byte, key_file->fp);
 
       offset = ftello (key_file->fp);
-      items_matched = fscanf (key_file->fp, " %a[^= \t\n] = %a[^\n] ", &key, &value);
+      items_matched = fscanf (key_file->fp, " %m[^= \t\n] = %m[^\n] ", &key, &value);
 
       if (items_matched != 2)
         {
@@ -254,7 +254,7 @@ ply_key_file_load_groups (ply_key_file_t *key_file)
       ungetc (first_byte, key_file->fp);
 
       group_name = NULL;
-      items_matched = fscanf (key_file->fp, " [ %a[^]] ] ", &group_name);
+      items_matched = fscanf (key_file->fp, " [ %m[^]] ] ", &group_name);
 
       if (items_matched <= 0)
         {

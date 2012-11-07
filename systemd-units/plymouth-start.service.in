@@ -12,3 +12,5 @@ ExecStartPost=-/bin/udevadm settle --timeout=30 --exit-if-exists=/sys/class/drm/
 Type=forking
 KillMode=none
 SendSIGKILL=no
+[Install]
+WantedBy=sysinit.target

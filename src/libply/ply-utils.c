@@ -795,11 +795,12 @@ ply_create_daemon (void)
 
       if (!ply_read (receiver_fd, &byte, sizeof (uint8_t)))
         {
+          int read_error = errno;
           int status;
 
           if (waitpid (pid, &status, WNOHANG) <= 0)
             {
-              ply_error ("failed to read status from child immediately after starting to daemonize");
+              ply_error ("failed to read status from child immediately after starting to daemonize: %s", strerror (read_error));
             }
           else if (WIFEXITED (status))
             {

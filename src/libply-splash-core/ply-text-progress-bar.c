@@ -136,6 +136,8 @@ get_os_string (void)
 
           if (pos2 != NULL)
             *pos2 = '\0';
+          else
+            pos2 = pos + strlen(pos) - 1;
 
           if ((*pos == '\"' && pos2[-1] == '\"') ||
               (*pos == '\'' && pos2[-1] == '\''))

@@ -356,6 +356,7 @@ find_system_default_splash (state_t *state)
             PLYMOUTH_THEME_PATH "%s/%s.plymouth",
             splash_string, splash_string);
   free (splash_string);
+  ply_key_file_free (key_file);
 }
 
 static void

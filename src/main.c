@@ -1967,7 +1967,7 @@ add_consoles_from_file (state_t         *state,
     }
 
   ply_trace ("reading file");
-  contents_length = read (fd, contents, sizeof (contents));
+  contents_length = read (fd, contents, sizeof (contents) - 1);
 
   if (contents_length <= 0)
     {

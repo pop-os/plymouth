@@ -87,7 +87,7 @@ ply_open_unidirectional_pipe (int *sender_fd,
   assert (sender_fd != NULL);
   assert (receiver_fd != NULL);
 
-  if (pipe2 (pipe_fds, O_CLOEXEC | O_NONBLOCK) < 0)
+  if (pipe2 (pipe_fds, O_CLOEXEC) < 0)
     return false;
 
   *sender_fd = pipe_fds[1];

@@ -39,3 +39,5 @@ tags
 *.string
 *.plymouth
 *.script.h
+*.service
+*.path

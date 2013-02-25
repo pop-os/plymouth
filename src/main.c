@@ -589,12 +589,6 @@ static void
 on_newroot (state_t    *state,
             const char *root_dir)
 {
-  if (state->mode != PLY_MODE_BOOT)
-    {
-      ply_trace ("new root is only supported in boot mode ");
-      return;
-    }
-
   ply_trace ("new root mounted at \"%s\", switching to it", root_dir);
   chdir(root_dir);
   chroot(".");

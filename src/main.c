@@ -152,6 +152,7 @@ static void check_for_consoles (state_t    *state,
 static void toggle_between_splash_and_details (state_t *state);
 static void tell_systemd_to_print_details (state_t *state);
 static void tell_systemd_to_stop_printing_details (state_t *state);
+static const char * get_cache_file_for_mode (ply_mode_t mode);
 
 static void
 on_session_output (state_t    *state,
@@ -593,7 +594,7 @@ on_newroot (state_t    *state,
   chdir(root_dir);
   chroot(".");
   chdir("/");
-  ply_progress_load_cache (state->progress, BOOT_DURATION_FILE);
+  ply_progress_load_cache (state->progress, get_cache_file_for_mode (state->mode));
   if (state->boot_splash != NULL)
     ply_boot_splash_root_mounted (state->boot_splash);
 }

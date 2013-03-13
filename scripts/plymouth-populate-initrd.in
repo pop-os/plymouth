@@ -432,6 +432,7 @@ if [ -n "$SYSTEMD_UNIT_DIR" -a -d "$SYSTEMD_UNIT_DIR" ]; then
     inst $SYSTEMD_UNIT_DIR/plymouth-halt.service $INITRDDIR
 
     inst $SYSTEMD_UNIT_DIR/initrd-switch-root.target.wants/plymouth-switch-root.service $INITRDDIR
+    inst $SYSTEMD_UNIT_DIR/initrd-switch-root.target.wants/plymouth-start.service $INITRDDIR
     inst $SYSTEMD_UNIT_DIR/sysinit.target.wants/plymouth-start.service $INITRDDIR
     inst $SYSTEMD_UNIT_DIR/multi-user.target.wants/plymouth-quit.service $INITRDDIR
     inst $SYSTEMD_UNIT_DIR/multi-user.target.wants/plymouth-quit-wait.service $INITRDDIR

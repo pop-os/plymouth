@@ -256,7 +256,7 @@ AM_CONDITIONAL(ENABLE_SYSTEMD_INTEGRATION, [test "$enable_systemd_integration" =
 
 if test x$enable_systemd_integration = xyes; then
   AC_DEFINE(PLY_ENABLE_SYSTEMD_INTEGRATION, 1, [Coordinate boot up with systemd])
-  SYSTEMD_UNIT_DIR=/lib/systemd/system
+  SYSTEMD_UNIT_DIR=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
   AC_SUBST(SYSTEMD_UNIT_DIR)
 fi
 

@@ -44,6 +44,8 @@ PLYMOUTH_LIBS="-lm -lrt -ldl"
 AC_SUBST(PLYMOUTH_CFLAGS)
 AC_SUBST(PLYMOUTH_LIBS)
 
+AC_PATH_PROG([SYSTEMD_ASK_PASSWORD_AGENT], [systemd-tty-ask-password-agent])
+
 AC_ARG_ENABLE(pango, AS_HELP_STRING([--enable-pango],[enable building with pango, disabled there is no encryption prompts]),enable_pango=$enableval,enable_pango=yes)
 AM_CONDITIONAL(ENABLE_PANGO,  [test "$enable_pango" = yes])
 

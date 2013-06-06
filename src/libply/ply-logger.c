@@ -357,6 +357,9 @@ ply_logger_close_file (ply_logger_t *logger)
 {
   assert (logger != NULL);
 
+  if (logger->output_fd < 0)
+      return;
+
   close (logger->output_fd);
   ply_logger_set_output_fd (logger, -1);
 }

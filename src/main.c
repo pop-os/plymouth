@@ -616,7 +616,7 @@ get_cache_file_for_mode (ply_mode_t mode)
       filename = NULL;
       break;
     default:
-      fprintf (stderr, "Unhandled case in %s line %d\n", __FILE__, __LINE__);
+      ply_error ("Unhandled case in %s line %d\n", __FILE__, __LINE__);
       abort ();
       break;
     }
@@ -640,7 +640,7 @@ get_log_file_for_mode (ply_mode_t mode)
       filename = _PATH_DEVNULL;
       break;
     default:
-      fprintf (stderr, "Unhandled case in %s line %d\n", __FILE__, __LINE__);
+      ply_error ("Unhandled case in %s line %d\n", __FILE__, __LINE__);
       abort ();
       break;
     }
@@ -664,7 +664,7 @@ get_log_spool_file_for_mode (ply_mode_t mode)
       filename = NULL;
       break;
     default:
-      fprintf (stderr, "Unhandled case in %s line %d\n", __FILE__, __LINE__);
+      ply_error ("Unhandled case in %s line %d\n", __FILE__, __LINE__);
       abort ();
       break;
     }
@@ -1098,6 +1098,13 @@ deactivate_splash (state_t *state)
       ply_terminal_stop_watching_for_vt_changes (state->local_console_terminal);
       ply_terminal_set_buffered_input (state->local_console_terminal);
       ply_terminal_ignore_mode_changes (state->local_console_terminal, true);
+      ply_terminal_close (state->local_console_terminal);
+    }
+
+  /* do not let any tty opened where we could write after deactivate */
+  if (command_line_has_argument (state->kernel_command_line, "plymouth.debug"))
+    {
+      ply_logger_close_file (ply_logger_get_error_default ());
     }
 
   state->is_inactive = true;
@@ -1191,6 +1198,7 @@ on_reactivate (state_t *state)
 
   if (state->local_console_terminal != NULL)
     {
+      ply_terminal_open (state->local_console_terminal);
       ply_terminal_watch_for_vt_changes (state->local_console_terminal);
       ply_terminal_set_unbuffered_input (state->local_console_terminal);
       ply_terminal_ignore_mode_changes (state->local_console_terminal, false);
@@ -1890,6 +1898,33 @@ check_verbosity (state_t *state)
               ply_logger_set_output_fd (ply_logger_get_error_default (), fd);
             }
           free (stream_copy);
+        } else {
+            const char* device;
+            char *file;
+
+            if (state->kernel_console_tty != NULL)
+                device = state->kernel_console_tty;
+            else
+                device = state->default_tty;
+
+            ply_trace ("redirecting debug output to %s", device);
+
+            if (strncmp (device, "/dev/", strlen ("/dev/")) == 0)
+                file = strdup (device);
+              else
+                asprintf (&file, "/dev/%s", device);
+
+            fd = open (file, O_RDWR | O_APPEND);
+
+            if (fd < 0)
+              {
+                 ply_trace ("could not redirected debug output to %s: %m", device);
+              }
+            else {
+                ply_logger_set_output_fd (ply_logger_get_error_default (), fd);
+            }
+
+            free (file);
         }
     }
   else
@@ -2157,21 +2192,11 @@ check_for_consoles (state_t    *state,
 }
 
 static bool
-redirect_standard_io_to_device (const char *device)
+redirect_standard_io_to_dev_null (void)
 {
   int fd;
-  char *file;
 
-  ply_trace ("redirecting stdio to %s", device);
-
-  if (strncmp (device, "/dev/", strlen ("/dev/")) == 0)
-    file = strdup (device);
-  else
-    asprintf (&file, "/dev/%s", device);
-
-  fd = open (file, O_RDWR | O_APPEND);
-
-  free (file);
+  fd = open ("/dev/null", O_RDWR | O_APPEND);
 
   if (fd < 0)
     return false;
@@ -2214,19 +2239,6 @@ initialize_environment (state_t *state)
   if (!get_kernel_command_line (state))
     return false;
 
-  check_verbosity (state);
-  check_logging (state);
-
-  ply_trace ("source built on %s", __DATE__);
-
-  state->keystroke_triggers = ply_list_new ();
-  state->entry_triggers = ply_list_new ();
-  state->entry_buffer = ply_buffer_new();
-  state->pixel_displays = ply_list_new ();
-  state->text_displays = ply_list_new ();
-  state->messages = ply_list_new ();
-  state->keyboard = NULL;
-
   if (!state->default_tty)
     {
       if (state->mode == PLY_MODE_SHUTDOWN)
@@ -2247,12 +2259,23 @@ initialize_environment (state_t *state)
         }
     }
 
+  check_verbosity (state);
+  check_logging (state);
+
+  ply_trace ("source built on %s", __DATE__);
+
+  state->keystroke_triggers = ply_list_new ();
+  state->entry_triggers = ply_list_new ();
+  state->entry_buffer = ply_buffer_new();
+  state->pixel_displays = ply_list_new ();
+  state->text_displays = ply_list_new ();
+  state->messages = ply_list_new ();
+  state->keyboard = NULL;
+
+
   check_for_consoles (state, state->default_tty, false);
 
-  if (state->kernel_console_tty != NULL)
-    redirect_standard_io_to_device (state->kernel_console_tty);
-  else
-    redirect_standard_io_to_device (state->default_tty);
+  redirect_standard_io_to_dev_null ();
 
   ply_trace ("Making sure " PLYMOUTH_RUNTIME_DIR " exists");
   if (!ply_create_directory (PLYMOUTH_RUNTIME_DIR))

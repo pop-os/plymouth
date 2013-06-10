@@ -213,8 +213,12 @@ ply_terminal_session_unredirect_console (ply_terminal_session_t *session)
   assert (session->console_is_redirected);
 
   fd = open ("/dev/console", O_RDWR | O_NOCTTY);
-  if (fd >= 0)
+  if (fd >= 0) {
     ioctl (fd, TIOCCONS);
+    close (fd);
+  } else {
+    ply_trace ("couldn't open /dev/console to stop redirecting it: %m");
+  }
 
   session->console_is_redirected = false;
 }

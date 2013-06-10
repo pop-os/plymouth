@@ -8,7 +8,7 @@ ConditionKernelCommandLine=!plymouth.enable=0
 
 [Service]
 ExecStart=@PLYMOUTH_DAEMON_DIR@/plymouthd --mode=boot --pid-file=@plymouthruntimedir@/pid --attach-to-session
-ExecStartPost=-@UDEVADM@ settle --timeout=30 --exit-if-exists=/sys/class/drm/card0/dev ; @UDEVADM@ settle --timeout=30 --exit-if-exists=/sys/class/graphics/fb0/dev ; @PLYMOUTH_CLIENT_DIR@/plymouth show-splash
+ExecStartPost=-@UDEVADM@ settle --timeout=30 --exit-if-exists=/sys/class/drm/card0/dev ; -@UDEVADM@ settle --timeout=30 --exit-if-exists=/sys/class/graphics/fb0/dev ; -@PLYMOUTH_CLIENT_DIR@/plymouth show-splash
 Type=forking
 KillMode=none
 SendSIGKILL=no

@@ -148,7 +148,8 @@ ply_terminal_session_free (ply_terminal_session_t *session)
 
   ply_free_string_array (session->argv);
 
-  close (session->pseudoterminal_master_fd);
+  if (session->pseudoterminal_master_fd >= 0)
+    close (session->pseudoterminal_master_fd);
   free (session);
 }
 

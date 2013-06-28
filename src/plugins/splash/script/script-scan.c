@@ -30,6 +30,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
+#include <limits.h>
 
 #include "ply-bitarray.h"
 #include "script-scan.h"
@@ -371,11 +372,13 @@ static script_scan_token_t *script_scan_peek_token (script_scan_t *scan,
 {
   int i;
 
-  if (scan->tokencount <= n)
+  /* we're screwed long before we ever actually hit INT_MAX; but at least
+   * we shouldn't get ourselves stuck in an infinite loop. */
+  if (scan->tokencount <= n && n < INT_MAX)
     {
       scan->tokens =
         realloc (scan->tokens, (n + 1) * sizeof (script_scan_token_t *));
-      for (i = scan->tokencount; i <= n; i++)                                   /* FIXME warning about possibely inifnite loop */
+      for (i = scan->tokencount; i <= n; i++)
         {
           scan->tokens[i] = malloc (sizeof (script_scan_token_t));
           scan->tokens[i]->type = SCRIPT_SCAN_TOKEN_TYPE_EMPTY;

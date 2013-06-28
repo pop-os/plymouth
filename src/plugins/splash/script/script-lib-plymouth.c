@@ -64,6 +64,7 @@ static script_return_t plymouth_get_mode (script_state_t *state,
       case PLY_BOOT_SPLASH_MODE_UPDATES:
         obj = script_obj_new_string ("updates");
         break;
+      case PLY_BOOT_SPLASH_MODE_INVALID:
       default:
         obj = script_obj_new_string ("unknown");
         break;

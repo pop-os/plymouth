@@ -150,8 +150,10 @@ static void check_for_consoles (state_t    *state,
                                 const char *default_tty,
                                 bool        should_add_displays);
 static void toggle_between_splash_and_details (state_t *state);
+#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
 static void tell_systemd_to_print_details (state_t *state);
 static void tell_systemd_to_stop_printing_details (state_t *state);
+#endif
 static const char * get_cache_file_for_mode (ply_mode_t mode);
 
 static void

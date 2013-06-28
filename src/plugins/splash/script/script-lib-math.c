@@ -22,6 +22,7 @@
 
 #include "config.h"
 
+#include "ply-utils.h"
 #include "script.h"
 #include "script-parse.h"
 #include "script-execute.h"

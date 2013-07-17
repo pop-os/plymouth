@@ -25,6 +25,7 @@
 #include "ply-key-file.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -179,7 +180,12 @@ ply_key_file_load_group (ply_key_file_t *key_file,
       key = NULL;
       value = NULL;
 
-      first_byte = fgetc (key_file->fp);
+      do
+        {
+          first_byte = fgetc (key_file->fp);
+        }
+      while (isspace (first_byte));
+
       if (first_byte == '#')
         {
           char *line_to_toss;

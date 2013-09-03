@@ -60,19 +60,6 @@
 #include "ply-renderer-plugin.h"
 #include "ply-renderer-driver.h"
 #include "ply-renderer-generic-driver.h"
-#ifdef PLY_ENABLE_LIBDRM_INTEL
-#include "ply-renderer-i915-driver.h"
-#endif
-#ifdef PLY_ENABLE_LIBDRM_RADEON
-#include "ply-renderer-radeon-driver.h"
-#endif
-#ifdef PLY_ENABLE_LIBDRM_NOUVEAU
-#include "ply-renderer-nouveau-driver.h"
-#endif
-
-#ifdef PLY_ENABLE_LIBKMS
-#include "ply-renderer-libkms-driver.h"
-#endif
 
 #define BYTES_PER_PIXEL (4)
 
@@ -521,59 +508,16 @@ load_driver (ply_renderer_backend_t *backend)
       free (driver_name);
       return false;
     }
-  backend->driver_interface = NULL;
 
-/* Try intel driver first if we're supporting the legacy GDM transition
- * since it can map the kernel console, which gives us the ability to do
- * a more seamless transition when plymouth quits before X starts
- */
-#if defined(PLY_ENABLE_DEPRECATED_GDM_TRANSITION) && defined(PLY_ENABLE_LIBDRM_INTEL)
-  if (backend->driver_interface == NULL && strcmp (driver_name, "i915") == 0)
-    {
-      backend->driver_interface = ply_renderer_i915_driver_get_interface ();
-      backend->driver_supports_mapping_console = true;
-    }
-#endif
-
-  if (backend->driver_interface == NULL)
-    {
-      backend->driver_interface = ply_renderer_generic_driver_get_interface (device_fd);
-      backend->driver_supports_mapping_console = false;
-    }
-
-#ifdef PLY_ENABLE_LIBDRM_INTEL
-  if (backend->driver_interface == NULL && strcmp (driver_name, "i915") == 0)
-    {
-      backend->driver_interface = ply_renderer_i915_driver_get_interface ();
-      backend->driver_supports_mapping_console = true;
-    }
-#endif
-#ifdef PLY_ENABLE_LIBDRM_RADEON
-  if (backend->driver_interface == NULL && strcmp (driver_name, "radeon") == 0)
-    {
-      backend->driver_interface = ply_renderer_radeon_driver_get_interface ();
-      backend->driver_supports_mapping_console = false;
-    }
-#endif
-#ifdef PLY_ENABLE_LIBDRM_NOUVEAU
-  if (backend->driver_interface == NULL && strcmp (driver_name, "nouveau") == 0)
-    {
-      backend->driver_interface = ply_renderer_nouveau_driver_get_interface ();
-      backend->driver_supports_mapping_console = false;
-    }
-#endif
+  backend->driver_interface = ply_renderer_generic_driver_get_interface (device_fd);
+  backend->driver_supports_mapping_console = false;
 
   free (driver_name);
 
   if (backend->driver_interface == NULL)
     {
-#ifdef PLY_ENABLE_LIBKMS
-      backend->driver_interface = ply_renderer_libkms_driver_get_interface ();
-      backend->driver_supports_mapping_console = false;
-#else
       close (device_fd);
       return false;
-#endif
     }
 
   backend->driver = backend->driver_interface->create_driver (device_fd);

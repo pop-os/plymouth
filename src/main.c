@@ -2243,6 +2243,11 @@ initialize_environment (state_t *state)
 
   if (!state->default_tty)
     {
+      if (getenv ("DISPLAY") != NULL && access (PLYMOUTH_PLUGIN_PATH "renderers/x11.so", F_OK) == 0)
+          state->default_tty = "/dev/tty";
+    }
+  if (!state->default_tty)
+    {
       if (state->mode == PLY_MODE_SHUTDOWN)
         {
           state->default_tty = SHUTDOWN_TTY;

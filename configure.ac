@@ -72,6 +72,18 @@ if test x$enable_drm_renderer = xyes; then
   PKG_CHECK_MODULES(DRM, [libdrm])
 fi
 
+AC_ARG_ENABLE(documentation,
+              AS_HELP_STRING([--enable-documentation],
+                             [build documentation]),,
+              enable_documentation=yes)
+if test x$enable_documentation = xyes; then
+   AC_PATH_PROG([XSLTPROC], [xsltproc])
+   if test x$XSLTPROC = x; then
+      AC_MSG_ERROR([xsltproc is required to build documentation])
+   fi
+fi
+AM_CONDITIONAL(BUILD_DOCUMENTATION, test x$enable_documentation = xyes)
+
 AC_ARG_ENABLE(tests, AS_HELP_STRING([--enable-tests],[build tests]),enable_tests=$enableval,enable_tests=yes)
 
 AM_CONDITIONAL(ENABLE_TESTS,  [test "$enable_tests" = yes])

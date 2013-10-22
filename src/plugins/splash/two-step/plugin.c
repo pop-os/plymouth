@@ -91,6 +91,7 @@ typedef struct
   ply_label_t *message_label;
   ply_rectangle_t box_area, lock_area;
   ply_trigger_t *end_trigger;
+  ply_image_t *background_image;
 } view_t;
 
 struct _ply_boot_splash_plugin
@@ -101,6 +102,7 @@ struct _ply_boot_splash_plugin
   ply_image_t *box_image;
   ply_image_t *corner_image;
   ply_image_t *header_image;
+  ply_image_t *background_tile_image;
   ply_list_t *views;
 
   ply_boot_splash_display_type_t state;
@@ -176,12 +178,29 @@ view_free (view_t *view)
   ply_label_free (view->label);
   ply_label_free (view->message_label);
 
+  if (view->background_image != NULL)
+    ply_image_free (view->background_image);
+
   free (view);
 }
 
 static bool
 view_load (view_t *view)
 {
+  unsigned long screen_width, screen_height;
+  ply_boot_splash_plugin_t *plugin;
+
+  plugin = view->plugin;
+
+  screen_width = ply_pixel_display_get_width (view->display);
+  screen_height = ply_pixel_display_get_height (view->display);
+
+  if (plugin->background_tile_image != NULL)
+    {
+      ply_trace ("tiling background to %lux%lu", screen_width, screen_height);
+      view->background_image = ply_image_tile (plugin->background_tile_image, screen_width, screen_height);
+    }
+
   ply_trace ("loading entry");
   if (!ply_entry_load (view->entry))
     return false;
@@ -519,6 +538,12 @@ create_plugin (ply_key_file_t *key_file)
   plugin->header_image = ply_image_new (image_path);
   free (image_path);
 
+  asprintf (&image_path, "%s/background-tile.png", image_dir);
+  plugin->background_tile_image = ply_image_new (image_path);
+
+  ply_trace ("loading background tile %s", image_path);
+  free (image_path);
+
   plugin->animation_dir = image_dir;
 
   alignment = ply_key_file_get_value (key_file, "two-step", "HorizontalAlignment");
@@ -652,6 +677,9 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 
   if (plugin->header_image != NULL)
     ply_image_free (plugin->header_image);
+
+  if (plugin->background_tile_image != NULL)
+    ply_image_free (plugin->background_tile_image);
 
   free (plugin->animation_dir);
   free_views (plugin);
@@ -813,6 +841,13 @@ draw_background (view_t             *view,
   else
     ply_pixel_buffer_fill_with_hex_color (pixel_buffer, &area,
                                           plugin->background_start_color);
+
+  if (view->background_image != NULL)
+    {
+      uint32_t *data;
+      data = ply_image_get_data (view->background_image);
+      ply_pixel_buffer_fill_with_argb32_data (pixel_buffer, &area, data);
+    }
 }
 
 static void
@@ -994,6 +1029,16 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
         {
           ply_image_free (plugin->header_image);
           plugin->header_image = NULL;
+        }
+    }
+
+  if (plugin->background_tile_image != NULL)
+    {
+      ply_trace ("loading background tile image");
+      if (!ply_image_load (plugin->background_tile_image))
+        {
+          ply_image_free (plugin->background_tile_image);
+          plugin->background_tile_image = NULL;
         }
     }
 

@@ -84,6 +84,12 @@ if test x$enable_documentation = xyes; then
 fi
 AM_CONDITIONAL(BUILD_DOCUMENTATION, test x$enable_documentation = xyes)
 
+AC_ARG_ENABLE(tracing, AS_HELP_STRING([--enable-tracing],[enable verbose tracing code]),enable_tracing=$enableval,enable_tracing=yes)
+
+if test x$enable_tracing = xyes; then
+  AC_DEFINE(PLY_ENABLE_TRACING, 1, [Build in verbose debug tracing spew])
+fi
+
 AC_ARG_ENABLE(tests, AS_HELP_STRING([--enable-tests],[build tests]),enable_tests=$enableval,enable_tests=yes)
 
 AM_CONDITIONAL(ENABLE_TESTS,  [test "$enable_tests" = yes])

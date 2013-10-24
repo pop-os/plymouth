@@ -540,8 +540,6 @@ create_plugin (ply_key_file_t *key_file)
 
   asprintf (&image_path, "%s/background-tile.png", image_dir);
   plugin->background_tile_image = ply_image_new (image_path);
-
-  ply_trace ("loading background tile %s", image_path);
   free (image_path);
 
   plugin->animation_dir = image_dir;

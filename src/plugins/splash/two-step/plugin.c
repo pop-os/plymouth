@@ -92,6 +92,8 @@ typedef struct
   ply_rectangle_t box_area, lock_area, watermark_area;
   ply_trigger_t *end_trigger;
   ply_image_t *background_image;
+
+  uint32_t is_blank : 1;
 } view_t;
 
 struct _ply_boot_splash_plugin
@@ -125,6 +127,9 @@ struct _ply_boot_splash_plugin
 
   ply_trigger_t *idle_trigger;
   ply_trigger_t *stop_trigger;
+
+  double start_time;
+  double startup_delay;
 
   uint32_t root_is_mounted : 1;
   uint32_t is_visible : 1;
@@ -167,6 +172,7 @@ view_new (ply_boot_splash_plugin_t *plugin,
 
   view->label = ply_label_new ();
   view->message_label = ply_label_new ();
+  view->is_blank = true;
 
   return view;
 }
@@ -521,6 +527,7 @@ create_plugin (ply_key_file_t *key_file)
 {
   ply_boot_splash_plugin_t *plugin;
   char *image_dir, *image_path;
+  char *startup_delay;
   char *alignment;
   char *transition;
   char *transition_duration;
@@ -529,6 +536,8 @@ create_plugin (ply_key_file_t *key_file)
 
   srand ((int) ply_get_timestamp ());
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
+
+  plugin->start_time = ply_get_timestamp ();
 
   image_dir = ply_key_file_get_value (key_file, "two-step", "ImageDir");
 
@@ -559,6 +568,13 @@ create_plugin (ply_key_file_t *key_file)
   free (image_path);
 
   plugin->animation_dir = image_dir;
+
+  startup_delay = ply_key_file_get_value (key_file, "two-step", "StartupDelay");
+  if (startup_delay != NULL)
+    plugin->startup_delay = strtod (startup_delay, NULL);
+  else
+    plugin->startup_delay = 5.0;
+  free (startup_delay);
 
   alignment = ply_key_file_get_value (key_file, "two-step", "HorizontalAlignment");
   if (alignment != NULL)
@@ -902,6 +918,35 @@ on_draw (view_t                   *view,
   ply_rectangle_t image_area;
 
   plugin = view->plugin;
+
+  if (plugin->mode == PLY_BOOT_SPLASH_MODE_BOOT_UP)
+    {
+      double now;
+
+      now = ply_get_timestamp ();
+
+      if (now - plugin->start_time < plugin->startup_delay)
+        return;
+
+      if (view->is_blank)
+        {
+          ply_rectangle_t clip_area;
+
+          x = 0;
+          y = 0;
+          width = ply_pixel_display_get_width (view->display);
+          height = ply_pixel_display_get_height (view->display);
+
+          clip_area.x = 0;
+          clip_area.y = 0;
+          clip_area.width = width;
+          clip_area.height = height;
+          ply_pixel_buffer_pop_clip_area (pixel_buffer);
+          ply_pixel_buffer_push_clip_area (pixel_buffer,
+                                           &clip_area);
+          view->is_blank = false;
+        }
+    }
 
   draw_background (view, pixel_buffer, x, y, width, height);
 

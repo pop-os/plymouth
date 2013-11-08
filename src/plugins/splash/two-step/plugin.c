@@ -925,7 +925,8 @@ on_draw (view_t                   *view,
 
       now = ply_get_timestamp ();
 
-      if (now - plugin->start_time < plugin->startup_delay)
+      if ((now - plugin->start_time < plugin->startup_delay) &&
+          plugin->state == PLY_BOOT_SPLASH_DISPLAY_NORMAL)
         return;
 
       if (view->is_blank)

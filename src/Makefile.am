@@ -15,12 +15,13 @@ plymouthdbindir = $(plymouthdaemondir)
 plymouthdbin_PROGRAMS = plymouthd
 
 plymouthd_CFLAGS = $(PLYMOUTH_CFLAGS)                                         \
+		   $(UDEV_CFLAGS)                                             \
 		   -DPLYMOUTH_PLUGIN_PATH=\"$(PLYMOUTH_PLUGIN_PATH)\"         \
 		   -DPLYMOUTH_THEME_PATH=\"$(PLYMOUTH_THEME_PATH)/\"          \
 		   -DPLYMOUTH_POLICY_DIR=\"$(PLYMOUTH_POLICY_DIR)/\"          \
 		   -DPLYMOUTH_RUNTIME_DIR=\"$(PLYMOUTH_RUNTIME_DIR)\"         \
 		   -DPLYMOUTH_CONF_DIR=\"$(PLYMOUTH_CONF_DIR)/\"
-plymouthd_LDADD = $(PLYMOUTH_LIBS) libply/libply.la libply-splash-core/libply-splash-core.la
+plymouthd_LDADD = $(PLYMOUTH_LIBS) $(UDEV_LIBS) libply/libply.la libply-splash-core/libply-splash-core.la
 plymouthd_SOURCES =                                                            \
                    ply-boot-protocol.h                                        \
                    ply-boot-server.h                                          \

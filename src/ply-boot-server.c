@@ -1,6 +1,7 @@
 /* ply-boot-server.c - listens for and processes boot-status events
  *
  * Copyright (C) 2007 Red Hat, Inc.
+ * Copyright (C) 2012 Pali Rohár <pali.rohar@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,6 +58,8 @@ struct _ply_boot_server
   ply_list_t *cached_passwords;
   int socket_fd;
 
+  ply_boot_server_register_handler_t register_handler;
+  ply_boot_server_unregister_handler_t unregister_handler;
   ply_boot_server_update_handler_t update_handler;
   ply_boot_server_change_mode_handler_t change_mode_handler;
   ply_boot_server_system_update_handler_t system_update_handler;
@@ -83,7 +86,9 @@ struct _ply_boot_server
 };
 
 ply_boot_server_t *
-ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
+ply_boot_server_new (ply_boot_server_register_handler_t  register_handler,
+                     ply_boot_server_unregister_handler_t  unregister_handler,
+                     ply_boot_server_update_handler_t  update_handler,
                      ply_boot_server_change_mode_handler_t  change_mode_handler,
                      ply_boot_server_system_update_handler_t  system_update_handler,
                      ply_boot_server_ask_for_password_handler_t ask_for_password_handler,
@@ -112,6 +117,8 @@ ply_boot_server_new (ply_boot_server_update_handler_t  update_handler,
   server->cached_passwords = ply_list_new ();
   server->loop = NULL;
   server->is_listening = false;
+  server->register_handler = register_handler;
+  server->unregister_handler = unregister_handler;
   server->update_handler = update_handler;
   server->change_mode_handler = change_mode_handler;
   server->system_update_handler = system_update_handler;
@@ -203,9 +210,12 @@ ply_boot_server_stop_listening (ply_boot_server_t *server)
 static bool
 ply_boot_connection_read_request (ply_boot_connection_t  *connection,
                                   char                  **command,
-                                  char                  **argument)
+                                  char                  **argument_1,
+                                  char                  **argument_2)
 {
   uint8_t header[2];
+  uint8_t argument_1_size = 0;
+  uint8_t argument_2_size = 0;
 
   assert (connection != NULL);
   assert (connection->fd >= 0);
@@ -218,22 +228,41 @@ ply_boot_connection_read_request (ply_boot_connection_t  *connection,
   *command = calloc (2, sizeof (char));
   *command[0] = header[0];
 
-  *argument = NULL;
-  if (header[1] == '\002')
+  *argument_1 = NULL;
+  *argument_2 = NULL;
+  if (header[1] == '\002' || header[1] == '\003')
     {
-      uint8_t argument_size;
-
-      if (!ply_read (connection->fd, &argument_size, sizeof (uint8_t)))
+      if (!ply_read (connection->fd, &argument_1_size, sizeof (uint8_t)))
         {
           free (*command);
           return false;
         }
 
-      *argument = calloc (argument_size, sizeof (char));
+      *argument_1 = calloc (argument_1_size, sizeof (char));
 
-      if (!ply_read (connection->fd, *argument, argument_size))
+      if (!ply_read (connection->fd, *argument_1, argument_1_size))
         {
-          free (*argument);
+          free (*argument_1);
+          free (*command);
+          return false;
+        }
+    }
+
+  if (header[1] == '\003')
+    {
+      if (!ply_read (connection->fd, &argument_2_size, sizeof (uint8_t)))
+        {
+          free (*argument_1);
+          free (*command);
+          return false;
+        }
+
+      *argument_2 = calloc (argument_2_size, sizeof (char));
+
+      if (!ply_read (connection->fd, *argument_2, argument_2_size))
+        {
+          free (*argument_1);
+          free (*argument_2);
           free (*command);
           return false;
         }
@@ -242,7 +271,8 @@ ply_boot_connection_read_request (ply_boot_connection_t  *connection,
   if (!ply_get_credentials_from_fd (connection->fd, &connection->pid, &connection->uid, NULL))
     {
       ply_trace ("couldn't read credentials from connection: %m");
-      free (*argument);
+      free (*argument_1);
+      free (*argument_2);
       free (*command);
       return false;
     }
@@ -379,7 +409,7 @@ static void
 ply_boot_connection_on_request (ply_boot_connection_t *connection)
 {
   ply_boot_server_t *server;
-  char *command, *argument;
+  char *command, *argument_1, *argument_2;
 
   assert (connection != NULL);
   assert (connection->fd >= 0);
@@ -388,7 +418,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
   assert (server != NULL);
 
   if (!ply_boot_connection_read_request (connection,
-                                         &command, &argument))
+                                         &command, &argument_1, &argument_2))
     {
       ply_trace ("could not read connection request");
       return;
@@ -420,8 +450,36 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
       ply_trace ("got update request");
       if (server->update_handler != NULL)
-        server->update_handler (server->user_data, argument, server);
-      free (argument);
+        server->update_handler (server->user_data, argument_1, argument_2, server);
+      free (argument_1);
+      free (argument_2);
+      free (command);
+      return;
+    }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_REGISTER) == 0)
+    {
+      if (!ply_write (connection->fd,
+                      PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+        ply_trace ("could not finish writing update reply: %m");
+
+      if (server->register_handler != NULL)
+        server->register_handler (server->user_data, argument_1, argument_2, server);
+      free (argument_1);
+      free (argument_2);
+      free (command);
+      return;
+    }
+  else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_UNREGISTER) == 0)
+    {
+        if (!ply_write (connection->fd,
+                      PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+        ply_trace ("could not finish writing update reply: %m");
+
+      if (server->unregister_handler != NULL)
+        server->unregister_handler (server->user_data, argument_1, server);
+      free (argument_1);
       free (command);
       return;
     }
@@ -434,8 +492,9 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
       ply_trace ("got change mode notification");
       if (server->change_mode_handler != NULL)
-        server->change_mode_handler (server->user_data, argument, server);
-      free (argument);
+        server->change_mode_handler (server->user_data, argument_1, server);
+      free (argument_1);
+      free (argument_2);
       free (command);
       return;
     }
@@ -444,10 +503,10 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       long int value;
       char *endptr = NULL;
 
-      value = strtol (argument, &endptr, 10);
+      value = strtol (argument_1, &endptr, 10);
       if (endptr == NULL || *endptr != '\0' || value < 0 || value > 100)
         {
-          ply_error ("failed to parse percentage %s", argument);
+          ply_error ("failed to parse percentage %s", argument_1);
           value = 0;
         }
 
@@ -459,7 +518,8 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
       if (server->system_update_handler != NULL)
         server->system_update_handler (server->user_data, value, server);
-      free (argument);
+      free (argument_1);
+      free (argument_2);
       free (command);
       return;
     }
@@ -503,7 +563,8 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (server->deactivate_handler != NULL)
         server->deactivate_handler (server->user_data, deactivate_trigger, server);
 
-      free (argument);
+      free (argument_1);
+      free (argument_2);
       free (command);
       return;
     }
@@ -518,7 +579,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       bool retain_splash;
       ply_trigger_t *quit_trigger;
 
-      retain_splash = (bool) argument[0];
+      retain_splash = (bool) argument_1[0];
 
       ply_trace ("got quit %srequest", retain_splash? "--retain-splash " : "");
 
@@ -532,7 +593,8 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       if (server->quit_handler != NULL)
         server->quit_handler (server->user_data, retain_splash, quit_trigger, server);
 
-      free(argument);
+      free(argument_1);
+      free(argument_2);
       free(command);
       return;
     }
@@ -550,7 +612,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
       if (server->ask_for_password_handler != NULL)
         server->ask_for_password_handler (server->user_data,
-                                          argument,
+                                          argument_1,
                                           answer,
                                           server);
       /* will reply later
@@ -638,7 +700,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
       if (server->ask_question_handler != NULL)
         server->ask_question_handler (server->user_data,
-                                          argument,
+                                          argument_1,
                                           answer,
                                           server);
       /* will reply later
@@ -650,13 +712,13 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
     {
       ply_trace ("got show message request");
       if (server->display_message_handler != NULL)
-        server->display_message_handler(server->user_data, argument, server);
+        server->display_message_handler(server->user_data, argument_1, server);
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_HIDE_MESSAGE) == 0)
     {
       ply_trace ("got hide message request");
       if (server->hide_message_handler != NULL)
-        server->hide_message_handler(server->user_data, argument, server);
+        server->hide_message_handler(server->user_data, argument_1, server);
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_KEYSTROKE) == 0)
     {
@@ -672,7 +734,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
       if (server->watch_for_keystroke_handler != NULL)
         server->watch_for_keystroke_handler (server->user_data,
-                                          argument,
+                                          argument_1,
                                           answer,
                                           server);
       /* will reply later
@@ -685,7 +747,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
       ply_trace ("got keystroke remove request");
       if (server->ignore_keystroke_handler != NULL)
         server->ignore_keystroke_handler (server->user_data,
-                                          argument,
+                                          argument_1,
                                           server);
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_PROGRESS_PAUSE) == 0)
@@ -706,7 +768,7 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
     {
       ply_trace ("got newroot request");
       if (server->newroot_handler != NULL)
-        server->newroot_handler(server->user_data, argument, server);
+        server->newroot_handler(server->user_data, argument_1, server);
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_HAS_ACTIVE_VT) == 0)
     {

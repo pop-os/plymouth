@@ -59,8 +59,14 @@ bool ply_boot_splash_show (ply_boot_splash_t *splash,
                            ply_boot_splash_mode_t mode);
 bool ply_boot_splash_system_update (ply_boot_splash_t *splash,
                                     int                progress);
+void ply_boot_splash_register_operation (ply_boot_splash_t *splash,
+                                         const char        *operation_id,
+                                         const char        *name);
+void ply_boot_splash_unregister_operation (ply_boot_splash_t *splash,
+                                           const char        *operation_id);
 void ply_boot_splash_update_status (ply_boot_splash_t *splash,
-                                    const char        *status);
+                                    const char        *status,
+                                    const char        *operation_id);
 void ply_boot_splash_update_output (ply_boot_splash_t *splash,
                                     const char        *output,
                                     size_t             size);

@@ -1,6 +1,7 @@
 /* plymouth.c - updates boot status
  *
  * Copyright (C) 2007 Red Hat, Inc
+ * Copyright (C) 2012 Pali Rohár <pali.rohar@gmail.com>
  *
  * This file is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -841,20 +842,84 @@ on_hide_splash_request (state_t    *state,
 }
 
 static void
+on_register_operation_request (state_t    *state,
+                               const char *command)
+{
+  char *name;
+  char *operation_id;
+
+  name = NULL;
+  operation_id = NULL;
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "name", &name,
+                                          "operation-id", &operation_id,
+                                          NULL);
+
+  if (operation_id != NULL && name != NULL)
+    {
+      ply_boot_client_register_operation(state->client, operation_id, name,
+                                         (ply_boot_client_response_handler_t)
+                                         on_success,
+                                         (ply_boot_client_response_handler_t)
+                                         on_failure, state);
+    }
+  else
+    {
+      ply_error ("unknown operation id or name");
+      ply_event_loop_exit (state->loop, 1);
+    }
+}
+
+static void
+on_unregister_operation_request (state_t    *state,
+                                 const char *command)
+{
+  char *operation_id;
+
+  operation_id = NULL;
+  ply_command_parser_get_command_options (state->command_parser,
+                                          command,
+                                          "operation-id", &operation_id,
+                                          NULL);
+
+  if (operation_id != NULL)
+    {
+      ply_boot_client_unregister_operation(state->client, operation_id,
+                                         (ply_boot_client_response_handler_t)
+                                         on_success,
+                                         (ply_boot_client_response_handler_t)
+                                         on_failure, state);
+    }
+  else
+    {
+      ply_error ("unknown operation id");
+      ply_event_loop_exit (state->loop, 1);
+    }
+}
+
+static void
 on_update_request (state_t    *state,
                    const char *command)
 {
   char *status;
+  const char *operation_id;
 
   status = NULL;
+  operation_id = NULL;
   ply_command_parser_get_command_options (state->command_parser,
                                           command,
+                                          "operation-id", &operation_id,
                                           "status", &status,
                                           NULL);
 
+  if (operation_id == NULL)
+    operation_id = "";
+
   if (status != NULL)
     {
-      ply_boot_client_update_daemon (state->client, status,
+
+      ply_boot_client_update_daemon (state->client, status, operation_id,
                                      (ply_boot_client_response_handler_t)
                                      on_success,
                                      (ply_boot_client_response_handler_t)
@@ -1000,9 +1065,29 @@ main (int    argc,
                                   NULL);
 
   ply_command_parser_add_command (state.command_parser,
+                                  "register-operation", "Tell boot daemon to register operation",
+                                  (ply_command_handler_t)
+                                  on_register_operation_request, &state,
+                                  "operation-id", "Operation id",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
+                                  "name", "Operation name",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
+                                  "unregister-operation", "Tell boot daemon to unregister operation",
+                                  (ply_command_handler_t)
+                                  on_unregister_operation_request, &state,
+                                  "operation-id", "Operation id",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
+                                  NULL);
+
+  ply_command_parser_add_command (state.command_parser,
                                   "update", "Tell daemon about boot status changes",
                                   (ply_command_handler_t)
                                   on_update_request, &state,
+                                  "operation-id", "Tell daemon operation id",
+                                  PLY_COMMAND_OPTION_TYPE_STRING,
                                   "status", "Tell daemon the current boot status",
                                   PLY_COMMAND_OPTION_TYPE_STRING,
                                   NULL);
@@ -1246,7 +1331,7 @@ main (int    argc,
                                               (ply_boot_client_response_handler_t)
                                               on_failure, &state);
   else if (status != NULL)
-    ply_boot_client_update_daemon (state.client, status,
+    ply_boot_client_update_daemon (state.client, status, NULL,
                                    (ply_boot_client_response_handler_t)
                                    on_success, 
                                    (ply_boot_client_response_handler_t)

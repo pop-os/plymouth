@@ -1,6 +1,7 @@
 /* main.c - boot messages monitor
  *
  * Copyright (C) 2007 Red Hat, Inc
+ * Copyright (C) 2012 Pali Rohár <pali.rohar@gmail.com>
  *
  * This file is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -181,15 +182,37 @@ on_session_hangup (state_t *state)
 }
 
 static void
-on_update (state_t     *state,
-           const char  *status)
+on_register (state_t     *state,
+             const char  *operation_id,
+             const char  *name)
 {
-  ply_trace ("updating status to '%s'", status);
+  ply_trace ("register operation '%s' with name '%s'", operation_id, name);
+  if (state->boot_splash != NULL)
+    ply_boot_splash_register_operation (state->boot_splash,
+                                        operation_id, name);
+}
+
+static void
+on_unregister (state_t     *state,
+               const char  *operation_id)
+{
+  ply_trace ("register operation '%s'", operation_id);
+  if (state->boot_splash != NULL)
+    ply_boot_splash_unregister_operation (state->boot_splash,
+                                        operation_id);
+}
+
+static void
+on_update (state_t     *state,
+           const char  *status,
+           const char  *operation_id)
+{
+  ply_trace ("updating status of operation '%s' to '%s'", operation_id, status);
   ply_progress_status_update (state->progress,
-                               status);
+                               status, operation_id);
   if (state->boot_splash != NULL)
     ply_boot_splash_update_status (state->boot_splash,
-                                   status);
+                                   status, operation_id);
 }
 
 static void
@@ -1370,7 +1393,9 @@ start_boot_server (state_t *state)
 {
   ply_boot_server_t *server;
 
-  server = ply_boot_server_new ((ply_boot_server_update_handler_t) on_update,
+  server = ply_boot_server_new ((ply_boot_server_register_handler_t) on_register,
+                                (ply_boot_server_unregister_handler_t) on_unregister,
+                                (ply_boot_server_update_handler_t) on_update,
                                 (ply_boot_server_change_mode_handler_t) on_change_mode,
                                 (ply_boot_server_system_update_handler_t) on_system_update,
                                 (ply_boot_server_ask_for_password_handler_t) on_ask_for_password,

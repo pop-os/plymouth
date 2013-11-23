@@ -36,7 +36,7 @@ double ply_progress_get_time (ply_progress_t* progress);
 void ply_progress_pause (ply_progress_t* progress);
 void ply_progress_unpause (ply_progress_t* progress);
 void ply_progress_save_cache (ply_progress_t* progress, const char *filename);
-void ply_progress_status_update (ply_progress_t* progress, const char  *status);
+void ply_progress_status_update (ply_progress_t* progress, const char *status, const char *operation_id);
 
 #endif /* PLY_PROGRESS_H */
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

@@ -927,7 +927,8 @@ add_stars (ply_boot_splash_plugin_t *plugin)
 
 static void
 update_status (ply_boot_splash_plugin_t *plugin,
-               const char               *status)
+               const char               *status,
+               const char               *operation_id)
 {
   assert (plugin != NULL);
 

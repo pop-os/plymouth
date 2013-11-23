@@ -1,6 +1,7 @@
 /* ply-boot-client.h - APIs for talking to the boot status daemon
  *
  * Copyright (C) 2007 Red Hat, Inc.
+ * Copyright (C) 2012 Pali Rohár <pali.rohar@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,8 +54,20 @@ void ply_boot_client_ping_daemon (ply_boot_client_t                  *client,
                                   ply_boot_client_response_handler_t  handler,
                                   ply_boot_client_response_handler_t  failed_handler,
                                   void                               *user_data);
+void ply_boot_client_register_operation (ply_boot_client_t                  *client,
+                                         const char                         *operation_id,
+                                         const char                         *name,
+                                         ply_boot_client_response_handler_t  handler,
+                                         ply_boot_client_response_handler_t  failed_handler,
+                                         void                               *user_data);
+void ply_boot_client_unregister_operation (ply_boot_client_t                  *client,
+                                           const char                         *operation_id,
+                                           ply_boot_client_response_handler_t  handler,
+                                           ply_boot_client_response_handler_t  failed_handler,
+                                           void                               *user_data);
 void ply_boot_client_update_daemon (ply_boot_client_t                  *client,
                                     const char                         *new_status,
+                                    const char                         *operation_id,
                                     ply_boot_client_response_handler_t  handler,
                                     ply_boot_client_response_handler_t  failed_handler,
                                     void                               *user_data);

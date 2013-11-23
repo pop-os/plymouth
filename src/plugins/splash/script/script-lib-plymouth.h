@@ -32,6 +32,8 @@ typedef struct
   script_obj_t           *script_boot_progress_func;
   script_obj_t           *script_root_mounted_func;
   script_obj_t           *script_keyboard_input_func;
+  script_obj_t           *script_register_operation_func;
+  script_obj_t           *script_unregister_operation_func;
   script_obj_t           *script_update_status_func;
   script_obj_t           *script_display_normal_func;
   script_obj_t           *script_display_password_func;
@@ -57,9 +59,17 @@ void script_lib_plymouth_on_root_mounted (script_state_t             *state,
 void script_lib_plymouth_on_keyboard_input (script_state_t             *state,
                                             script_lib_plymouth_data_t *data,
                                             const char                 *keyboard_input);
+void script_lib_plymouth_on_register_operation (script_state_t             *state,
+                                                script_lib_plymouth_data_t *data,
+                                                const char                 *operation_id,
+                                                const char                 *name);
+void script_lib_plymouth_on_unregister_operation (script_state_t             *state,
+                                                  script_lib_plymouth_data_t *data,
+                                                  const char                 *operation_id);
 void script_lib_plymouth_on_update_status (script_state_t             *state,
                                            script_lib_plymouth_data_t *data,
-                                           const char                 *new_status);
+                                           const char                 *new_status,
+                                           const char                 *operation_id);
 void script_lib_plymouth_on_display_normal (script_state_t             *state,
                                             script_lib_plymouth_data_t *data);
 void script_lib_plymouth_on_display_password (script_state_t             *state,

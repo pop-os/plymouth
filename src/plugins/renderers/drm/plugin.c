@@ -399,42 +399,6 @@ destroy_backend (ply_renderer_backend_t *backend)
   free (backend);
 }
 
-static char *
-find_driver_for_device (const char *device_name)
-{
-  char *driver;
-  int major_number, minor_number;
-  struct stat file_attributes;
-  char *device_path;
-  char device_link_path[PATH_MAX + 1] = "";
-
-  if (stat (device_name, &file_attributes) < 0)
-    return NULL;
-
-  if (!S_ISCHR (file_attributes.st_mode))
-    return NULL;
-
-  major_number = major (file_attributes.st_rdev);
-  minor_number = minor (file_attributes.st_rdev);
-
-  asprintf (&device_path, "/sys/dev/char/%d:%d/device/driver",
-            major_number, minor_number);
-
-  if (readlink (device_path, device_link_path, sizeof (device_link_path) - 1) < 0)
-    {
-      free (device_path);
-      return NULL;
-    }
-  free (device_path);
-
-  driver = strrchr (device_link_path, '/');
-
-  if (driver == NULL)
-    return NULL;
-
-  return strdup (driver + strlen ("/"));
-}
-
 static void
 activate (ply_renderer_backend_t *backend)
 {
@@ -495,24 +459,19 @@ on_active_vt_changed (ply_renderer_backend_t *backend)
 static bool
 load_driver (ply_renderer_backend_t *backend)
 {
-  char *driver_name;
   int device_fd;
 
-  driver_name = find_driver_for_device (backend->device_name);
-  ply_trace ("Attempting to load driver '%s'", driver_name);
-  device_fd = drmOpen (driver_name, NULL);
+  ply_trace ("Opening '%s'", backend->device_name);
+  device_fd = open (backend->device_name, O_RDWR);
 
   if (device_fd < 0)
     {
-      ply_trace ("drmOpen failed");
-      free (driver_name);
+      ply_trace ("open failed: %m");
       return false;
     }
 
   backend->driver_interface = ply_renderer_generic_driver_get_interface (device_fd);
   backend->driver_supports_mapping_console = false;
-
-  free (driver_name);
 
   if (backend->driver_interface == NULL)
     {

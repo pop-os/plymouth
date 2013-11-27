@@ -2265,8 +2265,6 @@ initialize_environment (state_t *state)
   state->messages = ply_list_new ();
   state->keyboard = NULL;
 
-  check_for_consoles (state);
-
   redirect_standard_io_to_dev_null ();
 
   ply_trace ("Making sure " PLYMOUTH_RUNTIME_DIR " exists");

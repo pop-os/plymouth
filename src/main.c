@@ -116,7 +116,6 @@ typedef struct
   uint32_t is_shown : 1;
   uint32_t should_force_details : 1;
 
-  char *kernel_console_tty;
   char *override_splash_path;
   char *system_default_splash_path;
   char *distribution_default_splash_path;
@@ -1902,10 +1901,7 @@ check_verbosity (state_t *state)
             const char* device;
             char *file;
 
-            if (state->kernel_console_tty != NULL)
-                device = state->kernel_console_tty;
-            else
-                device = state->default_tty;
+            device = state->default_tty;
 
             ply_trace ("redirecting debug output to %s", device);
 
@@ -2159,12 +2155,6 @@ check_for_consoles (state_t *state)
       console = strdup (state->default_tty);
       ply_hashtable_insert (consoles, console, console);
     }
-
-  free (state->kernel_console_tty);
-  state->kernel_console_tty = NULL;
-
-  if (console != NULL)
-    state->kernel_console_tty = strdup (console);
 
   if (state->is_shown)
     {

@@ -146,9 +146,7 @@ static void on_error_message (ply_buffer_t *debug_buffer,
 static ply_buffer_t *debug_buffer;
 static char *debug_buffer_path = NULL;
 static char *pid_file = NULL;
-static void check_for_consoles (state_t    *state,
-                                const char *default_tty,
-                                bool        should_add_displays);
+static void check_for_consoles (state_t *state);
 static void toggle_between_splash_and_details (state_t *state);
 #ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
 static void tell_systemd_to_print_details (state_t *state);
@@ -891,7 +889,7 @@ on_show_splash (state_t *state)
 
   state->is_shown = true;
 
-  check_for_consoles (state, state->default_tty, true);
+  check_for_consoles (state);
 
   has_display = ply_list_get_length (state->pixel_displays) > 0 ||
                 ply_list_get_length (state->text_displays) > 0;
@@ -2115,9 +2113,7 @@ add_consoles_from_kernel_command_line (state_t         *state,
 }
 
 static void
-check_for_consoles (state_t    *state,
-                    const char *default_tty,
-                    bool        should_add_displays)
+check_for_consoles (state_t *state)
 {
   char *console;
   ply_hashtable_t *consoles;
@@ -2125,7 +2121,7 @@ check_for_consoles (state_t    *state,
   bool ignore_serial_consoles;
 
   ply_trace ("checking for consoles%s",
-             should_add_displays? " and adding displays": "");
+             state->is_shown? " and adding displays": "");
 
   consoles = ply_hashtable_new (ply_hashtable_string_hash,
                                 ply_hashtable_string_compare);
@@ -2152,7 +2148,7 @@ check_for_consoles (state_t    *state,
   if (console != NULL)
     {
       free (console);
-      console = strdup (default_tty);
+      console = strdup (state->default_tty);
       ply_hashtable_insert (consoles, console, console);
     }
 
@@ -2160,7 +2156,7 @@ check_for_consoles (state_t    *state,
   if (console != NULL)
     {
       free (console);
-      console = strdup (default_tty);
+      console = strdup (state->default_tty);
       ply_hashtable_insert (consoles, console, console);
     }
 
@@ -2170,14 +2166,14 @@ check_for_consoles (state_t    *state,
   if (console != NULL)
     state->kernel_console_tty = strdup (console);
 
-  if (should_add_displays)
+  if (state->is_shown)
     {
       /* Do a full graphical splash if there's no weird serial console
        * stuff going on, otherwise just prepare text splashes
        */
       if ((num_consoles == 0) ||
           ((num_consoles == 1) &&
-           (ply_hashtable_lookup (consoles, (void *) default_tty) != NULL)))
+           (ply_hashtable_lookup (consoles, (void *) state->default_tty) != NULL)))
         add_default_displays_and_keyboard (state);
       else
         ply_hashtable_foreach (consoles,
@@ -2279,8 +2275,7 @@ initialize_environment (state_t *state)
   state->messages = ply_list_new ();
   state->keyboard = NULL;
 
-
-  check_for_consoles (state, state->default_tty, false);
+  check_for_consoles (state);
 
   redirect_standard_io_to_dev_null ();
 

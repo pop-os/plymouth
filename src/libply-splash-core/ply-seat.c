@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "ply-boot-splash.h"
 #include "ply-event-loop.h"
 #include "ply-keyboard.h"
 #include "ply-pixel-display.h"
@@ -41,6 +42,7 @@ struct _ply_seat
 {
   ply_event_loop_t *loop;
 
+  ply_boot_splash_t *splash;
   ply_terminal_t *terminal;
   ply_renderer_t *renderer;
   ply_keyboard_t *keyboard;
@@ -261,6 +263,22 @@ ply_seat_close (ply_seat_t *seat)
   ply_renderer_close (seat->renderer);
   ply_renderer_free (seat->renderer);
   seat->renderer = NULL;
+}
+
+void
+ply_seat_set_splash (ply_seat_t        *seat,
+                     ply_boot_splash_t *splash)
+{
+  if (seat->splash == splash)
+    return;
+
+  if (seat->splash != NULL)
+    ply_boot_splash_detach_from_seat (splash, seat);
+
+  if (splash != NULL)
+    ply_boot_splash_attach_to_seat (splash, seat);
+
+  seat->splash = splash;
 }
 
 static void

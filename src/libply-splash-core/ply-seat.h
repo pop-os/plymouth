@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#include "ply-boot-splash.h"
 #include "ply-buffer.h"
 #include "ply-event-loop.h"
 #include "ply-keyboard.h"
@@ -35,6 +36,7 @@
 #include "ply-terminal.h"
 #include "ply-text-display.h"
 
+typedef struct _ply_boot_splash ply_boot_splash_t;
 typedef struct _ply_seat ply_seat_t;
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
@@ -51,6 +53,9 @@ void ply_seat_deactivate_renderer (ply_seat_t *seat);
 void ply_seat_activate_renderer (ply_seat_t *seat);
 void ply_seat_refresh_displays (ply_seat_t *seat);
 void ply_seat_close (ply_seat_t *seat);
+void ply_seat_set_splash (ply_seat_t        *seat,
+                          ply_boot_splash_t *splash);
+
 ply_list_t *ply_seat_get_pixel_displays (ply_seat_t *seat);
 ply_list_t *ply_seat_get_text_displays (ply_seat_t *seat);
 ply_keyboard_t *ply_seat_get_keyboard (ply_seat_t *seat);

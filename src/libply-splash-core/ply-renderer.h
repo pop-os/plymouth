@@ -35,12 +35,21 @@ typedef struct _ply_renderer ply_renderer_t;
 typedef struct _ply_renderer_head ply_renderer_head_t;
 typedef struct _ply_renderer_input_source ply_renderer_input_source_t;
 
+typedef enum
+{
+  PLY_RENDERER_TYPE_NONE = -1,
+  PLY_RENDERER_TYPE_AUTO,
+  PLY_RENDERER_TYPE_DRM,
+  PLY_RENDERER_TYPE_FRAME_BUFFER,
+  PLY_RENDERER_TYPE_X11
+} ply_renderer_type_t;
+
 typedef void (* ply_renderer_input_source_handler_t) (void                        *user_data,
                                                       ply_buffer_t                *key_buffer,
                                                       ply_renderer_input_source_t *input_source);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-ply_renderer_t *ply_renderer_new (const char     *plugin_path,
+ply_renderer_t *ply_renderer_new (ply_renderer_type_t renderer_type,
                                   const char     *device_name,
                                   ply_terminal_t *terminal);
 void ply_renderer_free (ply_renderer_t *renderer);

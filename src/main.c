@@ -1577,7 +1577,7 @@ add_default_displays_and_keyboard (state_t *state)
 
   state->local_console_terminal = ply_terminal_new (state->default_tty);
 
-  renderer = ply_renderer_new (NULL, NULL, state->local_console_terminal);
+  renderer = ply_renderer_new (PLY_RENDERER_TYPE_AUTO, NULL, state->local_console_terminal);
 
   if (!ply_renderer_open (renderer))
     {

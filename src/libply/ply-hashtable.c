@@ -281,6 +281,11 @@ ply_hashtable_foreach (ply_hashtable_t              *hashtable,
     }
 }
 
+int
+ply_hashtable_get_size (ply_hashtable_t *hashtable)
+{
+  return hashtable->live_node_count;
+}
 
 #ifdef PLY_HASHTABLE_ENABLE_TEST
 #include <stdio.h>

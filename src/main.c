@@ -84,6 +84,7 @@ typedef struct
 {
   ply_event_loop_t *loop;
   ply_boot_server_t *boot_server;
+  ply_hashtable_t *terminals;
   ply_list_t *pixel_displays;
   ply_list_t *text_displays;
   ply_keyboard_t *keyboard;
@@ -152,6 +153,58 @@ static void tell_systemd_to_print_details (state_t *state);
 static void tell_systemd_to_stop_printing_details (state_t *state);
 #endif
 static const char * get_cache_file_for_mode (ply_mode_t mode);
+
+static void
+free_terminal (char           *device,
+               ply_terminal_t *terminal,
+               state_t        *state)
+{
+  ply_hashtable_remove (state->terminals, device);
+
+  ply_terminal_close (terminal);
+  ply_terminal_free (terminal);
+}
+
+static void
+free_terminals (state_t *state)
+{
+  ply_hashtable_foreach (state->terminals,
+                         (ply_hashtable_foreach_func_t *)
+                         free_terminal,
+                         state);
+}
+
+static ply_terminal_t *
+get_terminal (state_t    *state,
+              const char *device_name)
+{
+  char *full_name;
+  ply_terminal_t *terminal;
+
+  if (strncmp (device_name, "/dev/", strlen ("/dev/")) == 0)
+    full_name = strdup (device_name);
+  else
+    asprintf (&full_name, "/dev/%s", device_name);
+
+  if (strcmp (full_name, "/dev/tty0") == 0 ||
+      strcmp (full_name, "/dev/tty") == 0)
+    {
+      free (full_name);
+      full_name = strdup (state->default_tty);
+    }
+
+  terminal = ply_hashtable_lookup (state->terminals, full_name);
+
+  if (terminal == NULL)
+    {
+      terminal = ply_terminal_new (full_name);
+
+      ply_hashtable_insert (state->terminals, (void *) ply_terminal_get_name (terminal), terminal);
+    }
+  free (full_name);
+
+  return terminal;
+}
 
 static void
 on_session_output (state_t    *state,
@@ -915,62 +968,9 @@ on_show_splash (state_t *state)
   show_messages (state);
 }
 
-static ply_list_t *
-get_tracked_terminals (state_t *state)
-{
-  ply_list_t *terminals;
-  ply_list_node_t *node;
-
-  terminals = ply_list_new ();
-
-  node = ply_list_get_first_node (state->text_displays);
-  while (node != NULL)
-    {
-      ply_list_node_t *next_node;
-      ply_text_display_t *display;
-      ply_terminal_t *terminal;
-
-      next_node = ply_list_get_next_node (state->text_displays, node);
-      display = ply_list_node_get_data (node);
-      terminal = ply_text_display_get_terminal (display);
-
-      ply_list_append_data (terminals, terminal);
-
-      node = next_node;
-    }
-
-  return terminals;
-}
-
-static void
-free_terminals (state_t    *state,
-                ply_list_t *terminals)
-{
-  ply_list_node_t *node;
-  node = ply_list_get_first_node (terminals);
-  while (node != NULL)
-    {
-      ply_list_node_t *next_node;
-      ply_terminal_t *terminal;
-
-      next_node = ply_list_get_next_node (state->text_displays, node);
-      terminal = ply_list_node_get_data (node);
-
-      ply_terminal_close (terminal);
-      ply_terminal_free (terminal);
-      ply_list_remove_node (terminals, node);
-
-      node = next_node;
-    }
-
-  ply_list_free (terminals);
-}
-
 static void
 quit_splash (state_t *state)
 {
-  ply_list_t *terminals;
-
   ply_trace ("quiting splash");
   if (state->boot_splash != NULL)
     {
@@ -978,8 +978,6 @@ quit_splash (state_t *state)
       ply_boot_splash_free (state->boot_splash);
       state->boot_splash = NULL;
     }
-
-  terminals = get_tracked_terminals (state);
 
   ply_trace ("removing displays and keyboard");
   remove_displays_and_keyboard (state);
@@ -1000,7 +998,8 @@ quit_splash (state_t *state)
         }
       state->local_console_terminal = NULL;
     }
-  free_terminals (state, terminals);
+
+  free_terminals (state);
 
   detach_from_running_session (state);
 }
@@ -1575,7 +1574,7 @@ add_default_displays_and_keyboard (state_t *state)
 
   ply_trace ("adding default displays and keyboard");
 
-  state->local_console_terminal = ply_terminal_new (state->default_tty);
+  state->local_console_terminal = get_terminal (state, state->default_tty);
 
   renderer = ply_renderer_new (PLY_RENDERER_TYPE_AUTO, NULL, state->local_console_terminal);
 
@@ -1957,24 +1956,19 @@ check_logging (state_t *state)
 }
 
 static void
-add_display_and_keyboard_for_console (const char *console,
-                                      const char *null,
-                                      state_t    *state)
+add_display_and_keyboard_for_console (const char     *name,
+                                      ply_terminal_t *terminal,
+                                      state_t        *state)
 {
-  ply_terminal_t *terminal;
-
-  terminal = ply_terminal_new (console);
-
-  if (strcmp (console, state->default_tty) == 0)
+  if (strcmp (name, state->default_tty) == 0)
     state->local_console_terminal = terminal;
 
-  ply_trace ("adding display and keyboard for console %s", console);
+  ply_trace ("adding display and keyboard for console %s", name);
   add_display_and_keyboard_for_terminal (state, terminal);
 }
 
 static int
 add_consoles_from_file (state_t         *state,
-                        ply_hashtable_t *consoles,
                         const char      *path)
 {
   int fd;
@@ -2010,7 +2004,8 @@ add_consoles_from_file (state_t         *state,
     {
       char *console;
       size_t console_length;
-      char *console_device;
+      const char *console_device;
+      ply_terminal_t *terminal;
 
       /* Advance past any leading whitespace */
       remaining_file_contents += strspn (remaining_file_contents, " \n\t\v");
@@ -2035,12 +2030,12 @@ add_consoles_from_file (state_t         *state,
       if (strcmp (console, "tty0") != 0)
         state->should_force_details = true;
 
-      asprintf (&console_device, "/dev/%s", console);
+      terminal = get_terminal (state, console);
+      console_device = ply_terminal_get_name (terminal);
 
       free (console);
 
       ply_trace ("console %s found!", console_device);
-      ply_hashtable_insert (consoles, console_device, console_device);
       num_consoles++;
 
       /* Move past the parsed console string, and the whitespace we
@@ -2055,8 +2050,7 @@ add_consoles_from_file (state_t         *state,
 }
 
 static int
-add_consoles_from_kernel_command_line (state_t         *state,
-                                       ply_hashtable_t *consoles)
+add_consoles_from_kernel_command_line (state_t *state)
 {
   const char *console_string;
   const char *remaining_command_line;
@@ -2072,7 +2066,8 @@ add_consoles_from_kernel_command_line (state_t         *state,
     {
       char *end;
       size_t console_length;
-      char *console_device;
+      const char *console_device;
+      ply_terminal_t *terminal;
 
       remaining_command_line = console_string;
 
@@ -2087,20 +2082,10 @@ add_consoles_from_kernel_command_line (state_t         *state,
 
       console_length = strlen (console);
 
-      if (strncmp (console, "/dev/", strlen ("/dev/")) == 0)
-        {
-          console_device = console;
-          console = NULL;
-        }
-      else
-        {
-          asprintf (&console_device, "/dev/%s", console);
-          free (console);
-          console = NULL;
-        }
+      terminal = get_terminal (state, console);
+      console_device = ply_terminal_get_name (terminal);
 
       ply_trace ("console %s found!", console_device);
-      ply_hashtable_insert (consoles, console_device, console_device);
       num_consoles++;
       remaining_command_line += console_length;
     }
@@ -2111,49 +2096,30 @@ add_consoles_from_kernel_command_line (state_t         *state,
 static void
 check_for_consoles (state_t *state)
 {
-  char *console;
-  ply_hashtable_t *consoles;
   int num_consoles;
   bool ignore_serial_consoles;
 
   ply_trace ("checking for consoles%s",
              state->is_shown? " and adding displays": "");
 
-  consoles = ply_hashtable_new (ply_hashtable_string_hash,
-                                ply_hashtable_string_compare);
   ignore_serial_consoles = command_line_has_argument (state->kernel_command_line, "plymouth.ignore-serial-consoles");
 
   num_consoles = 0;
 
   if (!ignore_serial_consoles)
     {
-      num_consoles = add_consoles_from_file (state, consoles, "/sys/class/tty/console/active");
+      num_consoles = add_consoles_from_file (state, "/sys/class/tty/console/active");
 
       if (num_consoles == 0)
         {
           ply_trace ("falling back to kernel command line");
-          num_consoles = add_consoles_from_kernel_command_line (state, consoles);
+          num_consoles = add_consoles_from_kernel_command_line (state);
         }
     }
   else
     {
       ply_trace ("ignoring all consoles but default console because of plymouth.ignore-serial-consoles");
-    }
-
-  console = ply_hashtable_remove (consoles, (void *) "/dev/tty0");
-  if (console != NULL)
-    {
-      free (console);
-      console = strdup (state->default_tty);
-      ply_hashtable_insert (consoles, console, console);
-    }
-
-  console = ply_hashtable_remove (consoles, (void *) "/dev/tty");
-  if (console != NULL)
-    {
-      free (console);
-      console = strdup (state->default_tty);
-      ply_hashtable_insert (consoles, console, console);
+      get_terminal (state, state->default_tty);
     }
 
   if (state->is_shown)
@@ -2161,19 +2127,14 @@ check_for_consoles (state_t *state)
       /* Do a full graphical splash if there's no weird serial console
        * stuff going on, otherwise just prepare text splashes
        */
-      if ((num_consoles == 0) ||
-          ((num_consoles == 1) &&
-           (ply_hashtable_lookup (consoles, (void *) state->default_tty) != NULL)))
+      if (num_consoles <= 1)
         add_default_displays_and_keyboard (state);
       else
-        ply_hashtable_foreach (consoles,
+        ply_hashtable_foreach (state->terminals,
                                (ply_hashtable_foreach_func_t *)
                                add_display_and_keyboard_for_console,
                                state);
     }
-
-  ply_hashtable_foreach (consoles, (ply_hashtable_foreach_func_t *) free, NULL);
-  ply_hashtable_free (consoles);
 
   ply_trace ("After processing serial consoles there are now %d text displays",
              ply_list_get_length (state->text_displays));
@@ -2260,6 +2221,7 @@ initialize_environment (state_t *state)
   state->keystroke_triggers = ply_list_new ();
   state->entry_triggers = ply_list_new ();
   state->entry_buffer = ply_buffer_new();
+  state->terminals = ply_hashtable_new (ply_hashtable_string_hash, ply_hashtable_string_compare);
   state->pixel_displays = ply_list_new ();
   state->text_displays = ply_list_new ();
   state->messages = ply_list_new ();

@@ -1005,6 +1005,18 @@ quit_splash (state_t *state)
 }
 
 static void
+hide_splash (state_t *state)
+{
+  if (state->boot_splash == NULL)
+    return;
+
+  ply_boot_splash_hide (state->boot_splash);
+
+  if (state->local_console_terminal != NULL)
+    ply_terminal_set_mode (state->local_console_terminal, PLY_TERMINAL_MODE_TEXT);
+}
+
+static void
 dump_details_and_quit_splash (state_t *state)
 {
   state->showing_details = false;
@@ -1012,8 +1024,8 @@ dump_details_and_quit_splash (state_t *state)
 
   if (state->renderer != NULL)
     ply_renderer_deactivate (state->renderer);
-  if (state->boot_splash != NULL)
-    ply_boot_splash_hide (state->boot_splash);
+
+  hide_splash (state);
 
   state->is_shown = false;
 
@@ -1126,8 +1138,8 @@ on_boot_splash_idle (state_t *state)
           ply_trace ("hiding splash");
           if (state->renderer != NULL)
             ply_renderer_deactivate (state->renderer);
-          if (state->boot_splash != NULL)
-            ply_boot_splash_hide (state->boot_splash);
+
+          hide_splash (state);
 
           state->is_shown = false;
         }
@@ -1372,7 +1384,7 @@ toggle_between_splash_and_details (state_t *state)
   if (state->boot_splash != NULL)
     {
       ply_trace ("hiding and freeing current splash");
-      ply_boot_splash_hide (state->boot_splash);
+      hide_splash (state);
       ply_boot_splash_free (state->boot_splash);
       state->boot_splash = NULL;
     }

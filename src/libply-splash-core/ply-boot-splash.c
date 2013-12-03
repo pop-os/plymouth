@@ -102,32 +102,6 @@ ply_boot_splash_new (const char     *theme_path,
   return splash;
 }
 
-static ply_terminal_t *
-find_local_console_terminal (ply_boot_splash_t *splash)
-{
-  ply_list_node_t *node;
-  node = ply_list_get_first_node (splash->text_displays);
-
-  while (node != NULL)
-    {
-      ply_text_display_t *display;
-      ply_terminal_t *terminal;
-      ply_list_node_t *next_node;
-
-      display = ply_list_node_get_data (node);
-      next_node = ply_list_get_next_node (splash->text_displays, node);
-
-      terminal = ply_text_display_get_terminal (display);
-
-      if (terminal != NULL && ply_terminal_is_vt (terminal))
-        return terminal;
-
-      node = next_node;
-    }
-
-  return NULL;
-}
-
 void
 ply_boot_splash_set_keyboard (ply_boot_splash_t *splash,
                               ply_keyboard_t    *keyboard)
@@ -573,16 +547,6 @@ ply_boot_splash_hide (ply_boot_splash_t *splash)
 
   splash->plugin_interface->hide_splash_screen (splash->plugin,
                                                 splash->loop);
-
-  if (ply_list_get_length (splash->pixel_displays) >= 1)
-    {
-      ply_terminal_t *terminal;
-
-      terminal = find_local_console_terminal (splash);
-
-      if (terminal != NULL)
-        ply_terminal_set_mode (terminal, PLY_TERMINAL_MODE_TEXT);
-    }
 
   splash->mode = PLY_BOOT_SPLASH_MODE_INVALID;
 

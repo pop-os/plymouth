@@ -949,12 +949,6 @@ on_show_splash (state_t *state)
   if (!state->is_attached && state->should_be_attached && has_display)
     attach_to_running_session (state);
 
-  if (!has_display)
-    {
-      ply_trace ("no open seats");
-      detach_from_running_session (state);
-    }
-
   if (plymouth_should_show_default_splash (state))
     {
       show_default_splash (state);

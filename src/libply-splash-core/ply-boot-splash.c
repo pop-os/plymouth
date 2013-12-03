@@ -55,12 +55,9 @@ struct _ply_boot_splash
   const ply_boot_splash_plugin_interface_t *plugin_interface;
   ply_boot_splash_plugin_t *plugin;
   ply_boot_splash_mode_t mode;
-  ply_keyboard_t *keyboard;
   ply_buffer_t *boot_buffer;
   ply_trigger_t *idle_trigger;
   ply_list_t *seats;
-  ply_list_t *pixel_displays;
-  ply_list_t *text_displays;
 
   char *theme_path;
   char *plugin_dir;
@@ -97,83 +94,9 @@ ply_boot_splash_new (const char     *theme_path,
   splash->mode = PLY_BOOT_SPLASH_MODE_INVALID;
 
   splash->boot_buffer = boot_buffer;
-  splash->pixel_displays = ply_list_new ();
-  splash->text_displays = ply_list_new ();
   splash->seats = ply_list_new ();
 
   return splash;
-}
-
-void
-ply_boot_splash_set_keyboard (ply_boot_splash_t *splash,
-                              ply_keyboard_t    *keyboard)
-{
-  splash->keyboard = keyboard;
-
-  if (splash->plugin_interface->set_keyboard == NULL)
-    return;
-
-  splash->plugin_interface->set_keyboard (splash->plugin, keyboard);
-}
-
-void
-ply_boot_splash_unset_keyboard (ply_boot_splash_t *splash)
-{
-  if (splash->keyboard == NULL)
-    return;
-
-  if (splash->plugin_interface->set_keyboard == NULL)
-    return;
-
-  splash->plugin_interface->unset_keyboard (splash->plugin, splash->keyboard);
-}
-
-void
-ply_boot_splash_add_pixel_display (ply_boot_splash_t   *splash,
-                                   ply_pixel_display_t *display)
-{
-  ply_list_append_data (splash->pixel_displays, display);
-
-  if (splash->plugin_interface->add_pixel_display == NULL)
-    return;
-
-  splash->plugin_interface->add_pixel_display (splash->plugin, display);
-}
-
-void
-ply_boot_splash_remove_pixel_display (ply_boot_splash_t   *splash,
-                                      ply_pixel_display_t *display)
-{
-  ply_list_remove_data (splash->pixel_displays, display);
-
-  if (splash->plugin_interface->remove_pixel_display == NULL)
-    return;
-
-  splash->plugin_interface->remove_pixel_display (splash->plugin, display);
-}
-
-void
-ply_boot_splash_add_text_display (ply_boot_splash_t   *splash,
-                                  ply_text_display_t *display)
-{
-  ply_list_append_data (splash->text_displays, display);
-
-  if (splash->plugin_interface->add_text_display == NULL)
-    return;
-
-  splash->plugin_interface->add_text_display (splash->plugin, display);
-}
-
-void
-ply_boot_splash_remove_text_display (ply_boot_splash_t   *splash,
-                                     ply_text_display_t *display)
-{
-  ply_list_remove_data (splash->text_displays, display);
-
-  if (splash->plugin_interface->remove_pixel_display == NULL)
-    return;
-
-  splash->plugin_interface->remove_text_display (splash->plugin, display);
 }
 
 static void
@@ -468,62 +391,6 @@ ply_boot_splash_unload (ply_boot_splash_t *splash)
 }
 
 static void
-remove_displays (ply_boot_splash_t *splash)
-{
-  ply_list_node_t *node, *next_node;
-
-  ply_trace ("removing pixel displays");
-
-  node = ply_list_get_first_node (splash->pixel_displays);
-  while (node != NULL)
-    {
-      ply_pixel_display_t *display;
-      ply_list_node_t *next_node;
-      unsigned long width, height;
-
-      display = ply_list_node_get_data (node);
-      next_node = ply_list_get_next_node (splash->pixel_displays, node);
-
-      width = ply_pixel_display_get_width (display);
-      height = ply_pixel_display_get_height (display);
-
-      ply_trace ("Removing %lux%lu pixel display", width, height);
-
-      if (splash->plugin_interface->remove_pixel_display != NULL)
-        splash->plugin_interface->remove_pixel_display (splash->plugin, display);
-
-      ply_trace ("Removing node");
-      ply_list_remove_node (splash->pixel_displays, node);
-
-      node = next_node;
-    }
-
-  ply_trace ("removing text displays");
-  node = ply_list_get_first_node (splash->text_displays);
-  while (node != NULL)
-    {
-      ply_text_display_t *display;
-      int number_of_columns, number_of_rows;
-
-      display = ply_list_node_get_data (node);
-      next_node = ply_list_get_next_node (splash->text_displays, node);
-
-      number_of_columns = ply_text_display_get_number_of_columns (display);
-      number_of_rows = ply_text_display_get_number_of_rows (display);
-
-      ply_trace ("Removing %dx%d text display", number_of_columns, number_of_rows);
-
-      if (splash->plugin_interface->remove_text_display != NULL)
-        splash->plugin_interface->remove_text_display (splash->plugin, display);
-
-      ply_trace ("Removing node");
-      ply_list_remove_node (splash->text_displays, node);
-
-      node = next_node;
-    }
-}
-
-static void
 detach_from_seats (ply_boot_splash_t *splash)
 {
   ply_list_node_t *node;
@@ -567,10 +434,6 @@ ply_boot_splash_free (ply_boot_splash_t *splash)
                                              ply_boot_splash_detach_from_event_loop,
                                              splash);
     }
-
-  remove_displays (splash);
-  ply_list_free (splash->pixel_displays);
-  ply_list_free (splash->text_displays);
 
   detach_from_seats (splash);
   ply_list_free (splash->seats);

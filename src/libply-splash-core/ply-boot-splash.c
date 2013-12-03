@@ -48,10 +48,6 @@
 #define UPDATES_PER_SECOND 30
 #endif
 
-#define KEY_CTRL_L ('\100' ^'L')
-#define KEY_CTRL_T ('\100' ^'T')
-#define KEY_CTRL_V ('\100' ^'V')
-
 struct _ply_boot_splash
 {
   ply_event_loop_t *loop;
@@ -106,48 +102,6 @@ ply_boot_splash_new (const char     *theme_path,
   return splash;
 }
 
-static void
-refresh_displays (ply_boot_splash_t *splash)
-{
-  ply_list_node_t *node;
-
-  node = ply_list_get_first_node (splash->pixel_displays);
-  while (node != NULL)
-    {
-      ply_pixel_display_t *display;
-      ply_list_node_t *next_node;
-      unsigned long width, height;
-
-      display = ply_list_node_get_data (node);
-      next_node = ply_list_get_next_node (splash->pixel_displays, node);
-
-      width = ply_pixel_display_get_width (display);
-      height = ply_pixel_display_get_height (display);
-
-      ply_pixel_display_draw_area (display, 0, 0, width, height);
-      node = next_node;
-    }
-
-  node = ply_list_get_first_node (splash->text_displays);
-  while (node != NULL)
-    {
-      ply_text_display_t *display;
-      ply_list_node_t *next_node;
-      int number_of_columns, number_of_rows;
-
-      display = ply_list_node_get_data (node);
-      next_node = ply_list_get_next_node (splash->text_displays, node);
-
-      number_of_columns = ply_text_display_get_number_of_columns (display);
-      number_of_rows = ply_text_display_get_number_of_rows (display);
-
-      ply_text_display_draw_area (display, 0, 0,
-                                  number_of_columns,
-                                  number_of_rows);
-      node = next_node;
-    }
-}
-
 static ply_terminal_t *
 find_local_console_terminal (ply_boot_splash_t *splash)
 {
@@ -174,63 +128,11 @@ find_local_console_terminal (ply_boot_splash_t *splash)
   return NULL;
 }
 
-static void
-on_keyboard_input (ply_boot_splash_t *splash,
-                   const char        *keyboard_input,
-                   size_t             character_size)
-{
-  wchar_t key;
-
-  if ((ssize_t) mbrtowc (&key, keyboard_input, character_size, NULL) > 0)
-    {
-      switch (key)
-        {
-          case KEY_CTRL_L:
-            refresh_displays (splash);
-          return;
-
-          case KEY_CTRL_T:
-            ply_trace ("toggle text mode!");
-            splash->should_force_text_mode = !splash->should_force_text_mode;
-
-            if (ply_list_get_length (splash->pixel_displays) >= 1)
-              {
-                ply_terminal_t *terminal;
-
-                terminal = find_local_console_terminal (splash);
-
-                if (terminal != NULL)
-                  {
-                    if (splash->should_force_text_mode)
-                      {
-                        ply_terminal_set_mode (terminal, PLY_TERMINAL_MODE_TEXT);
-                        ply_terminal_ignore_mode_changes (terminal, true);
-                      }
-                    else
-                      ply_terminal_ignore_mode_changes (terminal, false);
-                  }
-              }
-            ply_trace ("text mode toggled!");
-          return;
-
-          case KEY_CTRL_V:
-            ply_trace ("toggle verbose mode!");
-            ply_toggle_tracing ();
-            ply_trace ("verbose mode toggled!");
-          return;
-        }
-    }
-}
-
 void
 ply_boot_splash_set_keyboard (ply_boot_splash_t *splash,
                               ply_keyboard_t    *keyboard)
 {
   splash->keyboard = keyboard;
-
-  ply_keyboard_add_input_handler (keyboard,
-                                  (ply_keyboard_input_handler_t)
-                                  on_keyboard_input, splash);
 
   if (splash->plugin_interface->set_keyboard == NULL)
     return;
@@ -241,10 +143,6 @@ ply_boot_splash_set_keyboard (ply_boot_splash_t *splash,
 void
 ply_boot_splash_unset_keyboard (ply_boot_splash_t *splash)
 {
-  ply_keyboard_remove_input_handler (splash->keyboard,
-                                     (ply_keyboard_input_handler_t)
-                                     on_keyboard_input);
-
   if (splash->plugin_interface->set_keyboard == NULL)
     return;
 

@@ -125,6 +125,11 @@ typedef struct
   int number_of_errors;
 } state_t;
 
+static ply_boot_splash_t *load_theme (state_t    *state,
+                                      const char *theme_path,
+                                      bool        fall_back_if_neccessary);
+static void show_theme (state_t           *state,
+                        ply_boot_splash_t *splash);
 static ply_boot_splash_t *start_boot_splash (state_t    *state,
                                              const char *theme_path,
                                              bool        fall_back_if_neccessary);
@@ -1664,12 +1669,11 @@ tell_systemd_to_stop_printing_details (state_t *state)
 #endif
 
 static ply_boot_splash_t *
-start_boot_splash (state_t    *state,
-                   const char *theme_path,
-                   bool        fall_back_if_neccessary)
+load_theme (state_t    *state,
+            const char *theme_path,
+            bool        fall_back_if_neccessary)
 {
   ply_boot_splash_t *splash;
-  ply_boot_splash_mode_t splash_mode;
   bool is_loaded;
 
   ply_trace ("Loading boot splash theme '%s'",
@@ -1702,7 +1706,14 @@ start_boot_splash (state_t    *state,
   ply_trace ("attaching progress to plugin");
   ply_boot_splash_attach_progress (splash, state->progress);
 
-  add_displays_and_keyboard_to_boot_splash (state, splash);
+  return splash;
+}
+
+static void
+show_theme (state_t           *state,
+            ply_boot_splash_t *splash)
+{
+  ply_boot_splash_mode_t splash_mode;
 
   ply_trace ("showing plugin");
   if (state->mode == PLY_MODE_SHUTDOWN)
@@ -1716,7 +1727,7 @@ start_boot_splash (state_t    *state,
       ply_boot_splash_unset_keyboard (splash);
       ply_boot_splash_free (splash);
       ply_restore_errno ();
-      return NULL;
+      return;
     }
 
 #ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
@@ -1728,6 +1739,19 @@ start_boot_splash (state_t    *state,
     ply_keyboard_watch_for_input (state->keyboard);
 
   update_display (state);
+}
+
+static ply_boot_splash_t *
+start_boot_splash (state_t    *state,
+                   const char *theme_path,
+                   bool        fall_back_if_necessary)
+{
+  ply_boot_splash_t *splash;
+
+  splash = load_theme (state, theme_path, fall_back_if_necessary);
+  add_displays_and_keyboard_to_boot_splash (state, splash);
+  show_theme (state, splash);
+
   return splash;
 }
 

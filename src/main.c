@@ -2061,50 +2061,6 @@ add_consoles_from_file (state_t         *state,
   return num_consoles;
 }
 
-static int
-add_consoles_from_kernel_command_line (state_t *state)
-{
-  const char *console_string;
-  const char *remaining_command_line;
-  char *console;
-  int num_consoles;
-
-  remaining_command_line = state->kernel_command_line;
-
-  num_consoles = 0;
-  console = NULL;
-  while ((console_string = command_line_get_string_after_prefix (remaining_command_line,
-                                                                 "console=")) != NULL)
-    {
-      char *end;
-      size_t console_length;
-      const char *console_device;
-      ply_terminal_t *terminal;
-
-      remaining_command_line = console_string;
-
-      state->should_force_details = true;
-
-      console = strdup (console_string);
-
-      end = strpbrk (console, " \n\t\v,");
-
-      if (end != NULL)
-        *end = '\0';
-
-      console_length = strlen (console);
-
-      terminal = get_terminal (state, console);
-      console_device = ply_terminal_get_name (terminal);
-
-      ply_trace ("console %s found!", console_device);
-      num_consoles++;
-      remaining_command_line += console_length;
-    }
-
-  return num_consoles;
-}
-
 static void
 check_for_consoles (state_t *state)
 {
@@ -2124,8 +2080,7 @@ check_for_consoles (state_t *state)
 
       if (num_consoles == 0)
         {
-          ply_trace ("falling back to kernel command line");
-          num_consoles = add_consoles_from_kernel_command_line (state);
+          ply_trace ("ignoring all consoles but default console because /sys/class/tty/console/active could not be read");
         }
     }
   else

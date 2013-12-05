@@ -127,8 +127,7 @@ typedef struct
 
 static ply_boot_splash_t *load_built_in_theme (state_t *state);
 static ply_boot_splash_t *load_theme (state_t    *state,
-                                      const char *theme_path,
-                                      bool        fall_back_if_neccessary);
+                                      const char *theme_path);
 static void show_theme (state_t           *state,
                         ply_boot_splash_t *splash);
 static ply_boot_splash_t *start_boot_splash (state_t    *state,
@@ -1708,8 +1707,7 @@ load_built_in_theme (state_t *state)
 
 static ply_boot_splash_t *
 load_theme (state_t    *state,
-            const char *theme_path,
-            bool        fall_back_if_neccessary)
+            const char *theme_path)
 {
   ply_boot_splash_t *splash;
   bool is_loaded;
@@ -1722,13 +1720,6 @@ load_theme (state_t    *state,
                                 state->boot_buffer);
 
   is_loaded = ply_boot_splash_load (splash);
-  if (!is_loaded && fall_back_if_neccessary)
-    {
-      ply_trace ("Splash couldn't be loaded: %m");
-
-      ply_trace ("Loading built in splash");
-      is_loaded = ply_boot_splash_load_built_in (splash);
-    }
 
   if (!is_loaded)
     {
@@ -1786,7 +1777,14 @@ start_boot_splash (state_t    *state,
 {
   ply_boot_splash_t *splash;
 
-  splash = load_theme (state, theme_path, fall_back_if_necessary);
+  splash = load_theme (state, theme_path);
+
+  if (splash == NULL && fall_back_if_neccessary)
+    splash = load_built_in_theme (state);
+
+  if (splash == NULL)
+    return NULL;
+
   add_displays_and_keyboard_to_boot_splash (state, splash);
   show_theme (state, splash);
 

@@ -125,6 +125,7 @@ typedef struct
   int number_of_errors;
 } state_t;
 
+static ply_boot_splash_t *load_built_in_theme (state_t *state);
 static ply_boot_splash_t *load_theme (state_t    *state,
                                       const char *theme_path,
                                       bool        fall_back_if_neccessary);
@@ -311,18 +312,24 @@ show_messages (state_t *state)
 static void
 show_detailed_splash (state_t *state)
 {
+  ply_boot_splash_t *splash;
+
   if (state->boot_splash != NULL)
     return;
 
   ply_trace ("Showing detailed splash screen");
-  state->boot_splash = start_boot_splash (state,
-                                          PLYMOUTH_THEME_PATH "details/details.plymouth",
-                                          true);
+  splash = load_built_in_theme (state);
 
-  if (state->boot_splash == NULL)
+  if (splash == NULL)
     {
       ply_trace ("Could not start detailed splash screen, this could be a problem.");
+      return;
     }
+
+  state->boot_splash = splash;
+
+  add_displays_and_keyboard_to_boot_splash (state, state->boot_splash);
+  show_theme (state, state->boot_splash);
 }
 
 static const char *
@@ -1667,6 +1674,37 @@ tell_systemd_to_stop_printing_details (state_t *state)
     ply_trace ("could not tell systemd to stop printing details: %m");
 }
 #endif
+
+static ply_boot_splash_t *
+load_built_in_theme (state_t *state)
+{
+  ply_boot_splash_t *splash;
+  bool is_loaded;
+
+  ply_trace ("Loading built-in theme");
+
+  splash = ply_boot_splash_new ("",
+                                PLYMOUTH_PLUGIN_PATH,
+                                state->boot_buffer);
+
+  is_loaded = ply_boot_splash_load_built_in (splash);
+
+  if (!is_loaded)
+    {
+      ply_save_errno ();
+      ply_boot_splash_free (splash);
+      ply_restore_errno ();
+      return NULL;
+    }
+
+  ply_trace ("attaching plugin to event loop");
+  ply_boot_splash_attach_to_event_loop (splash, state->loop);
+
+  ply_trace ("attaching progress to plugin");
+  ply_boot_splash_attach_progress (splash, state->progress);
+
+  return splash;
+}
 
 static ply_boot_splash_t *
 load_theme (state_t    *state,

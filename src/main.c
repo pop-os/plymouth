@@ -124,6 +124,7 @@ typedef struct
   int number_of_errors;
 } state_t;
 
+static void load_splash (state_t *state);
 static ply_boot_splash_t *load_built_in_theme (state_t *state);
 static ply_boot_splash_t *load_theme (state_t    *state,
                                       const char *theme_path);
@@ -1005,6 +1006,17 @@ on_show_splash (state_t *state)
   if (!state->is_attached && state->should_be_attached && state->has_open_seats)
     attach_to_running_session (state);
 
+  load_splash (state);
+  show_theme (state, state->boot_splash);
+  show_messages (state);
+}
+
+static void
+load_splash (state_t *state)
+{
+  if (state->boot_splash != NULL)
+    return;
+
   if (plymouth_should_show_default_splash (state))
     {
       load_default_splash (state);
@@ -1015,8 +1027,6 @@ on_show_splash (state_t *state)
       load_detailed_splash (state);
       state->showing_details = true;
     }
-  show_theme (state, state->boot_splash);
-  show_messages (state);
 }
 
 static void

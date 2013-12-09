@@ -43,6 +43,7 @@
 #include "ply-command-parser.h"
 #include "ply-boot-server.h"
 #include "ply-boot-splash.h"
+#include "ply-device-manager.h"
 #include "ply-event-loop.h"
 #include "ply-hashtable.h"
 #include "ply-list.h"
@@ -85,8 +86,6 @@ typedef struct
 {
   ply_event_loop_t *loop;
   ply_boot_server_t *boot_server;
-  ply_hashtable_t *terminals;
-  ply_hashtable_t *seats;
   ply_boot_splash_t *boot_splash;
   ply_terminal_session_t *session;
   ply_buffer_t *boot_buffer;
@@ -98,6 +97,7 @@ typedef struct
   ply_command_parser_t *command_parser;
   ply_mode_t mode;
   ply_terminal_t *local_console_terminal;
+  ply_device_manager_t *device_manager;
 
   ply_trigger_t *deactivate_trigger;
   ply_trigger_t *quit_trigger;
@@ -113,7 +113,6 @@ typedef struct
   uint32_t should_retain_splash : 1;
   uint32_t is_inactive : 1;
   uint32_t is_shown : 1;
-  uint32_t has_open_seats : 1;
   uint32_t should_force_details : 1;
 
   char *override_splash_path;
@@ -131,9 +130,7 @@ static ply_boot_splash_t *load_theme (state_t    *state,
 static void show_theme (state_t           *state,
                         ply_boot_splash_t *splash);
 
-static void add_displays_and_keyboard_to_boot_splash (state_t           *state,
-                                                      ply_boot_splash_t *splash);
-
+static void attach_splash_to_seats (state_t *state);
 static bool attach_to_running_session (state_t *state);
 static void detach_from_running_session (state_t *state);
 static void on_escape_pressed (state_t *state);
@@ -146,7 +143,6 @@ static void on_error_message (ply_buffer_t *debug_buffer,
 static ply_buffer_t *debug_buffer;
 static char *debug_buffer_path = NULL;
 static char *pid_file = NULL;
-static void check_for_consoles (state_t *state);
 static void toggle_between_splash_and_details (state_t *state);
 #ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
 static void tell_systemd_to_print_details (state_t *state);
@@ -160,164 +156,6 @@ static void on_keyboard_input (state_t    *state,
                                const char *keyboard_input,
                                size_t      character_size);
 static void on_backspace (state_t *state);
-
-static void
-detach_from_seat (const char *device_path,
-                  ply_seat_t *seat,
-                  state_t    *state)
-{
-  ply_hashtable_remove (state->seats, (void *) device_path);
-  ply_seat_free (seat);
-}
-
-static void
-detach_from_seats (state_t *state)
-{
-  ply_trace ("removing seats");
-  ply_hashtable_foreach (state->seats,
-                         (ply_hashtable_foreach_func_t *)
-                         detach_from_seat,
-                         state);
-}
-
-static void
-ensure_seat_for_terminal_and_renderer_type (state_t             *state,
-                                            const char          *device_path,
-                                            ply_terminal_t      *terminal,
-                                            ply_renderer_type_t  renderer_type)
-{
-  ply_seat_t *seat;
-  bool has_seat;
-  ply_keyboard_t *keyboard;
-
-  seat = ply_hashtable_lookup (state->seats, (void *) device_path);
-
-  if (seat != NULL)
-    {
-      has_seat = true;
-    }
-  else
-    {
-      has_seat = false;
-      seat = ply_seat_new (terminal);
-    }
-
-  if (!ply_seat_is_open (seat))
-    state->has_open_seats = ply_seat_open (seat, renderer_type, NULL);
-
-  keyboard = ply_seat_get_keyboard (seat);
-  ply_keyboard_add_escape_handler (keyboard,
-                                   (ply_keyboard_escape_handler_t)
-                                   on_escape_pressed, state);
-  ply_trace ("listening for keystrokes");
-  ply_keyboard_add_input_handler (keyboard,
-                                  (ply_keyboard_input_handler_t)
-                                  on_keyboard_input, state);
-  ply_trace ("listening for backspace");
-  ply_keyboard_add_backspace_handler (keyboard,
-                                      (ply_keyboard_backspace_handler_t)
-                                      on_backspace, state);
-  ply_trace ("listening for enter");
-  ply_keyboard_add_enter_handler (keyboard,
-                                  (ply_keyboard_enter_handler_t)
-                                  on_enter, state);
-
-  if (!has_seat)
-    ply_hashtable_insert (state->seats, strdup (device_path), seat);
-}
-
-static void
-ensure_seat_for_terminal (const char     *device_path,
-                          ply_terminal_t *terminal,
-                          state_t        *state)
-{
-  ensure_seat_for_terminal_and_renderer_type (state,
-                                              device_path,
-                                              terminal,
-                                              PLY_RENDERER_TYPE_NONE);
-}
-
-static void
-open_closed_seats (state_t *state)
-{
-  int number_of_terminals;
-  ply_terminal_t *default_terminal;
-
-  number_of_terminals = ply_hashtable_get_size (state->terminals);
-  default_terminal = ply_hashtable_lookup (state->terminals, (void *) state->default_tty);
-
-  if ((number_of_terminals == 0) ||
-      ((number_of_terminals == 1) &&
-       (default_terminal != NULL)))
-    {
-      ensure_seat_for_terminal_and_renderer_type (state,
-                                                  state->default_tty,
-                                                  default_terminal,
-                                                  PLY_RENDERER_TYPE_AUTO);
-    }
-  else
-    {
-      ply_hashtable_foreach (state->terminals,
-                             (ply_hashtable_foreach_func_t *)
-                             ensure_seat_for_terminal,
-                             state);
-    }
-}
-
-static void
-free_terminal (char           *device,
-               ply_terminal_t *terminal,
-               state_t        *state)
-{
-  ply_hashtable_remove (state->terminals, device);
-
-  ply_terminal_close (terminal);
-  ply_terminal_free (terminal);
-}
-
-static void
-free_terminals (state_t *state)
-{
-  ply_hashtable_foreach (state->terminals,
-                         (ply_hashtable_foreach_func_t *)
-                         free_terminal,
-                         state);
-}
-
-static ply_terminal_t *
-get_terminal (state_t    *state,
-              const char *device_name)
-{
-  char *full_name;
-  ply_terminal_t *terminal;
-
-  if (strncmp (device_name, "/dev/", strlen ("/dev/")) == 0)
-    full_name = strdup (device_name);
-  else
-    asprintf (&full_name, "/dev/%s", device_name);
-
-  if (strcmp (full_name, "/dev/tty0") == 0 ||
-      strcmp (full_name, "/dev/tty") == 0)
-    {
-      free (full_name);
-      full_name = strdup (state->default_tty);
-    }
-
-  terminal = ply_hashtable_lookup (state->terminals, full_name);
-
-  if (terminal == NULL)
-    {
-      terminal = ply_terminal_new (full_name);
-
-      if (strcmp (full_name, state->default_tty) == 0)
-        state->local_console_terminal = terminal;
-
-      ply_hashtable_insert (state->terminals, (void *) ply_terminal_get_name (terminal), terminal);
-    }
-  free (full_name);
-
-  return terminal;
-}
 
 static void
 on_session_output (state_t    *state,
@@ -979,6 +817,8 @@ plymouth_should_show_default_splash (state_t *state)
 static void
 on_show_splash (state_t *state)
 {
+  bool has_open_seats;
+
   if (state->is_shown)
     {
       ply_trace ("show splash called while already shown");
@@ -999,15 +839,50 @@ on_show_splash (state_t *state)
     }
 
   state->is_shown = true;
+  has_open_seats = ply_device_manager_has_open_seats (state->device_manager);
 
-  check_for_consoles (state);
-  open_closed_seats (state);
-
-  if (!state->is_attached && state->should_be_attached && state->has_open_seats)
+  if (!state->is_attached && state->should_be_attached && has_open_seats)
     attach_to_running_session (state);
 
-  load_splash (state);
-  show_theme (state, state->boot_splash);
+  if (has_open_seats)
+    {
+      ply_trace ("at least one seat already open, so loading splash");
+      load_splash (state);
+      show_theme (state, state->boot_splash);
+    }
+  else
+    {
+      ply_trace ("no seats available to show splash on, waiting...");
+    }
+}
+
+static void
+on_seat_removed (state_t    *state,
+                 ply_seat_t *seat)
+{
+  ply_keyboard_t *keyboard;
+
+  keyboard = ply_seat_get_keyboard (seat);
+
+  ply_trace ("no longer listening for keystrokes");
+  ply_keyboard_remove_input_handler (keyboard,
+                                     (ply_keyboard_input_handler_t)
+                                     on_keyboard_input);
+  ply_trace ("no longer listening for escape");
+  ply_keyboard_remove_escape_handler (keyboard,
+                                      (ply_keyboard_escape_handler_t)
+                                      on_escape_pressed);
+  ply_trace ("no longer listening for backspace");
+  ply_keyboard_remove_backspace_handler (keyboard,
+                                         (ply_keyboard_backspace_handler_t)
+                                         on_backspace);
+  ply_trace ("no longer listening for enter");
+  ply_keyboard_remove_enter_handler (keyboard,
+                                     (ply_keyboard_enter_handler_t)
+                                     on_enter);
+
+  if (state->boot_splash != NULL)
+   ply_boot_splash_detach_from_seat (state->boot_splash, seat);
 }
 
 static void
@@ -1029,6 +904,60 @@ load_splash (state_t *state)
 }
 
 static void
+on_seat_added (state_t    *state,
+               ply_seat_t *seat)
+{
+  ply_keyboard_t *keyboard;
+
+  if (state->boot_splash == NULL)
+    {
+      ply_trace ("seat added before splash loaded, so loading splash now");
+      load_splash (state);
+    }
+
+  if (state->boot_splash != NULL && state->is_shown)
+    {
+      ply_trace ("show-splash already requested, so showing splash now");
+      show_theme (state, state->boot_splash);
+    }
+
+  keyboard = ply_seat_get_keyboard (seat);
+
+  ply_trace ("listening for keystrokes");
+  ply_keyboard_add_input_handler (keyboard,
+                                  (ply_keyboard_input_handler_t)
+                                  on_keyboard_input, state);
+  ply_trace ("listening for escape");
+  ply_keyboard_add_escape_handler (keyboard,
+                                   (ply_keyboard_escape_handler_t)
+                                   on_escape_pressed, state);
+  ply_trace ("listening for backspace");
+  ply_keyboard_add_backspace_handler (keyboard,
+                                      (ply_keyboard_backspace_handler_t)
+                                      on_backspace, state);
+  ply_trace ("listening for enter");
+  ply_keyboard_add_enter_handler (keyboard,
+                                  (ply_keyboard_enter_handler_t)
+                                  on_enter, state);
+
+}
+
+static void
+load_devices (state_t                    *state,
+              ply_device_manager_flags_t  flags)
+{
+  state->device_manager = ply_device_manager_new (state->default_tty, flags);
+  state->local_console_terminal = ply_device_manager_get_default_terminal (state->device_manager);
+
+  ply_device_manager_watch_seats (state->device_manager,
+                                  (ply_seat_added_handler_t)
+                                  on_seat_added,
+                                  (ply_seat_removed_handler_t)
+                                  on_seat_removed,
+                                  state);
+}
+
+static void
 quit_splash (state_t *state)
 {
   ply_trace ("quiting splash");
@@ -1038,9 +967,6 @@ quit_splash (state_t *state)
       ply_boot_splash_free (state->boot_splash);
       state->boot_splash = NULL;
     }
-
-  ply_trace ("removing displays and keyboard");
-  detach_from_seats (state);
 
   if (state->local_console_terminal != NULL)
     {
@@ -1052,27 +978,7 @@ quit_splash (state_t *state)
       state->local_console_terminal = NULL;
     }
 
-  free_terminals (state);
-
   detach_from_running_session (state);
-}
-
-static void
-deactivate_renderer (const char *device_path,
-                     ply_seat_t *seat,
-                     state_t    *state)
-{
-  ply_seat_deactivate_renderer (seat);
-}
-
-static void
-deactivate_renderers (state_t *state)
-{
-  ply_trace ("removing seats");
-  ply_hashtable_foreach (state->seats,
-                         (ply_hashtable_foreach_func_t *)
-                         deactivate_renderer,
-                         state);
 }
 
 static void
@@ -1093,7 +999,7 @@ dump_details_and_quit_splash (state_t *state)
   state->showing_details = false;
   toggle_between_splash_and_details (state);
 
-  deactivate_renderers (state);
+  ply_device_manager_deactivate_renderers (state->device_manager);
   hide_splash (state);
 
   state->is_shown = false;
@@ -1128,6 +1034,9 @@ tell_gdm_to_transition (void)
 static void
 quit_program (state_t *state)
 {
+  ply_trace ("cleaning up devices");
+  ply_device_manager_free (state->device_manager);
+
   ply_trace ("exiting event loop");
   ply_event_loop_exit (state->loop, 0);
 
@@ -1163,7 +1072,7 @@ deactivate_splash (state_t *state)
 {
   assert (!state->is_inactive);
 
-  deactivate_renderers (state);
+  ply_device_manager_deactivate_renderers (state->device_manager);
 
   detach_from_running_session (state);
 
@@ -1201,7 +1110,7 @@ on_boot_splash_idle (state_t *state)
       if (!state->should_retain_splash)
         {
           ply_trace ("hiding splash");
-          deactivate_renderers (state);
+          ply_device_manager_deactivate_renderers (state->device_manager);
           hide_splash (state);
 
           state->is_shown = false;
@@ -1217,24 +1126,6 @@ on_boot_splash_idle (state_t *state)
       ply_trace ("deactivating splash");
       deactivate_splash (state);
     }
-}
-
-static void
-deactivate_keyboard (const char *device_path,
-                     ply_seat_t *seat,
-                     state_t    *state)
-{
-  ply_seat_deactivate_keyboard (seat);
-}
-
-static void
-deactivate_keyboards (state_t *state)
-{
-  ply_trace ("deactivating keyboards");
-  ply_hashtable_foreach (state->seats,
-                         (ply_hashtable_foreach_func_t *)
-                         deactivate_keyboard,
-                         state);
 }
 
 static void
@@ -1259,7 +1150,7 @@ on_deactivate (state_t       *state,
   state->deactivate_trigger = deactivate_trigger;
 
   ply_trace ("deactivating");
-  deactivate_keyboards (state);
+  ply_device_manager_deactivate_keyboards (state->device_manager);
 
   if (state->boot_splash != NULL)
     {
@@ -1273,42 +1164,6 @@ on_deactivate (state_t       *state,
       ply_trace ("deactivating splash");
       deactivate_splash (state);
     }
-}
-
-static void
-activate_keyboard (const char *device_path,
-                   ply_seat_t *seat,
-                   state_t    *state)
-{
-  ply_seat_activate_keyboard (seat);
-}
-
-static void
-activate_keyboards (state_t *state)
-{
-  ply_trace ("activating keyboards");
-  ply_hashtable_foreach (state->seats,
-                         (ply_hashtable_foreach_func_t *)
-                         activate_keyboard,
-                         state);
-}
-
-static void
-activate_renderer (const char *device_path,
-                   ply_seat_t *seat,
-                   state_t    *state)
-{
-  ply_seat_activate_renderer (seat);
-}
-
-static void
-activate_renderers (state_t *state)
-{
-  ply_trace ("removing seats");
-  ply_hashtable_foreach (state->seats,
-                         (ply_hashtable_foreach_func_t *)
-                         activate_renderer,
-                         state);
 }
 
 static void
@@ -1331,8 +1186,8 @@ on_reactivate (state_t *state)
       attach_to_running_session (state);
     }
 
-  activate_keyboards (state);
-  activate_renderers (state);
+  ply_device_manager_activate_keyboards (state->device_manager);
+  ply_device_manager_activate_renderers (state->device_manager);
 
   state->is_inactive = false;
 
@@ -1368,8 +1223,7 @@ on_quit (state_t       *state,
   if (state->session != NULL)
     ply_terminal_session_close_log (state->session);
 
-  ply_trace ("deactivating keyboard");
-  deactivate_keyboards (state);
+  ply_device_manager_deactivate_keyboards (state->device_manager);
 
   ply_trace ("unloading splash");
   if (state->is_inactive && !retain_splash)
@@ -1610,21 +1464,26 @@ on_enter (state_t                  *state,
 }
 
 static void
-add_seat_to_boot_splash (const char        *device_path,
-                         ply_seat_t        *seat,
-                         ply_boot_splash_t *splash)
+attach_splash_to_seats (state_t *state)
 {
-  ply_boot_splash_attach_to_seat (splash, seat);
-}
 
-static void
-add_displays_and_keyboard_to_boot_splash (state_t           *state,
-                                          ply_boot_splash_t *splash)
-{
-  ply_hashtable_foreach (state->seats,
-                         (ply_hashtable_foreach_func_t *)
-                         add_seat_to_boot_splash,
-                         splash);
+  ply_list_t *seats;
+  ply_list_node_t *node;
+
+  seats = ply_device_manager_get_seats (state->device_manager);
+  node = ply_list_get_first_node (seats);
+  while (node != NULL)
+    {
+      ply_seat_t *seat;
+      ply_list_node_t *next_node;
+
+      seat = ply_list_node_get_data (node);
+      next_node = ply_list_get_next_node (seats, node);
+
+      ply_boot_splash_attach_to_seat (state->boot_splash, seat);
+
+      node = next_node;
+    }
 }
 
 #ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
@@ -1715,7 +1574,8 @@ show_theme (state_t           *state,
 {
   ply_boot_splash_mode_t splash_mode;
 
-  add_displays_and_keyboard_to_boot_splash (state, state->boot_splash);
+  attach_splash_to_seats (state);
+  ply_device_manager_activate_renderers (state->device_manager);
 
   ply_trace ("showing plugin");
   if (state->mode == PLY_MODE_SHUTDOWN)
@@ -1736,7 +1596,7 @@ show_theme (state_t           *state,
     tell_systemd_to_print_details (state);
 #endif
 
-  activate_keyboards (state);
+  ply_device_manager_activate_keyboards (state->device_manager);
   show_messages (state);
   update_display (state);
 }
@@ -1971,117 +1831,6 @@ check_logging (state_t *state)
     }
 }
 
-static int
-add_consoles_from_file (state_t         *state,
-                        const char      *path)
-{
-  int fd;
-  char contents[512] = "";
-  ssize_t contents_length;
-  int num_consoles;
-  const char *remaining_file_contents;
-
-  ply_trace ("opening %s", path);
-  fd = open (path, O_RDONLY);
-
-  if (fd < 0)
-    {
-      ply_trace ("couldn't open it: %m");
-      return 0;
-    }
-
-  ply_trace ("reading file");
-  contents_length = read (fd, contents, sizeof (contents) - 1);
-
-  if (contents_length <= 0)
-    {
-      ply_trace ("couldn't read it: %m");
-      close (fd);
-      return 0;
-    }
-  close (fd);
-
-  remaining_file_contents = contents;
-  num_consoles = 0;
-
-  while (remaining_file_contents < contents + contents_length)
-    {
-      char *console;
-      size_t console_length;
-      const char *console_device;
-      ply_terminal_t *terminal;
-
-      /* Advance past any leading whitespace */
-      remaining_file_contents += strspn (remaining_file_contents, " \n\t\v");
-
-      if (*remaining_file_contents == '\0')
-        {
-          /* There's nothing left after the whitespace, we're done */
-          break;
-        }
-
-      /* Find trailing whitespace and NUL terminate.  If strcspn
-       * doesn't find whitespace, it gives us the length of the string
-       * until the next NUL byte, which we'll just overwrite with
-       * another NUL byte anyway. */
-      console_length = strcspn (remaining_file_contents, " \n\t\v");
-      console = strndup (remaining_file_contents, console_length);
-
-      /* If this console is anything besides tty0, then the user is sort
-       * of a weird case (uses a serial console or whatever) and they
-       * most likely don't want a graphical splash, so force details.
-       */
-      if (strcmp (console, "tty0") != 0)
-        state->should_force_details = true;
-
-      terminal = get_terminal (state, console);
-      console_device = ply_terminal_get_name (terminal);
-
-      free (console);
-
-      ply_trace ("console %s found!", console_device);
-      num_consoles++;
-
-      /* Move past the parsed console string, and the whitespace we
-       * may have found above.  If we found a NUL above and not whitespace,
-       * then we're going to jump past the end of the buffer and the loop
-       * will terminate
-       */
-      remaining_file_contents += console_length + 1;
-    }
-
-  return num_consoles;
-}
-
-static void
-check_for_consoles (state_t *state)
-{
-  int num_consoles;
-  bool ignore_serial_consoles;
-
-  ply_trace ("checking for consoles%s",
-             state->is_shown? " and adding displays": "");
-
-  ignore_serial_consoles = command_line_has_argument (state->kernel_command_line, "plymouth.ignore-serial-consoles");
-
-  num_consoles = 0;
-
-  if (!ignore_serial_consoles)
-    {
-      num_consoles = add_consoles_from_file (state, "/sys/class/tty/console/active");
-
-      if (num_consoles == 0)
-        {
-          ply_trace ("ignoring all consoles but default console because /sys/class/tty/console/active could not be read");
-        }
-    }
-  else
-    {
-      ply_trace ("ignoring all consoles but default console because of plymouth.ignore-serial-consoles");
-      get_terminal (state, state->default_tty);
-    }
-}
-
 static bool
 redirect_standard_io_to_dev_null (void)
 {
@@ -2163,8 +1912,6 @@ initialize_environment (state_t *state)
   state->keystroke_triggers = ply_list_new ();
   state->entry_triggers = ply_list_new ();
   state->entry_buffer = ply_buffer_new();
-  state->terminals = ply_hashtable_new (ply_hashtable_string_hash, ply_hashtable_string_compare);
-  state->seats = ply_hashtable_new (ply_hashtable_string_hash, ply_hashtable_string_compare);
   state->messages = ply_list_new ();
 
   redirect_standard_io_to_dev_null ();
@@ -2275,6 +2022,7 @@ main (int    argc,
   char *mode_string = NULL;
   char *kernel_command_line = NULL;
   char *tty = NULL;
+  ply_device_manager_flags_t device_manager_flags = PLY_DEVICE_MANAGER_FLAGS_NONE;
 
   state.command_parser = ply_command_parser_new ("plymouthd", "Splash server");
 
@@ -2448,6 +2196,11 @@ main (int    argc,
       ply_error ("plymouthd: could not tell parent to exit: %m");
       return EX_UNAVAILABLE;
     }
+
+  if (command_line_has_argument (state.kernel_command_line, "plymouth.ignore-serial-consoles"))
+    device_manager_flags |= PLY_DEVICE_MANAGER_FLAGS_IGNORE_SERIAL_CONSOLES;
+
+  load_devices (&state, device_manager_flags);
 
   ply_trace ("entering event loop");
   exit_code = ply_event_loop_run (state.loop);

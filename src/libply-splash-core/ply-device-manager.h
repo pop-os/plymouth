@@ -26,7 +26,8 @@
 typedef enum
 {
   PLY_DEVICE_MANAGER_FLAGS_NONE                   = 0,
-  PLY_DEVICE_MANAGER_FLAGS_IGNORE_SERIAL_CONSOLES = 1 << 0
+  PLY_DEVICE_MANAGER_FLAGS_IGNORE_SERIAL_CONSOLES = 1 << 0,
+  PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV            = 1 << 1
 } ply_device_manager_flags_t;
 
 typedef struct _ply_device_manager ply_device_manager_t;

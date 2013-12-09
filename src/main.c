@@ -416,7 +416,7 @@ show_messages (state_t *state)
 }
 
 static void
-show_detailed_splash (state_t *state)
+load_detailed_splash (state_t *state)
 {
   ply_boot_splash_t *splash;
 
@@ -433,8 +433,6 @@ show_detailed_splash (state_t *state)
     }
 
   state->boot_splash = splash;
-
-  show_theme (state, state->boot_splash);
 }
 
 static const char *
@@ -559,7 +557,7 @@ find_distribution_default_splash (state_t *state)
 }
 
 static void
-show_default_splash (state_t *state)
+load_default_splash (state_t *state)
 {
   if (state->boot_splash != NULL)
     return;
@@ -613,8 +611,6 @@ show_default_splash (state_t *state)
       ply_error ("plymouthd: could not start boot splash: %m");
       return;
     }
-
-  show_theme (state, state->boot_splash);
 }
 
 static void
@@ -1011,14 +1007,15 @@ on_show_splash (state_t *state)
 
   if (plymouth_should_show_default_splash (state))
     {
-      show_default_splash (state);
+      load_default_splash (state);
       state->showing_details = false;
     }
   else
     {
-      show_detailed_splash (state);
+      load_detailed_splash (state);
       state->showing_details = true;
     }
+  show_theme (state, state->boot_splash);
   show_messages (state);
 }
 
@@ -1484,14 +1481,15 @@ toggle_between_splash_and_details (state_t *state)
 
   if (!state->showing_details)
     {
-      show_detailed_splash (state);
+      load_detailed_splash (state);
       state->showing_details = true;
     }
   else
     {
-      show_default_splash (state);
+      load_default_splash (state);
       state->showing_details = false;
     }
+  show_theme (state, state->boot_splash);
   update_display (state);
   show_messages (state);
 }

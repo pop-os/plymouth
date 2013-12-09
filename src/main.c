@@ -1008,7 +1008,6 @@ on_show_splash (state_t *state)
 
   load_splash (state);
   show_theme (state, state->boot_splash);
-  show_messages (state);
 }
 
 static void
@@ -1500,8 +1499,6 @@ toggle_between_splash_and_details (state_t *state)
       state->showing_details = false;
     }
   show_theme (state, state->boot_splash);
-  update_display (state);
-  show_messages (state);
 }
 
 static void
@@ -1740,6 +1737,7 @@ show_theme (state_t           *state,
 #endif
 
   activate_keyboards (state);
+  show_messages (state);
   update_display (state);
 }
 

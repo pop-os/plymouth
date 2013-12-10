@@ -2200,6 +2200,10 @@ main (int    argc,
   if (command_line_has_argument (state.kernel_command_line, "plymouth.ignore-serial-consoles"))
     device_manager_flags |= PLY_DEVICE_MANAGER_FLAGS_IGNORE_SERIAL_CONSOLES;
 
+  if (command_line_has_argument (state.kernel_command_line, "plymouth.ignore-udev") ||
+      (getenv ("DISPLAY") != NULL))
+    device_manager_flags |= PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV;
+
   load_devices (&state, device_manager_flags);
 
   ply_trace ("entering event loop");

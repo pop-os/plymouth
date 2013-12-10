@@ -522,6 +522,9 @@ open_device (ply_renderer_backend_t *backend)
   if (!load_driver (backend))
     return false;
 
+  if (backend->terminal == NULL)
+    return true;
+
   if (!ply_terminal_open (backend->terminal))
     {
       ply_trace ("could not open terminal: %m");
@@ -550,10 +553,11 @@ close_device (ply_renderer_backend_t *backend)
 
   free_heads (backend);
 
-  ply_terminal_stop_watching_for_active_vt_change (backend->terminal,
-                                                   (ply_terminal_active_vt_changed_handler_t)
-                                                   on_active_vt_changed,
-                                                   backend);
+  if (backend->terminal != NULL)
+    ply_terminal_stop_watching_for_active_vt_change (backend->terminal,
+                                                     (ply_terminal_active_vt_changed_handler_t)
+                                                     on_active_vt_changed,
+                                                     backend);
 
   unload_driver (backend);
 }
@@ -888,10 +892,17 @@ map_to_device (ply_renderer_backend_t *backend)
       node = next_node;
     }
 
-  if (ply_terminal_is_active (backend->terminal))
-    activate (backend);
+  if (backend->terminal != NULL)
+    {
+      if (ply_terminal_is_active (backend->terminal))
+        activate (backend);
+      else
+        ply_terminal_activate_vt (backend->terminal);
+    }
   else
-    ply_terminal_activate_vt (backend->terminal);
+    {
+      activate (backend);
+    }
 
   return head_mapped;
 }
@@ -1019,8 +1030,11 @@ reset_scan_out_buffer_if_needed (ply_renderer_backend_t *backend,
   drmModeCrtc *controller;
   bool did_reset = false;
 
-  if (!ply_terminal_is_active (backend->terminal))
-    return false;
+  if (backend->terminal != NULL)
+    {
+      if (!ply_terminal_is_active (backend->terminal))
+        return false;
+    }
 
   controller = drmModeGetCrtc (backend->device_fd, head->controller_id);
 
@@ -1054,8 +1068,11 @@ flush_head (ply_renderer_backend_t *backend,
   if (!backend->is_active)
     return;
 
-  ply_terminal_set_mode (backend->terminal, PLY_TERMINAL_MODE_GRAPHICS);
-  ply_terminal_set_unbuffered_input (backend->terminal);
+  if (backend->terminal != NULL)
+    {
+      ply_terminal_set_mode (backend->terminal, PLY_TERMINAL_MODE_GRAPHICS);
+      ply_terminal_set_unbuffered_input (backend->terminal);
+    }
   pixel_buffer = head->pixel_buffer;
   updated_region = ply_pixel_buffer_get_updated_areas (pixel_buffer);
   areas_to_flush = ply_region_get_sorted_rectangle_list (updated_region);
@@ -1163,6 +1180,9 @@ open_input_source (ply_renderer_backend_t      *backend,
   assert (backend != NULL);
   assert (has_input_source (backend, input_source));
 
+  if (backend->terminal == NULL)
+    return false;
+
   terminal_fd = ply_terminal_get_fd (backend->terminal);
 
   input_source->backend = backend;
@@ -1192,6 +1212,9 @@ close_input_source (ply_renderer_backend_t      *backend,
 {
   assert (backend != NULL);
   assert (has_input_source (backend, input_source));
+
+  if (backend->terminal == NULL)
+    return;
 
   ply_event_loop_stop_watching_fd (backend->loop, input_source->terminal_input_watch);
   input_source->terminal_input_watch = NULL;

@@ -15,11 +15,13 @@ libply_splash_coredir = $(includedir)/plymouth-1/ply-splash-core
 libply_splash_core_HEADERS = \
 		    ply-boot-splash.h                                         \
 		    ply-boot-splash-plugin.h                                  \
+		    ply-device-manager.h                                      \
 		    ply-keyboard.h                                            \
 		    ply-pixel-buffer.h                                        \
 		    ply-pixel-display.h                                       \
 		    ply-renderer.h                                            \
 		    ply-renderer-plugin.h                                     \
+		    ply-seat.h                                                \
 		    ply-terminal.h                                            \
 		    ply-text-display.h                                        \
 		    ply-text-progress-bar.h                                   \
@@ -36,6 +38,7 @@ libply_splash_core_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
 		    -no-undefined
 libply_splash_core_la_SOURCES = \
 		    $(libply_splash_core_HEADERS)                              \
+		    ply-device-manager.c                                      \
 		    ply-keyboard.c                                           \
 		    ply-pixel-display.c                                      \
 		    ply-text-display.c                                       \
@@ -44,6 +47,7 @@ libply_splash_core_la_SOURCES = \
 		    ply-terminal.c                                           \
 		    ply-pixel-buffer.c                                       \
 		    ply-renderer.c                                           \
+		    ply-seat.c                                               \
 		    ply-boot-splash.c
 
 MAINTAINERCLEANFILES = Makefile.in

@@ -1,5 +1,3 @@
-SUBDIRS = . tests
-
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(top_srcdir)/src                                                \
            -I$(top_srcdir)/src/libply                                         \

@@ -1,4 +1,3 @@
-SUBDIRS = tests
 INCLUDES = -I$(top_srcdir)                                                    \
            -I$(srcdir)                                                        \
            -DPLYMOUTH_TIME_DIRECTORY=\"$(localstatedir)/lib/plymouth/\"       

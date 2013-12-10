@@ -123,14 +123,15 @@ typedef struct
   int number_of_errors;
 } state_t;
 
-static void load_splash (state_t *state);
+static void show_splash (state_t *state);
 static ply_boot_splash_t *load_built_in_theme (state_t *state);
 static ply_boot_splash_t *load_theme (state_t    *state,
                                       const char *theme_path);
-static void show_theme (state_t           *state,
-                        ply_boot_splash_t *splash);
+static ply_boot_splash_t *show_theme (state_t    *state,
+                                      const char *theme_path);
 
-static void attach_splash_to_seats (state_t *state);
+static void attach_splash_to_seats (state_t           *state,
+                                    ply_boot_splash_t *splash);
 static bool attach_to_running_session (state_t *state);
 static void detach_from_running_session (state_t *state);
 static void on_escape_pressed (state_t *state);
@@ -255,7 +256,7 @@ show_messages (state_t *state)
 }
 
 static void
-load_detailed_splash (state_t *state)
+show_detailed_splash (state_t *state)
 {
   ply_boot_splash_t *splash;
 
@@ -263,7 +264,7 @@ load_detailed_splash (state_t *state)
     return;
 
   ply_trace ("Showing detailed splash screen");
-  splash = load_built_in_theme (state);
+  splash = show_theme (state, NULL);
 
   if (splash == NULL)
     {
@@ -396,7 +397,7 @@ find_distribution_default_splash (state_t *state)
 }
 
 static void
-load_default_splash (state_t *state)
+show_default_splash (state_t *state)
 {
   if (state->boot_splash != NULL)
     return;
@@ -406,7 +407,7 @@ load_default_splash (state_t *state)
   if (state->override_splash_path != NULL)
     {
       ply_trace ("Trying override splash at '%s'", state->override_splash_path);
-      state->boot_splash = load_theme (state, state->override_splash_path);
+      state->boot_splash = show_theme (state, state->override_splash_path);
     }
 
   find_system_default_splash (state);
@@ -414,7 +415,7 @@ load_default_splash (state_t *state)
       state->system_default_splash_path != NULL)
     {
       ply_trace ("Trying system default splash");
-      state->boot_splash = load_theme (state, state->system_default_splash_path);
+      state->boot_splash = show_theme (state, state->system_default_splash_path);
     }
 
   find_distribution_default_splash (state);
@@ -422,27 +423,27 @@ load_default_splash (state_t *state)
       state->distribution_default_splash_path != NULL)
     {
       ply_trace ("Trying distribution default splash");
-      state->boot_splash = load_theme (state, state->distribution_default_splash_path);
+      state->boot_splash = show_theme (state, state->distribution_default_splash_path);
     }
 
   if (state->boot_splash == NULL)
     {
       ply_trace ("Trying old scheme for default splash");
-      state->boot_splash = load_theme (state, PLYMOUTH_THEME_PATH "default.plymouth");
+      state->boot_splash = show_theme (state, PLYMOUTH_THEME_PATH "default.plymouth");
     }
 
   if (state->boot_splash == NULL)
     {
       ply_trace ("Could not start default splash screen,"
                  "showing text splash screen");
-      state->boot_splash = load_theme (state, PLYMOUTH_THEME_PATH "text/text.plymouth");
+      state->boot_splash = show_theme (state, PLYMOUTH_THEME_PATH "text/text.plymouth");
     }
 
   if (state->boot_splash == NULL)
     {
       ply_trace ("Could not start text splash screen,"
                  "showing built-in splash screen");
-      state->boot_splash = load_built_in_theme (state);
+      state->boot_splash = show_theme (state, NULL);
     }
 
   if (state->boot_splash == NULL)
@@ -847,8 +848,7 @@ on_show_splash (state_t *state)
   if (has_open_seats)
     {
       ply_trace ("at least one seat already open, so loading splash");
-      load_splash (state);
-      show_theme (state, state->boot_splash);
+      show_splash (state);
     }
   else
     {
@@ -886,19 +886,19 @@ on_seat_removed (state_t    *state,
 }
 
 static void
-load_splash (state_t *state)
+show_splash (state_t *state)
 {
   if (state->boot_splash != NULL)
     return;
 
   if (plymouth_should_show_default_splash (state))
     {
-      load_default_splash (state);
+      show_default_splash (state);
       state->showing_details = false;
     }
   else
     {
-      load_detailed_splash (state);
+      show_detailed_splash (state);
       state->showing_details = true;
     }
 }
@@ -909,16 +909,18 @@ on_seat_added (state_t    *state,
 {
   ply_keyboard_t *keyboard;
 
-  if (state->boot_splash == NULL)
+  if (state->is_shown)
     {
-      ply_trace ("seat added before splash loaded, so loading splash now");
-      load_splash (state);
-    }
-
-  if (state->boot_splash != NULL && state->is_shown)
-    {
-      ply_trace ("show-splash already requested, so showing splash now");
-      show_theme (state, state->boot_splash);
+      if (state->boot_splash == NULL)
+        {
+          ply_trace ("seat added before splash loaded, so loading splash now");
+          show_splash (state);
+        }
+      else
+        {
+          ply_trace ("seat added after splash loaded, so attaching to splash");
+          ply_boot_splash_attach_to_seat (state->boot_splash, seat);
+        }
     }
 
   keyboard = ply_seat_get_keyboard (seat);
@@ -1344,15 +1346,14 @@ toggle_between_splash_and_details (state_t *state)
 
   if (!state->showing_details)
     {
-      load_detailed_splash (state);
+      show_detailed_splash (state);
       state->showing_details = true;
     }
   else
     {
-      load_default_splash (state);
+      show_default_splash (state);
       state->showing_details = false;
     }
-  show_theme (state, state->boot_splash);
 }
 
 static void
@@ -1464,7 +1465,8 @@ on_enter (state_t                  *state,
 }
 
 static void
-attach_splash_to_seats (state_t *state)
+attach_splash_to_seats (state_t           *state,
+                        ply_boot_splash_t *splash)
 {
 
   ply_list_t *seats;
@@ -1480,7 +1482,7 @@ attach_splash_to_seats (state_t *state)
       seat = ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (seats, node);
 
-      ply_boot_splash_attach_to_seat (state->boot_splash, seat);
+      ply_boot_splash_attach_to_seat (splash, seat);
 
       node = next_node;
     }
@@ -1568,16 +1570,24 @@ load_theme (state_t    *state,
   return splash;
 }
 
-static void
+static ply_boot_splash_t *
 show_theme (state_t           *state,
-            ply_boot_splash_t *splash)
+            const char        *theme_path)
 {
   ply_boot_splash_mode_t splash_mode;
+  ply_boot_splash_t *splash;
 
-  attach_splash_to_seats (state);
+  if (theme_path != NULL)
+    splash = load_theme (state, theme_path);
+  else
+    splash = load_built_in_theme (state);
+
+  if (splash == NULL)
+    return NULL;
+
+  attach_splash_to_seats (state, splash);
   ply_device_manager_activate_renderers (state->device_manager);
 
-  ply_trace ("showing plugin");
   if (state->mode == PLY_MODE_SHUTDOWN)
     splash_mode = PLY_BOOT_SPLASH_MODE_SHUTDOWN;
   else
@@ -1588,7 +1598,7 @@ show_theme (state_t           *state,
       ply_save_errno ();
       ply_boot_splash_free (splash);
       ply_restore_errno ();
-      return;
+      return NULL;
     }
 
 #ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
@@ -1599,6 +1609,8 @@ show_theme (state_t           *state,
   ply_device_manager_activate_keyboards (state->device_manager);
   show_messages (state);
   update_display (state);
+
+  return splash;
 }
 
 static bool

@@ -97,6 +97,12 @@ ply_renderer_free (ply_renderer_t *renderer)
   free (renderer);
 }
 
+const char *
+ply_renderer_get_device_name (ply_renderer_t *renderer)
+{
+  return renderer->device_name;
+}
+
 static bool
 ply_renderer_load_plugin (ply_renderer_t *renderer,
                           const char     *module_path)

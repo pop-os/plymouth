@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/inotify.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -50,6 +51,9 @@ struct _ply_device_manager
   ply_seat_t                 *local_console_seat;
   ply_list_t                 *seats;
   struct udev                *udev_context;
+  struct udev_queue          *udev_queue;
+  int                         udev_queue_fd;
+  ply_fd_watch_t             *udev_queue_fd_watch;
   struct udev_monitor        *udev_monitor;
 
   ply_seat_added_handler_t    seat_added_handler;
@@ -652,16 +656,9 @@ create_seats_from_udev (ply_device_manager_t *manager)
 {
   bool found_device;
 
-  if (manager->flags & PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV)
-    return false;
-
   ply_trace ("Looking for devices from udev");
   found_device = scan_graphics_devices (manager);
-  if (found_device)
-    {
-      watch_for_udev_events (manager);
-    }
-  else
+  if (!found_device)
     {
       ply_trace ("Creating non-graphical seat, since there's no suitable graphics hardware");
       create_seat_for_terminal_and_renderer_type (manager,
@@ -671,6 +668,74 @@ create_seats_from_udev (ply_device_manager_t *manager)
     }
 
   return true;
+}
+
+static void
+create_fallback_seat (ply_device_manager_t *manager)
+{
+  create_seat_for_terminal_and_renderer_type (manager,
+                                              ply_terminal_get_name (manager->local_console_terminal),
+                                              manager->local_console_terminal,
+                                              PLY_RENDERER_TYPE_AUTO);
+}
+
+static void
+on_udev_queue_changed (ply_device_manager_t *manager)
+{
+
+  if (!udev_queue_get_queue_is_empty (manager->udev_queue))
+    return;
+
+  ply_trace ("udev coldplug complete");
+  ply_event_loop_stop_watching_fd (manager->loop, manager->udev_queue_fd_watch);
+  manager->udev_queue_fd_watch = NULL;
+  udev_queue_unref (manager->udev_queue);
+
+  close (manager->udev_queue_fd);
+  manager->udev_queue_fd = -1;
+
+  manager->udev_queue = NULL;
+
+  create_seats_from_udev (manager);
+}
+
+static void
+watch_for_coldplug_completion (ply_device_manager_t *manager)
+{
+  int fd;
+  int result;
+
+  manager->udev_queue = udev_queue_new (manager->udev_context);
+
+  if (udev_queue_get_queue_is_empty (manager->udev_queue))
+    {
+      ply_trace ("udev coldplug completed already ");
+      create_seats_from_udev (manager);
+      return;
+    }
+
+  fd = inotify_init1 (IN_CLOEXEC);
+  result = inotify_add_watch (fd, "/run/udev", IN_MOVED_TO);
+
+  if (result < 0)
+    {
+      ply_trace ("could not watch for udev to show up: %m");
+      close (fd);
+
+      create_fallback_seat (manager);
+      return;
+    }
+
+  manager->udev_queue_fd = fd;
+
+  manager->udev_queue_fd_watch = ply_event_loop_watch_fd (manager->loop,
+                                                          fd,
+                                                          PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
+                                                          (ply_event_handler_t)
+                                                          on_udev_queue_changed,
+                                                          NULL,
+                                                          manager);
+
 }
 
 void
@@ -689,18 +754,18 @@ ply_device_manager_watch_seats (ply_device_manager_t       *manager,
    */
   done_with_initial_seat_setup = create_seats_from_terminals (manager);
 
-  /* In most cases, though, we need to create devices based on udev device topology
-   */
-  if (!done_with_initial_seat_setup)
-    done_with_initial_seat_setup = create_seats_from_udev (manager);
+  if (done_with_initial_seat_setup)
+    return;
 
-  /* as a last resort, we just creat a fallback seat
-   */
-  if (!done_with_initial_seat_setup)
-    create_seat_for_terminal_and_renderer_type (manager,
-                                                ply_terminal_get_name (manager->local_console_terminal),
-                                                manager->local_console_terminal,
-                                                PLY_RENDERER_TYPE_AUTO);
+  if ((manager->flags & PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV))
+    {
+      ply_trace ("udev support disabled, creating fallback seat");
+      create_fallback_seat (manager);
+      return;
+    }
+
+  watch_for_udev_events (manager);
+  watch_for_coldplug_completion (manager);
 }
 
 bool

@@ -251,43 +251,63 @@ free_seat_for_udev_device (ply_device_manager_t *manager,
     }
 }
 
-static void
+static bool
 scan_graphics_devices (ply_device_manager_t *manager)
 {
   struct udev_enumerate *fb_matches;
   struct udev_list_entry *fb_entry;
+  bool found_device = false;
 
   ply_trace ("scanning for graphics devices");
   /* graphics subsystem is for /dev/fb devices.  kms drivers provide /dev/fb for backward
    * compatibility, and do so at the end of their initialization, so we can be confident
    * that when this subsystem is available the drm device is fully initialized */
   fb_matches = udev_enumerate_new (manager->udev_context);
-  udev_enumerate_add_match_is_initialized(fb_matches);
   udev_enumerate_add_match_subsystem (fb_matches, "graphics");
-
-  /* We only care about devices assigned to a (any) seat. Floating
-   * devices should be ignored.  As a side-effect, this conveniently
-   * filters out the fbcon device which we don't care about.
-   */
-  udev_enumerate_add_match_tag (fb_matches, "seat");
   udev_enumerate_scan_devices (fb_matches);
 
   udev_list_entry_foreach (fb_entry, udev_enumerate_get_list_entry (fb_matches))
     {
       struct udev_device *fb_device = NULL;
-      const char *fb_node;
       const char *fb_path;
 
       fb_path = udev_list_entry_get_name (fb_entry);
+
+      /* skip virtual fbcon device
+       */
+      if (strcmp (fb_path, "/sys/devices/virtual/graphics/fbcon") == 0)
+        continue;
+
+      found_device = true;
+      ply_trace ("found device %s", fb_path);
+
       fb_device = udev_device_new_from_syspath (manager->udev_context, fb_path);
-      fb_node = udev_device_get_devnode (fb_device);
-      if (fb_node != NULL)
-        create_seat_for_udev_device (manager, fb_device);
+      /* if device isn't fully initialized, we'll get an add event later
+       */
+      if (udev_device_get_is_initialized (fb_device))
+        {
+          /* We only care about devices assigned to a (any) seat. Floating
+           * devices should be ignored.  As a side-effect, this conveniently
+           * filters out the fbcon device which we don't care about.
+           */
+          if (udev_device_has_tag (fb_device, "seat"))
+            {
+              const char *fb_node;
+              fb_node = udev_device_get_devnode (fb_device);
+              if (fb_node != NULL)
+                {
+                  ply_trace ("found node %s", fb_node);
+                  create_seat_for_udev_device (manager, fb_device);
+                }
+            }
+        }
 
       udev_device_unref (fb_device);
     }
 
   udev_enumerate_unref (fb_matches);
+
+  return found_device;
 }
 
 static void
@@ -301,6 +321,8 @@ on_udev_graphics_event (ply_device_manager_t *manager)
     return;
 
   action = udev_device_get_action (device);
+
+  ply_trace ("got %s event for device %s", action, udev_device_get_sysname (device));
 
   if (action == NULL)
     return;
@@ -321,6 +343,7 @@ watch_for_udev_events (ply_device_manager_t *manager)
   assert (manager->udev_monitor == NULL);
 
   ply_trace ("watching for udev graphics device add and remove events");
+
   manager->udev_monitor = udev_monitor_new_from_netlink (manager->udev_context, "udev");
 
   /* The filter matching here mimics the matching done in scan_graphics_devices.
@@ -338,7 +361,6 @@ watch_for_udev_events (ply_device_manager_t *manager)
                            on_udev_graphics_event,
                            NULL,
                            manager);
-
 }
 
 static void
@@ -582,7 +604,6 @@ static bool
 create_seats_from_terminals (ply_device_manager_t *manager)
 {
   int num_consoles;
-  bool seats_created;
 
   ply_trace ("checking for consoles");
 
@@ -606,24 +627,36 @@ create_seats_from_terminals (ply_device_manager_t *manager)
                              (ply_hashtable_foreach_func_t *)
                              create_seat_for_terminal,
                              manager);
-      seats_created = true;
+      return true;
     }
-  else if (num_consoles <= 1 && (manager->flags & PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV))
+
+  return false;
+}
+
+static bool
+create_seats_from_udev (ply_device_manager_t *manager)
+{
+  bool found_device;
+
+  if (manager->flags & PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV)
+    return false;
+
+  ply_trace ("Looking for devices from udev");
+  found_device = scan_graphics_devices (manager);
+  if (found_device)
     {
-      ply_trace ("udev disabled, managing seat right away");
-      create_seat_for_terminal_and_renderer_type (manager,
-                                                  ply_terminal_get_name (manager->local_console_terminal),
-                                                  manager->local_console_terminal,
-                                                  PLY_RENDERER_TYPE_AUTO);
-      seats_created = true;
+      watch_for_udev_events (manager);
     }
   else
     {
-      ply_trace ("will manage seat when ready");
-      seats_created = false;
+      ply_trace ("Creating non-graphical seat, since there's no suitable graphics hardware");
+      create_seat_for_terminal_and_renderer_type (manager,
+                                                  ply_terminal_get_name (manager->local_console_terminal),
+                                                  manager->local_console_terminal,
+                                                  PLY_RENDERER_TYPE_NONE);
     }
 
-  return seats_created;
+  return true;
 }
 
 void
@@ -632,23 +665,28 @@ ply_device_manager_watch_seats (ply_device_manager_t       *manager,
                                 ply_seat_removed_handler_t  seat_removed_handler,
                                 void                       *data)
 {
-  bool seats_created;
+  bool done_with_initial_seat_setup;
 
   manager->seat_added_handler = seat_added_handler;
   manager->seat_removed_handler = seat_removed_handler;
   manager->seat_event_handler_data = data;
 
-  /* Try to create seats for each terminal device right away, if possible
+  /* Try to create seats for each serial device right away, if possible
    */
-  seats_created = create_seats_from_terminals (manager);
+  done_with_initial_seat_setup = create_seats_from_terminals (manager);
 
   /* In most cases, though, we need to create devices based on udev device topology
    */
-  if (!seats_created)
-    {
-      watch_for_udev_events (manager);
-      scan_graphics_devices (manager);
-    }
+  if (!done_with_initial_seat_setup)
+    done_with_initial_seat_setup = create_seats_from_udev (manager);
+
+  /* as a last resort, we just creat a fallback seat
+   */
+  if (!done_with_initial_seat_setup)
+    create_seat_for_terminal_and_renderer_type (manager,
+                                                ply_terminal_get_name (manager->local_console_terminal),
+                                                manager->local_console_terminal,
+                                                PLY_RENDERER_TYPE_AUTO);
 }
 
 bool

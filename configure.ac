@@ -94,10 +94,6 @@ if test x$enable_tracing = xyes; then
   AC_DEFINE(PLY_ENABLE_TRACING, 1, [Build in verbose debug tracing spew])
 fi
 
-AC_ARG_ENABLE(tests, AS_HELP_STRING([--enable-tests],[build tests]),enable_tests=$enableval,enable_tests=yes)
-
-AM_CONDITIONAL(ENABLE_TESTS,  [test "$enable_tests" = yes])
-
 AC_ARG_ENABLE(gdm-transition, AS_HELP_STRING([--enable-gdm-transition],[enable smooth transition to gdm]),enable_gdm_transition=$enableval,enable_gdm_transition=no)
 
 if test x$enable_gdm_transition = xyes; then
@@ -312,9 +308,6 @@ AC_CONFIG_FILES([Makefile
            src/client/Makefile
            src/viewer/Makefile
            src/upstart-bridge/Makefile
-           src/tests/Makefile
-           src/libply/tests/Makefile
-           src/client/tests/Makefile
            themes/Makefile
            themes/spinfinity/Makefile
            themes/fade-in/Makefile

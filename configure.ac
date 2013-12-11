@@ -196,7 +196,7 @@ AC_DEFUN([PLYMOUTH_CC_TRY_FLAG], [
   plymouth_save_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $1"
 
-  AC_COMPILE_IFELSE([ ], [plymouth_cc_flag=yes], [plymouth_cc_flag=no])
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ ]], [[ ]])], [plymouth_cc_flag=yes], [plymouth_cc_flag=no])
   CFLAGS="$plymouth_save_CFLAGS"
 
   if test "x$plymouth_cc_flag" = "xyes"; then

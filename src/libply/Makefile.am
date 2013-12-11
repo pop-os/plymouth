@@ -1,4 +1,4 @@
-INCLUDES = -I$(top_srcdir)                                                    \
+AM_CPPFLAGS = -I$(top_srcdir)                                                 \
            -I$(srcdir)                                                        \
            -DPLYMOUTH_TIME_DIRECTORY=\"$(localstatedir)/lib/plymouth/\"       
 

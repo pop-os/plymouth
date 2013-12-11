@@ -2,7 +2,7 @@ SUBDIRS = libply libply-splash-core libply-splash-graphics . plugins client view
 if ENABLE_UPSTART_MONITORING
 SUBDIRS += upstart-bridge
 endif
-INCLUDES = -I$(top_srcdir)                                                    \
+AM_CPPFLAGS = -I$(top_srcdir)                                                 \
            -I$(srcdir)/libply                                                 \
            -I$(srcdir)/libply-splash-core                                     \
            -I$(srcdir)                                                        \

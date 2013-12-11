@@ -1,5 +1,5 @@
 if ENABLE_DRM_RENDERER
-INCLUDES = -I$(top_srcdir)                                                    \
+AM_CPPFLAGS = -I$(top_srcdir)                                                 \
            -I$(srcdir)/../../../libply                                        \
            -I$(srcdir)/../../../libply-splash-core                            \
            -I$(srcdir)/../../..                                               \

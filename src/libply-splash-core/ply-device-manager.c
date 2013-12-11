@@ -47,6 +47,7 @@ struct _ply_device_manager
   ply_event_loop_t           *loop;
   ply_hashtable_t            *terminals;
   ply_terminal_t             *local_console_terminal;
+  ply_seat_t                 *local_console_seat;
   ply_list_t                 *seats;
   struct udev                *udev_context;
   struct udev_monitor        *udev_monitor;
@@ -572,6 +573,16 @@ create_seat_for_terminal_and_renderer_type (ply_device_manager_t *manager,
                                             ply_renderer_type_t   renderer_type)
 {
   ply_seat_t *seat;
+  bool is_local_terminal = false;
+
+  if (terminal != NULL && manager->local_console_terminal == terminal)
+    is_local_terminal = true;
+
+  if (is_local_terminal && manager->local_console_seat != NULL)
+    {
+      ply_trace ("trying to create seat for local console when one already exists");
+      return;
+    }
 
   ply_trace ("creating seat for %s (renderer type: %u) (terminal: %s)",
              device_path? : "", renderer_type, terminal? ply_terminal_get_name (terminal): "none");
@@ -585,6 +596,9 @@ create_seat_for_terminal_and_renderer_type (ply_device_manager_t *manager,
     }
 
   ply_list_append_data (manager->seats, seat);
+
+  if (is_local_terminal)
+    manager->local_console_seat = seat;
 
   if (manager->seat_added_handler != NULL)
     manager->seat_added_handler (manager->seat_event_handler_data, seat);

@@ -27,12 +27,12 @@ libply_splash_core_HEADERS = \
 		    ply-text-progress-bar.h                                   \
 		    ply-text-step-bar.h
 
-libply_splash_core_la_CFLAGS = $(PLYMOUTH_CFLAGS)                               \
+libply_splash_core_la_CFLAGS = $(PLYMOUTH_CFLAGS) $(UDEV_CFLAGS)               \
                              -DPLYMOUTH_BACKGROUND_COLOR=$(background_color)   \
                        -DPLYMOUTH_BACKGROUND_END_COLOR=$(background_end_color) \
                        -DPLYMOUTH_BACKGROUND_START_COLOR=$(background_start_color) \
                        -DPLYMOUTH_PLUGIN_PATH=\"$(PLYMOUTH_PLUGIN_PATH)\"
-libply_splash_core_la_LIBADD = $(PLYMOUTH_LIBS) ../libply/libply.la
+libply_splash_core_la_LIBADD = $(PLYMOUTH_LIBS) $(UDEV_LIBS) ../libply/libply.la
 libply_splash_core_la_LDFLAGS = -export-symbols-regex '^[^_].*' \
 		    -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
 		    -no-undefined

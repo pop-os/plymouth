@@ -406,14 +406,12 @@ show_default_splash (state_t *state)
     return;
 
   ply_trace ("Showing splash screen");
-  find_override_splash (state);
   if (state->override_splash_path != NULL)
     {
       ply_trace ("Trying override splash at '%s'", state->override_splash_path);
       state->boot_splash = show_theme (state, state->override_splash_path);
     }
 
-  find_system_default_splash (state);
   if (state->boot_splash == NULL &&
       state->system_default_splash_path != NULL)
     {
@@ -421,7 +419,6 @@ show_default_splash (state_t *state)
       state->boot_splash = show_theme (state, state->system_default_splash_path);
     }
 
-  find_distribution_default_splash (state);
   if (state->boot_splash == NULL &&
       state->distribution_default_splash_path != NULL)
     {
@@ -2226,6 +2223,10 @@ main (int    argc,
       ply_error ("plymouthd: could not tell parent to exit: %m");
       return EX_UNAVAILABLE;
     }
+
+  find_override_splash (&state);
+  find_system_default_splash (&state);
+  find_distribution_default_splash (&state);
 
   if (command_line_has_argument (state.kernel_command_line, "plymouth.ignore-serial-consoles"))
     device_manager_flags |= PLY_DEVICE_MANAGER_FLAGS_IGNORE_SERIAL_CONSOLES;

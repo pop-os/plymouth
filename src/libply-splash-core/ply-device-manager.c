@@ -283,7 +283,6 @@ scan_graphics_devices (ply_device_manager_t *manager)
       if (strcmp (fb_path, "/sys/devices/virtual/graphics/fbcon") == 0)
         continue;
 
-      found_device = true;
       ply_trace ("found device %s", fb_path);
 
       fb_device = udev_device_new_from_syspath (manager->udev_context, fb_path);
@@ -302,6 +301,7 @@ scan_graphics_devices (ply_device_manager_t *manager)
               if (fb_node != NULL)
                 {
                   ply_trace ("found node %s", fb_node);
+                  found_device = true;
                   create_seat_for_udev_device (manager, fb_device);
                 }
             }

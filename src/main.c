@@ -1001,6 +1001,8 @@ quit_splash (state_t *state)
 static void
 hide_splash (state_t *state)
 {
+  state->is_shown = false;
+
   if (state->boot_splash == NULL)
     return;
 
@@ -1018,9 +1020,6 @@ dump_details_and_quit_splash (state_t *state)
 
   ply_device_manager_deactivate_renderers (state->device_manager);
   hide_splash (state);
-
-  state->is_shown = false;
-
   quit_splash (state);
 }
 
@@ -1129,8 +1128,6 @@ on_boot_splash_idle (state_t *state)
           ply_trace ("hiding splash");
           ply_device_manager_deactivate_renderers (state->device_manager);
           hide_splash (state);
-
-          state->is_shown = false;
         }
 
       ply_trace ("quitting splash");

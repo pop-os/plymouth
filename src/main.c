@@ -99,6 +99,7 @@ typedef struct
   ply_terminal_t *local_console_terminal;
   ply_device_manager_t *device_manager;
 
+  ply_trigger_t *show_trigger;
   ply_trigger_t *deactivate_trigger;
   ply_trigger_t *quit_trigger;
 
@@ -816,7 +817,8 @@ plymouth_should_show_default_splash (state_t *state)
 }
 
 static void
-on_show_splash (state_t *state)
+on_show_splash (state_t       *state,
+                ply_trigger_t *show_trigger)
 {
   bool has_open_seats;
 
@@ -839,6 +841,7 @@ on_show_splash (state_t *state)
       return;
     }
 
+  state->show_trigger = show_trigger;
   state->is_shown = true;
   has_open_seats = ply_device_manager_has_open_seats (state->device_manager);
 
@@ -900,6 +903,13 @@ show_splash (state_t *state)
     {
       show_detailed_splash (state);
       state->showing_details = true;
+    }
+
+  if (state->show_trigger != NULL)
+    {
+      ply_trace ("telling boot server about completed show operation");
+      ply_trigger_pull (state->show_trigger, NULL);
+      state->show_trigger = NULL;
     }
 }
 

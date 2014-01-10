@@ -129,6 +129,8 @@ get_drm_device_node_path_from_fb_device (ply_device_manager_t *manager,
   id_path = udev_device_get_property_value (fb_device, "ID_PATH");
   udev_enumerate_add_match_property (card_matches, "ID_PATH", id_path);
 
+  ply_trace ("trying to find associated drm node for fb device (path: %s)", id_path);
+
   udev_enumerate_scan_devices (card_matches);
 
   /* there should only ever be at most one match so we don't iterate through
@@ -146,8 +148,14 @@ get_drm_device_node_path_from_fb_device (ply_device_manager_t *manager,
       card_node = udev_device_get_devnode (card_device);
       if (card_node != NULL)
         device_node_path = strdup (card_node);
+      else
+        ply_trace ("no card node!");
 
       udev_device_unref (card_device);
+    }
+  else
+    {
+      ply_trace ("no card entry!");
     }
 
   udev_enumerate_unref (card_matches);
@@ -163,6 +171,8 @@ create_seat_for_udev_device (ply_device_manager_t *manager,
   ply_terminal_t *terminal = NULL;
 
   for_local_console = device_is_for_local_console (manager, device);
+
+  ply_trace ("device is for local console: %s", for_local_console? "yes" : "no");
 
   if (for_local_console)
     terminal = manager->local_console_terminal;
@@ -278,18 +288,29 @@ scan_graphics_devices (ply_device_manager_t *manager)
 
       fb_path = udev_list_entry_get_name (fb_entry);
 
-      /* skip virtual fbcon device
-       */
-      if (strcmp (fb_path, "/sys/devices/virtual/graphics/fbcon") == 0)
-        continue;
+      if (fb_path == NULL)
+        {
+          ply_trace ("fb path was null!");
+          continue;
+        }
 
       ply_trace ("found device %s", fb_path);
 
+      /* skip virtual fbcon device
+       */
+      if (strcmp (fb_path, "/sys/devices/virtual/graphics/fbcon") == 0)
+        {
+          ply_trace ("ignoring since it's fbcon");
+          continue;
+        }
+
       fb_device = udev_device_new_from_syspath (manager->udev_context, fb_path);
+
       /* if device isn't fully initialized, we'll get an add event later
        */
       if (udev_device_get_is_initialized (fb_device))
         {
+          ply_trace ("device is initialized");
           /* We only care about devices assigned to a (any) seat. Floating
            * devices should be ignored.  As a side-effect, this conveniently
            * filters out the fbcon device which we don't care about.
@@ -305,6 +326,14 @@ scan_graphics_devices (ply_device_manager_t *manager)
                   create_seat_for_udev_device (manager, fb_device);
                 }
             }
+          else
+            {
+              ply_trace ("device doesn't have a seat tag");
+            }
+        }
+      else
+        {
+          ply_trace ("it's not initialized");
         }
 
       udev_device_unref (fb_device);

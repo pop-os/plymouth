@@ -139,6 +139,8 @@ ply_seat_open (ply_seat_t          *seat,
       seat->keyboard = ply_keyboard_new_for_terminal (seat->terminal);
       add_text_displays (seat);
     }
+
+  ply_keyboard_watch_for_input (seat->keyboard);
   seat->keyboard_active = true;
 
   return true;

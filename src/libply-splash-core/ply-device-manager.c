@@ -480,6 +480,10 @@ ply_device_manager_free (ply_device_manager_t *manager)
   if (manager == NULL)
     return;
 
+  ply_event_loop_stop_watching_for_exit (manager->loop,
+                                         (ply_event_loop_exit_handler_t)
+                                         detach_from_event_loop,
+                                         manager);
   free_seats (manager);
   ply_list_free (manager->seats);
 

@@ -23,6 +23,7 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <math.h>
 #include <ctype.h>
 #include <limits.h>
 #include <dirent.h>
@@ -35,6 +36,7 @@
 #include <wchar.h>
 #include <paths.h>
 #include <assert.h>
+#include <values.h>
 
 #include <linux/kd.h>
 #include <linux/vt.h>
@@ -102,6 +104,9 @@ typedef struct
   ply_trigger_t *show_trigger;
   ply_trigger_t *deactivate_trigger;
   ply_trigger_t *quit_trigger;
+
+  double start_time;
+  double splash_delay;
 
   char kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
   uint32_t kernel_command_line_is_set : 1;
@@ -262,6 +267,7 @@ load_settings (state_t     *state,
                char       **theme_path)
 {
   ply_key_file_t *key_file = NULL;
+  const char *delay_string;
   bool settings_loaded = false;
   const char *splash_string;
 
@@ -279,6 +285,17 @@ load_settings (state_t     *state,
   asprintf (theme_path,
             PLYMOUTH_THEME_PATH "%s/%s.plymouth",
             splash_string, splash_string);
+
+  if (isnan (state->splash_delay))
+    {
+      delay_string = ply_key_file_get_value (key_file, "Daemon", "ShowDelay");
+
+      if (delay_string != NULL)
+        {
+          ply_trace ("Splash delay is set to %lf", state->splash_delay);
+          state->splash_delay = atof (delay_string);
+        }
+    }
 
   settings_loaded = true;
 out:
@@ -367,6 +384,16 @@ find_override_splash (state_t *state)
                 PLYMOUTH_THEME_PATH "%*.*s/%*.*s.plymouth",
                 length, length, splash_string, length, length, splash_string);
     }
+
+  if (isnan (state->splash_delay))
+    {
+      const char *delay_string;
+
+      delay_string = command_line_get_string_after_prefix (state->kernel_command_line, "plymouth.splash-delay=");
+
+      if (delay_string != NULL)
+        state->splash_delay = atof (delay_string);
+    }
 }
 
 static void
@@ -454,6 +481,28 @@ show_default_splash (state_t *state)
 }
 
 static void
+cancel_pending_delayed_show (state_t *state)
+{
+  bool has_open_seats;
+
+  if (isnan (state->splash_delay))
+    return;
+
+  ply_event_loop_stop_watching_for_timeout (state->loop,
+                                            (ply_event_loop_timeout_handler_t)
+                                            show_splash,
+                                            state);
+  state->splash_delay = NAN;
+  has_open_seats = ply_device_manager_has_open_seats (state->device_manager);
+
+  if (state->is_shown && has_open_seats)
+    {
+      ply_trace ("splash delay cancelled, showing splash immediately");
+      show_splash (state);
+    }
+}
+
+static void
 on_ask_for_password (state_t      *state,
                      const char   *prompt,
                      ply_trigger_t *answer)
@@ -466,6 +515,7 @@ on_ask_for_password (state_t      *state,
   if (state->show_trigger != NULL)
     {
       ply_trace ("splash still coming up, waiting a bit");
+      cancel_pending_delayed_show (state);
     }
   else if (state->boot_splash == NULL)
     {
@@ -899,6 +949,31 @@ show_splash (state_t *state)
   if (state->boot_splash != NULL)
     return;
 
+  if (!isnan (state->splash_delay))
+    {
+      double now, running_time;
+
+      now = ply_get_timestamp ();
+      running_time = now - state->start_time;
+      if (state->splash_delay > running_time)
+        {
+          double time_left = state->splash_delay - running_time;
+
+          ply_trace ("delaying show splash for %lf seconds",
+                     time_left);
+          ply_event_loop_stop_watching_for_timeout (state->loop,
+                                                    (ply_event_loop_timeout_handler_t)
+                                                    show_splash,
+                                                    state);
+          ply_event_loop_watch_for_timeout (state->loop,
+                                            time_left,
+                                            (ply_event_loop_timeout_handler_t)
+                                            show_splash,
+                                            state);
+          return;
+        }
+    }
+
   if (plymouth_should_show_default_splash (state))
     {
       show_default_splash (state);
@@ -1002,6 +1077,8 @@ static void
 hide_splash (state_t *state)
 {
   state->is_shown = false;
+
+  cancel_pending_delayed_show (state);
 
   if (state->boot_splash == NULL)
     return;
@@ -2048,6 +2125,7 @@ main (int    argc,
   char *tty = NULL;
   ply_device_manager_flags_t device_manager_flags = PLY_DEVICE_MANAGER_FLAGS_NONE;
 
+  state.start_time = ply_get_timestamp ();
   state.command_parser = ply_command_parser_new ("plymouthd", "Splash server");
 
   state.loop = ply_event_loop_get_default ();
@@ -2207,6 +2285,7 @@ main (int    argc,
     }
 
   state.progress = ply_progress_new ();
+  state.splash_delay = NAN;
 
   ply_progress_load_cache (state.progress,
                            get_cache_file_for_mode (state.mode));

@@ -256,6 +256,37 @@ show_messages (state_t *state)
     }
 }
 
+static bool
+load_settings (state_t     *state,
+               const char  *path,
+               char       **theme_path)
+{
+  ply_key_file_t *key_file = NULL;
+  bool settings_loaded = false;
+  const char *splash_string;
+
+  ply_trace ("Trying to load %s", path);
+  key_file = ply_key_file_new (path);
+
+  if (!ply_key_file_load (key_file))
+    goto out;
+
+  splash_string = ply_key_file_get_value (key_file, "Daemon", "Theme");
+
+  if (splash_string == NULL)
+    goto out;
+
+  asprintf (theme_path,
+            PLYMOUTH_THEME_PATH "%s/%s.plymouth",
+            splash_string, splash_string);
+
+  settings_loaded = true;
+out:
+  ply_key_file_free (key_file);
+
+  return settings_loaded;
+}
+
 static void
 show_detailed_splash (state_t *state)
 {
@@ -341,60 +372,31 @@ find_override_splash (state_t *state)
 static void
 find_system_default_splash (state_t *state)
 {
-  ply_key_file_t *key_file;
-  char *splash_string;
-
   if (state->system_default_splash_path != NULL)
       return;
 
-  ply_trace ("Trying to load " PLYMOUTH_CONF_DIR "plymouthd.conf");
-  key_file = ply_key_file_new (PLYMOUTH_CONF_DIR "plymouthd.conf");
-
-  if (!ply_key_file_load (key_file))
+  if (!load_settings (state, PLYMOUTH_CONF_DIR "plymouthd.conf", &state->system_default_splash_path))
     {
       ply_trace ("failed to load " PLYMOUTH_CONF_DIR "plymouthd.conf");
-      ply_key_file_free (key_file);
       return;
     }
 
-  splash_string = ply_key_file_get_value (key_file, "Daemon", "Theme");
-
-  ply_trace ("System default splash is configured to be '%s'", splash_string);
-
-  asprintf (&state->system_default_splash_path,
-            PLYMOUTH_THEME_PATH "%s/%s.plymouth",
-            splash_string, splash_string);
-  free (splash_string);
-  ply_key_file_free (key_file);
+  ply_trace ("System configured theme file is '%s'", state->system_default_splash_path);
 }
 
 static void
 find_distribution_default_splash (state_t *state)
 {
-  ply_key_file_t *key_file;
-  char *splash_string;
-
   if (state->distribution_default_splash_path != NULL)
       return;
 
-  ply_trace ("Trying to load " PLYMOUTH_POLICY_DIR "plymouthd.defaults");
-  key_file = ply_key_file_new (PLYMOUTH_POLICY_DIR "plymouthd.defaults");
-
-  if (!ply_key_file_load (key_file))
+  if (!load_settings (state, PLYMOUTH_POLICY_DIR "plymouthd.conf", &state->distribution_default_splash_path))
     {
-      ply_trace ("failed to load " PLYMOUTH_POLICY_DIR "plymouthd.defaults");
-      ply_key_file_free (key_file);
+      ply_trace ("failed to load " PLYMOUTH_POLICY_DIR "plymouthd.conf");
       return;
     }
 
-  splash_string = ply_key_file_get_value (key_file, "Daemon", "Theme");
-
-  ply_trace ("Distribution default splash is configured to be '%s'", splash_string);
-
-  asprintf (&state->distribution_default_splash_path,
-            PLYMOUTH_THEME_PATH "%s/%s.plymouth",
-            splash_string, splash_string);
-  free (splash_string);
+  ply_trace ("Distribution default theme file is '%s'", state->distribution_default_splash_path);
 }
 
 static void

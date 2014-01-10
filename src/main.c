@@ -461,10 +461,16 @@ on_ask_for_password (state_t      *state,
 {
   ply_entry_trigger_t *entry_trigger;
 
-  /* No splash, client will have to get password
+  /* Waiting to be shown, boot splash will
+   * arrive shortly so just sit tight
    */
-  if (state->boot_splash == NULL)
+  if (state->show_trigger != NULL)
     {
+      ply_trace ("splash still coming up, waiting a bit");
+    }
+  else if (state->boot_splash == NULL)
+    {
+      /* No splash, client will have to get password */
       ply_trace ("no splash loaded, replying immediately with no password");
       ply_trigger_pull (answer, NULL);
       return;

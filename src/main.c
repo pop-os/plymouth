@@ -417,9 +417,9 @@ find_distribution_default_splash (state_t *state)
   if (state->distribution_default_splash_path != NULL)
       return;
 
-  if (!load_settings (state, PLYMOUTH_POLICY_DIR "plymouthd.conf", &state->distribution_default_splash_path))
+  if (!load_settings (state, PLYMOUTH_POLICY_DIR "plymouthd.defaults", &state->distribution_default_splash_path))
     {
-      ply_trace ("failed to load " PLYMOUTH_POLICY_DIR "plymouthd.conf");
+      ply_trace ("failed to load " PLYMOUTH_POLICY_DIR "plymouthd.defaults");
       return;
     }
 

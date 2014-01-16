@@ -509,20 +509,23 @@ on_ask_for_password (state_t      *state,
 {
   ply_entry_trigger_t *entry_trigger;
 
-  /* Waiting to be shown, boot splash will
-   * arrive shortly so just sit tight
-   */
-  if (state->show_trigger != NULL)
+  if (state->boot_splash == NULL)
     {
-      ply_trace ("splash still coming up, waiting a bit");
-      cancel_pending_delayed_show (state);
-    }
-  else if (state->boot_splash == NULL)
-    {
-      /* No splash, client will have to get password */
-      ply_trace ("no splash loaded, replying immediately with no password");
-      ply_trigger_pull (answer, NULL);
-      return;
+      /* Waiting to be shown, boot splash will
+       * arrive shortly so just sit tight
+       */
+      if (state->is_shown)
+        {
+          ply_trace ("splash still coming up, waiting a bit");
+          cancel_pending_delayed_show (state);
+        }
+      else
+        {
+          /* No splash, client will have to get password */
+          ply_trace ("no splash loaded, replying immediately with no password");
+          ply_trigger_pull (answer, NULL);
+          return;
+        }
     }
 
   entry_trigger = calloc (1, sizeof (ply_entry_trigger_t));

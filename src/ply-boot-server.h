@@ -49,7 +49,6 @@ typedef void (* ply_boot_server_newroot_handler_t) (void              *user_data
                                                     ply_boot_server_t *server);
 
 typedef void (* ply_boot_server_show_splash_handler_t) (void              *user_data,
-                                                        ply_trigger_t     *show_trigger,
                                                         ply_boot_server_t *server);
 
 typedef void (* ply_boot_server_hide_splash_handler_t) (void              *user_data,

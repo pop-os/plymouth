@@ -310,18 +310,6 @@ ply_boot_connection_on_password_answer (ply_boot_connection_t *connection,
 }
 
 static void
-ply_boot_connection_on_splash_shown (ply_boot_connection_t *connection)
-{
-  ply_trace ("shown");
-  if (!ply_write (connection->fd,
-                  PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
-                  strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
-    {
-      ply_trace ("could not finish writing deactivate reply: %m");
-    }
-}
-
-static void
 ply_boot_connection_on_deactivated (ply_boot_connection_t *connection)
 {
   ply_trace ("deactivated");
@@ -489,23 +477,9 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_SHOW_SPLASH) == 0)
     {
-      ply_trigger_t *show_trigger;
-
       ply_trace ("got show splash request");
-
-      show_trigger = ply_trigger_new (NULL);
-
-      ply_trigger_add_handler (show_trigger,
-                               (ply_trigger_handler_t)
-                               ply_boot_connection_on_splash_shown,
-                               connection);
-
       if (server->show_splash_handler != NULL)
-        server->show_splash_handler (server->user_data, show_trigger, server);
-
-      free (argument);
-      free (command);
-      return;
+        server->show_splash_handler (server->user_data, server);
     }
   else if (strcmp (command, PLY_BOOT_PROTOCOL_REQUEST_TYPE_HIDE_SPLASH) == 0)
     {

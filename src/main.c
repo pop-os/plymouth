@@ -292,8 +292,8 @@ load_settings (state_t     *state,
 
       if (delay_string != NULL)
         {
-          ply_trace ("Splash delay is set to %lf", state->splash_delay);
           state->splash_delay = atof (delay_string);
+          ply_trace ("Splash delay is set to %lf", state->splash_delay);
         }
     }
 

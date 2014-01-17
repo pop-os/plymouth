@@ -1293,9 +1293,11 @@ on_quit (state_t       *state,
     }
 
   if (state->system_initialized)
-    ply_progress_save_cache (state->progress,
-                             get_cache_file_for_mode (state->mode));
-
+    {
+      ply_create_directory (PLYMOUTH_TIME_DIRECTORY);
+      ply_progress_save_cache (state->progress,
+                               get_cache_file_for_mode (state->mode));
+    }
   state->quit_trigger = quit_trigger;
   state->should_retain_splash = retain_splash;
 

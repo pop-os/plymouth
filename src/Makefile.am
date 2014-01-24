@@ -15,6 +15,7 @@ plymouthdbindir = $(plymouthdaemondir)
 plymouthdbin_PROGRAMS = plymouthd
 
 plymouthd_CFLAGS = $(PLYMOUTH_CFLAGS)                                         \
+		   -rdynamic                                                  \
 		   -DPLYMOUTH_PLUGIN_PATH=\"$(PLYMOUTH_PLUGIN_PATH)\"         \
 		   -DPLYMOUTH_THEME_PATH=\"$(PLYMOUTH_THEME_PATH)/\"          \
 		   -DPLYMOUTH_POLICY_DIR=\"$(PLYMOUTH_POLICY_DIR)/\"          \

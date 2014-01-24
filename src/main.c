@@ -2306,6 +2306,15 @@ main (int    argc,
       (getenv ("DISPLAY") != NULL))
     device_manager_flags |= PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV;
 
+  if (!plymouth_should_show_default_splash (&state))
+    {
+      /* don't bother listening for udev events if we're forcing details */
+      device_manager_flags |= PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV;
+
+      /* don't ever delay showing the detailed splash */
+      state.splash_delay = NAN;
+    }
+
   load_devices (&state, device_manager_flags);
 
   ply_trace ("entering event loop");

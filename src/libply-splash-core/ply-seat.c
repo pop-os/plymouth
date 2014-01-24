@@ -117,15 +117,22 @@ ply_seat_open (ply_seat_t          *seat,
 
       renderer = ply_renderer_new (renderer_type, device, seat->terminal);
 
-      if (!ply_renderer_open (renderer) && renderer_type != PLY_RENDERER_TYPE_AUTO)
+      if (!ply_renderer_open (renderer))
         {
           ply_trace ("could not open renderer for %s", device);
           ply_renderer_free (renderer);
-          return false;
-        }
 
-      seat->renderer = renderer;
-      seat->renderer_active = true;
+          seat->renderer = NULL;
+          seat->renderer_active = false;
+
+          if (renderer_type != PLY_RENDERER_TYPE_AUTO)
+            return false;
+        }
+      else
+        {
+          seat->renderer = renderer;
+          seat->renderer_active = true;
+        }
     }
 
   if (seat->renderer != NULL)

@@ -768,8 +768,13 @@ prepare_logging (state_t *state)
   logfile = get_log_file_for_mode (state->mode);
   if (logfile != NULL)
     {
+      bool log_opened;
       ply_trace ("opening log '%s'", logfile);
-      ply_terminal_session_open_log (state->session, logfile);
+
+      log_opened = ply_terminal_session_open_log (state->session, logfile);
+
+      if (!log_opened)
+        ply_trace ("failed to open log: %m");
 
       if (state->number_of_errors > 0)
         spool_error (state);

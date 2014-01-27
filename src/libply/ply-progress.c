@@ -216,9 +216,14 @@ ply_progress_save_cache (ply_progress_t* progress,
   ply_list_node_t *node;
   double cur_time = ply_progress_get_time(progress);
 
+  ply_trace ("saving progress cache to %s", filename);
+
   fp = fopen (filename,"w");
   if (fp == NULL)
-    return;
+    {
+      ply_trace ("failed to save cache: %m");
+      return;
+    }
 
   node = ply_list_get_first_node (progress->current_message_list);
 

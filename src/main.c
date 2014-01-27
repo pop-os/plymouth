@@ -1283,8 +1283,11 @@ on_quit (state_t       *state,
          bool           retain_splash,
          ply_trigger_t *quit_trigger)
 {
+  ply_trace ("quitting (retain splash: %s)", retain_splash? "true" : "false");
+
   if (state->quit_trigger != NULL)
     {
+      ply_trace ("quit trigger already pending, so chaining to it");
       ply_trigger_add_handler (state->quit_trigger,
                                (ply_trigger_handler_t)
                                ply_trigger_pull,
@@ -1294,9 +1297,14 @@ on_quit (state_t       *state,
 
   if (state->system_initialized)
     {
+      ply_trace ("system initialized so saving boot-duration file");
       ply_create_directory (PLYMOUTH_TIME_DIRECTORY);
       ply_progress_save_cache (state->progress,
                                get_cache_file_for_mode (state->mode));
+    }
+  else
+    {
+      ply_trace ("system not initialized so skipping saving boot-duration file");
     }
   state->quit_trigger = quit_trigger;
   state->should_retain_splash = retain_splash;
@@ -1305,7 +1313,7 @@ on_quit (state_t       *state,
   tell_systemd_to_stop_printing_details (state);
 #endif
 
-  ply_trace ("time to quit, closing log");
+  ply_trace ("closing log");
   if (state->session != NULL)
     ply_terminal_session_close_log (state->session);
 

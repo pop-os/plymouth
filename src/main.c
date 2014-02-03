@@ -1172,7 +1172,6 @@ deactivate_splash (state_t *state)
       ply_trace ("deactivating terminal");
       ply_terminal_stop_watching_for_vt_changes (state->local_console_terminal);
       ply_terminal_set_buffered_input (state->local_console_terminal);
-      ply_terminal_ignore_mode_changes (state->local_console_terminal, true);
       ply_terminal_close (state->local_console_terminal);
     }
 

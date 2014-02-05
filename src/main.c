@@ -1242,6 +1242,8 @@ on_deactivate (state_t       *state,
   state->deactivate_trigger = deactivate_trigger;
 
   ply_trace ("deactivating");
+  cancel_pending_delayed_show (state);
+
   ply_device_manager_deactivate_keyboards (state->device_manager);
 
   if (state->boot_splash != NULL)

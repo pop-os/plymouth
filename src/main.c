@@ -482,8 +482,6 @@ show_default_splash (state_t *state)
 static void
 cancel_pending_delayed_show (state_t *state)
 {
-  bool has_open_seats;
-
   if (isnan (state->splash_delay))
     return;
 
@@ -492,13 +490,6 @@ cancel_pending_delayed_show (state_t *state)
                                             show_splash,
                                             state);
   state->splash_delay = NAN;
-  has_open_seats = ply_device_manager_has_open_seats (state->device_manager);
-
-  if (state->is_shown && has_open_seats)
-    {
-      ply_trace ("splash delay cancelled, showing splash immediately");
-      show_splash (state);
-    }
 }
 
 static void
@@ -515,8 +506,21 @@ on_ask_for_password (state_t      *state,
        */
       if (state->is_shown)
         {
-          ply_trace ("splash still coming up, waiting a bit");
+          bool has_open_seats;
+
           cancel_pending_delayed_show (state);
+
+          has_open_seats = ply_device_manager_has_open_seats (state->device_manager);
+
+          if (has_open_seats)
+            {
+              ply_trace ("seats open now, showing splash immediately");
+              show_splash (state);
+            }
+          else
+            {
+              ply_trace ("splash still coming up, waiting a bit");
+            }
         }
       else
         {

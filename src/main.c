@@ -1069,7 +1069,6 @@ quit_splash (state_t *state)
           ply_trace ("Not retaining splash, so deallocating VT");
           ply_terminal_deactivate_vt (state->local_console_terminal);
         }
-      state->local_console_terminal = NULL;
     }
 
   detach_from_running_session (state);

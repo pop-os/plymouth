@@ -1062,12 +1062,15 @@ quit_splash (state_t *state)
       state->boot_splash = NULL;
     }
 
+  ply_device_manager_deactivate_keyboards (state->device_manager);
+
   if (state->local_console_terminal != NULL)
     {
       if (!state->should_retain_splash)
         {
           ply_trace ("Not retaining splash, so deallocating VT");
           ply_terminal_deactivate_vt (state->local_console_terminal);
+          ply_terminal_close (state->local_console_terminal);
         }
     }
 

@@ -188,8 +188,9 @@ create_seat_for_udev_device (ply_device_manager_t *manager,
       ply_renderer_type_t renderer_type = PLY_RENDERER_TYPE_NONE;
 
       subsystem = udev_device_get_subsystem (device);
+      ply_trace ("device subsystem is %s", subsystem);
 
-      if (strcmp (subsystem, SUBSYSTEM_DRM) == 0)
+      if (subsystem != NULL && strcmp (subsystem, SUBSYSTEM_DRM) == 0)
         {
           ply_trace ("found DRM device %s", device_path);
           renderer_type = PLY_RENDERER_TYPE_DRM;
@@ -359,9 +360,26 @@ on_udev_event (ply_device_manager_t *manager)
     return;
 
   if (strcmp (action, "add") == 0)
-    create_seat_for_udev_device (manager, device);
+    {
+      const char *subsystem;
+      bool coldplug_complete = manager->udev_queue_fd_watch == NULL;
+
+      subsystem = udev_device_get_subsystem (device);
+
+      if (strcmp (subsystem, SUBSYSTEM_DRM) == 0 ||
+          coldplug_complete)
+        {
+          create_seat_for_udev_device (manager, device);
+        }
+      else
+        {
+          ply_trace ("ignoring since we only handle subsystem %s devices after coldplug completes", subsystem);
+        }
+    }
   else if (strcmp (action, "remove") == 0)
-    free_seat_for_udev_device (manager, device);
+    {
+      free_seat_for_udev_device (manager, device);
+    }
 
   udev_device_unref (device);
 }

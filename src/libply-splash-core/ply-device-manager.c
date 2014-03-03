@@ -468,7 +468,8 @@ get_terminal (ply_device_manager_t *manager,
     asprintf (&full_name, "/dev/%s", device_name);
 
   if (strcmp (full_name, "/dev/tty0") == 0 ||
-      strcmp (full_name, "/dev/tty") == 0)
+      strcmp (full_name, "/dev/tty") == 0 ||
+      strcmp (full_name, ply_terminal_get_name (manager->local_console_terminal)) == 0)
     {
       terminal = manager->local_console_terminal;
       goto done;

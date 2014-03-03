@@ -38,6 +38,9 @@
 #include "ply-list.h"
 #include "ply-utils.h"
 
+#define SUBSYSTEM_DRM "drm"
+#define SUBSYSTEM_FRAME_BUFFER "graphics"
+
 static void create_seat_for_terminal_and_renderer_type (ply_device_manager_t *manager,
                                                         const char           *device_path,
                                                         ply_terminal_t       *terminal,
@@ -111,14 +114,14 @@ device_is_for_local_console (ply_device_manager_t *manager,
   return for_local_console;
 }
 
-static char *
-get_drm_device_node_path_from_fb_device (ply_device_manager_t *manager,
-                                         struct udev_device   *fb_device)
+static bool
+fb_device_has_drm_device (ply_device_manager_t *manager,
+                          struct udev_device   *fb_device)
 {
   struct udev_enumerate *card_matches;
   struct udev_list_entry *card_entry;
   const char *id_path;
-  char *device_node_path = NULL;
+  bool has_drm_device = false;
 
   /* We want to see if the framebuffer is associated with a DRM-capable
    * graphics card, if it is, we'll use the DRM device */
@@ -147,7 +150,7 @@ get_drm_device_node_path_from_fb_device (ply_device_manager_t *manager,
       card_device = udev_device_new_from_syspath (manager->udev_context, card_path);
       card_node = udev_device_get_devnode (card_device);
       if (card_node != NULL)
-        device_node_path = strdup (card_node);
+        has_drm_device = true;
       else
         ply_trace ("no card node!");
 
@@ -159,7 +162,7 @@ get_drm_device_node_path_from_fb_device (ply_device_manager_t *manager,
     }
 
   udev_enumerate_unref (card_matches);
-  return device_node_path;
+  return has_drm_device;
 }
 
 static void
@@ -167,7 +170,7 @@ create_seat_for_udev_device (ply_device_manager_t *manager,
                              struct udev_device   *device)
 {
   bool for_local_console;
-  char *card_path;
+  const char *device_path;
   ply_terminal_t *terminal = NULL;
 
   for_local_console = device_is_for_local_console (manager, device);
@@ -177,26 +180,38 @@ create_seat_for_udev_device (ply_device_manager_t *manager,
   if (for_local_console)
     terminal = manager->local_console_terminal;
 
-  card_path = get_drm_device_node_path_from_fb_device (manager, device);
+  device_path = udev_device_get_devnode (device);
 
-  if (card_path != NULL)
+  if (device_path != NULL)
     {
-      create_seat_for_terminal_and_renderer_type (manager,
-                                                  card_path,
-                                                  terminal,
-                                                  PLY_RENDERER_TYPE_DRM);
-      free (card_path);
-    }
-  else
-    {
-      const char *fb_device_node_path;
+      const char *subsystem;
+      ply_renderer_type_t renderer_type = PLY_RENDERER_TYPE_NONE;
 
-      fb_device_node_path = udev_device_get_devnode (device);
-      if (fb_device_node_path != NULL)
+      subsystem = udev_device_get_subsystem (device);
+
+      if (strcmp (subsystem, SUBSYSTEM_DRM) == 0)
+        {
+          ply_trace ("found DRM device %s", device_path);
+          renderer_type = PLY_RENDERER_TYPE_DRM;
+        }
+      else if (strcmp (subsystem, SUBSYSTEM_FRAME_BUFFER) == 0)
+        {
+          ply_trace ("found frame buffer device %s", device_path);
+          if (!fb_device_has_drm_device (manager, device))
+            {
+              renderer_type = PLY_RENDERER_TYPE_FRAME_BUFFER;
+            }
+          else
+            {
+              ply_trace ("ignoring, since there's a DRM device associated with it");
+            }
+        }
+
+      if (renderer_type != PLY_RENDERER_TYPE_NONE)
         create_seat_for_terminal_and_renderer_type (manager,
-                                                    fb_device_node_path,
+                                                    device_path,
                                                     terminal,
-                                                    PLY_RENDERER_TYPE_FRAME_BUFFER);
+                                                    renderer_type);
     }
 }
 
@@ -246,84 +261,66 @@ static void
 free_seat_for_udev_device (ply_device_manager_t *manager,
                            struct udev_device   *device)
 {
-  char *card_path;
+  const char *device_path;
 
- card_path = get_drm_device_node_path_from_fb_device (manager, device);
+  device_path = udev_device_get_devnode (device);
 
-  if (card_path != NULL)
-    {
-      free_seat_from_device_path (manager, card_path);
-      free (card_path);
-    }
-  else
-    {
-      const char *fb_device_node_path;
-
-      fb_device_node_path = udev_device_get_devnode (device);
-
-      if (fb_device_node_path != NULL)
-        free_seat_from_device_path (manager, fb_device_node_path);
-    }
+  if (device_path != NULL)
+    free_seat_from_device_path (manager, device_path);
 }
 
 static bool
-scan_graphics_devices (ply_device_manager_t *manager)
+create_seats_for_subsystem (ply_device_manager_t *manager,
+                            const char           *subsystem)
 {
-  struct udev_enumerate *fb_matches;
-  struct udev_list_entry *fb_entry;
+  struct udev_enumerate *matches;
+  struct udev_list_entry *entry;
   bool found_device = false;
 
-  ply_trace ("scanning for graphics devices");
-  /* graphics subsystem is for /dev/fb devices.  kms drivers provide /dev/fb for backward
-   * compatibility, and do so at the end of their initialization, so we can be confident
-   * that when this subsystem is available the drm device is fully initialized */
-  fb_matches = udev_enumerate_new (manager->udev_context);
-  udev_enumerate_add_match_subsystem (fb_matches, "graphics");
-  udev_enumerate_scan_devices (fb_matches);
+  ply_trace ("creating seats for %s devices",
+             strcmp (subsystem, SUBSYSTEM_FRAME_BUFFER) == 0?
+             "frame buffer":
+             subsystem);
 
-  udev_list_entry_foreach (fb_entry, udev_enumerate_get_list_entry (fb_matches))
+  matches = udev_enumerate_new (manager->udev_context);
+  udev_enumerate_add_match_subsystem (matches, subsystem);
+  udev_enumerate_scan_devices (matches);
+
+  udev_list_entry_foreach (entry, udev_enumerate_get_list_entry (matches))
     {
-      struct udev_device *fb_device = NULL;
-      const char *fb_path;
+      struct udev_device *device = NULL;
+      const char *path;
 
-      fb_path = udev_list_entry_get_name (fb_entry);
+      path = udev_list_entry_get_name (entry);
 
-      if (fb_path == NULL)
+      if (path == NULL)
         {
-          ply_trace ("fb path was null!");
+          ply_trace ("path was null!");
           continue;
         }
 
-      ply_trace ("found device %s", fb_path);
+      ply_trace ("found device %s", path);
 
-      /* skip virtual fbcon device
-       */
-      if (strcmp (fb_path, "/sys/devices/virtual/graphics/fbcon") == 0)
-        {
-          ply_trace ("ignoring since it's fbcon");
-          continue;
-        }
-
-      fb_device = udev_device_new_from_syspath (manager->udev_context, fb_path);
+      device = udev_device_new_from_syspath (manager->udev_context, path);
 
       /* if device isn't fully initialized, we'll get an add event later
        */
-      if (udev_device_get_is_initialized (fb_device))
+      if (udev_device_get_is_initialized (device))
         {
           ply_trace ("device is initialized");
+
           /* We only care about devices assigned to a (any) seat. Floating
-           * devices should be ignored.  As a side-effect, this conveniently
-           * filters out the fbcon device which we don't care about.
+           * devices should be ignored.
            */
-          if (udev_device_has_tag (fb_device, "seat"))
+          if (udev_device_has_tag (device, "seat"))
             {
-              const char *fb_node;
-              fb_node = udev_device_get_devnode (fb_device);
-              if (fb_node != NULL)
+              const char *node;
+              node = udev_device_get_devnode (device);
+              if (node != NULL)
                 {
-                  ply_trace ("found node %s", fb_node);
+                  ply_trace ("found node %s", node);
                   found_device = true;
-                  create_seat_for_udev_device (manager, fb_device);
+                  create_seat_for_udev_device (manager, device);
                 }
             }
           else
@@ -336,16 +333,16 @@ scan_graphics_devices (ply_device_manager_t *manager)
           ply_trace ("it's not initialized");
         }
 
-      udev_device_unref (fb_device);
+      udev_device_unref (device);
     }
 
-  udev_enumerate_unref (fb_matches);
+  udev_enumerate_unref (matches);
 
   return found_device;
 }
 
 static void
-on_udev_graphics_event (ply_device_manager_t *manager)
+on_udev_event (ply_device_manager_t *manager)
 {
   struct udev_device *device;
   const char *action;
@@ -380,10 +377,8 @@ watch_for_udev_events (ply_device_manager_t *manager)
 
   manager->udev_monitor = udev_monitor_new_from_netlink (manager->udev_context, "udev");
 
-  /* The filter matching here mimics the matching done in scan_graphics_devices.
-   * See the comments in that function, for an explanation of what we're doing.
-   */
-  udev_monitor_filter_add_match_subsystem_devtype (manager->udev_monitor, "graphics", NULL);
+  udev_monitor_filter_add_match_subsystem_devtype (manager->udev_monitor, SUBSYSTEM_DRM, NULL);
+  udev_monitor_filter_add_match_subsystem_devtype (manager->udev_monitor, SUBSYSTEM_FRAME_BUFFER, NULL);
   udev_monitor_filter_add_match_tag (manager->udev_monitor, "seat");
   udev_monitor_enable_receiving (manager->udev_monitor);
 
@@ -392,7 +387,7 @@ watch_for_udev_events (ply_device_manager_t *manager)
                            fd,
                            PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
                            (ply_event_handler_t)
-                           on_udev_graphics_event,
+                           on_udev_event,
                            NULL,
                            manager);
 }
@@ -684,23 +679,24 @@ create_seats_from_terminals (ply_device_manager_t *manager)
   return false;
 }
 
-static bool
+static void
 create_seats_from_udev (ply_device_manager_t *manager)
 {
-  bool found_device;
+  bool found_drm_device, found_fb_device;
 
   ply_trace ("Looking for devices from udev");
-  found_device = scan_graphics_devices (manager);
-  if (!found_device)
-    {
-      ply_trace ("Creating non-graphical seat, since there's no suitable graphics hardware");
-      create_seat_for_terminal_and_renderer_type (manager,
-                                                  ply_terminal_get_name (manager->local_console_terminal),
-                                                  manager->local_console_terminal,
-                                                  PLY_RENDERER_TYPE_NONE);
-    }
 
-  return true;
+  found_drm_device = create_seats_for_subsystem (manager, SUBSYSTEM_DRM);
+  found_fb_device = create_seats_for_subsystem (manager, SUBSYSTEM_FRAME_BUFFER);
+
+  if (found_drm_device || found_fb_device)
+    return;
+
+  ply_trace ("Creating non-graphical seat, since there's no suitable graphics hardware");
+  create_seat_for_terminal_and_renderer_type (manager,
+                                              ply_terminal_get_name (manager->local_console_terminal),
+                                              manager->local_console_terminal,
+                                              PLY_RENDERER_TYPE_NONE);
 }
 
 static void

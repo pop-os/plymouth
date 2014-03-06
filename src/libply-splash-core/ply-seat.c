@@ -102,6 +102,19 @@ add_text_displays (ply_seat_t *seat)
 {
   ply_text_display_t *display;
 
+  if (!ply_terminal_is_open (seat->terminal))
+    {
+      if (!ply_terminal_open (seat->terminal))
+        {
+          ply_trace ("could not add terminal %s: %m",
+                     ply_terminal_get_name (seat->terminal));
+          return;
+        }
+    }
+
+  ply_trace ("adding text display for terminal %s",
+             ply_terminal_get_name (seat->terminal));
+
   display = ply_text_display_new (seat->terminal);
   ply_list_append_data (seat->text_displays, display);
 }

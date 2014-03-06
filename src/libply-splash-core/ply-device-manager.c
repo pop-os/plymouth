@@ -420,6 +420,10 @@ get_terminal (ply_device_manager_t *manager,
             strcmp (full_name, "/dev/tty") == 0 ||
             strcmp (full_name, ply_terminal_get_name (manager->local_console_terminal)) == 0) {
                 terminal = manager->local_console_terminal;
+
+                ply_hashtable_insert (manager->terminals,
+                                      (void *) ply_terminal_get_name (terminal),
+                                      terminal);
                 goto done;
         }
 
@@ -466,9 +470,6 @@ ply_device_manager_new (const char                *default_tty,
         manager->terminals = ply_hashtable_new (ply_hashtable_string_hash, ply_hashtable_string_compare);
         manager->renderers = ply_hashtable_new (ply_hashtable_string_hash, ply_hashtable_string_compare);
         manager->local_console_terminal = ply_terminal_new (default_tty);
-        ply_hashtable_insert (manager->terminals,
-                              (void *) ply_terminal_get_name (manager->local_console_terminal),
-                              manager->local_console_terminal);
         manager->keyboards = ply_list_new ();
         manager->text_displays = ply_list_new ();
         manager->pixel_displays = ply_list_new ();

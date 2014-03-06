@@ -321,6 +321,7 @@ show_detailed_splash (state_t *state)
     }
 
   state->boot_splash = splash;
+  update_display (state);
 }
 
 static const char *
@@ -477,6 +478,8 @@ show_default_splash (state_t *state)
       ply_error ("plymouthd: could not start boot splash: %m");
       return;
     }
+
+  update_display (state);
 }
 
 static void
@@ -1712,7 +1715,6 @@ show_theme (state_t           *state,
 
   ply_device_manager_activate_keyboards (state->device_manager);
   show_messages (state);
-  update_display (state);
 
   return splash;
 }

@@ -689,14 +689,17 @@ get_cache_file_for_mode (ply_mode_t mode)
 }
 
 static const char *
-get_log_file_for_mode (ply_mode_t mode)
+get_log_file_for_state (state_t *state)
 {
   const char *filename;
 
-  switch ((int)mode)
+  switch ((int)state->mode)
     {
     case PLY_MODE_BOOT:
-      filename = PLYMOUTH_LOG_DIRECTORY "/boot.log";
+      if (state->no_boot_log)
+	filename = NULL;
+      else
+	filename = PLYMOUTH_LOG_DIRECTORY "/boot.log";
       break;
     case PLY_MODE_SHUTDOWN:
     case PLY_MODE_UPDATES:
@@ -744,7 +747,7 @@ spool_error (state_t *state)
 
   ply_trace ("spooling error for viewer");
 
-  logfile = get_log_file_for_mode (state->mode);
+  logfile = get_log_file_for_state (state);
   logspool = get_log_spool_file_for_mode (state->mode);
 
   if (logfile != NULL && logspool != NULL)
@@ -772,7 +775,7 @@ prepare_logging (state_t *state)
       return;
     }
 
-  logfile = get_log_file_for_mode (state->mode);
+  logfile = get_log_file_for_state (state);
   if (logfile != NULL)
     {
       bool log_opened;

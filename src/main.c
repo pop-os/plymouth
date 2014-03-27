@@ -1938,18 +1938,18 @@ check_verbosity (state_t *state)
 static void
 check_logging (state_t *state)
 {
+  bool kernel_no_log;
+
   ply_trace ("checking if console messages should be redirected and logged");
 
-  if (command_line_has_argument (state->kernel_command_line, "plymouth.nolog"))
-    {
-      ply_trace ("logging won't be enabled!");
-      state->no_boot_log = true;
-    }
+  kernel_no_log = command_line_has_argument (state->kernel_command_line, "plymouth.nolog");
+  if (kernel_no_log)
+    state->no_boot_log = true;
+
+  if (state->no_boot_log)
+    ply_trace ("logging won't be enabled!");
   else
-    {
-      ply_trace ("logging will be enabled!");
-      state->no_boot_log = false;
-    }
+    ply_trace ("logging will be enabled!");
 }
 
 static bool
@@ -2136,6 +2136,7 @@ main (int    argc,
   state_t state = { 0 };
   int exit_code;
   bool should_help = false;
+  bool no_boot_log = false;
   bool no_daemon = false;
   bool debug = false;
   bool attach_to_session;
@@ -2160,6 +2161,7 @@ main (int    argc,
                                   "pid-file", "Write the pid of the daemon to a file", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "kernel-command-line", "Fake kernel command line to use", PLY_COMMAND_OPTION_TYPE_STRING,
                                   "tty", "TTY to use instead of default", PLY_COMMAND_OPTION_TYPE_STRING,
+                                  "no-boot-log", "Do not write boot log file", PLY_COMMAND_OPTION_TYPE_FLAG,
                                   NULL);
 
   if (!ply_command_parser_parse_arguments (state.command_parser, state.loop, argv, argc))
@@ -2178,6 +2180,7 @@ main (int    argc,
                                   "help", &should_help,
                                   "attach-to-session", &attach_to_session,
                                   "mode", &mode_string,
+                                  "no-boot-log", &no_boot_log,
                                   "no-daemon", &no_daemon,
                                   "debug", &debug,
                                   "debug-file", &debug_buffer_path,
@@ -2233,6 +2236,8 @@ main (int    argc,
       ply_error ("plymouthd must be run as root user");
       return EX_OSERR;
     }
+
+  state.no_boot_log = no_boot_log;
 
   chdir ("/");
   signal (SIGPIPE, SIG_IGN);

@@ -32,18 +32,8 @@
 
 typedef struct _ply_boot_server ply_boot_server_t;
 
-typedef void (* ply_boot_server_register_handler_t) (void              *user_data,
-                                                     const char        *operation_id,
-                                                     const char        *name,
-                                                     ply_boot_server_t *server);
-
-typedef void (* ply_boot_server_unregister_handler_t) (void              *user_data,
-                                                       const char        *operation_id,
-                                                       ply_boot_server_t *server);
-
 typedef void (* ply_boot_server_update_handler_t) (void              *user_data,
                                                    const char        *status,
-                                                   const char        *operation_id,
                                                    ply_boot_server_t *server);
 
 typedef void (* ply_boot_server_change_mode_handler_t) (void              *user_data,
@@ -114,9 +104,7 @@ typedef bool (* ply_boot_server_has_active_vt_handler_t) (void              *use
                                                           ply_boot_server_t *server);
 
 #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
-ply_boot_server_t *ply_boot_server_new (ply_boot_server_register_handler_t register_handler,
-                                        ply_boot_server_unregister_handler_t unregister_handler,
-                                        ply_boot_server_update_handler_t update_handler,
+ply_boot_server_t *ply_boot_server_new (ply_boot_server_update_handler_t update_handler,
                                         ply_boot_server_change_mode_handler_t change_mode_handler,
                                         ply_boot_server_system_update_handler_t system_update_handler,
                                         ply_boot_server_ask_for_password_handler_t ask_for_password_handler,

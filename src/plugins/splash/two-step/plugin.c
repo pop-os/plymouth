@@ -1111,8 +1111,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 
 static void
 update_status (ply_boot_splash_plugin_t *plugin,
-               const char               *status,
-               const char               *operation_id)
+               const char               *status)
 {
   assert (plugin != NULL);
 }

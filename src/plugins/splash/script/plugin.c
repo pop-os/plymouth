@@ -430,34 +430,12 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 }
 
 static void
-register_operation (ply_boot_splash_plugin_t *plugin,
-                    const char               *operation_id,
-                    const char               *name)
-{
-  script_lib_plymouth_on_register_operation (plugin->script_state,
-                                             plugin->script_plymouth_lib,
-                                             operation_id,
-                                             name);
-}
-
-static void
-unregister_operation (ply_boot_splash_plugin_t *plugin,
-                      const char               *operation_id)
-{
-  script_lib_plymouth_on_unregister_operation (plugin->script_state,
-                                               plugin->script_plymouth_lib,
-                                               operation_id);
-}
-
-static void
 update_status (ply_boot_splash_plugin_t *plugin,
-               const char               *status,
-               const char               *operation_id)
+               const char               *status)
 {
   script_lib_plymouth_on_update_status (plugin->script_state,
                                         plugin->script_plymouth_lib,
-                                        status,
-                                        operation_id);
+                                        status);
 }
 
 static void
@@ -561,8 +539,6 @@ ply_boot_splash_plugin_get_interface (void)
     .add_pixel_display = add_pixel_display,
     .remove_pixel_display = remove_pixel_display,
     .show_splash_screen = show_splash_screen,
-    .register_operation = register_operation,
-    .unregister_operation = unregister_operation,
     .update_status = update_status,
     .on_boot_progress = on_boot_progress,
     .hide_splash_screen = hide_splash_screen,

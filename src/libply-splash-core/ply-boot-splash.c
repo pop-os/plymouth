@@ -1,7 +1,6 @@
 /* ply-boot-splash.h - APIs for putting up a splash screen
  *
  * Copyright (C) 2007 Red Hat, Inc.
- * Copyright (C) 2012 Pali Rohár <pali.rohar@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -550,36 +549,9 @@ ply_boot_splash_system_update (ply_boot_splash_t *splash,
   return true;
 }
 
-void ply_boot_splash_register_operation (ply_boot_splash_t *splash,
-                                         const char        *operation_id,
-                                         const char        *name)
-{
-  assert (splash != NULL);
-  assert (operation_id != NULL);
-  assert (name != NULL);
-  assert (splash->plugin_interface != NULL);
-  assert (splash->plugin != NULL);
-  assert (splash->plugin_interface->register_operation != NULL);
-
-  splash->plugin_interface->register_operation (splash->plugin, operation_id, name);
-}
-
-void ply_boot_splash_unregister_operation (ply_boot_splash_t *splash,
-                                           const char        *operation_id)
-{
-  assert (splash != NULL);
-  assert (operation_id != NULL);
-  assert (splash->plugin_interface != NULL);
-  assert (splash->plugin != NULL);
-  assert (splash->plugin_interface->register_operation != NULL);
-
-  splash->plugin_interface->unregister_operation (splash->plugin, operation_id);
-}
-
 void
 ply_boot_splash_update_status (ply_boot_splash_t *splash,
-                               const char        *status,
-                               const char        *operation_id)
+                               const char        *status)
 {
   assert (splash != NULL);
   assert (status != NULL);
@@ -588,7 +560,7 @@ ply_boot_splash_update_status (ply_boot_splash_t *splash,
   assert (splash->plugin_interface->update_status != NULL);
   assert (splash->mode != PLY_BOOT_SPLASH_MODE_INVALID);
 
-  splash->plugin_interface->update_status (splash->plugin, status, operation_id);
+  splash->plugin_interface->update_status (splash->plugin, status);
 }
 
 void

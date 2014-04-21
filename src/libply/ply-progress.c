@@ -1,7 +1,6 @@
 /* ply-progress.c - calculats boot progress 
  *
  * Copyright (C) 2007 Red Hat, Inc.
- * Copyright (C) 2012 Pali Rohár <pali.rohar@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,7 +68,6 @@ struct _ply_progress
 typedef struct 
 {
   double time;
-  char* id;
   char* string;
   uint32_t disabled : 1;
 } ply_progress_message_t;
@@ -105,7 +103,6 @@ ply_progress_free (ply_progress_t* progress)
       ply_progress_message_t *message = ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (progress->current_message_list, node);
 
-      free (message->id);
       free (message->string);
       free (message);
       node = next_node;
@@ -120,7 +117,6 @@ ply_progress_free (ply_progress_t* progress)
       ply_progress_message_t *message = ply_list_node_get_data (node);
       next_node = ply_list_get_next_node (progress->previous_message_list, node);
 
-      free (message->id);
       free (message->string);
       free (message);
       node = next_node;
@@ -132,7 +128,7 @@ ply_progress_free (ply_progress_t* progress)
 
 
 static ply_progress_message_t*
-ply_progress_message_search (ply_list_t *message_list, const char* id, const char* string)
+ply_progress_message_search (ply_list_t *message_list, const char* string)
 {
   ply_list_node_t *node;
   node = ply_list_get_first_node (message_list);
@@ -140,7 +136,7 @@ ply_progress_message_search (ply_list_t *message_list, const char* id, const cha
   while (node)
     {
       ply_progress_message_t *message = ply_list_node_get_data (node);
-      if (strcmp(id, message->id)==0 && strcmp(string, message->string)==0)
+      if (strcmp(string, message->string)==0)
           return message;
       node = ply_list_get_next_node (message_list, node);
     }
@@ -149,7 +145,7 @@ ply_progress_message_search (ply_list_t *message_list, const char* id, const cha
 
 
 static ply_progress_message_t*
-ply_progress_message_search_next (ply_list_t *message_list, const char* id, double time)
+ply_progress_message_search_next (ply_list_t *message_list, double time)
 {
   ply_list_node_t *node;
   node = ply_list_get_first_node (message_list);
@@ -157,7 +153,7 @@ ply_progress_message_search_next (ply_list_t *message_list, const char* id, doub
   while (node)
     {
       ply_progress_message_t *message = ply_list_node_get_data (node);
-      if (strcmp(id, message->id)==0 && message->time > time && (!best || message->time < best->time))
+      if (message->time > time && (!best || message->time < best->time))
           best = message;
       node = ply_list_get_next_node (message_list, node);
     }
@@ -179,8 +175,6 @@ ply_progress_load_cache (ply_progress_t* progress,
       int items_matched;
       double time;
       int string_size=81;
-      char *ptr;
-      char *id;
       char *string;
       char colon;
       int i=0;
@@ -206,20 +200,8 @@ ply_progress_load_cache (ply_progress_t* progress,
             }
           i++;
         }
-
-      ptr = strchr(string, ':');
-      if (!ptr)
-          id = strdup("");
-      else
-        {
-          *ptr = 0;
-          id = string;
-          string = strdup(ptr+1);
-        }
-
       ply_progress_message_t* message = malloc(sizeof(ply_progress_message_t));
       message->time = time;
-      message->id = id;
       message->string = string;
       ply_list_append_data(progress->previous_message_list, message);
     }
@@ -250,7 +232,7 @@ ply_progress_save_cache (ply_progress_t* progress,
       ply_progress_message_t *message = ply_list_node_get_data (node);
       double percentage = message->time / cur_time;
       if (!message->disabled)
-          fprintf (fp, "%.3lf:%s:%s\n", percentage, message->id, message->string);
+          fprintf (fp, "%.3lf:%s\n", percentage, message->string);
       node = ply_list_get_next_node (progress->current_message_list, node);
     }
   fclose (fp);
@@ -323,21 +305,20 @@ ply_progress_unpause (ply_progress_t* progress)
 
 void
 ply_progress_status_update (ply_progress_t* progress,
-                             const char  *status,
-                             const char  *operation_id)
+                             const char  *status)
 {
   ply_progress_message_t *message, *message_next;
-  message = ply_progress_message_search(progress->current_message_list, operation_id, status);
+  message = ply_progress_message_search(progress->current_message_list, status);
   if (message)
     {
       message->disabled = true;
     }                                                   /* Remove duplicates as they confuse things*/
   else
     {
-      message = ply_progress_message_search(progress->previous_message_list, operation_id, status);
+      message = ply_progress_message_search(progress->previous_message_list, status);
       if (message)
         {
-          message_next = ply_progress_message_search_next(progress->previous_message_list, operation_id, message->time);
+          message_next = ply_progress_message_search_next(progress->previous_message_list, message->time);
           if (message_next)
               progress->next_message_percentage = message_next->time;
           else
@@ -348,7 +329,6 @@ ply_progress_status_update (ply_progress_t* progress,
         }
       message = malloc(sizeof(ply_progress_message_t));
       message->time = ply_progress_get_time (progress);
-      message->id = strdup(operation_id);
       message->string = strdup(status);
       message->disabled = false;
       ply_list_append_data(progress->current_message_list, message);

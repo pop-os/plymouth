@@ -1,7 +1,6 @@
 /* details.c - boot splash plugin
  *
  * Copyright (C) 2008 Red Hat, Inc.
- * Copyright (C) 2012 Pali Rohár <pali.rohar@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -67,12 +66,6 @@ typedef struct
   ply_text_display_t *display;
 } view_t;
 
-typedef struct
-{
-  char *operation_id;
-  char *name;
-} operation_t;
-
 ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 
@@ -83,7 +76,7 @@ struct _ply_boot_splash_plugin
   ply_list_t *views;
   ply_boot_splash_display_type_t state;
   ply_list_t *messages;
-  ply_list_t *operations;
+
 };
 
 static view_t *
@@ -155,75 +148,6 @@ free_messages (ply_boot_splash_plugin_t *plugin)
   plugin->messages = NULL;
 }
 
-static operation_t *
-operation_new (ply_boot_splash_plugin_t *plugin,
-               const char               *operation_id,
-               const char               *name)
-{
-  operation_t *operation;
-  operation = malloc (sizeof(operation_t));
-  operation->operation_id = strdup (operation_id);
-  operation->name = strdup (name);
-  return operation;
-}
-
-static void
-operation_free (operation_t *operation)
-{
-  free (operation->operation_id);
-  free (operation->name);
-  free (operation);
-}
-
-static void
-free_operations (ply_boot_splash_plugin_t *plugin)
-{
-  ply_list_node_t *node;
-
-  node = ply_list_get_first_node (plugin->operations);
-
-  while (node != NULL)
-    {
-      ply_list_node_t *next_node;
-      operation_t     *operation;
-
-      operation = ply_list_node_get_data (node);
-      next_node = ply_list_get_next_node (plugin->operations, node);
-
-      operation_free (operation);
-      ply_list_remove_node (plugin->operations, node);
-
-      node = next_node;
-    }
-
-  ply_list_free (plugin->operations);
-  plugin->operations = NULL;
-}
-
-static const char *
-get_operation_name (ply_boot_splash_plugin_t *plugin, const char *id)
-{
-  ply_list_node_t *node;
-
-  node = ply_list_get_first_node (plugin->operations);
-
-  while (node != NULL)
-    {
-      operation_t     *operation;
-
-      operation = ply_list_node_get_data (node);
-      if (strcmp(operation->operation_id, id) == 0)
-        {
-          return operation->name;
-        }
-
-      node = ply_list_get_next_node (plugin->operations, node);
-
-    }
-
-  return NULL;
-}
-
 static ply_boot_splash_plugin_t *
 create_plugin (ply_key_file_t *key_file)
 {
@@ -234,7 +158,6 @@ create_plugin (ply_key_file_t *key_file)
   plugin = calloc (1, sizeof (ply_boot_splash_plugin_t));
   plugin->views = ply_list_new ();
   plugin->state = PLY_BOOT_SPLASH_DISPLAY_NORMAL;
-  plugin->operations = ply_list_new ();
   plugin->messages = ply_list_new ();
   return plugin;
 }
@@ -255,7 +178,6 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
       detach_from_event_loop (plugin);
     }
 
-  free_operations (plugin);
   free_messages (plugin);
   free_views (plugin);
 
@@ -377,74 +299,12 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 }
 
 static void
-register_operation (ply_boot_splash_plugin_t *plugin,
-                    const char               *operation_id,
-                    const char               *name)
-{
-  operation_t *operation;
-  assert (plugin != NULL);
-  assert (operation_id != NULL);
-  assert (name != NULL);
-
-  ply_trace ("register operation");
-
-  operation = operation_new (plugin, operation_id, name);
-  ply_list_append_data (plugin->operations, operation);
-}
-
-static void
-unregister_operation (ply_boot_splash_plugin_t *plugin,
-                      const char               *operation_id)
-{
-  assert (plugin != NULL);
-  assert (operation_id != NULL);
-
-  ply_trace ("unregister operation");
-
-  ply_list_node_t *node;
-
-  node = ply_list_get_first_node (plugin->operations);
-
-  while (node != NULL)
-    {
-      operation_t *operation;
-
-      operation = ply_list_node_get_data (node);
-      if (strcmp(operation->operation_id, operation_id) == 0)
-        {
-          ply_list_remove_node(plugin->operations, node);
-          return;
-        }
-
-      node = ply_list_get_next_node (plugin->operations, node);
-
-    }
-}
-
-static void
 update_status (ply_boot_splash_plugin_t *plugin,
-               const char               *status,
-               const char               *operation_id)
+               const char               *status)
 {
   assert (plugin != NULL);
-  assert (status != NULL);
 
   ply_trace ("status update");
-
-  if (operation_id != NULL)
-    {
-      const char *operation_name = get_operation_name (plugin, operation_id);
-      if (operation_name != NULL)
-        {
-          char *message;
-          asprintf (&message, "%s... [%s]\r\n", operation_name, status);
-          if (message != NULL)
-            {
-              write_on_views (plugin, message, strlen (message));
-              free(message);
-            }
-        }
-    }
 }
 
 static void
@@ -571,8 +431,6 @@ ply_boot_splash_plugin_get_interface (void)
       .add_text_display = add_text_display,
       .remove_text_display = remove_text_display,
       .show_splash_screen = show_splash_screen,
-      .register_operation = register_operation,
-      .unregister_operation = unregister_operation,
       .update_status = update_status,
       .on_boot_output = on_boot_output,
       .hide_splash_screen = hide_splash_screen,

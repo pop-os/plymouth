@@ -81,8 +81,6 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t         *s
   data->script_boot_progress_func = script_obj_new_null ();
   data->script_root_mounted_func = script_obj_new_null ();
   data->script_keyboard_input_func = script_obj_new_null ();
-  data->script_register_operation_func = script_obj_new_null ();
-  data->script_unregister_operation_func = script_obj_new_null ();
   data->script_update_status_func = script_obj_new_null ();
   data->script_display_normal_func = script_obj_new_null ();
   data->script_display_password_func = script_obj_new_null ();
@@ -115,18 +113,6 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t         *s
                               "SetKeyboardInputFunction",
                               plymouth_set_function,
                               &data->script_keyboard_input_func,
-                              "function",
-                              NULL);
-  script_add_native_function (plymouth_hash,
-                              "SetRegisterOperationFunction",
-                              plymouth_set_function,
-                              &data->script_register_operation_func,
-                              "function",
-                              NULL);
-  script_add_native_function (plymouth_hash,
-                              "SetUnregisterOperationFunction",
-                              plymouth_set_function,
-                              &data->script_unregister_operation_func,
                               "function",
                               NULL);
   script_add_native_function (plymouth_hash,
@@ -192,8 +178,6 @@ void script_lib_plymouth_destroy (script_lib_plymouth_data_t *data)
   script_obj_unref (data->script_boot_progress_func);
   script_obj_unref (data->script_root_mounted_func);
   script_obj_unref (data->script_keyboard_input_func);
-  script_obj_unref (data->script_register_operation_func);
-  script_obj_unref (data->script_unregister_operation_func);
   script_obj_unref (data->script_update_status_func);
   script_obj_unref (data->script_display_normal_func);
   script_obj_unref (data->script_display_password_func);
@@ -256,53 +240,17 @@ void script_lib_plymouth_on_keyboard_input (script_state_t             *state,
   script_obj_unref (ret.object);
 }
 
-void script_lib_plymouth_on_register_operation (script_state_t             *state,
-                                                script_lib_plymouth_data_t *data,
-                                                const char                 *operation_id,
-                                                const char                 *name)
-{
-  script_obj_t *new_name_obj = script_obj_new_string (name);
-  script_obj_t *new_operation_id_obj = script_obj_new_string (operation_id);
-  script_return_t ret = script_execute_object (state,
-                                               data->script_register_operation_func,
-                                               NULL,
-                                               new_operation_id_obj,
-                                               new_name_obj,
-                                               NULL);
-  script_obj_unref (new_name_obj);
-  script_obj_unref (new_operation_id_obj);
-  script_obj_unref (ret.object);
-}
-
-void script_lib_plymouth_on_unregister_operation (script_state_t             *state,
-                                                  script_lib_plymouth_data_t *data,
-                                                  const char                 *operation_id)
-{
-  script_obj_t *new_operation_id_obj = script_obj_new_string (operation_id);
-  script_return_t ret = script_execute_object (state,
-                                               data->script_unregister_operation_func,
-                                               NULL,
-                                               new_operation_id_obj,
-                                               NULL);
-  script_obj_unref (new_operation_id_obj);
-  script_obj_unref (ret.object);
-}
-
 void script_lib_plymouth_on_update_status (script_state_t             *state,
                                            script_lib_plymouth_data_t *data,
-                                           const char                 *new_status,
-                                           const char                 *operation_id)
+                                           const char                 *new_status)
 {
   script_obj_t *new_status_obj = script_obj_new_string (new_status);
-  script_obj_t *new_operation_id_obj = script_obj_new_string (operation_id);
   script_return_t ret = script_execute_object (state,
                                                data->script_update_status_func,
                                                NULL,
                                                new_status_obj,
-                                               new_operation_id_obj,
                                                NULL);
   script_obj_unref (new_status_obj);
-  script_obj_unref (new_operation_id_obj);
   script_obj_unref (ret.object);
 }
 

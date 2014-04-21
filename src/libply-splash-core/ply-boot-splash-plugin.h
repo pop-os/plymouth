@@ -1,7 +1,6 @@
 /* ply-boot-splash-plugin.h - plugin interface for ply_boot_splash_t
  *
  * Copyright (C) 2007 Red Hat, Inc.
- * Copyright (C) 2012 Pali Rohár <pali.rohar@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -68,14 +67,8 @@ typedef struct
                                ply_boot_splash_mode_t    mode);
   void (* system_update) (ply_boot_splash_plugin_t *plugin,
                           int                       progress);
-  void (* register_operation) (ply_boot_splash_plugin_t *plugin,
-                               const char               *operation_id,
-                               const char               *name);
-  void (* unregister_operation) (ply_boot_splash_plugin_t *plugin,
-                                 const char               *operation_id);
   void (* update_status) (ply_boot_splash_plugin_t *plugin,
-                          const char               *status,
-                          const char               *operation_id);
+                          const char               *status);
   void (* on_boot_output) (ply_boot_splash_plugin_t *plugin,
                            const char               *output,
                            size_t                    size);

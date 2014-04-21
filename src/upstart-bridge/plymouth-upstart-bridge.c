@@ -1,7 +1,6 @@
 /* plymouth-upstart-bridge.c - bridge Upstart job state changes to Plymouth
  *
  * Copyright (C) 2010, 2011 Canonical Ltd.
- * Copyright (C) 2012       Pali Rohár <pali.rohar@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +28,14 @@
 #include <string.h>
 #include <unistd.h>
 
+#if defined(HAVE_NCURSESW_TERM_H)
+#include <ncursesw/term.h>
+#elif defined(HAVE_NCURSES_TERM_H)
+#include <ncurses/term.h>
+#else
+#include <term.h>
+#endif
+
 #include "ply-boot-client.h"
 #include "ply-command-parser.h"
 #include "ply-event-loop.h"
@@ -43,70 +50,152 @@ typedef struct
   ply_command_parser_t  *command_parser;
 } state_t;
 
+#ifndef TERMINAL_COLOR_RED
+#define TERMINAL_COLOR_RED 1
+#endif
+
+/* We don't care about the difference between "not a string capability" and
+ * "cancelled or absent".
+ */
+static const char *
+get_string_capability (const char *name)
+{
+  const char *value;
+
+  value = tigetstr ((char *) name);
+  if (value == (const char *) -1)
+    value = NULL;
+
+  return value;
+}
+
+static bool
+terminal_ignores_new_line_after_80_chars (void)
+{
+  return tigetflag ((char *) "xenl") != 0;
+}
+
+static int
+get_number_of_columns (void)
+{
+  int number_of_columns;
+
+  number_of_columns = tigetnum ((char *) "cols");
+
+  return number_of_columns;
+}
+
+static bool
+can_set_cursor_column (void)
+{
+  const char *capability;
+
+  capability = get_string_capability ("hpa");
+
+  return capability != NULL;
+}
+
+static void
+set_cursor_column (int column)
+{
+  const char *capability;
+  const char *terminal_string;
+
+  capability = get_string_capability ("hpa");
+  terminal_string = tiparm (capability, column);
+  fputs (terminal_string, stdout);
+}
+
+static bool
+can_set_fg_color (void)
+{
+  const char *capability;
+
+  capability = get_string_capability ("setaf");
+
+  return capability != NULL;
+}
+
+static void
+set_fg_color (int color)
+{
+  const char *capability;
+  const char *terminal_string;
+
+  capability = get_string_capability ("setaf");
+  terminal_string = tiparm (capability, color);
+  fputs (terminal_string, stdout);
+}
+
+static void
+unset_fg_color (void)
+{
+  const char *terminal_string;
+
+  terminal_string = get_string_capability ("op");
+
+  if (terminal_string == NULL)
+    return;
+
+  fputs (terminal_string, stdout);
+}
+
 static void
 update_status (state_t                                   *state,
                ply_upstart_monitor_job_properties_t      *job,
                ply_upstart_monitor_instance_properties_t *instance,
                const char                                *action,
-               const char                                *status,
-               bool                                       init,
-               bool                                       finished)
+               bool                                       is_okay)
 {
-  size_t size = 0;
-  char *description = NULL;
-  char *ptr;
+  ply_boot_client_update_daemon (state->client, job->name, NULL, NULL, state);
 
-  if (job->name == NULL || status == NULL)
+  if (job->description == NULL)
     return;
 
-  if (finished && strcmp(status, "failed") != 0)
+  printf (" * %s%s%s",
+          action ? action : "", action ? " " : "", job->description);
+
+  if (terminal_ignores_new_line_after_80_chars () && can_set_cursor_column ())
     {
-      status = "done";
-    }
+      int number_of_columns, column;
 
-  if (init)
-    {
+      number_of_columns = get_number_of_columns ();
 
-      if (action != NULL)
-          size += strlen(action) + 1;
+      if (number_of_columns < (int) strlen("[fail]"))
+        number_of_columns = 80;
 
-      if (job->description != NULL)
-          size += strlen(job->description) + 1;
+      column = number_of_columns - strlen ("[fail]") - 1;
 
-      size += strlen(job->name) + 1;
+      set_cursor_column (column);
 
-      ptr = description = malloc(size);
-
-      if (description != NULL)
+      if (is_okay)
+        puts ("[ OK ]");
+      else
         {
+          bool supports_color;
 
-          if (action != NULL)
-            {
-              ptr += sprintf (ptr, "%s ", action);
-            }
+          supports_color = can_set_fg_color ();
 
-          if (job->description != NULL)
-            {
-              ptr += sprintf (ptr, "%s ", job->description);
-            }
+          fputs ("[", stdout);
 
-          ptr += sprintf (ptr, "%s", job->name);
+          if (supports_color)
+            set_fg_color (TERMINAL_COLOR_RED);
 
-          ply_boot_client_register_operation (state->client, job->name, description, NULL, NULL, state);
+          fputs ("fail", stdout);
 
-          free(description);
+          if (supports_color)
+            unset_fg_color ();
 
+          puts ("]");
         }
-
     }
-
-  ply_boot_client_update_daemon (state->client, status, job->name, NULL, NULL, state);
-
-  if (finished)
+  else
     {
-      ply_boot_client_unregister_operation (state->client, job->name, NULL, NULL, state);
+      if (is_okay)
+        puts ("   ...done.");
+      else
+        puts ("   ...fail!");
     }
-
 }
 
 static void
@@ -117,9 +206,15 @@ on_failed (void                                      *data,
 {
   state_t *state = data;
 
-  ply_trace ("state: %s goal: %s is_task: %d", instance->state, instance->goal, job->is_task);
-
-  update_status (state, job, instance, NULL, "failed", false, true);
+  if (job->is_task)
+    update_status (state, job, instance, NULL, false);
+  else
+    {
+      if (strcmp (instance->goal, "start") == 0)
+        update_status (state, job, instance, "Starting", false);
+      else if (strcmp (instance->goal, "stop") == 0)
+        update_status (state, job, instance, "Stopping", false);
+    }
 }
 
 static void
@@ -128,39 +223,25 @@ on_state_changed (state_t                                   *state,
                   ply_upstart_monitor_job_properties_t      *job,
                   ply_upstart_monitor_instance_properties_t *instance)
 {
-  bool init = false;
-  bool finish = false;
-
-  ply_trace ("state: %s goal: %s is_task: %d", instance->state, instance->goal, job->is_task);
-
   if (instance->failed)
     return;
 
   if (job->is_task)
     {
-      if (strcmp (instance->state, "starting") == 0)
-        init = true;
-      else if (strcmp (instance->state, "waiting") == 0)
-        finish = true;
-      update_status (state, job, instance, NULL, instance->state, init, finish);
+      if (strcmp (instance->state, "waiting") == 0)
+        update_status (state, job, instance, NULL, true);
     }
   else
     {
       if (strcmp (instance->goal, "start") == 0)
         {
-          if (strcmp (instance->state, "starting") == 0)
-            init = true;
-          else if (strcmp (instance->state, "running") == 0)
-            finish = true;
-          update_status (state, job, instance, "Starting", instance->state, init, finish);
+          if (strcmp (instance->state, "running") == 0)
+            update_status (state, job, instance, "Starting", true);
         }
       else if (strcmp (instance->goal, "stop") == 0)
         {
-          if (strcmp (instance->state, "pre-stop") == 0)
-            init = true;
-          else if (strcmp (instance->state, "waiting") == 0)
-            finish = true;
-          update_status (state, job, instance, "Stopping", instance->state, init, finish);
+          if (strcmp (instance->state, "waiting") == 0)
+            update_status (state, job, instance, "Stopping", true);
         }
     }
 }
@@ -225,6 +306,8 @@ main (int    argc,
 
   if (should_be_verbose && !ply_is_tracing ())
     ply_toggle_tracing ();
+
+  setupterm (NULL, STDOUT_FILENO, NULL);
 
   is_connected = ply_boot_client_connect (state.client,
                                           (ply_boot_client_disconnect_handler_t)

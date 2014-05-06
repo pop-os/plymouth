@@ -147,8 +147,6 @@ update_status (state_t                                   *state,
                const char                                *action,
                bool                                       is_okay)
 {
-  ply_boot_client_update_daemon (state->client, job->name, NULL, NULL, state);
-
   if (job->description == NULL)
     return;
 

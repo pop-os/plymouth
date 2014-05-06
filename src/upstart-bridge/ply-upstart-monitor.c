@@ -273,7 +273,7 @@ on_get_all_job_properties_finished (DBusPendingCall           *call,
               DBUS_TYPE_STRING)
             goto next_item;
           dbus_message_iter_get_basic (&variant_iter, &description);
-          if (description != NULL)
+          if (description != NULL && description[0])
             {
               ply_trace ("description = '%s'", description);
               job->properties.description = strdup (description);

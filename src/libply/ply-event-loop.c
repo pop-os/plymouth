@@ -1185,25 +1185,16 @@ static void
 ply_event_loop_disconnect_source (ply_event_loop_t           *loop,
                                   ply_event_source_t         *source)
 {
-  ply_trace ("disconnecting source with fd %d", source->fd);
   ply_event_loop_handle_disconnect_for_source (loop, source);
-  ply_trace ("done disconnecting source with fd %d", source->fd);
 
   /* at this point, we've told the event loop users about the
    * fd disconnection, so we can invalidate any outstanding
    * watches and free the destinations.
    */
-  ply_trace ("freeing watches for source with fd %d", source->fd);
   ply_event_loop_free_watches_for_source (loop, source);
-  ply_trace ("done freeing watches for source with fd %d", source->fd);
-  ply_trace ("freeing destinations for source with fd %d", source->fd);
   ply_event_loop_free_destinations_for_source (loop, source);
-  ply_trace ("done freeing destinations for source with fd %d", source->fd);
   assert (ply_list_get_length (source->destinations) == 0);
-
-  ply_trace ("removing source with fd %d from event loop", source->fd);
   ply_event_loop_remove_source (loop, source);
-  ply_trace ("done removing source with fd %d from event loop", source->fd);
 }
 
 static void

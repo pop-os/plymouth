@@ -415,7 +415,8 @@ ply_boot_connection_on_request (ply_boot_connection_t *connection)
 
       if (!ply_write (connection->fd,
                       PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK,
-                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)))
+                      strlen (PLY_BOOT_PROTOCOL_RESPONSE_TYPE_ACK)) &&
+          errno != EPIPE)
         ply_trace ("could not finish writing update reply: %m");
 
       ply_trace ("got update request");

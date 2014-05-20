@@ -95,7 +95,8 @@ ply_text_step_bar_draw (ply_text_step_bar_t *step_bar)
                                                  PLY_TERMINAL_COLOR_BROWN);
         }
 
-      ply_text_display_write (step_bar->display, "%c", '■');
+      /* U+25A0 BLACK SQUARE */
+      ply_text_display_write (step_bar->display, "%s", "\x25\x96\xa0");
       ply_text_display_write (step_bar->display, "%c", ' ');
     }
 

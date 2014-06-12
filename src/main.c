@@ -836,7 +836,7 @@ plymouth_should_show_default_splash (state_t *state)
         }
 
         if (command_line_has_argument (state->kernel_command_line, "splash=silent")) {
-                ply_trace ("using default splash because kernel command line has option \"splash=slient\"");
+                ply_trace ("using default splash because kernel command line has option \"splash=silent\"");
                 return true;
         }
 

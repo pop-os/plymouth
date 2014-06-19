@@ -65,6 +65,7 @@ typedef struct
 
 script_lib_sprite_data_t *script_lib_sprite_setup (script_state_t *state,
                                                    ply_list_t     *displays);
+void script_lib_sprite_pixel_display_removed (script_lib_sprite_data_t *data, ply_pixel_display_t *pixel_display);
 void script_lib_sprite_refresh (script_lib_sprite_data_t *data);
 void script_lib_sprite_destroy (script_lib_sprite_data_t *data);
 

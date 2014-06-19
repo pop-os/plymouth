@@ -686,6 +686,26 @@ region_add_area (ply_region_t *region,
         ply_region_add_rectangle (region, &rectangle);
 }
 
+void script_lib_sprite_pixel_display_removed (script_lib_sprite_data_t *data, ply_pixel_display_t *pixel_display)
+{
+    ply_list_node_t *node;
+    ply_list_node_t *next_node;
+    script_lib_display_t* display;
+
+    node = ply_list_get_first_node (data->displays);
+    while (node)
+    {
+        next_node = ply_list_get_next_node (data->displays, node);
+        display = ply_list_node_get_data (node);
+
+        if (display->pixel_display == pixel_display)
+        {
+            ply_list_remove_node (data->displays, node);
+        }
+        node = next_node;
+    }
+}
+
 void
 script_lib_sprite_refresh (script_lib_sprite_data_t *data)
 {

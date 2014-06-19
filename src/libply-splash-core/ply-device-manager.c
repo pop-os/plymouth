@@ -716,7 +716,7 @@ watch_for_coldplug_completion (ply_device_manager_t *manager)
         }
 
         fd = inotify_init1 (IN_CLOEXEC);
-        result = inotify_add_watch (fd, "/run/udev", IN_MOVED_TO);
+        result = inotify_add_watch (fd, "/run/udev", IN_MOVED_TO| IN_DELETE);
 
         if (result < 0) {
                 ply_trace ("could not watch for udev to show up: %m");

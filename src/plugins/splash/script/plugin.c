@@ -328,6 +328,7 @@ stop_script_animation (ply_boot_splash_plugin_t *plugin)
 
         script_state_destroy (plugin->script_state);
         script_lib_sprite_destroy (plugin->script_sprite_lib);
+        plugin->script_sprite_lib = NULL;
         script_lib_image_destroy (plugin->script_image_lib);
         script_lib_plymouth_destroy (plugin->script_plymouth_lib);
         script_lib_math_destroy (plugin->script_math_lib);

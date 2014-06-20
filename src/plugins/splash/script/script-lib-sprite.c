@@ -692,6 +692,9 @@ void script_lib_sprite_pixel_display_removed (script_lib_sprite_data_t *data, pl
     ply_list_node_t *next_node;
     script_lib_display_t* display;
 
+    if (!data)
+        return;
+
     node = ply_list_get_first_node (data->displays);
     while (node)
     {
@@ -712,6 +715,9 @@ script_lib_sprite_refresh (script_lib_sprite_data_t *data)
         ply_list_node_t *node;
         ply_region_t *region = ply_region_new ();
         ply_list_t *rectable_list;
+
+        if (!data)
+            return;
 
         ply_list_sort_stable (data->sprite_list, &sprite_compare_z);
 
@@ -828,4 +834,5 @@ void script_lib_sprite_destroy (script_lib_sprite_data_t *data)
         script_parse_op_free (data->script_main_op);
         script_obj_native_class_destroy (data->class);
         free (data);
+        data = NULL;
 }

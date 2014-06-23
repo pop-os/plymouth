@@ -173,7 +173,7 @@ ply_seat_deactivate_keyboard (ply_seat_t *seat)
         if (seat->keyboard == NULL)
                 return;
 
-        ply_trace ("deactivating keybord");
+        ply_trace ("deactivating keyboard");
         ply_keyboard_stop_watching_for_input (seat->keyboard);
 }
 

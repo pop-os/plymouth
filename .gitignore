@@ -41,3 +41,5 @@ tags
 *.script.h
 *.service
 *.path
+docs/*.8
+docs/*.1

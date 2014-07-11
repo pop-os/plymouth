@@ -1,4 +1,4 @@
-AC_INIT([plymouth],[0.9.0],[https://bugs.freedesktop.org/enter_bug.cgi?product=plymouth])
+AC_INIT([plymouth],[0.9.1],[https://bugs.freedesktop.org/enter_bug.cgi?product=plymouth])
 AC_CONFIG_SRCDIR(src/main.c)
 AC_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(build-tools)
@@ -19,7 +19,7 @@ PKG_PROG_PKG_CONFIG
 LT_INIT([dlopen disable-static pic-only])
 
 ## increment if the interface has additions, changes, removals.
-LT_CURRENT=3
+LT_CURRENT=4
 
 ## increment any time the source changes; set to
 ##  0 if you increment CURRENT
@@ -28,7 +28,7 @@ LT_REVISION=0
 ## increment if any interfaces have been added; set to 0
 ## if any interfaces have been changed or removed. removal has
 ## precedence over adding, so set to 0 if both happened.
-LT_AGE=1
+LT_AGE=0
 
 AC_SUBST(LT_CURRENT)
 AC_SUBST(LT_REVISION)

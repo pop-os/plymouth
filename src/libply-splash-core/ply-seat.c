@@ -144,13 +144,22 @@ ply_seat_open (ply_seat_t         *seat,
         if (seat->renderer != NULL) {
                 seat->keyboard = ply_keyboard_new_for_renderer (seat->renderer);
                 add_pixel_displays (seat);
-        } else {
+        } else if (seat->terminal != NULL) {
                 seat->keyboard = ply_keyboard_new_for_terminal (seat->terminal);
         }
-        add_text_displays (seat);
 
-        ply_keyboard_watch_for_input (seat->keyboard);
-        seat->keyboard_active = true;
+        if (seat->terminal != NULL) {
+                add_text_displays (seat);
+        } else {
+                ply_trace ("not adding text display for seat, since seat has no associated terminal");
+        }
+
+        if (seat->keyboard != NULL) {
+                ply_keyboard_watch_for_input (seat->keyboard);
+                seat->keyboard_active = true;
+        } else {
+                ply_trace ("not watching seat for input");
+        }
 
         return true;
 }

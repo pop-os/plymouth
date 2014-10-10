@@ -39,7 +39,7 @@
 #include "ply-utils.h"
 
 #ifndef PLY_MAX_COMMAND_LINE_SIZE
-#define PLY_MAX_COMMAND_LINE_SIZE 512
+#define PLY_MAX_COMMAND_LINE_SIZE 4097
 #endif
 
 #define KEY_CTRL_C ('\100' ^ 'C')
@@ -718,7 +718,7 @@ get_kernel_command_line (state_t *state)
         }
 
         ply_trace ("reading kernel command line");
-        if (read (fd, state->kernel_command_line, sizeof(state->kernel_command_line)) < 0) {
+        if (read (fd, state->kernel_command_line, sizeof(state->kernel_command_line) - 1) < 0) {
                 ply_trace ("couldn't read it: %m");
                 close (fd);
                 return false;

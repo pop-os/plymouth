@@ -163,6 +163,10 @@ static void on_keyboard_input (state_t    *state,
                                const char *keyboard_input,
                                size_t      character_size);
 static void on_backspace (state_t *state);
+static void on_quit (state_t       *state,
+                     bool           retain_splash,
+                     ply_trigger_t *quit_trigger);
+static bool sh_is_init (state_t *state);
 
 static void
 on_session_output (state_t    *state,
@@ -623,6 +627,12 @@ static void
 on_newroot (state_t    *state,
             const char *root_dir)
 {
+        if (sh_is_init (state)) {
+                ply_trace ("new root mounted at \"%s\", exiting since init= a shell", root_dir);
+                on_quit (state, false, ply_trigger_new (NULL));
+                return;
+        }
+
         ply_trace ("new root mounted at \"%s\", switching to it", root_dir);
         chdir (root_dir);
         chroot (".");
@@ -779,15 +789,21 @@ on_error (state_t *state)
 static bool
 plymouth_should_ignore_show_splash_calls (state_t *state)
 {
-        const char *init_string;
-        size_t length;
-
         ply_trace ("checking if plymouth should be running");
         if (state->mode != PLY_MODE_BOOT || command_line_has_argument (state->kernel_command_line, "plymouth.force-splash"))
                 return false;
 
         if (command_line_has_argument (state->kernel_command_line, "plymouth.ignore-show-splash"))
                 return true;
+
+        return false;
+}
+
+static bool
+sh_is_init (state_t *state)
+{
+        const char *init_string;
+        size_t length;
 
         init_string = command_line_get_string_after_prefix (state->kernel_command_line, "init=");
 

@@ -88,6 +88,7 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t        *st
         data->script_display_message_func = script_obj_new_null ();
         data->script_hide_message_func = script_obj_new_null ();
         data->script_quit_func = script_obj_new_null ();
+        data->script_system_update_func = script_obj_new_null ();
         data->mode = mode;
 
         script_obj_t *plymouth_hash = script_obj_hash_get_element (state->global, "Plymouth");
@@ -161,6 +162,12 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t        *st
                                     "GetMode",
                                     plymouth_get_mode,
                                     data,
+                                    NULL);
+        script_add_native_function (plymouth_hash,
+                                    "SetSystemUpdateFunction",
+                                    plymouth_set_function,
+                                    &data->script_system_update_func,
+                                    "function",
                                     NULL);
         script_obj_unref (plymouth_hash);
 
@@ -335,6 +342,20 @@ void script_lib_plymouth_on_hide_message (script_state_t             *state,
                                                      NULL);
 
         script_obj_unref (new_message_obj);
+        script_obj_unref (ret.object);
+}
+
+void script_lib_plymouth_on_system_update (script_state_t             *state,
+                                           script_lib_plymouth_data_t *data,
+                                           int                 progress)
+{
+        script_obj_t *new_status_obj = script_obj_new_number (progress);
+        script_return_t ret = script_execute_object (state,
+                                                     data->script_system_update_func,
+                                                     NULL,
+                                                     new_status_obj,
+                                                     NULL);
+        script_obj_unref (new_status_obj);
         script_obj_unref (ret.object);
 }
 

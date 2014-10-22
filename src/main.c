@@ -171,25 +171,25 @@ static bool sh_is_init (state_t *state);
 static ply_boot_splash_mode_t
 get_splash_mode_from_mode (ply_mode_t mode)
 {
-  ply_boot_splash_mode_t splash_mode;
-  switch (mode) {
-      case PLY_MODE_BOOT:
-          splash_mode = PLY_BOOT_SPLASH_MODE_BOOT_UP;
-          break;
-      case PLY_MODE_SHUTDOWN:
-          splash_mode = PLY_BOOT_SPLASH_MODE_SHUTDOWN;
-          break;
-      case PLY_MODE_UPDATES:
-          splash_mode = PLY_BOOT_SPLASH_MODE_UPDATES;
-          break;
-      default:
-          splash_mode = PLY_BOOT_SPLASH_MODE_INVALID;
-          break;
-  }
+        ply_boot_splash_mode_t splash_mode;
+        switch (mode) {
+                case PLY_MODE_BOOT:
+                        splash_mode = PLY_BOOT_SPLASH_MODE_BOOT_UP;
+                        break;
+                case PLY_MODE_SHUTDOWN:
+                        splash_mode = PLY_BOOT_SPLASH_MODE_SHUTDOWN;
+                        break;
+                case PLY_MODE_UPDATES:
+                        splash_mode = PLY_BOOT_SPLASH_MODE_UPDATES;
+                        break;
+                default:
+                        splash_mode = PLY_BOOT_SPLASH_MODE_INVALID;
+                        break;
+        }
 
-  assert (splash_mode != PLY_BOOT_SPLASH_MODE_INVALID);
+        assert (splash_mode != PLY_BOOT_SPLASH_MODE_INVALID);
 
-  return splash_mode;
+        return splash_mode;
 }
 
 static void

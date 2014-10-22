@@ -168,6 +168,30 @@ static void on_quit (state_t       *state,
                      ply_trigger_t *quit_trigger);
 static bool sh_is_init (state_t *state);
 
+static ply_boot_splash_mode_t
+get_splash_mode_from_mode (ply_mode_t mode)
+{
+  ply_boot_splash_mode_t splash_mode;
+  switch (mode) {
+      case PLY_MODE_BOOT:
+          splash_mode = PLY_BOOT_SPLASH_MODE_BOOT_UP;
+          break;
+      case PLY_MODE_SHUTDOWN:
+          splash_mode = PLY_BOOT_SPLASH_MODE_SHUTDOWN;
+          break;
+      case PLY_MODE_UPDATES:
+          splash_mode = PLY_BOOT_SPLASH_MODE_UPDATES;
+          break;
+      default:
+          splash_mode = PLY_BOOT_SPLASH_MODE_INVALID;
+          break;
+  }
+
+  assert (splash_mode != PLY_BOOT_SPLASH_MODE_INVALID);
+
+  return splash_mode;
+}
+
 static void
 on_session_output (state_t    *state,
                    const char *output,
@@ -201,6 +225,8 @@ static void
 on_change_mode (state_t    *state,
                 const char *mode)
 {
+        ply_boot_splash_mode_t splash_mode;
+
         if (state->boot_splash == NULL) {
                 ply_trace ("no splash set");
                 return;
@@ -208,15 +234,17 @@ on_change_mode (state_t    *state,
 
         ply_trace ("updating mode to '%s'", mode);
         if (strcmp (mode, "boot-up") == 0)
-                state->mode = PLY_BOOT_SPLASH_MODE_BOOT_UP;
+                state->mode = PLY_MODE_BOOT;
         else if (strcmp (mode, "shutdown") == 0)
-                state->mode = PLY_BOOT_SPLASH_MODE_SHUTDOWN;
+                state->mode = PLY_MODE_SHUTDOWN;
         else if (strcmp (mode, "updates") == 0)
-                state->mode = PLY_BOOT_SPLASH_MODE_UPDATES;
+                state->mode = PLY_MODE_UPDATES;
         else
                 return;
 
-        if (!ply_boot_splash_show (state->boot_splash, state->mode)) {
+        splash_mode = get_splash_mode_from_mode (state->mode);
+
+        if (!ply_boot_splash_show (state->boot_splash, splash_mode)) {
                 ply_trace ("failed to update splash");
                 return;
         }
@@ -1598,10 +1626,7 @@ show_theme (state_t    *state,
         attach_splash_to_seats (state, splash);
         ply_device_manager_activate_renderers (state->device_manager);
 
-        if (state->mode == PLY_MODE_SHUTDOWN)
-                splash_mode = PLY_BOOT_SPLASH_MODE_SHUTDOWN;
-        else
-                splash_mode = PLY_BOOT_SPLASH_MODE_BOOT_UP;
+        splash_mode = get_splash_mode_from_mode (state->mode);
 
         if (!ply_boot_splash_show (splash, splash_mode)) {
                 ply_save_errno ();

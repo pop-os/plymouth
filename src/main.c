@@ -1933,7 +1933,8 @@ initialize_environment (state_t *state)
         state->entry_buffer = ply_buffer_new ();
         state->messages = ply_list_new ();
 
-        redirect_standard_io_to_dev_null ();
+        if (!ply_is_tracing ())
+                redirect_standard_io_to_dev_null ();
 
         ply_trace ("Making sure " PLYMOUTH_RUNTIME_DIR " exists");
         if (!ply_create_directory (PLYMOUTH_RUNTIME_DIR))

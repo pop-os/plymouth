@@ -251,8 +251,7 @@ dlopen(3).
   │       ├── text
   │       ├── throbgress
   │       └── two-step
-  ├── upstart-bridge           # code for interfacing with the upstart init system
-  └── viewer                   # small gtk boot.log viewer application
+  └── upstart-bridge           # code for interfacing with the upstart init system
 
   ./themes                     # example themes that use the various splash plugins
 

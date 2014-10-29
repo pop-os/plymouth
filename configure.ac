@@ -60,7 +60,7 @@ if test x$enable_pango = xyes; then
   AC_SUBST(PANGO_LIBS)
 fi
 
-AC_ARG_ENABLE(gtk, AS_HELP_STRING([--enable-gtk],[enable building with gtk, disabled there is no log viewer or x11 redenderer]),enable_gtk=$enableval,enable_gtk=yes)
+AC_ARG_ENABLE(gtk, AS_HELP_STRING([--enable-gtk],[enable building with gtk, disabled there is no x11 renderer]),enable_gtk=$enableval,enable_gtk=yes)
 AM_CONDITIONAL(ENABLE_GTK,  [test "$enable_gtk" = yes])
 
 if test x$enable_gtk = xyes; then
@@ -148,19 +148,6 @@ AS_AC_EXPAND(PLYMOUTH_RUNTIME_DIR, $plymouthruntimedir)
 
 AC_ARG_WITH(rhgb-compat-link, AS_HELP_STRING([--with-rhgb-compat-link],[Install /usr/bin/rhgb-client compatability symlink]),with_rhgb_compat_link=${withval},with_rhgb_compat_link=no)
 AM_CONDITIONAL(WITH_RHGB_COMPAT_LINK,  [test "$with_rhgb_compat_link" = yes])
-
-AC_ARG_WITH(log-viewer, AS_HELP_STRING([--with-log-viewer],[Install plymouth log viewer]),with_log_viewer=${withval},with_log_viewer=no)
-AM_CONDITIONAL(WITH_LOG_VIEWER,  [test "$with_log_viewer" = yes])
-
-if test x$with_log_viewer = xyes; then
-  if test x$enable_gtk = xno; then
-    AC_MSG_ERROR([log viewer enabled bug gtk disabled])
-  fi
-  AC_ARG_WITH(gdm-autostart-file, AS_HELP_STRING([--with-gdm-autostart-file],[start log viewer from gdm on boot errors]),with_gdm_autostart_file=$withval,with_gdm_autostart_file=yes)
-else
-  with_gdm_autostart_file=no
-fi
-AM_CONDITIONAL(START_FROM_GDM,  [test "$with_gdm_autostart_file" = yes])
 
 AC_ARG_WITH(logo, AS_HELP_STRING([--with-logo],[logo used by boot splash plugins]),logofile=${withval},logofile=$datadir/plymouth/bizcom.png)
 AC_SUBST(logofile)
@@ -306,7 +293,6 @@ AC_CONFIG_FILES([Makefile
            src/Makefile
            src/client/ply-boot-client.pc
            src/client/Makefile
-           src/viewer/Makefile
            src/upstart-bridge/Makefile
            themes/Makefile
            themes/spinfinity/Makefile

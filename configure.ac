@@ -64,7 +64,7 @@ AC_ARG_ENABLE(gtk, AS_HELP_STRING([--enable-gtk],[enable building with gtk, disa
 AM_CONDITIONAL(ENABLE_GTK,  [test "$enable_gtk" = yes])
 
 if test x$enable_gtk = xyes; then
-  PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.12.0 ])
+  PKG_CHECK_MODULES(GTK, [gtk+-3.0 >= 3.14.0])
   AC_SUBST(GTK_CFLAGS)
   AC_SUBST(GTK_LIBS)
 fi

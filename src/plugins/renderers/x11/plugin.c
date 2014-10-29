@@ -66,7 +66,6 @@ struct _ply_renderer_head
         ply_pixel_buffer_t     *pixel_buffer;
         ply_rectangle_t         area;
         GtkWidget              *window;
-        GdkPixmap              *pixmap;
         cairo_surface_t        *image;
         uint32_t                is_fullscreen : 1;
 };
@@ -90,8 +89,6 @@ struct _ply_renderer_backend
 };
 
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
-static void ply_renderer_head_redraw (ply_renderer_backend_t *backend,
-                                      ply_renderer_head_t    *head);
 
 static gboolean on_motion_notify_event (GtkWidget      *widget,
                                         GdkEventMotion *event,
@@ -186,10 +183,6 @@ create_fake_multi_head_setup (ply_renderer_backend_t *backend)
         head->area.y = 0;
         head->area.width = 800;   /* FIXME hardcoded */
         head->area.height = 600;
-        head->pixmap = gdk_pixmap_new (NULL,
-                                       head->area.width,
-                                       head->area.height,
-                                       24);
         head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
 
         ply_list_append_data (backend->heads, head);
@@ -201,10 +194,6 @@ create_fake_multi_head_setup (ply_renderer_backend_t *backend)
         head->area.y = 0;
         head->area.width = 640;   /* FIXME hardcoded */
         head->area.height = 480;
-        head->pixmap = gdk_pixmap_new (NULL,
-                                       head->area.width,
-                                       head->area.height,
-                                       24);
         head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
 
         ply_list_append_data (backend->heads, head);
@@ -226,10 +215,6 @@ create_fullscreen_single_head_setup (ply_renderer_backend_t *backend)
         head->area.width = monitor_geometry.width;
         head->area.height = monitor_geometry.height;
         head->is_fullscreen = true;
-        head->pixmap = gdk_pixmap_new (NULL,
-                                       head->area.width,
-                                       head->area.height,
-                                       24);
         head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
 
         ply_list_append_data (backend->heads, head);
@@ -255,6 +240,19 @@ on_window_destroy (GtkWidget *widget,
                    GdkEvent  *event,
                    gpointer   user_data)
 {
+        return TRUE;
+}
+
+static gboolean
+on_draw (GtkWidget *widget,
+         cairo_t   *cr,
+         gpointer   user_data)
+{
+        ply_renderer_head_t *head = user_data;
+
+        cairo_set_source_surface (cr, head->image, 0, 0);
+        cairo_paint (cr);
+
         return TRUE;
 }
 
@@ -287,8 +285,7 @@ map_to_device (ply_renderer_backend_t *backend)
                                                                            head->area.width * 4);
                         gtk_widget_set_app_paintable (head->window, TRUE);
                         gtk_widget_show_all (head->window);
-                        gdk_window_set_back_pixmap (head->window->window, head->pixmap, FALSE);
-                        gdk_window_set_decorations (head->window->window, GDK_DECOR_BORDER);
+                        gdk_window_set_decorations (gtk_widget_get_window (head->window), GDK_DECOR_BORDER);
                         gtk_window_move (GTK_WINDOW (head->window), head->area.x, head->area.y);
 
                         gtk_window_set_type_hint (GTK_WINDOW (head->window), GDK_WINDOW_TYPE_HINT_DOCK);
@@ -298,6 +295,9 @@ map_to_device (ply_renderer_backend_t *backend)
 
                         gtk_widget_add_events (head->window, GDK_BUTTON1_MOTION_MASK);
 
+                        g_signal_connect (head->window, "draw",
+                                          G_CALLBACK (on_draw),
+                                          head);
                         g_signal_connect (head->window, "motion-notify-event",
                                           G_CALLBACK (on_motion_notify_event),
                                           head);
@@ -308,7 +308,6 @@ map_to_device (ply_renderer_backend_t *backend)
                                           G_CALLBACK (on_window_destroy),
                                           NULL);
                 }
-                ply_renderer_head_redraw (backend, head);
                 node = next_node;
         }
 
@@ -356,25 +355,6 @@ deactivate (ply_renderer_backend_t *backend)
 }
 
 static void
-flush_area_to_device (ply_renderer_backend_t *backend,
-                      ply_renderer_head_t    *head,
-                      ply_rectangle_t        *area_to_flush,
-                      cairo_t                *cr)
-{
-        cairo_save (cr);
-        cairo_rectangle (cr,
-                         area_to_flush->x,
-                         area_to_flush->y,
-                         area_to_flush->width,
-                         area_to_flush->height);
-        cairo_clip (cr);
-
-        cairo_set_source_surface (cr, head->image, 0, 0);
-        cairo_paint (cr);
-        cairo_restore (cr);
-}
-
-static void
 flush_head (ply_renderer_backend_t *backend,
             ply_renderer_head_t    *head)
 {
@@ -382,7 +362,6 @@ flush_head (ply_renderer_backend_t *backend,
         ply_list_t *areas_to_flush;
         ply_list_node_t *node;
         ply_pixel_buffer_t *pixel_buffer;
-        cairo_t *cr;
 
         assert (backend != NULL);
 
@@ -393,53 +372,23 @@ flush_head (ply_renderer_backend_t *backend,
         updated_region = ply_pixel_buffer_get_updated_areas (pixel_buffer);
         areas_to_flush = ply_region_get_sorted_rectangle_list (updated_region);
 
-        cr = gdk_cairo_create (head->pixmap);
-
         node = ply_list_get_first_node (areas_to_flush);
         while (node != NULL) {
                 ply_list_node_t *next_node;
                 ply_rectangle_t *area_to_flush;
 
                 area_to_flush = (ply_rectangle_t *) ply_list_node_get_data (node);
-
                 next_node = ply_list_get_next_node (areas_to_flush, node);
 
-                flush_area_to_device (backend, head, area_to_flush, cr);
-                gdk_window_clear_area (head->window->window,
-                                       area_to_flush->x,
-                                       area_to_flush->y,
-                                       area_to_flush->width,
-                                       area_to_flush->height);
+                gtk_widget_queue_draw_area (head->window,
+                                            area_to_flush->x,
+                                            area_to_flush->y,
+                                            area_to_flush->width,
+                                            area_to_flush->height);
+
                 node = next_node;
         }
         ply_region_clear (updated_region);
-
-        cairo_destroy (cr);
-
-        /* Force read-back to make sure plymouth isn't saturating the
-         * X server with requests
-         */
-        g_object_unref (gdk_drawable_get_image (GDK_DRAWABLE (head->pixmap),
-                                                0, 0, 1, 1));
-}
-
-static void
-ply_renderer_head_redraw (ply_renderer_backend_t *backend,
-                          ply_renderer_head_t    *head)
-{
-        ply_region_t *region;
-        ply_rectangle_t area;
-
-        area.x = 0;
-        area.y = 0;
-        area.width = head->area.width;
-        area.height = head->area.height;
-
-        region = ply_pixel_buffer_get_updated_areas (head->pixel_buffer);
-
-        ply_region_add_rectangle (region, &area);
-
-        flush_head (backend, head);
 }
 
 static ply_list_t *
@@ -490,11 +439,11 @@ on_key_event (GtkWidget   *widget,
 {
         ply_renderer_input_source_t *input_source = user_data;
 
-        if (event->keyval == GDK_Return) {           /* Enter */
+        if (event->keyval == GDK_KEY_Return) {           /* Enter */
                 ply_buffer_append_bytes (input_source->key_buffer, "\n", 1);
-        } else if (event->keyval == GDK_Escape) {    /* Esc */
+        } else if (event->keyval == GDK_KEY_Escape) {    /* Esc */
                 ply_buffer_append_bytes (input_source->key_buffer, "\033", 1);
-        } else if (event->keyval == GDK_BackSpace) { /* Backspace */
+        } else if (event->keyval == GDK_KEY_BackSpace) { /* Backspace */
                 ply_buffer_append_bytes (input_source->key_buffer, "\177", 1);
         } else {
                 gchar bytes[7];

@@ -235,7 +235,7 @@ ply_throbber_add_frames (ply_throbber_t *throbber)
 
         number_of_entries = scandir (throbber->image_dir, &entries, NULL, versionsort);
 
-        if (number_of_entries < 0)
+        if (number_of_entries <= 0)
                 return false;
 
         load_finished = false;

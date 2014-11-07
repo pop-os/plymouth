@@ -272,7 +272,7 @@ out:
         }
         free (entries);
 
-        return load_finished;
+        return (ply_array_get_size (throbber->frames) > 0);
 }
 
 bool

@@ -48,6 +48,15 @@ static script_return_t plymouth_set_function (script_state_t *state,
         return script_return_obj_null ();
 }
 
+static script_return_t plymouth_set_refresh_rate (script_state_t *state,
+                                                  void           *user_data)
+{
+      script_lib_plymouth_data_t *data = user_data;
+      data->refresh_rate = script_obj_hash_get_number (state->local, "value");
+
+      return script_return_obj_null ();
+}
+
 static script_return_t plymouth_get_mode (script_state_t *state,
                                           void           *user_data)
 {
@@ -73,7 +82,8 @@ static script_return_t plymouth_get_mode (script_state_t *state,
 }
 
 script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t        *state,
-                                                       ply_boot_splash_mode_t mode)
+                                                       ply_boot_splash_mode_t mode,
+                                                       int refresh_rate)
 {
         script_lib_plymouth_data_t *data = malloc (sizeof(script_lib_plymouth_data_t));
 
@@ -90,6 +100,7 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t        *st
         data->script_quit_func = script_obj_new_null ();
         data->script_system_update_func = script_obj_new_null ();
         data->mode = mode;
+        data->refresh_rate = refresh_rate;
 
         script_obj_t *plymouth_hash = script_obj_hash_get_element (state->global, "Plymouth");
         script_add_native_function (plymouth_hash,
@@ -97,6 +108,12 @@ script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t        *st
                                     plymouth_set_function,
                                     &data->script_refresh_func,
                                     "function",
+                                    NULL);
+        script_add_native_function (plymouth_hash,
+                                    "SetRefreshRate",
+                                    plymouth_set_refresh_rate,
+                                    data,
+                                    "value",
                                     NULL);
         script_add_native_function (plymouth_hash,
                                     "SetBootProgressFunction",

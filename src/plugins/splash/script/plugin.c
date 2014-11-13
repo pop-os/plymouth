@@ -220,7 +220,7 @@ on_timeout (ply_boot_splash_plugin_t *plugin)
 {
         double sleep_time;
 
-        sleep_time = 1.0 / FRAMES_PER_SECOND;
+        sleep_time = 1.0 / plugin->script_plymouth_lib->refresh_rate;
         ply_event_loop_watch_for_timeout (plugin->loop,
                                           sleep_time,
                                           (ply_event_loop_timeout_handler_t)
@@ -272,7 +272,8 @@ start_script_animation (ply_boot_splash_plugin_t *plugin)
         plugin->script_sprite_lib = script_lib_sprite_setup (plugin->script_state,
                                                              plugin->displays);
         plugin->script_plymouth_lib = script_lib_plymouth_setup (plugin->script_state,
-                                                                 plugin->mode);
+                                                                 plugin->mode,
+                                                                 FRAMES_PER_SECOND);
         plugin->script_math_lib = script_lib_math_setup (plugin->script_state);
         plugin->script_string_lib = script_lib_string_setup (plugin->script_state);
 

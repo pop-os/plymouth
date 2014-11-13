@@ -41,10 +41,12 @@ typedef struct
         script_obj_t          *script_quit_func;
         script_obj_t           *script_system_update_func;
         ply_boot_splash_mode_t mode;
+        int                    refresh_rate;
 } script_lib_plymouth_data_t;
 
 script_lib_plymouth_data_t *script_lib_plymouth_setup (script_state_t        *state,
-                                                       ply_boot_splash_mode_t mode);
+                                                       ply_boot_splash_mode_t mode,
+                                                       int refresh_rate);
 void script_lib_plymouth_destroy (script_lib_plymouth_data_t *data);
 
 void script_lib_plymouth_on_refresh (script_state_t             *state,

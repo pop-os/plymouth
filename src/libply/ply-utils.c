@@ -102,7 +102,7 @@ ply_open_unix_socket (void)
         int fd;
         const int should_pass_credentials = true;
 
-        fd = socket (PF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0);
+        fd = socket (PF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
 
         if (fd < 0)
                 return -1;

@@ -37,6 +37,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#define ALPHA_MASK 0xff000000
+
 struct _ply_pixel_buffer
 {
         uint32_t       *bytes;
@@ -45,6 +47,7 @@ struct _ply_pixel_buffer
         ply_list_t     *clip_areas;
 
         ply_region_t   *updated_areas;
+        uint32_t        is_opaque : 1;
 };
 
 static inline void ply_pixel_buffer_blend_value_at_pixel (ply_pixel_buffer_t *buffer,
@@ -198,6 +201,14 @@ ply_pixel_buffer_fill_area_with_pixel_value (ply_pixel_buffer_t *buffer,
 
         ply_pixel_buffer_crop_area_to_clip_area (buffer, fill_area, &cropped_area);
 
+        /* If we're filling the entire buffer with a fully opaque color,
+         * then make note of it
+         */
+        if (fill_area == &buffer->area &&
+            (pixel_value >> 24) == 0xff) {
+                buffer->is_opaque = true;
+        }
+
         for (row = cropped_area.y; row < cropped_area.y + cropped_area.height; row++) {
                 for (column = cropped_area.x; column < cropped_area.x + cropped_area.width; column++) {
                         ply_pixel_buffer_blend_value_at_pixel (buffer,
@@ -244,6 +255,7 @@ ply_pixel_buffer_new (unsigned long width,
 
         buffer->clip_areas = ply_list_new ();
         ply_pixel_buffer_push_clip_area (buffer, &buffer->area);
+        buffer->is_opaque = false;
 
         return buffer;
 }
@@ -293,6 +305,21 @@ ply_pixel_buffer_get_height (ply_pixel_buffer_t *buffer)
 {
         assert (buffer != NULL);
         return buffer->area.height;
+}
+
+bool
+ply_pixel_buffer_is_opaque (ply_pixel_buffer_t *buffer)
+{
+        assert (buffer != NULL);
+        return buffer->is_opaque;
+}
+
+void
+ply_pixel_buffer_set_opaque (ply_pixel_buffer_t *buffer,
+                             bool                is_opaque)
+{
+        assert (buffer != NULL);
+        buffer->is_opaque = is_opaque;
 }
 
 ply_region_t *

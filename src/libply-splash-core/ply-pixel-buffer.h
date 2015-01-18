@@ -43,6 +43,9 @@ ply_pixel_buffer_t *ply_pixel_buffer_new (unsigned long width,
 void ply_pixel_buffer_free (ply_pixel_buffer_t *buffer);
 void ply_pixel_buffer_get_size (ply_pixel_buffer_t *buffer,
                                 ply_rectangle_t    *size);
+int  ply_pixel_buffer_get_device_scale (ply_pixel_buffer_t *buffer);
+void ply_pixel_buffer_set_device_scale (ply_pixel_buffer_t *buffer,
+                                        int                 scale);
 
 unsigned long ply_pixel_buffer_get_width (ply_pixel_buffer_t *buffer);
 unsigned long ply_pixel_buffer_get_height (ply_pixel_buffer_t *buffer);
@@ -90,6 +93,12 @@ void ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip (ply_pixel_buff
                                                                   ply_rectangle_t    *clip_area,
                                                                   uint32_t           *data,
                                                                   double              opacity);
+void ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip_and_scale (ply_pixel_buffer_t *buffer,
+                                                                            ply_rectangle_t    *fill_area,
+                                                                            ply_rectangle_t    *clip_area,
+                                                                            uint32_t           *data,
+                                                                            double              opacity,
+                                                                            int                 scale);
 
 void ply_pixel_buffer_fill_with_buffer_at_opacity_with_clip (ply_pixel_buffer_t *canvas,
                                                              ply_pixel_buffer_t *source,

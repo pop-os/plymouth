@@ -156,8 +156,6 @@ view_new (ply_boot_splash_plugin_t *plugin,
         view->display = display;
 
         view->entry = ply_entry_new (plugin->animation_dir);
-        view->end_animation = ply_animation_new (plugin->animation_dir,
-                                                 "animation-");
         view->progress_animation = ply_progress_animation_new (plugin->animation_dir,
                                                                "progress-");
 
@@ -189,6 +187,57 @@ view_free (view_t *view)
         free (view);
 }
 
+static void
+view_load_end_animation (view_t *view)
+{
+        const char *animation_prefix;
+        ply_boot_splash_plugin_t *plugin;
+
+        ply_trace ("loading animation");
+
+        plugin = view->plugin;
+
+        switch (plugin->mode) {
+        case PLY_BOOT_SPLASH_MODE_BOOT_UP:
+        case PLY_BOOT_SPLASH_MODE_UPDATES:
+                animation_prefix = "startup-animation-";
+                break;
+        case PLY_BOOT_SPLASH_MODE_SHUTDOWN:
+                animation_prefix = "shutdown-animation-";
+                break;
+        }
+
+        ply_trace ("trying prefix: %s", animation_prefix);
+        view->end_animation = ply_animation_new (plugin->animation_dir,
+                                                 animation_prefix);
+
+        if (ply_animation_load (view->end_animation))
+                return;
+        ply_animation_free (view->end_animation);
+
+        ply_trace ("now trying more general prefix: animation-");
+        view->end_animation = ply_animation_new (plugin->animation_dir,
+                                                 "animation-");
+        if (ply_animation_load (view->end_animation))
+                return;
+        ply_animation_free (view->end_animation);
+
+        ply_trace ("now trying old compat prefix: throbber-");
+        view->end_animation = ply_animation_new (plugin->animation_dir,
+                                                 "throbber-");
+        if (ply_animation_load (view->end_animation)) {
+                /* files named throbber- are for end animation, so
+                 * there's no throbber */
+                ply_throbber_free (view->throbber);
+                view->throbber = NULL;
+                return;
+        }
+
+        ply_trace ("optional animation didn't load");
+        ply_animation_free (view->end_animation);
+        view->end_animation = NULL;
+}
+
 static bool
 view_load (view_t *view)
 {
@@ -216,24 +265,7 @@ view_load (view_t *view)
         if (!ply_entry_load (view->entry))
                 return false;
 
-        ply_trace ("loading animation");
-        if (!ply_animation_load (view->end_animation)) {
-                ply_trace ("Default animation wouldn't load, "
-                           "falling back to old naming scheme");
-
-                /* fallback to throbber- for compatibility
-                 */
-                ply_animation_free (view->end_animation);
-                view->end_animation = ply_animation_new (view->plugin->animation_dir,
-                                                         "throbber-");
-                if (!ply_animation_load (view->end_animation)) {
-                        ply_trace ("old naming scheme didn't work either");
-                        return false;
-                }
-
-                ply_throbber_free (view->throbber);
-                view->throbber = NULL;
-        }
+        view_load_end_animation (view);
 
         ply_trace ("loading progress animation");
         if (!ply_progress_animation_load (view->progress_animation)) {

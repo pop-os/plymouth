@@ -62,7 +62,6 @@ struct _ply_animation
         char                *frames_prefix;
 
         ply_pixel_display_t *display;
-        ply_rectangle_t      frame_area;
         ply_trigger_t       *stop_trigger;
 
         int                  frame_number;
@@ -95,10 +94,6 @@ ply_animation_new (const char *image_dir,
         animation->stop_requested = false;
         animation->width = 0;
         animation->height = 0;
-        animation->frame_area.width = 0;
-        animation->frame_area.height = 0;
-        animation->frame_area.x = 0;
-        animation->frame_area.y = 0;
 
         return animation;
 }
@@ -139,6 +134,7 @@ animate_at_time (ply_animation_t *animation,
 {
         int number_of_frames;
         ply_pixel_buffer_t *const *frames;
+        ply_rectangle_t frame_area;
         bool should_continue;
 
         number_of_frames = ply_array_get_size (animation->frames);
@@ -159,14 +155,12 @@ animate_at_time (ply_animation_t *animation,
         }
 
         frames = (ply_pixel_buffer_t *const *) ply_array_get_pointer_elements (animation->frames);
-        ply_pixel_buffer_get_size (frames[animation->frame_number], &animation->frame_area);
-        animation->frame_area.x = animation->x;
-        animation->frame_area.y = animation->y;
+        ply_pixel_buffer_get_size (frames[animation->frame_number], &frame_area);
 
         ply_pixel_display_draw_area (animation->display,
                                      animation->x, animation->y,
-                                     animation->frame_area.width,
-                                     animation->frame_area.height);
+                                     frame_area.width,
+                                     frame_area.height);
 
         animation->frame_number++;
 
@@ -395,8 +389,7 @@ ply_animation_draw_area (ply_animation_t    *animation,
         frames = (ply_pixel_buffer_t *const *) ply_array_get_pointer_elements (animation->frames);
         ply_pixel_buffer_fill_with_buffer (buffer,
                                            frames[frame_index],
-                                           animation->frame_area.x,
-                                           animation->frame_area.y);
+                                           animation->x, animation->y);
 }
 
 long

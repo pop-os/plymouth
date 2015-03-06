@@ -996,7 +996,7 @@ on_seat_added (state_t    *state,
 {
         ply_keyboard_t *keyboard;
 
-        if (state->is_shown) {
+        if (state->is_shown && !state->is_inactive) {
                 if (state->boot_splash == NULL) {
                         ply_trace ("seat added before splash loaded, so loading splash now");
                         show_splash (state);

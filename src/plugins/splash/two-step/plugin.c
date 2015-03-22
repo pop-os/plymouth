@@ -875,7 +875,12 @@ draw_background (view_t             *view,
         if (view->background_image != NULL) {
                 uint32_t *data;
                 data = ply_image_get_data (view->background_image);
-                ply_pixel_buffer_fill_with_argb32_data (pixel_buffer, &area, data);
+
+                /* We must pass NULL as fill area, because the fill area
+                   must be sized as the image we're sourcing from, otherwise
+                   sampling does not work
+                */
+                ply_pixel_buffer_fill_with_argb32_data_with_clip (pixel_buffer, NULL, NULL, data);
         }
 
         if (plugin->watermark_image != NULL) {

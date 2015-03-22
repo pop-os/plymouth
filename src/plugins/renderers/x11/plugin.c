@@ -64,9 +64,10 @@ struct _ply_renderer_head
 {
         ply_renderer_backend_t *backend;
         ply_pixel_buffer_t     *pixel_buffer;
-        ply_rectangle_t         area;
+        ply_rectangle_t         area; /* in device pixels */
         GtkWidget              *window;
         cairo_surface_t        *image;
+        uint32_t                scale;
         uint32_t                is_fullscreen : 1;
 };
 
@@ -148,8 +149,13 @@ open_device (ply_renderer_backend_t *backend)
         Display *display;
         int display_fd;
 
+        gdk_set_allowed_backends ("x11");
+
         if (!gtk_init_check (0, NULL))
                 return false;
+
+        /* Force gtk+ to deal in device pixels */
+        gdk_x11_display_set_window_scale (gdk_display_get_default (), 1);
 
         display = GDK_DISPLAY_XDISPLAY (gdk_display_get_default ());
         display_fd = ConnectionNumber (display);
@@ -183,7 +189,9 @@ create_fake_multi_head_setup (ply_renderer_backend_t *backend)
         head->area.y = 0;
         head->area.width = 800;   /* FIXME hardcoded */
         head->area.height = 600;
+        head->scale = 1;
         head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
+        ply_pixel_buffer_set_device_scale (head->pixel_buffer, head->scale);
 
         ply_list_append_data (backend->heads, head);
 
@@ -194,9 +202,55 @@ create_fake_multi_head_setup (ply_renderer_backend_t *backend)
         head->area.y = 0;
         head->area.width = 640;   /* FIXME hardcoded */
         head->area.height = 480;
+        head->scale = 1;
         head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
+        ply_pixel_buffer_set_device_scale (head->pixel_buffer, head->scale);
 
         ply_list_append_data (backend->heads, head);
+}
+
+/* The minimum resolution at which we turn on a device-scale of 2 */
+#define HIDPI_LIMIT 192
+#define HIDPI_MIN_HEIGHT 1200
+/* From http://en.wikipedia.org/wiki/4K_resolution#Resolutions_of_common_formats */
+#define SMALLEST_4K_WIDTH 3656
+
+static int get_device_scale (uint32_t width,
+                             uint32_t height,
+                             uint32_t width_mm,
+                             uint32_t height_mm)
+{
+        int device_scale;
+        double dpi_x, dpi_y;
+        const char *force_device_scale;
+
+        device_scale = 1;
+
+        if ((force_device_scale = getenv ("PLYMOUTH_FORCE_SCALE")))
+                return strtoul (force_device_scale, NULL, 0);
+
+        if (height < HIDPI_MIN_HEIGHT)
+                return 1;
+
+        /* Somebody encoded the aspect ratio (16/9 or 16/10)
+         * instead of the physical size */
+        if ((width_mm == 160 && height_mm == 90) ||
+            (width_mm == 160 && height_mm == 100) ||
+            (width_mm == 16 && height_mm == 9) ||
+            (width_mm == 16 && height_mm == 10))
+                return 1;
+
+        if (width_mm > 0 && height_mm > 0) {
+                dpi_x = (double)width / (width_mm / 25.4);
+                dpi_y = (double)height / (height_mm / 25.4);
+                /* We don't completely trust these values so both
+                   must be high, and never pick higher ratio than
+                   2 automatically */
+                if (dpi_x > HIDPI_LIMIT && dpi_y > HIDPI_LIMIT)
+                        device_scale = 2;
+        }
+
+        return device_scale;
 }
 
 static void
@@ -204,8 +258,11 @@ create_fullscreen_single_head_setup (ply_renderer_backend_t *backend)
 {
         ply_renderer_head_t *head;
         GdkRectangle monitor_geometry;
+        int width_mm, height_mm;
 
         gdk_screen_get_monitor_geometry (gdk_screen_get_default (), 0, &monitor_geometry);
+        width_mm = gdk_screen_get_monitor_width_mm (gdk_screen_get_default (), 0);
+        height_mm = gdk_screen_get_monitor_height_mm (gdk_screen_get_default (), 0);
 
         head = calloc (1, sizeof(ply_renderer_head_t));
 
@@ -215,7 +272,11 @@ create_fullscreen_single_head_setup (ply_renderer_backend_t *backend)
         head->area.width = monitor_geometry.width;
         head->area.height = monitor_geometry.height;
         head->is_fullscreen = true;
+        head->scale = get_device_scale (monitor_geometry.width,
+                                        monitor_geometry.height,
+                                        width_mm, height_mm);
         head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
+        ply_pixel_buffer_set_device_scale (head->pixel_buffer, head->scale);
 
         ply_list_append_data (backend->heads, head);
 }
@@ -379,6 +440,12 @@ flush_head (ply_renderer_backend_t *backend,
 
                 area_to_flush = (ply_rectangle_t *) ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (areas_to_flush, node);
+
+                cairo_surface_mark_dirty_rectangle (head->image,
+                                                    area_to_flush->x,
+                                                    area_to_flush->y,
+                                                    area_to_flush->width,
+                                                    area_to_flush->height);
 
                 gtk_widget_queue_draw_area (head->window,
                                             area_to_flush->x,

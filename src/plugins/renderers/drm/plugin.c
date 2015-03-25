@@ -99,7 +99,6 @@ struct _ply_renderer_backend
 
         ply_renderer_driver_interface_t *driver_interface;
         ply_renderer_driver_t           *driver;
-        uint32_t                         driver_supports_mapping_console;
 
         int                              device_fd;
         char                            *device_name;
@@ -456,8 +455,6 @@ load_driver (ply_renderer_backend_t *backend)
         }
 
         backend->driver_interface = ply_renderer_generic_driver_get_interface (device_fd);
-        backend->driver_supports_mapping_console = false;
-
         if (backend->driver_interface == NULL) {
                 close (device_fd);
                 return false;
@@ -731,34 +728,6 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
         }
 
         ply_hashtable_free (heads_by_controller_id);
-
-#ifdef PLY_ENABLE_DEPRECATED_GDM_TRANSITION
-        /* If the driver doesn't support mapping the fb console
-         * then we can't get a smooth crossfade transition to
-         * the display manager unless we use the /dev/fb interface
-         * or the plymouth deactivate interface.
-         *
-         * In multihead configurations, we'd rather have working
-         * multihead, but otherwise bail now.
-         */
-        if (!backend->driver_supports_mapping_console &&
-            ply_list_get_length (backend->heads) == 1) {
-                ply_list_node_t *node;
-                ply_renderer_head_t *head;
-
-                node = ply_list_get_first_node (backend->heads);
-                head = (ply_renderer_head_t *) ply_list_node_get_data (node);
-
-                if (ply_array_get_size (head->connector_ids) == 1) {
-                        ply_trace ("Only one monitor configured, and driver doesn't "
-                                   "support mapping console, so letting frame-buffer "
-                                   "take over");
-
-                        free_heads (backend);
-                        return false;
-                }
-        }
-#endif
 
         return ply_list_get_length (backend->heads) > 0;
 }

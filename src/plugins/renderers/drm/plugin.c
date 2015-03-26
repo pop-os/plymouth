@@ -58,8 +58,6 @@
 
 #include "ply-renderer.h"
 #include "ply-renderer-plugin.h"
-#include "ply-renderer-driver.h"
-#include "ply-renderer-generic-driver.h"
 
 #define BYTES_PER_PIXEL (4)
 
@@ -92,13 +90,26 @@ struct _ply_renderer_input_source
         void                               *user_data;
 };
 
+typedef struct
+{
+        uint32_t id;
+
+        uint32_t handle;
+        uint32_t width;
+        uint32_t height;
+        uint32_t row_stride;
+
+        void    *map_address;
+        uint32_t map_size;
+        int      map_count;
+
+        uint32_t added_fb : 1;
+} ply_renderer_buffer_t;
+
 struct _ply_renderer_backend
 {
         ply_event_loop_t                *loop;
         ply_terminal_t                  *terminal;
-
-        ply_renderer_driver_interface_t *driver_interface;
-        ply_renderer_driver_t           *driver;
 
         int                              device_fd;
         char                            *device_name;
@@ -108,11 +119,14 @@ struct _ply_renderer_backend
         ply_list_t                      *heads;
         ply_hashtable_t                 *heads_by_connector_id;
 
+        ply_hashtable_t                 *buffers;
+
         int32_t                          dither_red;
         int32_t                          dither_green;
         int32_t                          dither_blue;
 
         uint32_t                         is_active : 1;
+        uint32_t        requires_explicit_flushing : 1;
 };
 
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
@@ -124,6 +138,263 @@ static bool reset_scan_out_buffer_if_needed (ply_renderer_backend_t *backend,
                                              ply_renderer_head_t    *head);
 static void flush_head (ply_renderer_backend_t *backend,
                         ply_renderer_head_t    *head);
+
+static bool
+ply_renderer_buffer_map (ply_renderer_backend_t *backend,
+                         ply_renderer_buffer_t  *buffer)
+{
+        struct drm_mode_map_dumb map_dumb_buffer_request;
+        void *map_address;
+
+        if (buffer->map_address != MAP_FAILED) {
+                buffer->map_count++;
+                return true;
+        }
+
+        memset (&map_dumb_buffer_request, 0, sizeof(struct drm_mode_map_dumb));
+        map_dumb_buffer_request.handle = buffer->handle;
+        if (drmIoctl (backend->device_fd, DRM_IOCTL_MODE_MAP_DUMB, &map_dumb_buffer_request) < 0) {
+                ply_trace ("Could not map GEM object %u: %m", buffer->handle);
+                return false;
+        }
+
+        map_address = mmap (0, buffer->map_size,
+                            PROT_READ | PROT_WRITE, MAP_SHARED,
+                            backend->device_fd, map_dumb_buffer_request.offset);
+
+        if (map_address == MAP_FAILED)
+                return false;
+
+        buffer->map_address = map_address;
+        buffer->map_count++;
+
+        return true;
+}
+
+static void
+ply_renderer_buffer_unmap (ply_renderer_backend_t *backend,
+                           ply_renderer_buffer_t  *buffer)
+{
+        buffer->map_count--;
+
+        assert (buffer->map_count >= 0);
+}
+
+static ply_renderer_buffer_t *
+ply_renderer_buffer_new (ply_renderer_backend_t *backend,
+                         uint32_t                width,
+                         uint32_t                height)
+{
+        ply_renderer_buffer_t *buffer;
+        struct drm_mode_create_dumb create_dumb_buffer_request;
+
+        buffer = calloc (1, sizeof(ply_renderer_buffer_t));
+        buffer->width = width;
+        buffer->height = height;
+        buffer->map_address = MAP_FAILED;
+
+        memset (&create_dumb_buffer_request, 0, sizeof(struct drm_mode_create_dumb));
+
+        create_dumb_buffer_request.width = width;
+        create_dumb_buffer_request.height = height;
+        create_dumb_buffer_request.bpp = 32;
+        create_dumb_buffer_request.flags = 0;
+
+        if (drmIoctl (backend->device_fd,
+                      DRM_IOCTL_MODE_CREATE_DUMB,
+                      &create_dumb_buffer_request) < 0) {
+                free (buffer);
+                ply_trace ("Could not allocate GEM object for frame buffer: %m");
+                return NULL;
+        }
+
+        buffer->handle = create_dumb_buffer_request.handle;
+        buffer->row_stride = create_dumb_buffer_request.pitch;
+        buffer->map_size = create_dumb_buffer_request.size;
+
+        ply_trace ("returning %ux%u buffer with stride %u",
+                   width, height, buffer->row_stride);
+
+        return buffer;
+}
+
+static void
+ply_renderer_buffer_free (ply_renderer_backend_t *backend,
+                          ply_renderer_buffer_t  *buffer)
+{
+        struct drm_mode_destroy_dumb destroy_dumb_buffer_request;
+
+        if (buffer->added_fb)
+                drmModeRmFB (backend->device_fd, buffer->id);
+
+        if (buffer->map_address != MAP_FAILED) {
+                munmap (buffer->map_address, buffer->map_size);
+                buffer->map_address = MAP_FAILED;
+        }
+
+        memset (&destroy_dumb_buffer_request, 0, sizeof(struct drm_mode_destroy_dumb));
+        destroy_dumb_buffer_request.handle = buffer->handle;
+
+        if (drmIoctl (backend->device_fd,
+                      DRM_IOCTL_MODE_DESTROY_DUMB,
+                      &destroy_dumb_buffer_request) < 0)
+                ply_trace ("Could not deallocate GEM object %u: %m", buffer->handle);
+
+        free (buffer);
+}
+
+static ply_renderer_buffer_t *
+get_buffer_from_id (ply_renderer_backend_t *backend,
+                    uint32_t                id)
+{
+        static ply_renderer_buffer_t *buffer;
+
+        buffer = ply_hashtable_lookup (backend->buffers, (void *) (uintptr_t) id);
+
+        return buffer;
+}
+
+static bool
+fetch_buffer (ply_renderer_backend_t *backend,
+              uint32_t               buffer_id,
+              unsigned long         *width,
+              unsigned long         *height,
+              unsigned long         *row_stride)
+{
+        ply_renderer_buffer_t *buffer;
+
+        buffer = get_buffer_from_id (backend, buffer_id);
+
+        if (buffer == NULL) {
+                ply_trace ("could not fetch buffer %u", buffer_id);
+                return false;
+        }
+
+        if (width != NULL)
+                *width = buffer->width;
+
+        if (height != NULL)
+                *height = buffer->height;
+
+        if (row_stride != NULL)
+                *row_stride = buffer->row_stride;
+
+        ply_trace ("fetched %ux%u buffer with stride %u",
+                   buffer->width, buffer->height, buffer->row_stride);
+        return true;
+}
+
+static uint32_t
+create_buffer (ply_renderer_backend_t *backend,
+               unsigned long           width,
+               unsigned long           height,
+               unsigned long          *row_stride)
+{
+        ply_renderer_buffer_t *buffer;
+
+        buffer = ply_renderer_buffer_new (backend, width, height);
+
+        if (buffer == NULL) {
+                ply_trace ("Could not allocate GEM object for frame buffer: %m");
+                return 0;
+        }
+
+        if (drmModeAddFB (backend->device_fd, width, height,
+                          24, 32, buffer->row_stride, buffer->handle,
+                          &buffer->id) != 0) {
+                ply_trace ("Could not set up GEM object as frame buffer: %m");
+                ply_renderer_buffer_free (backend, buffer);
+                return 0;
+        }
+
+        *row_stride = buffer->row_stride;
+
+        buffer->added_fb = true;
+        ply_hashtable_insert (backend->buffers,
+                              (void *) (uintptr_t) buffer->id,
+                              buffer);
+
+        return buffer->id;
+}
+
+static bool
+map_buffer (ply_renderer_backend_t *backend,
+            uint32_t                buffer_id)
+{
+        ply_renderer_buffer_t *buffer;
+
+        buffer = get_buffer_from_id (backend, buffer_id);
+
+        assert (buffer != NULL);
+
+        return ply_renderer_buffer_map (backend, buffer);
+}
+
+static void
+unmap_buffer (ply_renderer_backend_t *backend,
+              uint32_t                buffer_id)
+{
+        ply_renderer_buffer_t *buffer;
+
+        buffer = get_buffer_from_id (backend, buffer_id);
+
+        assert (buffer != NULL);
+
+        ply_renderer_buffer_unmap (backend, buffer);
+}
+
+static char *
+begin_flush (ply_renderer_backend_t *backend,
+             uint32_t                buffer_id)
+{
+        ply_renderer_buffer_t *buffer;
+
+        buffer = get_buffer_from_id (backend, buffer_id);
+
+        assert (buffer != NULL);
+
+        return buffer->map_address;
+}
+
+static void
+end_flush (ply_renderer_backend_t *backend,
+           uint32_t                buffer_id)
+{
+        ply_renderer_buffer_t *buffer;
+
+        buffer = get_buffer_from_id (backend, buffer_id);
+
+        assert (buffer != NULL);
+
+        if (backend->requires_explicit_flushing) {
+                struct drm_clip_rect flush_area;
+                int ret;
+
+                flush_area.x1 = 0;
+                flush_area.y1 = 0;
+                flush_area.x2 = buffer->width;
+                flush_area.y2 = buffer->height;
+
+                ret = drmModeDirtyFB (backend->device_fd, buffer->id, &flush_area, 1);
+
+                if (ret == -ENOSYS)
+                        backend->requires_explicit_flushing = false;
+        }
+}
+
+static void
+destroy_buffer (ply_renderer_backend_t *backend,
+                uint32_t                buffer_id)
+{
+        ply_renderer_buffer_t *buffer;
+
+        buffer = ply_hashtable_remove (backend->buffers,
+                                       (void *) (uintptr_t) buffer_id);
+
+        assert (buffer != NULL);
+
+        ply_renderer_buffer_free (backend, buffer);
+}
 
 static bool
 ply_renderer_head_add_connector (ply_renderer_head_t *head,
@@ -240,25 +511,21 @@ ply_renderer_head_map (ply_renderer_backend_t *backend,
 
         assert (backend != NULL);
         assert (backend->device_fd >= 0);
-        assert (backend->driver_interface != NULL);
-        assert (backend->driver != NULL);
+        assert (backend != NULL);
 
         assert (head != NULL);
 
         ply_trace ("Creating buffer for %ldx%ld renderer head", head->area.width, head->area.height);
-        head->scan_out_buffer_id =
-                backend->driver_interface->create_buffer (backend->driver,
-                                                          head->area.width, head->area.height,
-                                                          &head->row_stride);
+        head->scan_out_buffer_id = create_buffer (backend,
+                                                  head->area.width, head->area.height,
+                                                  &head->row_stride);
 
         if (head->scan_out_buffer_id == 0)
                 return false;
 
         ply_trace ("Mapping buffer for %ldx%ld renderer head", head->area.width, head->area.height);
-        if (!backend->driver_interface->map_buffer (backend->driver,
-                                                    head->scan_out_buffer_id)) {
-                backend->driver_interface->destroy_buffer (backend->driver,
-                                                           head->scan_out_buffer_id);
+        if (!map_buffer (backend, head->scan_out_buffer_id)) {
+                destroy_buffer (backend, head->scan_out_buffer_id);
                 head->scan_out_buffer_id = 0;
                 return false;
         }
@@ -270,8 +537,7 @@ ply_renderer_head_map (ply_renderer_backend_t *backend,
 
         scan_out_set = reset_scan_out_buffer_if_needed (backend, head);
         if (!scan_out_set && backend->is_active) {
-                backend->driver_interface->destroy_buffer (backend->driver,
-                                                           head->scan_out_buffer_id);
+                destroy_buffer (backend, head->scan_out_buffer_id);
                 head->scan_out_buffer_id = 0;
                 return false;
         }
@@ -284,11 +550,9 @@ ply_renderer_head_unmap (ply_renderer_backend_t *backend,
                          ply_renderer_head_t    *head)
 {
         ply_trace ("unmapping %ldx%ld renderer head", head->area.width, head->area.height);
-        backend->driver_interface->unmap_buffer (backend->driver,
-                                                 head->scan_out_buffer_id);
+        unmap_buffer (backend, head->scan_out_buffer_id);
 
-        backend->driver_interface->destroy_buffer (backend->driver,
-                                                   head->scan_out_buffer_id);
+        destroy_buffer (backend, head->scan_out_buffer_id);
         head->scan_out_buffer_id = 0;
 }
 
@@ -374,6 +638,9 @@ create_backend (const char     *device_name,
         backend->heads = ply_list_new ();
         backend->input_source.key_buffer = ply_buffer_new ();
         backend->terminal = terminal;
+        backend->requires_explicit_flushing = true;
+        backend->buffers = ply_hashtable_new (ply_hashtable_direct_hash,
+                                              ply_hashtable_direct_compare);
 
         return backend;
 }
@@ -385,6 +652,7 @@ destroy_backend (ply_renderer_backend_t *backend)
         free_heads (backend);
 
         free (backend->device_name);
+        ply_hashtable_free (backend->buffers);
 
         free (backend);
 }
@@ -454,37 +722,21 @@ load_driver (ply_renderer_backend_t *backend)
                 return false;
         }
 
-        backend->driver_interface = ply_renderer_generic_driver_get_interface (device_fd);
-        if (backend->driver_interface == NULL) {
-                close (device_fd);
-                return false;
-        }
-
-        backend->driver = backend->driver_interface->create_driver (device_fd);
-
-        if (backend->driver == NULL) {
-                close (device_fd);
-                return false;
-        }
-
         backend->device_fd = device_fd;
 
         return true;
 }
 
 static void
-unload_driver (ply_renderer_backend_t *backend)
+unload_backend (ply_renderer_backend_t *backend)
 {
-        if (backend->driver == NULL)
+        if (backend == NULL)
                 return;
 
-        ply_trace ("unloading driver");
-        assert (backend->driver_interface != NULL);
+        ply_trace ("unloading backend");
 
-        backend->driver_interface->destroy_driver (backend->driver);
-        backend->driver = NULL;
-
-        backend->driver_interface = NULL;
+        destroy_backend (backend);
+        backend = NULL;
 
         if (backend->device_fd >= 0) {
                 drmClose (backend->device_fd);
@@ -537,7 +789,7 @@ close_device (ply_renderer_backend_t *backend)
                                                                  backend);
         }
 
-        unload_driver (backend);
+        unload_backend (backend);
 }
 
 static drmModeCrtc *
@@ -743,7 +995,7 @@ has_32bpp_support (ply_renderer_backend_t *backend)
         min_width = backend->resources->min_width;
         min_height = backend->resources->min_height;
 
-        /* Some drivers set min_width/min_height to 0,
+        /* Some backends set min_width/min_height to 0,
          * but 0x0 sized buffers don't work.
          */
         if (min_width == 0)
@@ -752,10 +1004,7 @@ has_32bpp_support (ply_renderer_backend_t *backend)
         if (min_height == 0)
                 min_height = 1;
 
-        buffer_id = backend->driver_interface->create_buffer (backend->driver,
-                                                              min_width,
-                                                              min_height,
-                                                              &row_stride);
+        buffer_id = create_buffer (backend, min_width, min_height, &row_stride);
 
         if (buffer_id == 0) {
                 ply_trace ("Could not create minimal (%ux%u) 32bpp dummy buffer",
@@ -764,8 +1013,7 @@ has_32bpp_support (ply_renderer_backend_t *backend)
                 return false;
         }
 
-        backend->driver_interface->destroy_buffer (backend->driver,
-                                                   buffer_id);
+        destroy_buffer (backend, buffer_id);
 
         return true;
 }
@@ -842,15 +1090,11 @@ ply_renderer_head_set_scan_out_buffer_to_console (ply_renderer_backend_t *backen
         char *map_address;
         ply_rectangle_t area;
 
-        if (!backend->driver_interface->fetch_buffer (backend->driver,
-                                                      head->console_buffer_id,
-                                                      &width, &height, &row_stride))
+        if (!fetch_buffer (backend, head->console_buffer_id, &width, &height, &row_stride))
                 return false;
 
-        if (!backend->driver_interface->map_buffer (backend->driver,
-                                                    head->console_buffer_id)) {
-                backend->driver_interface->destroy_buffer (backend->driver,
-                                                           head->console_buffer_id);
+        if (!map_buffer (backend, head->console_buffer_id)) {
+                destroy_buffer (backend, head->console_buffer_id);
                 return false;
         }
 
@@ -879,25 +1123,20 @@ ply_renderer_head_set_scan_out_buffer_to_console (ply_renderer_backend_t *backen
         }
 
         ply_trace ("Drawing %s to console fb", should_set_to_black ? "black" : "screen contents");
-        map_address =
-                backend->driver_interface->begin_flush (backend->driver,
-                                                        head->console_buffer_id);
+        map_address = begin_flush (backend, head->console_buffer_id);
 
         flush_area ((char *) shadow_buffer, area.width * 4,
                     map_address, row_stride, &area);
 
-        backend->driver_interface->end_flush (backend->driver,
-                                              head->console_buffer_id);
+        end_flush (backend, head->console_buffer_id);
 
-        backend->driver_interface->unmap_buffer (backend->driver,
-                                                 head->console_buffer_id);
+        unmap_buffer (backend, head->console_buffer_id);
 
         ply_trace ("Setting scan out hardware to console fb");
         ply_renderer_head_set_scan_out_buffer (backend,
                                                head, head->console_buffer_id);
 
-        backend->driver_interface->destroy_buffer (backend->driver,
-                                                   head->console_buffer_id);
+        destroy_buffer (backend, head->console_buffer_id);
 
         if (pixel_buffer != NULL)
                 ply_pixel_buffer_free (pixel_buffer);
@@ -988,9 +1227,7 @@ flush_head (ply_renderer_backend_t *backend,
         updated_region = ply_pixel_buffer_get_updated_areas (pixel_buffer);
         areas_to_flush = ply_region_get_sorted_rectangle_list (updated_region);
 
-        map_address =
-                backend->driver_interface->begin_flush (backend->driver,
-                                                        head->scan_out_buffer_id);
+        map_address = begin_flush (backend, head->scan_out_buffer_id);
 
         node = ply_list_get_first_node (areas_to_flush);
         while (node != NULL) {
@@ -1010,8 +1247,7 @@ flush_head (ply_renderer_backend_t *backend,
                 node = next_node;
         }
 
-        backend->driver_interface->end_flush (backend->driver,
-                                              head->scan_out_buffer_id);
+        end_flush (backend, head->scan_out_buffer_id);
 
         ply_region_clear (updated_region);
 }

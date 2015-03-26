@@ -254,36 +254,6 @@ get_buffer_from_id (ply_renderer_backend_t *backend,
         return buffer;
 }
 
-static bool
-fetch_buffer (ply_renderer_backend_t *backend,
-              uint32_t               buffer_id,
-              unsigned long         *width,
-              unsigned long         *height,
-              unsigned long         *row_stride)
-{
-        ply_renderer_buffer_t *buffer;
-
-        buffer = get_buffer_from_id (backend, buffer_id);
-
-        if (buffer == NULL) {
-                ply_trace ("could not fetch buffer %u", buffer_id);
-                return false;
-        }
-
-        if (width != NULL)
-                *width = buffer->width;
-
-        if (height != NULL)
-                *height = buffer->height;
-
-        if (row_stride != NULL)
-                *row_stride = buffer->row_stride;
-
-        ply_trace ("fetched %ux%u buffer with stride %u",
-                   buffer->width, buffer->height, buffer->row_stride);
-        return true;
-}
-
 static uint32_t
 create_buffer (ply_renderer_backend_t *backend,
                unsigned long           width,
@@ -1077,84 +1047,10 @@ map_to_device (ply_renderer_backend_t *backend)
         return head_mapped;
 }
 
-static bool
-ply_renderer_head_set_scan_out_buffer_to_console (ply_renderer_backend_t *backend,
-                                                  ply_renderer_head_t    *head,
-                                                  bool                    should_set_to_black)
-{
-        unsigned long width;
-        unsigned long height;
-        unsigned long row_stride;
-        uint32_t *shadow_buffer;
-        ply_pixel_buffer_t *pixel_buffer;
-        char *map_address;
-        ply_rectangle_t area;
-
-        if (!fetch_buffer (backend, head->console_buffer_id, &width, &height, &row_stride))
-                return false;
-
-        if (!map_buffer (backend, head->console_buffer_id)) {
-                destroy_buffer (backend, head->console_buffer_id);
-                return false;
-        }
-
-        if (head->area.width != width || head->area.height != height) {
-                /* Force black if the fb console resolution doesn't match our resolution
-                 */
-                area.x = 0;
-                area.y = 0;
-                area.width = width;
-                area.height = height;
-
-                should_set_to_black = true;
-                ply_trace ("Console fb is %ldx%ld and screen contents are %ldx%ld. "
-                           "They aren't the same dimensions; forcing black",
-                           width, height, head->area.width, head->area.height);
-        } else {
-                area = head->area;
-        }
-
-        if (should_set_to_black) {
-                pixel_buffer = ply_pixel_buffer_new (width, height);
-                shadow_buffer = ply_pixel_buffer_get_argb32_data (pixel_buffer);
-        } else {
-                pixel_buffer = NULL;
-                shadow_buffer = ply_pixel_buffer_get_argb32_data (head->pixel_buffer);
-        }
-
-        ply_trace ("Drawing %s to console fb", should_set_to_black ? "black" : "screen contents");
-        map_address = begin_flush (backend, head->console_buffer_id);
-
-        flush_area ((char *) shadow_buffer, area.width * 4,
-                    map_address, row_stride, &area);
-
-        end_flush (backend, head->console_buffer_id);
-
-        unmap_buffer (backend, head->console_buffer_id);
-
-        ply_trace ("Setting scan out hardware to console fb");
-        ply_renderer_head_set_scan_out_buffer (backend,
-                                               head, head->console_buffer_id);
-
-        destroy_buffer (backend, head->console_buffer_id);
-
-        if (pixel_buffer != NULL)
-                ply_pixel_buffer_free (pixel_buffer);
-
-        return true;
-}
-
 static void
 unmap_from_device (ply_renderer_backend_t *backend)
 {
         ply_list_node_t *node;
-        bool should_set_to_black;
-
-        /* We only copy what's on screen back to the fb console
-         * if there's one head (since in multihead set ups the fb console
-         * is cloned).
-         */
-        should_set_to_black = ply_list_get_length (backend->heads) > 1;
 
         node = ply_list_get_first_node (backend->heads);
         while (node != NULL) {
@@ -1163,13 +1059,6 @@ unmap_from_device (ply_renderer_backend_t *backend)
 
                 head = (ply_renderer_head_t *) ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (backend->heads, node);
-
-                if (backend->is_active) {
-                        ply_trace ("scanning out %s directly to console",
-                                   should_set_to_black ? "black" : "splash");
-                        ply_renderer_head_set_scan_out_buffer_to_console (backend, head,
-                                                                          should_set_to_black);
-                }
 
                 ply_renderer_head_unmap (backend, head);
 

@@ -119,7 +119,7 @@ struct _ply_renderer_backend
         ply_list_t                      *heads;
         ply_hashtable_t                 *heads_by_connector_id;
 
-        ply_hashtable_t                 *buffers;
+        ply_hashtable_t                 *output_buffers;
 
         int32_t                          dither_red;
         int32_t                          dither_green;
@@ -249,16 +249,16 @@ get_buffer_from_id (ply_renderer_backend_t *backend,
 {
         static ply_renderer_buffer_t *buffer;
 
-        buffer = ply_hashtable_lookup (backend->buffers, (void *) (uintptr_t) id);
+        buffer = ply_hashtable_lookup (backend->output_buffers, (void *) (uintptr_t) id);
 
         return buffer;
 }
 
 static uint32_t
-create_buffer (ply_renderer_backend_t *backend,
-               unsigned long           width,
-               unsigned long           height,
-               unsigned long          *row_stride)
+create_output_buffer (ply_renderer_backend_t *backend,
+                      unsigned long           width,
+                      unsigned long           height,
+                      unsigned long          *row_stride)
 {
         ply_renderer_buffer_t *buffer;
 
@@ -280,7 +280,7 @@ create_buffer (ply_renderer_backend_t *backend,
         *row_stride = buffer->row_stride;
 
         buffer->added_fb = true;
-        ply_hashtable_insert (backend->buffers,
+        ply_hashtable_insert (backend->output_buffers,
                               (void *) (uintptr_t) buffer->id,
                               buffer);
 
@@ -353,12 +353,12 @@ end_flush (ply_renderer_backend_t *backend,
 }
 
 static void
-destroy_buffer (ply_renderer_backend_t *backend,
-                uint32_t                buffer_id)
+destroy_output_buffer (ply_renderer_backend_t *backend,
+                       uint32_t                buffer_id)
 {
         ply_renderer_buffer_t *buffer;
 
-        buffer = ply_hashtable_remove (backend->buffers,
+        buffer = ply_hashtable_remove (backend->output_buffers,
                                        (void *) (uintptr_t) buffer_id);
 
         assert (buffer != NULL);
@@ -486,16 +486,16 @@ ply_renderer_head_map (ply_renderer_backend_t *backend,
         assert (head != NULL);
 
         ply_trace ("Creating buffer for %ldx%ld renderer head", head->area.width, head->area.height);
-        head->scan_out_buffer_id = create_buffer (backend,
-                                                  head->area.width, head->area.height,
-                                                  &head->row_stride);
+        head->scan_out_buffer_id = create_output_buffer (backend,
+                                                         head->area.width, head->area.height,
+                                                         &head->row_stride);
 
         if (head->scan_out_buffer_id == 0)
                 return false;
 
         ply_trace ("Mapping buffer for %ldx%ld renderer head", head->area.width, head->area.height);
         if (!map_buffer (backend, head->scan_out_buffer_id)) {
-                destroy_buffer (backend, head->scan_out_buffer_id);
+                destroy_output_buffer (backend, head->scan_out_buffer_id);
                 head->scan_out_buffer_id = 0;
                 return false;
         }
@@ -507,7 +507,7 @@ ply_renderer_head_map (ply_renderer_backend_t *backend,
 
         scan_out_set = reset_scan_out_buffer_if_needed (backend, head);
         if (!scan_out_set && backend->is_active) {
-                destroy_buffer (backend, head->scan_out_buffer_id);
+                destroy_output_buffer (backend, head->scan_out_buffer_id);
                 head->scan_out_buffer_id = 0;
                 return false;
         }
@@ -522,7 +522,7 @@ ply_renderer_head_unmap (ply_renderer_backend_t *backend,
         ply_trace ("unmapping %ldx%ld renderer head", head->area.width, head->area.height);
         unmap_buffer (backend, head->scan_out_buffer_id);
 
-        destroy_buffer (backend, head->scan_out_buffer_id);
+        destroy_output_buffer (backend, head->scan_out_buffer_id);
         head->scan_out_buffer_id = 0;
 }
 
@@ -609,8 +609,8 @@ create_backend (const char     *device_name,
         backend->input_source.key_buffer = ply_buffer_new ();
         backend->terminal = terminal;
         backend->requires_explicit_flushing = true;
-        backend->buffers = ply_hashtable_new (ply_hashtable_direct_hash,
-                                              ply_hashtable_direct_compare);
+        backend->output_buffers = ply_hashtable_new (ply_hashtable_direct_hash,
+                                                     ply_hashtable_direct_compare);
 
         return backend;
 }
@@ -622,7 +622,7 @@ destroy_backend (ply_renderer_backend_t *backend)
         free_heads (backend);
 
         free (backend->device_name);
-        ply_hashtable_free (backend->buffers);
+        ply_hashtable_free (backend->output_buffers);
 
         drmModeFreeResources (backend->resources);
 
@@ -976,7 +976,7 @@ has_32bpp_support (ply_renderer_backend_t *backend)
         if (min_height == 0)
                 min_height = 1;
 
-        buffer_id = create_buffer (backend, min_width, min_height, &row_stride);
+        buffer_id = create_output_buffer (backend, min_width, min_height, &row_stride);
 
         if (buffer_id == 0) {
                 ply_trace ("Could not create minimal (%ux%u) 32bpp dummy buffer",
@@ -985,7 +985,7 @@ has_32bpp_support (ply_renderer_backend_t *backend)
                 return false;
         }
 
-        destroy_buffer (backend, buffer_id);
+        destroy_output_buffer (backend, buffer_id);
 
         return true;
 }

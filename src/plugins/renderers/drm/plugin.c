@@ -624,6 +624,8 @@ destroy_backend (ply_renderer_backend_t *backend)
         free (backend->device_name);
         ply_hashtable_free (backend->buffers);
 
+        drmModeFreeResources (backend->resources);
+
         free (backend);
 }
 

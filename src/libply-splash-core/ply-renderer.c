@@ -55,6 +55,7 @@ struct _ply_renderer
 
         uint32_t                               input_source_is_open : 1;
         uint32_t                               is_mapped : 1;
+        uint32_t                               is_active : 1;
 };
 
 typedef const ply_renderer_plugin_interface_t *
@@ -268,15 +269,19 @@ ply_renderer_open (ply_renderer_t *renderer)
                 { PLY_RENDERER_TYPE_NONE,         NULL                                             }
         };
 
+        renderer->is_active = false;
         for (i = 0; known_plugins[i].type != PLY_RENDERER_TYPE_NONE; i++) {
                 if (renderer->type == known_plugins[i].type ||
                     renderer->type == PLY_RENDERER_TYPE_AUTO)
-                        if (ply_renderer_open_plugin (renderer, known_plugins[i].path))
-                                return true;
+                        if (ply_renderer_open_plugin (renderer, known_plugins[i].path)) {
+                                renderer->is_active = true;
+                                goto out;
+                        }
         }
 
         ply_trace ("could not find suitable rendering plugin");
-        return false;
+out:
+        return renderer->is_active;
 }
 
 void
@@ -284,6 +289,7 @@ ply_renderer_close (ply_renderer_t *renderer)
 {
         ply_renderer_unmap_from_device (renderer);
         ply_renderer_close_device (renderer);
+        renderer->is_active = false;
 }
 
 void
@@ -291,7 +297,11 @@ ply_renderer_activate (ply_renderer_t *renderer)
 {
         assert (renderer->plugin_interface != NULL);
 
-        return renderer->plugin_interface->activate (renderer->backend);
+        if (renderer->is_active)
+              return;
+
+        renderer->plugin_interface->activate (renderer->backend);
+        renderer->is_active = true;
 }
 
 void
@@ -300,6 +310,12 @@ ply_renderer_deactivate (ply_renderer_t *renderer)
         assert (renderer->plugin_interface != NULL);
 
         return renderer->plugin_interface->deactivate (renderer->backend);
+}
+
+bool
+ply_renderer_is_active (ply_renderer_t *renderer)
+{
+        return renderer->is_active;
 }
 
 ply_list_t *

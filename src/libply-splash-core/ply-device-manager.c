@@ -97,33 +97,6 @@ attach_to_event_loop (ply_device_manager_t *manager,
 }
 
 static bool
-device_is_for_local_console (ply_device_manager_t *manager,
-                             struct udev_device   *device)
-{
-        const char *device_path;
-        struct udev_device *bus_device;
-        char *bus_device_path;
-        const char *boot_vga;
-        bool for_local_console;
-
-        /* Look at the associated bus device to see if this card is the
-         * card the kernel is using for its console. */
-        device_path = udev_device_get_syspath (device);
-        asprintf (&bus_device_path, "%s/device", device_path);
-        bus_device = udev_device_new_from_syspath (manager->udev_context, bus_device_path);
-
-        boot_vga = udev_device_get_sysattr_value (bus_device, "boot_vga");
-        free (bus_device_path);
-
-        if (boot_vga != NULL && strcmp (boot_vga, "1") == 0)
-                for_local_console = true;
-        else
-                for_local_console = false;
-
-        return for_local_console;
-}
-
-static bool
 drm_device_in_use (ply_device_manager_t *manager,
                    const char           *device_path)
 {
@@ -186,16 +159,7 @@ static void
 create_devices_for_udev_device (ply_device_manager_t *manager,
                                 struct udev_device   *device)
 {
-        bool for_local_console;
         const char *device_path;
-        ply_terminal_t *terminal = NULL;
-
-        for_local_console = device_is_for_local_console (manager, device);
-
-        ply_trace ("device is for local console: %s", for_local_console ? "yes" : "no");
-
-        if (for_local_console)
-                terminal = manager->local_console_terminal;
 
         device_path = udev_device_get_devnode (device);
 
@@ -218,6 +182,12 @@ create_devices_for_udev_device (ply_device_manager_t *manager,
                 }
 
                 if (renderer_type != PLY_RENDERER_TYPE_NONE) {
+                        ply_terminal_t *terminal = NULL;
+
+                        if (!manager->local_console_managed) {
+                                terminal = manager->local_console_terminal;
+                        }
+
                         create_devices_for_terminal_and_renderer_type (manager,
                                                                     device_path,
                                                                     terminal,
@@ -678,13 +648,10 @@ create_devices_for_terminal_and_renderer_type (ply_device_manager_t *manager,
         ply_renderer_t *renderer = NULL;
         ply_keyboard_t *keyboard = NULL;
 
-        bool is_local_terminal = false;
+        renderer = ply_hashtable_lookup (manager->renderers, (void *) device_path);
 
-        if (terminal != NULL && manager->local_console_terminal == terminal)
-                is_local_terminal = true;
-
-        if (is_local_terminal && manager->local_console_managed) {
-                ply_trace ("trying to create devices for local console when one already exists");
+        if (renderer != NULL) {
+                ply_trace ("ignoring device %s since it's already managed", device_path);
                 return;
         }
 
@@ -723,18 +690,15 @@ create_devices_for_terminal_and_renderer_type (ply_device_manager_t *manager,
         if (terminal != NULL) {
                 create_text_displays_for_terminal (manager, terminal);
 
-                if (is_local_terminal)
-                {
-                        manager->local_console_is_text = true;
+                if (terminal == manager->local_console_terminal) {
+                        manager->local_console_is_text = renderer == NULL;
+                        manager->local_console_managed = true;
                 }
         }
 
         if (keyboard != NULL) {
                 ply_keyboard_watch_for_input (keyboard);
         }
-
-        if (is_local_terminal)
-                manager->local_console_managed = true;
 }
 
 static void

@@ -71,6 +71,7 @@ struct _ply_device_manager
 
         uint32_t                    local_console_managed : 1;
         uint32_t                    local_console_is_text : 1;
+        uint32_t                    serial_consoles_detected : 1;
 };
 
 static void
@@ -727,6 +728,8 @@ create_devices_from_terminals (ply_device_manager_t *manager)
 
         if (has_serial_consoles) {
                 ply_trace ("serial consoles detected, managing them with details forced");
+                manager->serial_consoles_detected = true;
+
                 ply_hashtable_foreach (manager->terminals,
                                        (ply_hashtable_foreach_func_t *)
                                        create_devices_for_terminal,
@@ -887,6 +890,12 @@ ply_terminal_t *
 ply_device_manager_get_default_terminal (ply_device_manager_t *manager)
 {
         return manager->local_console_terminal;
+}
+
+bool
+ply_device_manager_has_serial_consoles (ply_device_manager_t *manager)
+{
+        return manager->serial_consoles_detected;
 }
 
 static void

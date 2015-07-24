@@ -53,6 +53,7 @@ void ply_device_manager_watch_devices (ply_device_manager_t                *mana
                                        ply_text_display_added_handler_t     text_display_added_handler,
                                        ply_text_display_removed_handler_t   text_display_removed_handler,
                                        void                                *data);
+bool ply_device_manager_has_serial_consoles (ply_device_manager_t *manager);
 bool ply_device_manager_has_displays (ply_device_manager_t *manager);
 ply_list_t *ply_device_manager_get_keyboards (ply_device_manager_t *manager);
 ply_list_t *ply_device_manager_get_pixel_displays (ply_device_manager_t *manager);

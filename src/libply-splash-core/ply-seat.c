@@ -48,8 +48,6 @@ struct _ply_seat
         ply_keyboard_t    *keyboard;
         ply_list_t        *text_displays;
         ply_list_t        *pixel_displays;
-
-        uint32_t           keyboard_active : 1;
 };
 
 ply_seat_t *
@@ -153,7 +151,6 @@ ply_seat_open (ply_seat_t         *seat,
 
         if (seat->keyboard != NULL) {
                 ply_keyboard_watch_for_input (seat->keyboard);
-                seat->keyboard_active = true;
         } else {
                 ply_trace ("not watching seat for input");
         }
@@ -171,11 +168,6 @@ ply_seat_is_open (ply_seat_t *seat)
 void
 ply_seat_deactivate_keyboard (ply_seat_t *seat)
 {
-        if (!seat->keyboard_active)
-                return;
-
-        seat->keyboard_active = false;
-
         if (seat->keyboard == NULL)
                 return;
 
@@ -196,24 +188,16 @@ ply_seat_deactivate_renderer (ply_seat_t *seat)
 void
 ply_seat_activate_keyboard (ply_seat_t *seat)
 {
-        if (seat->keyboard_active)
-                return;
-
         if (seat->keyboard == NULL)
                 return;
 
         ply_trace ("activating keyboard");
         ply_keyboard_watch_for_input (seat->keyboard);
-
-        seat->keyboard_active = true;
 }
 
 void
 ply_seat_activate_renderer (ply_seat_t *seat)
 {
-        if (seat->renderer_active)
-                return;
-
         if (seat->renderer == NULL)
                 return;
 

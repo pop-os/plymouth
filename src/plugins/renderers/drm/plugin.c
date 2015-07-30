@@ -707,13 +707,14 @@ unload_backend (ply_renderer_backend_t *backend)
 
         ply_trace ("unloading backend");
 
-        destroy_backend (backend);
-        backend = NULL;
-
         if (backend->device_fd >= 0) {
                 drmClose (backend->device_fd);
                 backend->device_fd = -1;
         }
+
+        destroy_backend (backend);
+        backend = NULL;
+
 }
 
 static bool

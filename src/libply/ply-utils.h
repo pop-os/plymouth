@@ -120,6 +120,11 @@ int ply_utf8_string_get_length (const char *string,
 char *ply_get_process_command_line (pid_t pid);
 pid_t ply_get_process_parent_pid (pid_t pid);
 
+int ply_get_device_scale (uint32_t width,
+                          uint32_t height,
+                          uint32_t width_mm,
+                          uint32_t height_mm);
+
 #endif
 
 #endif /* PLY_UTILS_H */

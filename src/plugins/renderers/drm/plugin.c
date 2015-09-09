@@ -54,18 +54,13 @@
 #include "ply-hashtable.h"
 #include "ply-rectangle.h"
 #include "ply-region.h"
+#include "ply-utils.h"
 #include "ply-terminal.h"
 
 #include "ply-renderer.h"
 #include "ply-renderer-plugin.h"
 
 #define BYTES_PER_PIXEL (4)
-
-/* The minimum resolution at which we turn on a device-scale of 2 */
-#define HIDPI_LIMIT 192
-#define HIDPI_MIN_HEIGHT 1200
-/* From http://en.wikipedia.org/wiki/4K_resolution#Resolutions_of_common_formats */
-#define SMALLEST_4K_WIDTH 3656
 
 struct _ply_renderer_head
 {
@@ -397,40 +392,6 @@ ply_renderer_head_add_connector (ply_renderer_head_t *head,
         return true;
 }
 
-static int get_device_scale (uint32_t width,
-                             uint32_t height,
-                             uint32_t width_mm,
-                             uint32_t height_mm)
-{
-        int device_scale;
-        double dpi_x, dpi_y;
-
-        device_scale = 1;
-
-        if (height < HIDPI_MIN_HEIGHT)
-                return 1;
-
-        /* Somebody encoded the aspect ratio (16/9 or 16/10)
-         * instead of the physical size */
-        if ((width_mm == 160 && height_mm == 90) ||
-            (width_mm == 160 && height_mm == 100) ||
-            (width_mm == 16 && height_mm == 9) ||
-            (width_mm == 16 && height_mm == 10))
-                return 1;
-
-        if (width_mm > 0 && height_mm > 0) {
-                dpi_x = (double)width / (width_mm / 25.4);
-                dpi_y = (double)height / (height_mm / 25.4);
-                /* We don't completely trust these values so both
-                   must be high, and never pick higher ratio than
-                   2 automatically */
-                if (dpi_x > HIDPI_LIMIT && dpi_y > HIDPI_LIMIT)
-                        device_scale = 2;
-        }
-
-        return device_scale;
-}
-
 static ply_renderer_head_t *
 ply_renderer_head_new (ply_renderer_backend_t *backend,
                        drmModeConnector       *connector,
@@ -466,10 +427,10 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
 
         head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
         ply_pixel_buffer_set_device_scale (head->pixel_buffer,
-                                           get_device_scale (head->area.width,
-                                                             head->area.height,
-                                                             connector->mmWidth,
-                                                             connector->mmHeight));
+                                           ply_get_device_scale (head->area.width,
+                                                                 head->area.height,
+                                                                 connector->mmWidth,
+                                                                 connector->mmHeight));
 
         ply_trace ("Creating %ldx%ld renderer head", head->area.width, head->area.height);
         ply_pixel_buffer_fill_with_color (head->pixel_buffer, NULL,

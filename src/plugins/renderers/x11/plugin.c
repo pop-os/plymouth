@@ -56,6 +56,7 @@
 #include "ply-logger.h"
 #include "ply-rectangle.h"
 #include "ply-region.h"
+#include "ply-utils.h"
 
 #include "ply-renderer.h"
 #include "ply-renderer-plugin.h"
@@ -209,50 +210,6 @@ create_fake_multi_head_setup (ply_renderer_backend_t *backend)
         ply_list_append_data (backend->heads, head);
 }
 
-/* The minimum resolution at which we turn on a device-scale of 2 */
-#define HIDPI_LIMIT 192
-#define HIDPI_MIN_HEIGHT 1200
-/* From http://en.wikipedia.org/wiki/4K_resolution#Resolutions_of_common_formats */
-#define SMALLEST_4K_WIDTH 3656
-
-static int get_device_scale (uint32_t width,
-                             uint32_t height,
-                             uint32_t width_mm,
-                             uint32_t height_mm)
-{
-        int device_scale;
-        double dpi_x, dpi_y;
-        const char *force_device_scale;
-
-        device_scale = 1;
-
-        if ((force_device_scale = getenv ("PLYMOUTH_FORCE_SCALE")))
-                return strtoul (force_device_scale, NULL, 0);
-
-        if (height < HIDPI_MIN_HEIGHT)
-                return 1;
-
-        /* Somebody encoded the aspect ratio (16/9 or 16/10)
-         * instead of the physical size */
-        if ((width_mm == 160 && height_mm == 90) ||
-            (width_mm == 160 && height_mm == 100) ||
-            (width_mm == 16 && height_mm == 9) ||
-            (width_mm == 16 && height_mm == 10))
-                return 1;
-
-        if (width_mm > 0 && height_mm > 0) {
-                dpi_x = (double)width / (width_mm / 25.4);
-                dpi_y = (double)height / (height_mm / 25.4);
-                /* We don't completely trust these values so both
-                   must be high, and never pick higher ratio than
-                   2 automatically */
-                if (dpi_x > HIDPI_LIMIT && dpi_y > HIDPI_LIMIT)
-                        device_scale = 2;
-        }
-
-        return device_scale;
-}
-
 static void
 create_fullscreen_single_head_setup (ply_renderer_backend_t *backend)
 {
@@ -272,9 +229,9 @@ create_fullscreen_single_head_setup (ply_renderer_backend_t *backend)
         head->area.width = monitor_geometry.width;
         head->area.height = monitor_geometry.height;
         head->is_fullscreen = true;
-        head->scale = get_device_scale (monitor_geometry.width,
-                                        monitor_geometry.height,
-                                        width_mm, height_mm);
+        head->scale = ply_get_device_scale (monitor_geometry.width,
+                                            monitor_geometry.height,
+                                            width_mm, height_mm);
         head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
         ply_pixel_buffer_set_device_scale (head->pixel_buffer, head->scale);
 

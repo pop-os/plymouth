@@ -295,8 +295,12 @@ load_views (ply_boot_splash_plugin_t *plugin)
                 view = ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (plugin->views, node);
 
-                if (view_load (view))
+                if (view_load (view)) {
                         view_loaded = true;
+                } else {
+                        ply_list_remove_node (plugin->views, node);
+                        view_free (view);
+                }
 
                 node = next_node;
         }

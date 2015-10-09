@@ -1037,6 +1037,8 @@ on_pixel_display_added (state_t             *state,
                 } else {
                         ply_trace ("pixel display added after splash loaded, so attaching to splash");
                         ply_boot_splash_add_pixel_display (state->boot_splash, display);
+
+                        update_display (state);
                 }
         }
 }
@@ -1062,6 +1064,8 @@ on_text_display_added (state_t            *state,
                 } else {
                         ply_trace ("text display added after splash loaded, so attaching to splash");
                         ply_boot_splash_add_text_display (state->boot_splash, display);
+
+                        update_display (state);
                 }
         }
 }

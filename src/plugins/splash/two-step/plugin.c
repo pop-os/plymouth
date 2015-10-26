@@ -267,11 +267,15 @@ view_load (view_t *view)
 
         view_load_end_animation (view);
 
-        ply_trace ("loading progress animation");
-        if (!ply_progress_animation_load (view->progress_animation)) {
-                ply_trace ("optional progress animation wouldn't load");
-                ply_progress_animation_free (view->progress_animation);
-                view->progress_animation = NULL;
+        if (view->progress_animation != NULL) {
+                ply_trace ("loading progress animation");
+                if (!ply_progress_animation_load (view->progress_animation)) {
+                        ply_trace ("optional progress animation wouldn't load");
+                        ply_progress_animation_free (view->progress_animation);
+                        view->progress_animation = NULL;
+                }
+        } else {
+                ply_trace ("this theme has no progress animation");
         }
 
         if (view->throbber != NULL) {
@@ -1334,8 +1338,8 @@ system_update (ply_boot_splash_plugin_t *plugin,
 
                 view = ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (plugin->views, node);
-                ply_progress_animation_set_percent_done (view->progress_animation,
-                                                         (double) progress / 100.f);
+                if (view->progress_animation != NULL)
+                        ply_progress_animation_set_percent_done (view->progress_animation, (double) progress / 100.f);
                 node = next_node;
         }
 }

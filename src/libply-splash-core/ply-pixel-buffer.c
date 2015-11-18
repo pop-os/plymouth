@@ -809,7 +809,7 @@ ply_pixel_buffer_resize (ply_pixel_buffer_t *old_buffer,
         int x, y;
         double old_x, old_y;
         int old_width, old_height;
-        float scale_x, scale_y;
+        double scale_x, scale_y;
         uint32_t *bytes;
 
         buffer = ply_pixel_buffer_new (width, height);

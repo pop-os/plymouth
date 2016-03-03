@@ -33,12 +33,10 @@
 #include "ply-pixel-display.h"
 #include "ply-text-display.h"
 #include "ply-progress.h"
-#include "ply-seat.h"
 
 #include "ply-boot-splash-plugin.h"
 
 typedef struct _ply_boot_splash ply_boot_splash_t;
-typedef struct _ply_seat ply_seat_t;
 
 typedef void (*ply_boot_splash_on_idle_handler_t) (void *user_data);
 

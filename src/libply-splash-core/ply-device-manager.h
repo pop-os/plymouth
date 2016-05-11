@@ -46,6 +46,7 @@ typedef void (* ply_text_display_removed_handler_t) (void *, ply_text_display_t 
 ply_device_manager_t *ply_device_manager_new (const char                *default_tty,
                                               ply_device_manager_flags_t flags);
 void ply_device_manager_watch_devices (ply_device_manager_t                *manager,
+                                       double                               device_timeout,
                                        ply_keyboard_added_handler_t         keyboard_added_handler,
                                        ply_keyboard_removed_handler_t       keyboard_removed_handler,
                                        ply_pixel_display_added_handler_t    pixel_display_added_handler,

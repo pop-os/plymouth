@@ -41,6 +41,8 @@
 #define SUBSYSTEM_DRM "drm"
 #define SUBSYSTEM_FRAME_BUFFER "graphics"
 
+static void create_devices_from_udev (ply_device_manager_t *manager);
+
 static void create_devices_for_terminal_and_renderer_type (ply_device_manager_t *manager,
                                                            const char           *device_path,
                                                            ply_terminal_t       *terminal,
@@ -56,9 +58,6 @@ struct _ply_device_manager
         ply_list_t                *text_displays;
         ply_list_t                *pixel_displays;
         struct udev               *udev_context;
-        struct udev_queue         *udev_queue;
-        int                        udev_queue_fd;
-        ply_fd_watch_t            *udev_queue_fd_watch;
         struct udev_monitor       *udev_monitor;
 
         ply_keyboard_added_handler_t         keyboard_added_handler;
@@ -341,18 +340,16 @@ on_udev_event (ply_device_manager_t *manager)
 
         if (strcmp (action, "add") == 0) {
                 const char *subsystem;
-                bool coldplug_complete = manager->udev_queue_fd_watch == NULL;
 
                 subsystem = udev_device_get_subsystem (device);
 
-                if (strcmp (subsystem, SUBSYSTEM_DRM) == 0 ||
-                    coldplug_complete) {
-                        if (coldplug_complete && manager->local_console_managed && manager->local_console_is_text)
+                if (strcmp (subsystem, SUBSYSTEM_DRM) == 0) {
+                        if (manager->local_console_managed && manager->local_console_is_text)
                                 ply_trace ("ignoring since we're already using text splash for local console");
                         else
                                 create_devices_for_udev_device (manager, device);
                 } else {
-                        ply_trace ("ignoring since we only handle subsystem %s devices after coldplug completes", subsystem);
+                        ply_trace ("ignoring since we only handle subsystem %s devices after timeout", subsystem);
                 }
         } else if (strcmp (action, "remove") == 0) {
                 free_devices_for_udev_device (manager, device);
@@ -492,6 +489,10 @@ ply_device_manager_free (ply_device_manager_t *manager)
 
         if (manager == NULL)
                 return;
+
+        ply_event_loop_stop_watching_for_timeout (manager->loop,
+                                         (ply_event_loop_timeout_handler_t)
+                                         create_devices_from_udev, manager);
 
         ply_event_loop_stop_watching_for_exit (manager->loop,
                                                (ply_event_loop_exit_handler_t)
@@ -745,7 +746,7 @@ create_devices_from_udev (ply_device_manager_t *manager)
 {
         bool found_drm_device, found_fb_device;
 
-        ply_trace ("Looking for devices from udev");
+        ply_trace ("Timeout elapsed, looking for devices from udev");
 
         found_drm_device = create_devices_for_subsystem (manager, SUBSYSTEM_DRM);
         found_fb_device = create_devices_for_subsystem (manager, SUBSYSTEM_FRAME_BUFFER);
@@ -769,63 +770,9 @@ create_fallback_devices (ply_device_manager_t *manager)
                                                        PLY_RENDERER_TYPE_AUTO);
 }
 
-static void
-on_udev_queue_changed (ply_device_manager_t *manager)
-{
-        if (!udev_queue_get_queue_is_empty (manager->udev_queue))
-                return;
-
-        ply_trace ("udev coldplug complete");
-        ply_event_loop_stop_watching_fd (manager->loop, manager->udev_queue_fd_watch);
-        manager->udev_queue_fd_watch = NULL;
-        udev_queue_unref (manager->udev_queue);
-
-        close (manager->udev_queue_fd);
-        manager->udev_queue_fd = -1;
-
-        manager->udev_queue = NULL;
-
-        create_devices_from_udev (manager);
-}
-
-static void
-watch_for_coldplug_completion (ply_device_manager_t *manager)
-{
-        int fd;
-        int result;
-
-        manager->udev_queue = udev_queue_new (manager->udev_context);
-
-        if (udev_queue_get_queue_is_empty (manager->udev_queue)) {
-                ply_trace ("udev coldplug completed already ");
-                create_devices_from_udev (manager);
-                return;
-        }
-
-        fd = inotify_init1 (IN_CLOEXEC);
-        result = inotify_add_watch (fd, "/run/udev", IN_MOVED_TO| IN_DELETE);
-
-        if (result < 0) {
-                ply_trace ("could not watch for udev to show up: %m");
-                close (fd);
-
-                create_fallback_devices (manager);
-                return;
-        }
-
-        manager->udev_queue_fd = fd;
-
-        manager->udev_queue_fd_watch = ply_event_loop_watch_fd (manager->loop,
-                                                                fd,
-                                                                PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
-                                                                (ply_event_handler_t)
-                                                                on_udev_queue_changed,
-                                                                NULL,
-                                                                manager);
-}
-
 void
 ply_device_manager_watch_devices (ply_device_manager_t                *manager,
+                                  double                               device_timeout,
                                   ply_keyboard_added_handler_t         keyboard_added_handler,
                                   ply_keyboard_removed_handler_t       keyboard_removed_handler,
                                   ply_pixel_display_added_handler_t    pixel_display_added_handler,
@@ -858,7 +805,10 @@ ply_device_manager_watch_devices (ply_device_manager_t                *manager,
         }
 
         watch_for_udev_events (manager);
-        watch_for_coldplug_completion (manager);
+        ply_event_loop_watch_for_timeout (manager->loop,
+                                         device_timeout,
+                                         (ply_event_loop_timeout_handler_t)
+                                         create_devices_from_udev, manager);
 }
 
 bool

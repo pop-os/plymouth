@@ -107,6 +107,7 @@ typedef struct
 
         double                  start_time;
         double                  splash_delay;
+        double                  device_timeout;
 
         char                    kernel_command_line[PLY_MAX_COMMAND_LINE_SIZE];
         uint32_t                kernel_command_line_is_set : 1;
@@ -293,7 +294,6 @@ load_settings (state_t    *state,
                char      **theme_path)
 {
         ply_key_file_t *key_file = NULL;
-        const char *delay_string;
         bool settings_loaded = false;
         const char *splash_string;
 
@@ -313,11 +313,24 @@ load_settings (state_t    *state,
                   splash_string, splash_string);
 
         if (isnan (state->splash_delay)) {
+                const char *delay_string;
+
                 delay_string = ply_key_file_get_value (key_file, "Daemon", "ShowDelay");
 
                 if (delay_string != NULL) {
                         state->splash_delay = atof (delay_string);
                         ply_trace ("Splash delay is set to %lf", state->splash_delay);
+                }
+        }
+
+        if (isnan (state->device_timeout)) {
+                const char *timeout_string;
+
+                timeout_string = ply_key_file_get_value (key_file, "Daemon", "DeviceTimeout");
+
+                if (timeout_string != NULL) {
+                        state->device_timeout = atof (timeout_string);
+                        ply_trace ("Device timeout is set to %lf", state->device_timeout);
                 }
         }
 
@@ -1071,6 +1084,7 @@ load_devices (state_t                   *state,
         state->local_console_terminal = ply_device_manager_get_default_terminal (state->device_manager);
 
         ply_device_manager_watch_devices (state->device_manager,
+                                          state->device_timeout,
                                           (ply_keyboard_added_handler_t)
                                           on_keyboard_added,
                                           (ply_keyboard_removed_handler_t)
@@ -2270,6 +2284,7 @@ main (int    argc,
 
         state.progress = ply_progress_new ();
         state.splash_delay = NAN;
+        state.device_timeout = NAN;
 
         ply_progress_load_cache (state.progress,
                                  get_cache_file_for_mode (state.mode));

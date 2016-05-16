@@ -408,7 +408,10 @@ inst ${PLYMOUTH_PLUGIN_PATH}/${PLYMOUTH_MODULE_NAME}.so $INITRDDIR
 inst ${PLYMOUTH_PLUGIN_PATH}/renderers/frame-buffer.so $INITRDDIR
 
 if [ -d ${PLYMOUTH_DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME} ]; then
-    inst ${PLYMOUTH_DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME} $INITRDDIR
+    for x in ${PLYMOUTH_DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME}/* ; do
+        [ ! -f "$x" ] && continue
+        inst $x $INITRDDIR
+    done
 fi
 
 if [ -L ${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth ]; then

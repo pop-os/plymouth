@@ -2071,11 +2071,14 @@ on_crash (int signum)
 {
         struct termios term_attributes;
         int fd;
+        static const char *show_cursor_sequence = "\033[?25h";
 
         fd = open ("/dev/tty1", O_RDWR | O_NOCTTY);
         if (fd < 0) fd = open ("/dev/hvc0", O_RDWR | O_NOCTTY);
 
         ioctl (fd, KDSETMODE, KD_TEXT);
+
+        write (fd, show_cursor_sequence, sizeof (show_cursor_sequence) - 1);
 
         tcgetattr (fd, &term_attributes);
 

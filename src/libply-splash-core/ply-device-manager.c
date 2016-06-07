@@ -669,6 +669,7 @@ create_devices_for_terminal_and_renderer_type (ply_device_manager_t *manager,
                 if (!ply_renderer_open (renderer)) {
                         ply_trace ("could not open renderer for %s", device_path);
                         ply_renderer_free (renderer);
+                        renderer = NULL;
 
                         if (renderer_type != PLY_RENDERER_TYPE_AUTO)
                                 return;

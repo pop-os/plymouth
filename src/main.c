@@ -358,6 +358,8 @@ show_detailed_splash (state_t *state)
         }
 
         state->boot_splash = splash;
+
+        show_messages (state);
         update_display (state);
 }
 
@@ -505,6 +507,7 @@ show_default_splash (state_t *state)
                 return;
         }
 
+        show_messages (state);
         update_display (state);
 }
 
@@ -1738,7 +1741,6 @@ show_theme (state_t    *state,
 #endif
 
         ply_device_manager_activate_keyboards (state->device_manager);
-        show_messages (state);
 
         return splash;
 }

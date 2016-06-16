@@ -816,6 +816,7 @@ ply_device_manager_watch_devices (ply_device_manager_t                *manager,
         }
 
         watch_for_udev_events (manager);
+        create_devices_for_subsystem (manager, SUBSYSTEM_DRM);
         ply_event_loop_watch_for_timeout (manager->loop,
                                          device_timeout,
                                          (ply_event_loop_timeout_handler_t)

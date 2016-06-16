@@ -551,7 +551,7 @@ ply_terminal_open_device (ply_terminal_t *terminal)
         assert (terminal->fd < 0);
         assert (terminal->fd_watch == NULL);
 
-        terminal->fd = open (terminal->name, O_RDWR | O_NOCTTY);
+        terminal->fd = open (terminal->name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
         if (terminal->fd < 0) {
                 ply_trace ("Unable to open terminal device '%s': %m", terminal->name);
@@ -569,6 +569,8 @@ ply_terminal_open_device (ply_terminal_t *terminal)
                 terminal->number_of_reopen_tries = 0;
                 return PLY_TERMINAL_OPEN_RESULT_FAILURE;
         }
+
+        ply_set_fd_as_blocking (terminal->fd);
 
         terminal->fd_watch = ply_event_loop_watch_fd (terminal->loop, terminal->fd,
                                                       PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,

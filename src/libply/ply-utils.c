@@ -421,6 +421,29 @@ ply_fd_may_block (int fd)
         return (flags & O_NONBLOCK) != 0;
 }
 
+bool
+ply_set_fd_as_blocking (int fd)
+{
+        int flags;
+        int ret = 0;
+
+        assert (fd >= 0);
+
+        flags = fcntl (fd, F_GETFL);
+
+        if (flags == -1) {
+                return false;
+        }
+
+        if (flags & O_NONBLOCK) {
+                flags &= ~O_NONBLOCK;
+
+                ret = fcntl (fd, F_SETFL, flags);
+        }
+
+        return ret == 0;
+}
+
 char **
 ply_copy_string_array (const char *const *array)
 {

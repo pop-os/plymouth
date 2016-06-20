@@ -702,6 +702,8 @@ load_driver (ply_renderer_backend_t *backend)
 
         backend->device_fd = device_fd;
 
+        drmDropMaster (device_fd);
+
         return true;
 }
 

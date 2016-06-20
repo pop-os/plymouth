@@ -92,7 +92,7 @@ bool ply_logger_is_tracing_enabled (ply_logger_t *logger);
                         ply_logger_flush (logger);                                             \
                         errno = _old_errno;                                                    \
                         ply_logger_inject (logger,                                             \
-                                           "[%s:%d] %45.45s:" format "\r\n",                   \
+                                           "[%s:%d] %45.45s:" format "\n",                   \
                                            __FILE__, __LINE__, __func__, ## args);              \
                         ply_logger_flush (logger);                                             \
                         errno = _old_errno;                                                    \

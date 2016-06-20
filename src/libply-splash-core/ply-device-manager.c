@@ -691,6 +691,9 @@ create_devices_for_terminal_and_renderer_type (ply_device_manager_t *manager,
                         ply_trace ("activating renderer");
                         ply_renderer_activate (renderer);
                 }
+
+                if (terminal != NULL)
+                        ply_terminal_refresh_geometry (terminal);
         } else if (terminal != NULL) {
                 keyboard = ply_keyboard_new_for_terminal (terminal);
                 ply_list_append_data (manager->keyboards, keyboard);

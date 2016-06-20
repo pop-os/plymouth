@@ -387,8 +387,8 @@ on_tty_disconnected (ply_terminal_t *terminal)
         ply_terminal_reopen_device (terminal);
 }
 
-static bool
-ply_terminal_look_up_geometry (ply_terminal_t *terminal)
+bool
+ply_terminal_refresh_geometry (ply_terminal_t *terminal)
 {
         struct winsize terminal_size;
 
@@ -607,7 +607,7 @@ ply_terminal_open (ply_terminal_t *terminal)
                 return false;
         }
 
-        ply_terminal_look_up_geometry (terminal);
+        ply_terminal_refresh_geometry (terminal);
 
         ply_terminal_look_up_color_palette (terminal);
         ply_terminal_save_color_palette (terminal);
@@ -615,7 +615,7 @@ ply_terminal_open (ply_terminal_t *terminal)
         ply_event_loop_watch_signal (terminal->loop,
                                      SIGWINCH,
                                      (ply_event_handler_t)
-                                     ply_terminal_look_up_geometry,
+                                     ply_terminal_refresh_geometry,
                                      terminal);
 
         if (ply_terminal_is_vt (terminal)) {

@@ -78,6 +78,8 @@
 static int errno_stack[PLY_ERRNO_STACK_SIZE];
 static int errno_stack_position = 0;
 
+static int overridden_device_scale = 0;
+
 bool
 ply_open_unidirectional_pipe (int *sender_fd,
                               int *receiver_fd)
@@ -960,6 +962,13 @@ out:
         return (pid_t) ppid;
 }
 
+void
+ply_set_device_scale (int device_scale)
+{
+    overridden_device_scale = device_scale;
+    ply_trace ("Device scale is set to %d", device_scale);
+}
+
 /* The minimum resolution at which we turn on a device-scale of 2 */
 #define HIDPI_LIMIT 192
 #define HIDPI_MIN_HEIGHT 1200
@@ -978,6 +987,9 @@ ply_get_device_scale (uint32_t width,
 
         if ((force_device_scale = getenv ("PLYMOUTH_FORCE_SCALE")))
                 return strtoul (force_device_scale, NULL, 0);
+
+        if (overridden_device_scale != 0)
+                return overridden_device_scale;
 
         if (height < HIDPI_MIN_HEIGHT)
                 return 1;

@@ -295,6 +295,7 @@ load_settings (state_t    *state,
 {
         ply_key_file_t *key_file = NULL;
         bool settings_loaded = false;
+        const char *scale_string;
         const char *splash_string;
 
         ply_trace ("Trying to load %s", path);
@@ -332,6 +333,12 @@ load_settings (state_t    *state,
                         state->device_timeout = atof (timeout_string);
                         ply_trace ("Device timeout is set to %lf", state->device_timeout);
                 }
+        }
+
+        scale_string = ply_key_file_get_value (key_file, "Daemon", "DeviceScale");
+
+        if (scale_string != NULL) {
+                ply_set_device_scale (strtoul (scale_string, NULL, 0));
         }
 
         settings_loaded = true;

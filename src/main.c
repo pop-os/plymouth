@@ -441,6 +441,17 @@ find_override_splash (state_t *state)
 }
 
 static void
+find_force_scale (state_t *state)
+{
+        const char *scale_string;
+
+        scale_string = command_line_get_string_after_prefix (state->kernel_command_line, "plymouth.force-scale=");
+
+        if (scale_string != NULL)
+                ply_set_device_scale (strtoul (scale_string, NULL, 0));
+}
+
+static void
 find_system_default_splash (state_t *state)
 {
         if (state->system_default_splash_path != NULL)
@@ -2332,6 +2343,8 @@ main (int    argc,
                 /* don't ever delay showing the detailed splash */
                 state.splash_delay = NAN;
         }
+
+        find_force_scale (&state);
 
         load_devices (&state, device_manager_flags);
 

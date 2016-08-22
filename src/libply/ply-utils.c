@@ -963,8 +963,6 @@ out:
 /* The minimum resolution at which we turn on a device-scale of 2 */
 #define HIDPI_LIMIT 192
 #define HIDPI_MIN_HEIGHT 1200
-/* From http://en.wikipedia.org/wiki/4K_resolution#Resolutions_of_common_formats */
-#define SMALLEST_4K_WIDTH 3656
 
 int
 ply_get_device_scale (uint32_t width,
@@ -980,9 +978,6 @@ ply_get_device_scale (uint32_t width,
 
         if ((force_device_scale = getenv ("PLYMOUTH_FORCE_SCALE")))
                 return strtoul (force_device_scale, NULL, 0);
-
-        if (width >= SMALLEST_4K_WIDTH)
-                return 1;
 
         if (height < HIDPI_MIN_HEIGHT)
                 return 1;

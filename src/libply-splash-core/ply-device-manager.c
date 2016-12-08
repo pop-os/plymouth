@@ -30,7 +30,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#ifdef HAVE_UDEV
 #include <libudev.h>
+#endif
 
 #include "ply-logger.h"
 #include "ply-event-loop.h"
@@ -41,7 +43,9 @@
 #define SUBSYSTEM_DRM "drm"
 #define SUBSYSTEM_FRAME_BUFFER "graphics"
 
+#ifdef HAVE_UDEV
 static void create_devices_from_udev (ply_device_manager_t *manager);
+#endif
 
 static void create_devices_for_terminal_and_renderer_type (ply_device_manager_t *manager,
                                                            const char           *device_path,
@@ -98,6 +102,57 @@ attach_to_event_loop (ply_device_manager_t *manager,
                                        manager);
 }
 
+static void
+free_displays_for_renderer (ply_device_manager_t *manager,
+                            ply_renderer_t       *renderer)
+{
+        ply_list_node_t *node;
+
+        node = ply_list_get_first_node (manager->pixel_displays);
+        while (node != NULL) {
+                ply_list_node_t *next_node;
+                ply_pixel_display_t *display;
+                ply_renderer_t *display_renderer;
+
+                display = ply_list_node_get_data (node);
+                next_node = ply_list_get_next_node (manager->pixel_displays, node);
+                display_renderer = ply_pixel_display_get_renderer (display);
+
+                if (display_renderer == renderer) {
+                        if (manager->pixel_display_removed_handler != NULL)
+                                manager->pixel_display_removed_handler (manager->event_handler_data, display);
+                        ply_pixel_display_free (display);
+                        ply_list_remove_node (manager->pixel_displays, node);
+
+                }
+
+                node = next_node;
+        }
+}
+
+static void
+free_devices_from_device_path (ply_device_manager_t *manager,
+                               const char           *device_path)
+{
+        char *key = NULL;
+        ply_renderer_t *renderer = NULL;
+
+        ply_hashtable_lookup_full (manager->renderers,
+                                   (void *) device_path,
+                                   (void **) &key,
+                                   (void **) &renderer);
+
+        if (renderer == NULL)
+                return;
+
+        free_displays_for_renderer (manager, renderer);
+
+        ply_hashtable_remove (manager->renderers, (void *) device_path);
+        free (key);
+        ply_renderer_free (renderer);
+}
+
+#ifdef HAVE_UDEV
 static bool
 drm_device_in_use (ply_device_manager_t *manager,
                    const char           *device_path)
@@ -196,56 +251,6 @@ create_devices_for_udev_device (ply_device_manager_t *manager,
                                                                     renderer_type);
                 }
         }
-}
-
-static void
-free_displays_for_renderer (ply_device_manager_t *manager,
-                            ply_renderer_t       *renderer)
-{
-        ply_list_node_t *node;
-
-        node = ply_list_get_first_node (manager->pixel_displays);
-        while (node != NULL) {
-                ply_list_node_t *next_node;
-                ply_pixel_display_t *display;
-                ply_renderer_t *display_renderer;
-
-                display = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (manager->pixel_displays, node);
-                display_renderer = ply_pixel_display_get_renderer (display);
-
-                if (display_renderer == renderer) {
-                        if (manager->pixel_display_removed_handler != NULL)
-                                manager->pixel_display_removed_handler (manager->event_handler_data, display);
-                        ply_pixel_display_free (display);
-                        ply_list_remove_node (manager->pixel_displays, node);
-
-                }
-
-                node = next_node;
-        }
-}
-
-static void
-free_devices_from_device_path (ply_device_manager_t *manager,
-                               const char           *device_path)
-{
-        char *key = NULL;
-        ply_renderer_t *renderer = NULL;
-
-        ply_hashtable_lookup_full (manager->renderers,
-                                   (void *) device_path,
-                                   (void **) &key,
-                                   (void **) &renderer);
-
-        if (renderer == NULL)
-                return;
-
-        free_displays_for_renderer (manager, renderer);
-
-        ply_hashtable_remove (manager->renderers, (void *) device_path);
-        free (key);
-        ply_renderer_free (renderer);
 }
 
 static void
@@ -386,6 +391,7 @@ watch_for_udev_events (ply_device_manager_t *manager)
                                  NULL,
                                  manager);
 }
+#endif
 
 static void
 free_terminal (char                 *device,
@@ -477,8 +483,12 @@ ply_device_manager_new (const char                *default_tty,
         manager->pixel_displays = ply_list_new ();
         manager->flags = flags;
 
+#ifdef HAVE_UDEV
         if (!(flags & PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV))
                 manager->udev_context = udev_new ();
+#else
+        manager->flags |= PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV;
+#endif
 
         attach_to_event_loop (manager, ply_event_loop_get_default ());
 
@@ -493,10 +503,6 @@ ply_device_manager_free (ply_device_manager_t *manager)
         if (manager == NULL)
                 return;
 
-        ply_event_loop_stop_watching_for_timeout (manager->loop,
-                                         (ply_event_loop_timeout_handler_t)
-                                         create_devices_from_udev, manager);
-
         ply_event_loop_stop_watching_for_exit (manager->loop,
                                                (ply_event_loop_exit_handler_t)
                                                detach_from_event_loop,
@@ -508,11 +514,17 @@ ply_device_manager_free (ply_device_manager_t *manager)
         free_renderers (manager);
         ply_hashtable_free (manager->renderers);
 
+#ifdef HAVE_UDEV
+        ply_event_loop_stop_watching_for_timeout (manager->loop,
+                                         (ply_event_loop_timeout_handler_t)
+                                         create_devices_from_udev, manager);
+
         if (manager->udev_monitor != NULL)
                 udev_monitor_unref (manager->udev_monitor);
 
         if (manager->udev_context != NULL)
                 udev_unref (manager->udev_context);
+#endif
 
         free (manager);
 }
@@ -755,6 +767,7 @@ create_devices_from_terminals (ply_device_manager_t *manager)
         return false;
 }
 
+#ifdef HAVE_UDEV
 static void
 create_devices_from_udev (ply_device_manager_t *manager)
 {
@@ -774,6 +787,7 @@ create_devices_from_udev (ply_device_manager_t *manager)
                                                     manager->local_console_terminal,
                                                     PLY_RENDERER_TYPE_NONE);
 }
+#endif
 
 static void
 create_fallback_devices (ply_device_manager_t *manager)
@@ -818,12 +832,14 @@ ply_device_manager_watch_devices (ply_device_manager_t                *manager,
                 return;
         }
 
+#ifdef HAVE_UDEV
         watch_for_udev_events (manager);
         create_devices_for_subsystem (manager, SUBSYSTEM_DRM);
         ply_event_loop_watch_for_timeout (manager->loop,
                                          device_timeout,
                                          (ply_event_loop_timeout_handler_t)
                                          create_devices_from_udev, manager);
+#endif
 }
 
 bool

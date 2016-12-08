@@ -38,9 +38,18 @@ PKG_CHECK_MODULES(IMAGE, [libpng >= 1.2.16 ])
 AC_SUBST(IMAGE_CFLAGS)
 AC_SUBST(IMAGE_LIBS)
 
-PKG_CHECK_MODULES(UDEV, [libudev]);
+AC_ARG_WITH(udev, AS_HELP_STRING([--with-udev], [Add udev support]),, with_udev=yes)
+PKG_CHECK_MODULES(UDEV, [libudev], have_udev=yes, have_udev=no)
 AC_SUBST(UDEV_CFLAGS)
 AC_SUBST(UDEV_LIBS)
+
+if test "x$with_udev" != "xno" ; then
+  if test "x$have_udev" = "xyes"; then
+    AC_DEFINE(HAVE_UDEV, 1, [Define if have udev support])
+  else
+    AC_MSG_ERROR([libudev is required unless --without-udev is passed])
+  fi
+fi
 
 PLYMOUTH_CFLAGS=""
 PLYMOUTH_LIBS="-lm -lrt -ldl"

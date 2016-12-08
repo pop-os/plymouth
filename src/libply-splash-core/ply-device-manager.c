@@ -665,7 +665,8 @@ create_devices_for_terminal_and_renderer_type (ply_device_manager_t *manager,
         ply_renderer_t *renderer = NULL;
         ply_keyboard_t *keyboard = NULL;
 
-        renderer = ply_hashtable_lookup (manager->renderers, (void *) device_path);
+        if (device_path != NULL)
+                renderer = ply_hashtable_lookup (manager->renderers, (void *) device_path);
 
         if (renderer != NULL) {
                 ply_trace ("ignoring device %s since it's already managed", device_path);
@@ -676,15 +677,28 @@ create_devices_for_terminal_and_renderer_type (ply_device_manager_t *manager,
                    device_path ? : "", renderer_type, terminal ? ply_terminal_get_name (terminal) : "none");
 
         if (renderer_type != PLY_RENDERER_TYPE_NONE) {
+                ply_renderer_t *old_renderer = NULL;
                 renderer = ply_renderer_new (renderer_type, device_path, terminal);
 
-                if (!ply_renderer_open (renderer)) {
+                if (renderer != NULL && !ply_renderer_open (renderer)) {
                         ply_trace ("could not open renderer for %s", device_path);
                         ply_renderer_free (renderer);
                         renderer = NULL;
 
                         if (renderer_type != PLY_RENDERER_TYPE_AUTO)
                                 return;
+                }
+
+                old_renderer = ply_hashtable_lookup (manager->renderers,
+                                                     (void *) ply_renderer_get_device_name (renderer));
+
+                if (old_renderer != NULL) {
+                        ply_trace ("ignoring device %s since it's alerady managed",
+                                   ply_renderer_get_device_name (renderer));
+                        ply_renderer_free (renderer);
+
+                        renderer = NULL;
+                        return;
                 }
         }
 
@@ -696,7 +710,7 @@ create_devices_for_terminal_and_renderer_type (ply_device_manager_t *manager,
                         manager->keyboard_added_handler (manager->event_handler_data, keyboard);
 
                 create_pixel_displays_for_renderer (manager, renderer);
-                ply_hashtable_insert (manager->renderers, strdup (device_path), renderer);
+                ply_hashtable_insert (manager->renderers, strdup (ply_renderer_get_device_name (renderer)), renderer);
                 create_pixel_displays_for_renderer (manager, renderer);
 
                 if (manager->renderers_activated) {
@@ -731,13 +745,13 @@ create_devices_for_terminal_and_renderer_type (ply_device_manager_t *manager,
 
 static void
 create_devices_for_terminal (const char           *device_path,
-                          ply_terminal_t       *terminal,
-                          ply_device_manager_t *manager)
+                             ply_terminal_t       *terminal,
+                             ply_device_manager_t *manager)
 {
         create_devices_for_terminal_and_renderer_type (manager,
-                                                    device_path,
-                                                    terminal,
-                                                    PLY_RENDERER_TYPE_NONE);
+                                                       NULL,
+                                                       terminal,
+                                                       PLY_RENDERER_TYPE_NONE);
 }
 static bool
 create_devices_from_terminals (ply_device_manager_t *manager)
@@ -783,9 +797,9 @@ create_devices_from_udev (ply_device_manager_t *manager)
 
         ply_trace ("Creating non-graphical devices, since there's no suitable graphics hardware");
         create_devices_for_terminal_and_renderer_type (manager,
-                                                    ply_terminal_get_name (manager->local_console_terminal),
-                                                    manager->local_console_terminal,
-                                                    PLY_RENDERER_TYPE_NONE);
+                                                       NULL,
+                                                       manager->local_console_terminal,
+                                                       PLY_RENDERER_TYPE_NONE);
 }
 #endif
 
@@ -793,7 +807,7 @@ static void
 create_fallback_devices (ply_device_manager_t *manager)
 {
         create_devices_for_terminal_and_renderer_type (manager,
-                                                       ply_terminal_get_name (manager->local_console_terminal),
+                                                       NULL,
                                                        manager->local_console_terminal,
                                                        PLY_RENDERER_TYPE_AUTO);
 }

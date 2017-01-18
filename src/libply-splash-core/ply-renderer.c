@@ -155,6 +155,11 @@ ply_renderer_load_plugin (ply_renderer_t *renderer,
                 return false;
         }
 
+        if (renderer->plugin_interface->get_device_name != NULL) {
+                free (renderer->device_name);
+                renderer->device_name = strdup (renderer->plugin_interface->get_device_name (renderer->backend));
+        }
+
         return true;
 }
 

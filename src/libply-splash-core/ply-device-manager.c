@@ -689,16 +689,18 @@ create_devices_for_terminal_and_renderer_type (ply_device_manager_t *manager,
                                 return;
                 }
 
-                old_renderer = ply_hashtable_lookup (manager->renderers,
-                                                     (void *) ply_renderer_get_device_name (renderer));
+                if (renderer != NULL) {
+                        old_renderer = ply_hashtable_lookup (manager->renderers,
+                                                             (void *) ply_renderer_get_device_name (renderer));
 
-                if (old_renderer != NULL) {
-                        ply_trace ("ignoring device %s since it's alerady managed",
-                                   ply_renderer_get_device_name (renderer));
-                        ply_renderer_free (renderer);
+                        if (old_renderer != NULL) {
+                                ply_trace ("ignoring device %s since it's alerady managed",
+                                           ply_renderer_get_device_name (renderer));
+                                ply_renderer_free (renderer);
 
-                        renderer = NULL;
-                        return;
+                                renderer = NULL;
+                                return;
+                        }
                 }
         }
 

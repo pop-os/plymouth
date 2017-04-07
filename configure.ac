@@ -269,6 +269,9 @@ PLYMOUTH_CFLAGS="$PLYMOUTH_CFLAGS $WARN_CFLAGS"
 plymouththemedir=$datadir/plymouth/themes
 AS_AC_EXPAND(PLYMOUTH_THEME_PATH, $plymouththemedir)
 
+plymouthruntimethemedir=$plymouthruntimedir/themes
+AS_AC_EXPAND(PLYMOUTH_RUNTIME_THEME_PATH, $plymouthruntimethemedir)
+
 plymouthplugindir=$libdir/plymouth/
 AS_AC_EXPAND(PLYMOUTH_PLUGIN_PATH, $plymouthplugindir)
 

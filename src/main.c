@@ -488,9 +488,12 @@ find_distribution_default_splash (state_t *state)
         if (state->distribution_default_splash_path != NULL)
                 return;
 
-        if (!load_settings (state, PLYMOUTH_POLICY_DIR "plymouthd.defaults", &state->distribution_default_splash_path)) {
-                ply_trace ("failed to load " PLYMOUTH_POLICY_DIR "plymouthd.defaults");
-                return;
+        if (!load_settings (state, PLYMOUTH_RUNTIME_DIR "/plymouthd.defaults", &state->distribution_default_splash_path)) {
+                ply_trace ("failed to load " PLYMOUTH_RUNTIME_DIR "/plymouthd.defaults, trying " PLYMOUTH_POLICY_DIR);
+                if (!load_settings (state, PLYMOUTH_POLICY_DIR "plymouthd.defaults", &state->distribution_default_splash_path)) {
+                        ply_trace ("failed to load " PLYMOUTH_POLICY_DIR "plymouthd.defaults");
+                        return;
+                }
         }
 
         ply_trace ("Distribution default theme file is '%s'", state->distribution_default_splash_path);

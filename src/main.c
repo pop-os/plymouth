@@ -102,7 +102,6 @@ typedef struct
         ply_terminal_t         *local_console_terminal;
         ply_device_manager_t   *device_manager;
 
-        ply_trigger_t          *details_trigger;
         ply_trigger_t          *deactivate_trigger;
         ply_trigger_t          *quit_trigger;
 
@@ -1520,24 +1519,8 @@ toggle_between_splash_and_details (state_t *state)
 static void
 on_escape_pressed (state_t *state)
 {
-
-        if (state->details_trigger != NULL) {
-                return;
-        }
-
-        state->details_trigger = ply_trigger_new (&state->details_trigger);
-
-        ply_trigger_add_handler (state->details_trigger,
-                                 (ply_trigger_handler_t)
-                                 toggle_between_splash_details,
-                                 state);
-
         ply_trace ("escape key pressed");
-        ply_event_loop_watch_for_timeout (state->loop,
-                                          0.01,
-                                          (ply_event_loop_timeout_handler_t)
-                                          ply_trigger_pull
-                                          state->details_trigger);
+        toggle_between_splash_and_details (state);
 }
 
 static void

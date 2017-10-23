@@ -336,6 +336,19 @@ inst_any() {
     return 1
 }
 
+inst_recur() {
+    for x in "${1%/}"/* ; do
+        if [[ -d "$x" ]]; then
+            inst_dir "$x"
+            inst_recur "$x"
+        elif [[ -f "$x" ]]; then
+            inst "$x"
+        else
+            break
+        fi
+    done
+}
+
 function usage() {
     local output="/proc/self/fd/1"
     local rc=0
@@ -411,10 +424,7 @@ inst ${PLYMOUTH_PLUGIN_PATH}/${PLYMOUTH_MODULE_NAME}.so $INITRDDIR
 inst ${PLYMOUTH_PLUGIN_PATH}/renderers/frame-buffer.so $INITRDDIR
 
 if [ -d ${PLYMOUTH_DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME} ]; then
-    for x in ${PLYMOUTH_DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME}/* ; do
-        [ ! -f "$x" ] && continue
-        inst $x $INITRDDIR
-    done
+     inst_recur "${PLYMOUTH_DATADIR}/plymouth/themes/${PLYMOUTH_THEME_NAME}"
 fi
 
 if [ -L ${PLYMOUTH_DATADIR}/plymouth/themes/default.plymouth ]; then

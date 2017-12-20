@@ -713,7 +713,6 @@ create_devices_for_terminal_and_renderer_type (ply_device_manager_t *manager,
                 if (manager->keyboard_added_handler != NULL)
                         manager->keyboard_added_handler (manager->event_handler_data, keyboard);
 
-                create_pixel_displays_for_renderer (manager, renderer);
                 ply_hashtable_insert (manager->renderers, strdup (ply_renderer_get_device_name (renderer)), renderer);
                 create_pixel_displays_for_renderer (manager, renderer);
 

@@ -1570,6 +1570,8 @@ on_backspace (state_t *state)
 
         bytes = ply_buffer_get_bytes (state->entry_buffer);
         size = ply_buffer_get_size (state->entry_buffer);
+        if (size == 0)
+                return;
 
         bytes_to_remove = MIN (size, PLY_UTF8_CHARACTER_SIZE_MAX);
         while ((previous_character_size = ply_utf8_character_get_size (bytes + size - bytes_to_remove, bytes_to_remove)) < bytes_to_remove) {

@@ -43,6 +43,7 @@
 #include <unistd.h>
 
 #include <drm.h>
+#include <drm_mode.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
@@ -61,6 +62,11 @@
 #include "ply-renderer-plugin.h"
 
 #define BYTES_PER_PIXEL (4)
+
+/* For builds with libdrm < 2.4.89 */
+#ifndef DRM_MODE_ROTATE_0
+#define DRM_MODE_ROTATE_0 (1<<0)
+#endif
 
 struct _ply_renderer_head
 {
@@ -367,6 +373,53 @@ destroy_output_buffer (ply_renderer_backend_t *backend,
         ply_renderer_buffer_free (backend, buffer);
 }
 
+static int
+connector_orientation_prop_to_rotation (drmModePropertyPtr prop,
+                                        int orientation)
+{
+        const char *name = prop->enums[orientation].name;
+
+        if (strcmp (name, "Upside Down") == 0)
+                return PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN;
+
+        if (strcmp (name, "Left Side Up") == 0) {
+                /* Left side up, rotate counter clockwise to correct */
+                return PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE;
+        }
+
+        if (strcmp (name, "Right Side Up") == 0) {
+                /* Left side up, rotate clockwise to correct */
+                return PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE;
+        }
+
+        return PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+}
+
+static int
+ply_renderer_connector_get_rotation (ply_renderer_backend_t *backend,
+                                     drmModeConnector       *connector)
+{
+        drmModePropertyPtr prop;
+        int i, rotation;
+
+        for (i = 0; i < connector->count_props; i++) {
+                prop = drmModeGetProperty (backend->device_fd, connector->props[i]);
+                if (!prop)
+                        continue;
+
+                if ((prop->flags & DRM_MODE_PROP_ENUM) &&
+                    strcmp (prop->name, "panel orientation") == 0) {
+                         rotation = connector_orientation_prop_to_rotation (prop, connector->prop_values[i]);
+                         drmModeFreeProperty (prop);
+                         return rotation;
+                }
+
+                drmModeFreeProperty (prop);
+        }
+
+        return PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+}
+
 static bool
 ply_renderer_head_add_connector (ply_renderer_head_t *head,
                                  drmModeConnector    *connector,
@@ -402,6 +455,7 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
 {
         ply_renderer_head_t *head;
         drmModeModeInfo *mode;
+        int rotation;
 
         head = calloc (1, sizeof(ply_renderer_head_t));
 
@@ -425,7 +479,8 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
         ply_renderer_head_add_connector (head, connector, connector_mode_index);
         assert (ply_array_get_size (head->connector_ids) > 0);
 
-        head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
+        rotation = ply_renderer_connector_get_rotation (backend, connector);
+        head->pixel_buffer = ply_pixel_buffer_new_with_device_rotation (head->area.width, head->area.height, rotation);
         ply_pixel_buffer_set_device_scale (head->pixel_buffer,
                                            ply_get_device_scale (head->area.width,
                                                                  head->area.height,
@@ -448,6 +503,85 @@ ply_renderer_head_free (ply_renderer_head_t *head)
         drmModeFreeConnector (head->connector0);
         ply_array_free (head->connector_ids);
         free (head);
+}
+
+static void
+ply_renderer_head_clear_plane_rotation (ply_renderer_backend_t *backend,
+                                        ply_renderer_head_t    *head)
+{
+        drmModeObjectPropertiesPtr plane_props;
+        drmModePlaneResPtr plane_resources;
+        drmModePropertyPtr prop;
+        drmModePlanePtr plane;
+        uint64_t rotation;
+        uint32_t i, j;
+        int rotation_prop_id = -1;
+        int primary_id = -1;
+        int err;
+
+        err = drmSetClientCap (backend->device_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
+        if (err)
+                return;
+
+        plane_resources = drmModeGetPlaneResources (backend->device_fd);
+        if (!plane_resources)
+                return;
+
+        for (i = 0; i < plane_resources->count_planes; i++) {
+                plane = drmModeGetPlane (backend->device_fd,
+                                         plane_resources->planes[i]);
+                if (!plane)
+                        continue;
+
+                if (plane->crtc_id != head->controller_id) {
+                        drmModeFreePlane (plane);
+                        continue;
+                }
+
+                plane_props = drmModeObjectGetProperties (backend->device_fd,
+                                                          plane->plane_id,
+                                                          DRM_MODE_OBJECT_PLANE);
+
+                for (j = 0; plane_props && (j < plane_props->count_props); j++) {
+                        prop = drmModeGetProperty (backend->device_fd,
+                                                   plane_props->props[j]);
+                        if (!prop)
+                                continue;
+
+                        if (strcmp (prop->name, "type") == 0 &&
+                            plane_props->prop_values[j] == DRM_PLANE_TYPE_PRIMARY) {
+                                primary_id = plane->plane_id;
+                        }
+
+                        if (strcmp (prop->name, "rotation") == 0) {
+                                rotation_prop_id = plane_props->props[j];
+                                rotation = plane_props->prop_values[j];
+                        }
+
+                        drmModeFreeProperty (prop);
+                }
+
+                drmModeFreeObjectProperties (plane_props);
+                drmModeFreePlane (plane);
+
+                if (primary_id != -1)
+                        break;
+
+                /* Not primary -> clear any found rotation property */
+                rotation_prop_id = -1;
+        }
+
+        if (primary_id != -1 && rotation_prop_id != -1 && rotation != DRM_MODE_ROTATE_0) {
+                err = drmModeObjectSetProperty (backend->device_fd,
+                                                primary_id,
+                                                DRM_MODE_OBJECT_PLANE,
+                                                rotation_prop_id,
+                                                DRM_MODE_ROTATE_0);
+                ply_trace ("Cleared rotation on primary plane %d result %d",
+                           primary_id, err);
+        }
+
+        drmModeFreePlaneResources (plane_resources);
 }
 
 static bool
@@ -476,6 +610,7 @@ ply_renderer_head_set_scan_out_buffer (ply_renderer_backend_t *backend,
                 return false;
         }
 
+        ply_renderer_head_clear_plane_rotation (backend, head);
         return true;
 }
 

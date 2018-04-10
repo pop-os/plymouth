@@ -50,7 +50,8 @@ struct _ply_pixel_buffer
         ply_region_t   *updated_areas; /* in device pixels */
         uint32_t        is_opaque : 1;
         int             device_scale;
-        int             device_rotation;
+
+        ply_pixel_buffer_rotation_t device_rotation;
 };
 
 static inline void ply_pixel_buffer_blend_value_at_pixel (ply_pixel_buffer_t *buffer,
@@ -363,13 +364,14 @@ ply_pixel_buffer_new (unsigned long width,
 }
 
 ply_pixel_buffer_t *
-ply_pixel_buffer_new_with_device_rotation (unsigned long width,
-                                           unsigned long height,
-                                           int device_rotation)
+ply_pixel_buffer_new_with_device_rotation (unsigned long               width,
+                                           unsigned long               height,
+                                           ply_pixel_buffer_rotation_t device_rotation)
 {
         ply_pixel_buffer_t *buffer;
 
-        if (device_rotation >= PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE) {
+        if (device_rotation == PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE ||
+            device_rotation == PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE) {
                 unsigned long tmp = width;
                 width = height;
                 height = tmp;

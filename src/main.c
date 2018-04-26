@@ -727,6 +727,7 @@ on_newroot (state_t    *state,
                         ply_boot_splash_root_mounted (state->boot_splash);
                 break;
         case PLY_MODE_SHUTDOWN:
+                ply_run_program_in_background ("/run/initramfs/bin/plymouth-drm-escrow");
                 break;
         }
 }

@@ -718,9 +718,17 @@ on_newroot (state_t    *state,
         chdir (root_dir);
         chroot (".");
         chdir ("/");
-        ply_progress_load_cache (state->progress, get_cache_file_for_mode (state->mode));
-        if (state->boot_splash != NULL)
-                ply_boot_splash_root_mounted (state->boot_splash);
+
+        switch ((int) state->mode) {
+        case PLY_MODE_BOOT:
+        case PLY_MODE_UPDATES:
+                ply_progress_load_cache (state->progress, get_cache_file_for_mode (state->mode));
+                if (state->boot_splash != NULL)
+                        ply_boot_splash_root_mounted (state->boot_splash);
+                break;
+        case PLY_MODE_SHUTDOWN:
+                break;
+        }
 }
 
 static const char *

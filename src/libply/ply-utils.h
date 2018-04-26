@@ -127,6 +127,7 @@ int ply_get_device_scale (uint32_t width,
                           uint32_t height,
                           uint32_t width_mm,
                           uint32_t height_mm);
+bool ply_run_program_in_background (const char *program);
 
 #endif
 

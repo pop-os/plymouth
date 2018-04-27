@@ -78,7 +78,7 @@ if test x$enable_gtk = xyes; then
   AC_SUBST(GTK_LIBS)
 fi
 
-AC_ARG_ENABLE(drm, AS_HELP_STRING([--enable-drm-renderer],[enable building drm kms support]),enable_drm_renderer=$enableval,enable_drm_renderer=yes)
+AC_ARG_ENABLE(drm, AS_HELP_STRING([--enable-drm],[enable building drm kms support]),enable_drm_renderer=$enableval,enable_drm_renderer=yes)
 AM_CONDITIONAL(ENABLE_DRM_RENDERER,  [test "$enable_drm_renderer" = yes])
 
 if test x$enable_drm_renderer = xyes; then

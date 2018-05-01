@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <spawn.h>
 #include <sys/klog.h>
 #include <sys/mount.h>
 #include <sys/resource.h>
@@ -1020,9 +1021,9 @@ ply_run_program_in_background (const char *program)
 {
         pid_t pid;
         int result;
-        char argv[2] = { program, NULL };
+        const char *argv[2] = { program, NULL };
 
-        result = posix_spawn (&pid, program, NULL, NULL, argv, NULL);
+        result = posix_spawn (&pid, program, NULL, NULL, (char **) argv, NULL);
 
         return result == 0;
 }

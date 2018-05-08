@@ -1406,6 +1406,11 @@ close_input_source (ply_renderer_backend_t      *backend,
         input_source->backend = NULL;
 }
 
+static void
+disown (ply_renderer_backend_t *backend)
+{
+}
+
 ply_renderer_plugin_interface_t *
 ply_renderer_backend_get_interface (void)
 {
@@ -1427,7 +1432,8 @@ ply_renderer_backend_get_interface (void)
                 .open_input_source            = open_input_source,
                 .set_handler_for_input_source = set_handler_for_input_source,
                 .close_input_source           = close_input_source,
-                .get_device_name              = get_device_name
+                .get_device_name              = get_device_name,
+                .disown                       = disown,
         };
 
         return &plugin_interface;

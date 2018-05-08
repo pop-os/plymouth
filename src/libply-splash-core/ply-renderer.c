@@ -317,6 +317,17 @@ ply_renderer_deactivate (ply_renderer_t *renderer)
         return renderer->plugin_interface->deactivate (renderer->backend);
 }
 
+void
+ply_renderer_disown (ply_renderer_t *renderer)
+{
+        assert (renderer->plugin_interface != NULL);
+
+        if (renderer->plugin_interface->disown == NULL)
+                return;
+
+        return renderer->plugin_interface->disown (renderer->backend);
+}
+
 bool
 ply_renderer_is_active (ply_renderer_t *renderer)
 {

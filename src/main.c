@@ -2159,12 +2159,6 @@ on_crash (int signum)
 }
 
 static void
-on_sigchld (int signum)
-{
-        waitpid (-1, NULL, WNOHANG);
-}
-
-static void
 write_pid_file (const char *filename)
 {
         FILE *fp;
@@ -2359,8 +2353,6 @@ main (int    argc,
                 ply_error ("plymouthd: could not tell parent to exit: %m");
                 return EX_UNAVAILABLE;
         }
-
-        signal (SIGCHLD, on_sigchld);
 
         find_override_splash (&state);
         find_system_default_splash (&state);

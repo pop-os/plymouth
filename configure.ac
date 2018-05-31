@@ -310,7 +310,6 @@ AC_CONFIG_FILES([Makefile
            src/Makefile
            src/client/ply-boot-client.pc
            src/client/Makefile
-           src/drm-escrow/Makefile
            src/upstart-bridge/Makefile
            themes/Makefile
            themes/spinfinity/Makefile

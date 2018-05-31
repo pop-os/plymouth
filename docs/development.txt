@@ -237,7 +237,7 @@ dlopen(3).
   ├── libply-splash-core       # splash plugin APIS
   ├── libply-splash-graphics   # graphical splash plugin specific APIs
   ├── plugins                  # plugins as shared libraries
-  │   ├── controls             # grapical widgets
+  │   ├── controls             # graphical widgets
   │   │   └── label            # text label for text output
   │   ├── renderers            # the different graphical backends
   │   │   ├── drm
@@ -294,7 +294,7 @@ trigger. It's a way for creator of the trigger to recover its state
 when the handler is called.  The +trigger_data+ argument transfers
 information from the code pulling the trigger. It can be thought of as
 a payload or result to be sent from the code pulling the trigger to
-the code watching the trigger.  The third argument, +trigger+, is the
+the code watching the trigger.  The third argument, +trigger+, is
 the trigger itself. It's passed as a convenience, so the same handler
 can be used for multiple triggers, and the handler can differentiate
 which trigger fired.
@@ -307,7 +307,7 @@ client asks the plymouth daemon to ask the user for a password.  The
 daemon can't respond to the client until the user has typed the password.
 The code that handles communication with the client sets up a trigger
 that the keyboard reading code pulls when the user hits enter.  When
-that trigger fires, a function set up by the code that communcates
+that trigger fires, a function set up by the code that communicates
 with the client is called and it can reply to the client with the
 password delivered from the keyboard reading code through the trigger.
 

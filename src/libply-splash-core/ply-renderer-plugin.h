@@ -68,8 +68,6 @@ typedef struct
                                    ply_renderer_input_source_t *input_source);
 
         const char * (*get_device_name)(ply_renderer_backend_t *backend);
-
-        void (*disown) (ply_renderer_backend_t *backend);
 } ply_renderer_plugin_interface_t;
 
 #endif /* PLY_RENDERER_PLUGIN_H */

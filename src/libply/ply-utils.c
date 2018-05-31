@@ -1015,16 +1015,4 @@ ply_get_device_scale (uint32_t width,
         return device_scale;
 }
 
-bool
-ply_run_program_in_background (const char *program)
-{
-        pid_t pid;
-        int result;
-        char argv[2] = { program, NULL };
-
-        result = posix_spawn (&pid, program, NULL, NULL, argv, NULL);
-
-        return result == 0;
-}
-
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

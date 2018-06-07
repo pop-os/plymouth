@@ -786,6 +786,15 @@ create_devices_from_terminals (ply_device_manager_t *manager)
         return false;
 }
 
+static void
+create_non_graphical_devices (ply_device_manager_t *manager)
+{
+        create_devices_for_terminal_and_renderer_type (manager,
+                                                       NULL,
+                                                       manager->local_console_terminal,
+                                                       PLY_RENDERER_TYPE_NONE);
+}
+
 #ifdef HAVE_UDEV
 static void
 create_devices_from_udev (ply_device_manager_t *manager)
@@ -801,10 +810,7 @@ create_devices_from_udev (ply_device_manager_t *manager)
                 return;
 
         ply_trace ("Creating non-graphical devices, since there's no suitable graphics hardware");
-        create_devices_for_terminal_and_renderer_type (manager,
-                                                       NULL,
-                                                       manager->local_console_terminal,
-                                                       PLY_RENDERER_TYPE_NONE);
+        create_non_graphical_devices (manager);
 }
 #endif
 
@@ -844,6 +850,12 @@ ply_device_manager_watch_devices (ply_device_manager_t                *manager,
 
         if (done_with_initial_devices_setup)
                 return;
+
+        if ((manager->flags & PLY_DEVICE_MANAGER_FLAGS_SKIP_RENDERERS)) {
+                ply_trace ("Creating non-graphical devices, since renderers are being explicitly skipped");
+                create_non_graphical_devices (manager);
+                return;
+        }
 
         if ((manager->flags & PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV)) {
                 ply_trace ("udev support disabled, creating fallback devices");

@@ -2358,7 +2358,9 @@ main (int    argc,
                 device_manager_flags |= PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV;
 
         if (!plymouth_should_show_default_splash (&state)) {
-                /* don't bother listening for udev events if we're forcing details */
+                /* don't bother listening for udev events or setting up a graphical renderer
+                 * if we're forcing details */
+                device_manager_flags |= PLY_DEVICE_MANAGER_FLAGS_SKIP_RENDERERS;
                 device_manager_flags |= PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV;
 
                 /* don't ever delay showing the detailed splash */

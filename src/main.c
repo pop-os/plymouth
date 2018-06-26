@@ -853,6 +853,11 @@ on_system_initialized (state_t *state)
         ply_trace ("system now initialized, opening log");
         state->system_initialized = true;
 
+#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
+        if (state->is_attached)
+                tell_systemd_to_print_details (state);
+#endif
+
         prepare_logging (state);
 }
 
@@ -1782,11 +1787,6 @@ show_theme (state_t    *state,
                 return NULL;
         }
 
-#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
-        if (state->is_attached)
-                tell_systemd_to_print_details (state);
-#endif
-
         ply_device_manager_activate_keyboards (state->device_manager);
 
         return splash;
@@ -1833,6 +1833,10 @@ attach_to_running_session (state_t *state)
                 return false;
         }
 
+#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
+        tell_systemd_to_print_details (state);
+#endif
+
         state->is_redirected = should_be_redirected;
         state->is_attached = true;
         state->session = session;
@@ -1848,6 +1852,10 @@ detach_from_running_session (state_t *state)
 
         if (!state->is_attached)
                 return;
+
+#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
+        tell_systemd_to_stop_printing_details (state);
+#endif
 
         ply_trace ("detaching from terminal session");
         ply_terminal_session_detach (state->session);

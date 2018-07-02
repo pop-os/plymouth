@@ -695,4 +695,10 @@ ply_boot_splash_become_idle (ply_boot_splash_t                *splash,
         splash->plugin_interface->become_idle (splash->plugin, splash->idle_trigger);
 }
 
+bool
+ply_boot_splash_uses_pixel_displays (ply_boot_splash_t *splash)
+{
+        return splash->plugin_interface->add_pixel_display != NULL;
+}
+
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

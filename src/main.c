@@ -1174,7 +1174,8 @@ quit_splash (state_t *state)
 static void
 hide_splash (state_t *state)
 {
-        ply_device_manager_deactivate_renderers (state->device_manager);
+        if (state->boot_splash && ply_boot_splash_uses_pixel_displays (state->boot_splash))
+                ply_device_manager_deactivate_renderers (state->device_manager);
 
         state->is_shown = false;
 
@@ -1260,7 +1261,8 @@ deactivate_splash (state_t *state)
 {
         assert (!state->is_inactive);
 
-        ply_device_manager_deactivate_renderers (state->device_manager);
+        if (state->boot_splash && ply_boot_splash_uses_pixel_displays (state->boot_splash))
+                ply_device_manager_deactivate_renderers (state->device_manager);
 
         detach_from_running_session (state);
 
@@ -1359,7 +1361,8 @@ on_reactivate (state_t *state)
         }
 
         ply_device_manager_activate_keyboards (state->device_manager);
-        ply_device_manager_activate_renderers (state->device_manager);
+        if (state->boot_splash && ply_boot_splash_uses_pixel_displays (state->boot_splash))
+                ply_device_manager_activate_renderers (state->device_manager);
 
         state->is_inactive = false;
 
@@ -1763,7 +1766,8 @@ show_theme (state_t    *state,
                 return NULL;
 
         attach_splash_to_devices (state, splash);
-        ply_device_manager_activate_renderers (state->device_manager);
+        if (ply_boot_splash_uses_pixel_displays (splash))
+                ply_device_manager_activate_renderers (state->device_manager);
 
         splash_mode = get_splash_mode_from_mode (state->mode);
 

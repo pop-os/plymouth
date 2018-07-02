@@ -618,8 +618,6 @@ static bool
 ply_renderer_head_map (ply_renderer_backend_t *backend,
                        ply_renderer_head_t    *head)
 {
-        bool scan_out_set;
-
         assert (backend != NULL);
         assert (backend->device_fd >= 0);
         assert (backend != NULL);
@@ -645,13 +643,6 @@ ply_renderer_head_map (ply_renderer_backend_t *backend,
          * shadow buffer?
          */
         ply_renderer_head_redraw (backend, head);
-
-        scan_out_set = reset_scan_out_buffer_if_needed (backend, head);
-        if (!scan_out_set && backend->is_active) {
-                destroy_output_buffer (backend, head->scan_out_buffer_id);
-                head->scan_out_buffer_id = 0;
-                return false;
-        }
 
         return true;
 }

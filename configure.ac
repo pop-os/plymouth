@@ -227,6 +227,7 @@ if test "$GCC" = "yes" -a "$set_more_warnings" != "no"; then
    -Wwrite-strings -Wnested-externs -Wpointer-arith \
    -Wswitch-enum -Wstrict-aliasing=2 -Winit-self -Wunsafe-loop-optimizations \
    -Wno-missing-field-initializers -Wno-unused-parameter -Wno-unused-result \
+   -Wno-cast-function-type \
    -Wcast-align -Wsign-compare -Wp,-D_FORTIFY_SOURCE=2"
 elif test "$GCC" = "yes"; then
   AC_MSG_RESULT(no)

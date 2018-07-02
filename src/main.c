@@ -909,7 +909,7 @@ plymouth_should_show_default_splash (state_t *state)
 {
         ply_trace ("checking if plymouth should show default splash");
 
-        const char const *strings[] = {
+        const char * const strings[] = {
                 "single", "1", "s", "S", "-S", NULL
         };
         int i;

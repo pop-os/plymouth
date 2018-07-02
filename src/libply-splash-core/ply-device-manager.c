@@ -134,13 +134,13 @@ static void
 free_devices_from_device_path (ply_device_manager_t *manager,
                                const char           *device_path)
 {
-        char *key = NULL;
-        ply_renderer_t *renderer = NULL;
+        void *key = NULL;
+        void *renderer = NULL;
 
         ply_hashtable_lookup_full (manager->renderers,
                                    (void *) device_path,
-                                   (void **) &key,
-                                   (void **) &renderer);
+                                   &key,
+                                   &renderer);
 
         if (renderer == NULL)
                 return;
@@ -696,12 +696,12 @@ create_devices_for_terminal_and_renderer_type (ply_device_manager_t *manager,
                                                              (void *) ply_renderer_get_device_name (renderer));
 
                         if (old_renderer != NULL) {
-                                ply_trace ("ignoring device %s since it's alerady managed",
+                                ply_trace ("ignoring device %s since it's already managed",
                                            ply_renderer_get_device_name (renderer));
                                 ply_renderer_free (renderer);
 
                                 renderer = NULL;
-                                return;
+                                return true;
                         }
                 }
         }

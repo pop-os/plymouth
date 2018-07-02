@@ -205,6 +205,9 @@ view_load_end_animation (view_t *view)
         case PLY_BOOT_SPLASH_MODE_SHUTDOWN:
                 animation_prefix = "shutdown-animation-";
                 break;
+        default:
+                ply_trace ("unexpected splash mode 0x%x\n", plugin->mode);
+                return;
         }
 
         ply_trace ("trying prefix: %s", animation_prefix);

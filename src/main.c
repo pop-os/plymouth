@@ -361,6 +361,8 @@ show_detailed_splash (state_t *state)
 {
         ply_boot_splash_t *splash;
 
+        cancel_pending_delayed_show (state);
+
         if (state->boot_splash != NULL)
                 return;
 
@@ -1001,6 +1003,8 @@ show_splash (state_t *state)
                                                           (ply_event_loop_timeout_handler_t)
                                                           show_splash,
                                                           state);
+                        /* Listen for ESC to show details */
+                        ply_device_manager_activate_keyboards (state->device_manager);
                         return;
                 }
         }

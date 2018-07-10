@@ -168,6 +168,7 @@ static void on_quit (state_t       *state,
                      bool           retain_splash,
                      ply_trigger_t *quit_trigger);
 static bool sh_is_init (state_t *state);
+static void cancel_pending_delayed_show (state_t *state);
 
 static ply_boot_splash_mode_t
 get_splash_mode_from_mode (ply_mode_t mode)

@@ -137,6 +137,7 @@ struct _ply_renderer_backend
 
         uint32_t                         is_active : 1;
         uint32_t        requires_explicit_flushing : 1;
+        uint32_t                use_preferred_mode : 1;
 };
 
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
@@ -148,6 +149,36 @@ static bool reset_scan_out_buffer_if_needed (ply_renderer_backend_t *backend,
                                              ply_renderer_head_t    *head);
 static void flush_head (ply_renderer_backend_t *backend,
                         ply_renderer_head_t    *head);
+
+static bool efi_enabled (void)
+{
+        return ply_directory_exists ("/sys/firmware/efi/efivars");
+}
+
+/* A small helper to determine if we should try to keep the current mode
+ * or pick the best mode ourselves, we keep the current mode if:
+ * 1. The user specified a specific mode using video= on the commandline
+ * 2. The code to pick the best mode was added because with flicker-free boot
+ *    we can no longer rely on the kernel's fbcon code setting things up.
+ *    We should be able to do a better job then fbcon regardless, but for
+ *    now lets only use the new code on flicker-free systems until it is
+ *    more mature, this means only using it on UEFI systems.
+ */
+static bool
+should_use_preferred_mode (void)
+{
+        bool use_preferred_mode = true;
+
+        if (ply_kernel_command_line_get_string_after_prefix ("video="))
+                use_preferred_mode = false;
+
+        if (!efi_enabled ())
+                use_preferred_mode = false;
+
+        ply_trace ("should_use_preferred_mode: %d", use_preferred_mode);
+
+        return use_preferred_mode;
+}
 
 static bool
 ply_renderer_buffer_map (ply_renderer_backend_t *backend,
@@ -776,6 +807,7 @@ create_backend (const char     *device_name,
         backend->requires_explicit_flushing = true;
         backend->output_buffers = ply_hashtable_new (ply_hashtable_direct_hash,
                                                      ply_hashtable_direct_compare);
+        backend->use_preferred_mode = should_use_preferred_mode ();
 
         return backend;
 }
@@ -1025,6 +1057,22 @@ find_index_of_mode (ply_renderer_backend_t *backend,
 }
 
 static int
+get_index_of_preferred_mode (drmModeConnector *connector)
+{
+        int i;
+
+        for (i = 0; i < connector->count_modes; i++)
+                if (connector->modes[i].type & DRM_MODE_TYPE_PREFERRED) {
+                        ply_trace ("Found preferred mode %dx%d at index %d\n",
+                                   connector->modes[i].hdisplay,
+                                   connector->modes[i].vdisplay, i);
+                        return i;
+                }
+
+        return -1;
+}
+
+static int
 get_index_of_active_mode (ply_renderer_backend_t *backend,
                           drmModeCrtc            *controller,
                           drmModeConnector       *connector)
@@ -1056,7 +1104,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 drmModeCrtc *controller;
                 uint32_t controller_id;
                 uint32_t console_buffer_id;
-                int connector_mode_index;
+                int connector_mode_index = -1;
                 int gamma_size;
                 ply_pixel_buffer_rotation_t rotation;
                 bool tiled;
@@ -1097,7 +1145,11 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 
                 ply_renderer_connector_get_rotation_and_tiled (backend, connector, &rotation, &tiled);
 
-                connector_mode_index = get_index_of_active_mode (backend, controller, connector);
+                if (!tiled && backend->use_preferred_mode)
+                        connector_mode_index = get_index_of_preferred_mode (connector);
+
+                if (connector_mode_index < 0)
+                        connector_mode_index = get_index_of_active_mode (backend, controller, connector);
 
                 /* If we couldn't find the current active mode, fall back to the first available.
                  */

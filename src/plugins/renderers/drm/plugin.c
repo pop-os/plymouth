@@ -84,6 +84,9 @@ struct _ply_renderer_head
         uint32_t                encoder_id;
         uint32_t                console_buffer_id;
         uint32_t                scan_out_buffer_id;
+
+        int                     gamma_size;
+        uint16_t                *gamma;
 };
 
 struct _ply_renderer_input_source
@@ -451,11 +454,12 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
                        int                     connector_mode_index,
                        uint32_t                encoder_id,
                        uint32_t                controller_id,
-                       uint32_t                console_buffer_id)
+                       uint32_t                console_buffer_id,
+                       int                     gamma_size)
 {
         ply_renderer_head_t *head;
         drmModeModeInfo *mode;
-        int rotation;
+        int i, step, rotation;
 
         head = calloc (1, sizeof(ply_renderer_head_t));
 
@@ -475,6 +479,18 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
         head->area.y = 0;
         head->area.width = mode->hdisplay;
         head->area.height = mode->vdisplay;
+
+        if (gamma_size) {
+                head->gamma_size = gamma_size;
+                head->gamma = malloc (gamma_size * 3 * sizeof(uint16_t));
+
+                step = UINT16_MAX / (gamma_size - 1);
+                for (i = 0; i < gamma_size; i++) {
+                        head->gamma[0 * gamma_size + i] = i * step; /* red */
+                        head->gamma[1 * gamma_size + i] = i * step; /* green */
+                        head->gamma[2 * gamma_size + i] = i * step; /* blue */
+                }
+        }
 
         ply_renderer_head_add_connector (head, connector, connector_mode_index);
         assert (ply_array_get_size (head->connector_ids) > 0);
@@ -502,6 +518,7 @@ ply_renderer_head_free (ply_renderer_head_t *head)
 
         drmModeFreeConnector (head->connector0);
         ply_array_free (head->connector_ids);
+        free (head->gamma);
         free (head);
 }
 
@@ -600,6 +617,18 @@ ply_renderer_head_set_scan_out_buffer (ply_renderer_backend_t *backend,
 
         ply_trace ("Setting scan out buffer of %ldx%ld head to our buffer",
                    head->area.width, head->area.height);
+
+        /* Set gamma table, do this only once */
+        if (head->gamma) {
+                drmModeCrtcSetGamma (backend->device_fd,
+                                     head->controller_id,
+                                     head->gamma_size,
+                                     head->gamma + 0 * head->gamma_size,
+                                     head->gamma + 1 * head->gamma_size,
+                                     head->gamma + 2 * head->gamma_size);
+                free (head->gamma);
+                head->gamma = NULL;
+        }
 
         /* Tell the controller to use the allocated scan out buffer on each connectors
          */
@@ -1024,6 +1053,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 uint32_t controller_id;
                 uint32_t console_buffer_id;
                 int connector_mode_index;
+                int gamma_size;
 
                 connector = drmModeGetConnector (backend->device_fd,
                                                  backend->resources->connectors[i]);
@@ -1069,6 +1099,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 }
 
                 console_buffer_id = controller->buffer_id;
+                gamma_size = controller->gamma_size;
                 drmModeFreeCrtc (controller);
 
                 head = ply_hashtable_lookup (heads_by_controller_id,
@@ -1077,7 +1108,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 if (head == NULL) {
                         head = ply_renderer_head_new (backend, connector, connector_mode_index,
                                                       encoder_id, controller_id,
-                                                      console_buffer_id);
+                                                      console_buffer_id, gamma_size);
 
                         ply_list_append_data (backend->heads, head);
 

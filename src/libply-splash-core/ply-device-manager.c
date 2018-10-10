@@ -63,6 +63,7 @@ struct _ply_device_manager
         ply_list_t                *pixel_displays;
         struct udev               *udev_context;
         struct udev_monitor       *udev_monitor;
+        ply_fd_watch_t            *fd_watch;
 
         ply_keyboard_added_handler_t         keyboard_added_handler;
         ply_keyboard_removed_handler_t       keyboard_removed_handler;
@@ -77,6 +78,9 @@ struct _ply_device_manager
         uint32_t                    serial_consoles_detected : 1;
         uint32_t                    renderers_activated : 1;
         uint32_t                    keyboards_activated : 1;
+
+        uint32_t                    paused : 1;
+        uint32_t                    device_timeout_elapsed : 1;
 };
 
 static void
@@ -375,23 +379,38 @@ watch_for_udev_events (ply_device_manager_t *manager)
         assert (manager != NULL);
         assert (manager->udev_monitor == NULL);
 
+        if (manager->fd_watch != NULL)
+                return;
+
         ply_trace ("watching for udev graphics device add and remove events");
 
-        manager->udev_monitor = udev_monitor_new_from_netlink (manager->udev_context, "udev");
+        if (manager->udev_monitor == NULL) {
+                manager->udev_monitor = udev_monitor_new_from_netlink (manager->udev_context, "udev");
 
-        udev_monitor_filter_add_match_subsystem_devtype (manager->udev_monitor, SUBSYSTEM_DRM, NULL);
-        udev_monitor_filter_add_match_subsystem_devtype (manager->udev_monitor, SUBSYSTEM_FRAME_BUFFER, NULL);
-        udev_monitor_filter_add_match_tag (manager->udev_monitor, "seat");
-        udev_monitor_enable_receiving (manager->udev_monitor);
+                udev_monitor_filter_add_match_subsystem_devtype (manager->udev_monitor, SUBSYSTEM_DRM, NULL);
+                udev_monitor_filter_add_match_subsystem_devtype (manager->udev_monitor, SUBSYSTEM_FRAME_BUFFER, NULL);
+                udev_monitor_filter_add_match_tag (manager->udev_monitor, "seat");
+                udev_monitor_enable_receiving (manager->udev_monitor);
+        }
 
         fd = udev_monitor_get_fd (manager->udev_monitor);
-        ply_event_loop_watch_fd (manager->loop,
-                                 fd,
-                                 PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
-                                 (ply_event_handler_t)
-                                 on_udev_event,
-                                 NULL,
-                                 manager);
+        manager->fd_watch = ply_event_loop_watch_fd (manager->loop,
+                                                     fd,
+                                                     PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
+                                                     (ply_event_handler_t)
+                                                     on_udev_event,
+                                                     NULL,
+                                                     manager);
+}
+
+static void
+stop_watching_for_udev_events (ply_device_manager_t *manager)
+{
+        if (manager->fd_watch == NULL)
+                return;
+
+        ply_event_loop_stop_watching_fd (manager->loop, manager->fd_watch);
+        manager->fd_watch = NULL;
 }
 #endif
 
@@ -801,6 +820,13 @@ create_devices_from_udev (ply_device_manager_t *manager)
 {
         bool found_drm_device, found_fb_device;
 
+        manager->device_timeout_elapsed = true;
+
+        if (manager->paused) {
+                ply_trace ("create_devices_from_udev timeout elapsed while paused, deferring execution");
+                return;
+        }
+
         ply_trace ("Timeout elapsed, looking for devices from udev");
 
         found_drm_device = create_devices_for_subsystem (manager, SUBSYSTEM_DRM);
@@ -991,4 +1017,28 @@ ply_device_manager_deactivate_keyboards (ply_device_manager_t *manager)
         }
 
         manager->keyboards_activated = false;
+}
+
+void
+ply_device_manager_pause (ply_device_manager_t *manager)
+{
+        ply_trace ("ply_device_manager_pause() called, stopping watching for udev events");
+        manager->paused = true;
+#ifdef HAVE_UDEV
+        stop_watching_for_udev_events (manager);
+#endif
+}
+
+void
+ply_device_manager_unpause (ply_device_manager_t *manager)
+{
+        ply_trace ("ply_device_manager_unpause() called, resuming watching for udev events");
+        manager->paused = false;
+#ifdef HAVE_UDEV
+        if (manager->device_timeout_elapsed) {
+                ply_trace ("ply_device_manager_unpause(): timeout elapsed while paused, looking for udev devices");
+                create_devices_from_udev (manager);
+        }
+        watch_for_udev_events (manager);
+#endif
 }

@@ -208,8 +208,10 @@ ply_boot_splash_load (ply_boot_splash_t *splash)
 
         key_file = ply_key_file_new (splash->theme_path);
 
-        if (!ply_key_file_load (key_file))
+        if (!ply_key_file_load (key_file)) {
+                ply_key_file_free (key_file);
                 return false;
+        }
 
         module_name = ply_key_file_get_value (key_file, "Plymouth Theme", "ModuleName");
 

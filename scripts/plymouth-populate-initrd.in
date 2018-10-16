@@ -168,7 +168,7 @@ rev_lib_symlinks() {
 # It handles making symlinks according to how the original library
 # is referenced.
 inst_library() {
-    local _src="$1" _dest=${2:-$1} _lib _reallib _symlink
+    local _src="$1" _dest=${2:-$1} _reallib _symlink
     strstr "$1" "/" || return 1
     [[ -e $initdir/$_dest ]] && return 0
     if [[ -L $_src ]]; then

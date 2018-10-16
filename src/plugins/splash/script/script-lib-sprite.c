@@ -741,11 +741,13 @@ void
 script_lib_sprite_refresh (script_lib_sprite_data_t *data)
 {
         ply_list_node_t *node;
-        ply_region_t *region = ply_region_new ();
+        ply_region_t *region;
         ply_list_t *rectable_list;
 
         if (!data)
             return;
+
+        region = ply_region_new ();
 
         ply_list_sort_stable (data->sprite_list, &sprite_compare_z);
 

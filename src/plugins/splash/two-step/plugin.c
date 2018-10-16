@@ -662,6 +662,8 @@ create_plugin (ply_key_file_t *key_file)
                         ply_trace ("unknown progress function %s, defaulting to linear", progress_function);
                         plugin->progress_function = PROGRESS_FUNCTION_TYPE_LINEAR;
                 }
+
+                free (progress_function);
         }
 
         plugin->views = ply_list_new ();

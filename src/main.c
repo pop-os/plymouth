@@ -296,8 +296,8 @@ load_settings (state_t    *state,
 {
         ply_key_file_t *key_file = NULL;
         bool settings_loaded = false;
-        const char *scale_string;
-        const char *splash_string;
+        char *scale_string = NULL;
+        char *splash_string = NULL;
 
         ply_trace ("Trying to load %s", path);
         key_file = ply_key_file_new (path);
@@ -323,24 +323,27 @@ load_settings (state_t    *state,
         }
 
         if (isnan (state->splash_delay)) {
-                const char *delay_string;
+                char *delay_string;
 
                 delay_string = ply_key_file_get_value (key_file, "Daemon", "ShowDelay");
 
                 if (delay_string != NULL) {
                         state->splash_delay = atof (delay_string);
                         ply_trace ("Splash delay is set to %lf", state->splash_delay);
+                        free (delay_string);
                 }
         }
 
         if (isnan (state->device_timeout)) {
-                const char *timeout_string;
+                char *timeout_string;
 
                 timeout_string = ply_key_file_get_value (key_file, "Daemon", "DeviceTimeout");
 
                 if (timeout_string != NULL) {
                         state->device_timeout = atof (timeout_string);
                         ply_trace ("Device timeout is set to %lf", state->device_timeout);
+
+                        free (timeout_string);
                 }
         }
 
@@ -348,10 +351,12 @@ load_settings (state_t    *state,
 
         if (scale_string != NULL) {
                 ply_set_device_scale (strtoul (scale_string, NULL, 0));
+                free (scale_string);
         }
 
         settings_loaded = true;
 out:
+        free (splash_string);
         ply_key_file_free (key_file);
 
         return settings_loaded;

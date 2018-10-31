@@ -84,6 +84,9 @@ struct _ply_renderer_head
         uint32_t                encoder_id;
         uint32_t                console_buffer_id;
         uint32_t                scan_out_buffer_id;
+
+        int                     gamma_size;
+        uint16_t                *gamma;
 };
 
 struct _ply_renderer_input_source
@@ -134,6 +137,7 @@ struct _ply_renderer_backend
 
         uint32_t                         is_active : 1;
         uint32_t        requires_explicit_flushing : 1;
+        uint32_t                use_preferred_mode : 1;
 };
 
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
@@ -145,6 +149,36 @@ static bool reset_scan_out_buffer_if_needed (ply_renderer_backend_t *backend,
                                              ply_renderer_head_t    *head);
 static void flush_head (ply_renderer_backend_t *backend,
                         ply_renderer_head_t    *head);
+
+static bool efi_enabled (void)
+{
+        return ply_directory_exists ("/sys/firmware/efi/efivars");
+}
+
+/* A small helper to determine if we should try to keep the current mode
+ * or pick the best mode ourselves, we keep the current mode if:
+ * 1. The user specified a specific mode using video= on the commandline
+ * 2. The code to pick the best mode was added because with flicker-free boot
+ *    we can no longer rely on the kernel's fbcon code setting things up.
+ *    We should be able to do a better job then fbcon regardless, but for
+ *    now lets only use the new code on flicker-free systems until it is
+ *    more mature, this means only using it on UEFI systems.
+ */
+static bool
+should_use_preferred_mode (void)
+{
+        bool use_preferred_mode = true;
+
+        if (ply_kernel_command_line_get_string_after_prefix ("video="))
+                use_preferred_mode = false;
+
+        if (!efi_enabled ())
+                use_preferred_mode = false;
+
+        ply_trace ("should_use_preferred_mode: %d", use_preferred_mode);
+
+        return use_preferred_mode;
+}
 
 static bool
 ply_renderer_buffer_map (ply_renderer_backend_t *backend,
@@ -373,7 +407,7 @@ destroy_output_buffer (ply_renderer_backend_t *backend,
         ply_renderer_buffer_free (backend, buffer);
 }
 
-static int
+static ply_pixel_buffer_rotation_t
 connector_orientation_prop_to_rotation (drmModePropertyPtr prop,
                                         int orientation)
 {
@@ -395,12 +429,17 @@ connector_orientation_prop_to_rotation (drmModePropertyPtr prop,
         return PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
 }
 
-static int
-ply_renderer_connector_get_rotation (ply_renderer_backend_t *backend,
-                                     drmModeConnector       *connector)
+static void
+ply_renderer_connector_get_rotation_and_tiled (ply_renderer_backend_t      *backend,
+                                               drmModeConnector            *connector,
+                                               ply_pixel_buffer_rotation_t *rotation,
+                                               bool                        *tiled)
 {
         drmModePropertyPtr prop;
-        int i, rotation;
+        int i;
+
+        *rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+        *tiled = false;
 
         for (i = 0; i < connector->count_props; i++) {
                 prop = drmModeGetProperty (backend->device_fd, connector->props[i]);
@@ -408,16 +447,15 @@ ply_renderer_connector_get_rotation (ply_renderer_backend_t *backend,
                         continue;
 
                 if ((prop->flags & DRM_MODE_PROP_ENUM) &&
-                    strcmp (prop->name, "panel orientation") == 0) {
-                         rotation = connector_orientation_prop_to_rotation (prop, connector->prop_values[i]);
-                         drmModeFreeProperty (prop);
-                         return rotation;
-                }
+                    strcmp (prop->name, "panel orientation") == 0)
+                        *rotation = connector_orientation_prop_to_rotation (prop, connector->prop_values[i]);
+
+                if ((prop->flags & DRM_MODE_PROP_BLOB) &&
+                    strcmp (prop->name, "TILE") == 0)
+                        *tiled = true;
 
                 drmModeFreeProperty (prop);
         }
-
-        return PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
 }
 
 static bool
@@ -446,16 +484,18 @@ ply_renderer_head_add_connector (ply_renderer_head_t *head,
 }
 
 static ply_renderer_head_t *
-ply_renderer_head_new (ply_renderer_backend_t *backend,
-                       drmModeConnector       *connector,
-                       int                     connector_mode_index,
-                       uint32_t                encoder_id,
-                       uint32_t                controller_id,
-                       uint32_t                console_buffer_id)
+ply_renderer_head_new (ply_renderer_backend_t     *backend,
+                       drmModeConnector           *connector,
+                       int                         connector_mode_index,
+                       uint32_t                    encoder_id,
+                       uint32_t                    controller_id,
+                       uint32_t                    console_buffer_id,
+                       int                         gamma_size,
+                       ply_pixel_buffer_rotation_t rotation)
 {
         ply_renderer_head_t *head;
         drmModeModeInfo *mode;
-        int rotation;
+        int i, step;
 
         head = calloc (1, sizeof(ply_renderer_head_t));
 
@@ -476,10 +516,21 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
         head->area.width = mode->hdisplay;
         head->area.height = mode->vdisplay;
 
+        if (gamma_size) {
+                head->gamma_size = gamma_size;
+                head->gamma = malloc (gamma_size * 3 * sizeof(uint16_t));
+
+                step = UINT16_MAX / (gamma_size - 1);
+                for (i = 0; i < gamma_size; i++) {
+                        head->gamma[0 * gamma_size + i] = i * step; /* red */
+                        head->gamma[1 * gamma_size + i] = i * step; /* green */
+                        head->gamma[2 * gamma_size + i] = i * step; /* blue */
+                }
+        }
+
         ply_renderer_head_add_connector (head, connector, connector_mode_index);
         assert (ply_array_get_size (head->connector_ids) > 0);
 
-        rotation = ply_renderer_connector_get_rotation (backend, connector);
         head->pixel_buffer = ply_pixel_buffer_new_with_device_rotation (head->area.width, head->area.height, rotation);
         ply_pixel_buffer_set_device_scale (head->pixel_buffer,
                                            ply_get_device_scale (head->area.width,
@@ -502,6 +553,7 @@ ply_renderer_head_free (ply_renderer_head_t *head)
 
         drmModeFreeConnector (head->connector0);
         ply_array_free (head->connector_ids);
+        free (head->gamma);
         free (head);
 }
 
@@ -600,6 +652,18 @@ ply_renderer_head_set_scan_out_buffer (ply_renderer_backend_t *backend,
 
         ply_trace ("Setting scan out buffer of %ldx%ld head to our buffer",
                    head->area.width, head->area.height);
+
+        /* Set gamma table, do this only once */
+        if (head->gamma) {
+                drmModeCrtcSetGamma (backend->device_fd,
+                                     head->controller_id,
+                                     head->gamma_size,
+                                     head->gamma + 0 * head->gamma_size,
+                                     head->gamma + 1 * head->gamma_size,
+                                     head->gamma + 2 * head->gamma_size);
+                free (head->gamma);
+                head->gamma = NULL;
+        }
 
         /* Tell the controller to use the allocated scan out buffer on each connectors
          */
@@ -743,6 +807,7 @@ create_backend (const char     *device_name,
         backend->requires_explicit_flushing = true;
         backend->output_buffers = ply_hashtable_new (ply_hashtable_direct_hash,
                                                      ply_hashtable_direct_compare);
+        backend->use_preferred_mode = should_use_preferred_mode ();
 
         return backend;
 }
@@ -992,6 +1057,22 @@ find_index_of_mode (ply_renderer_backend_t *backend,
 }
 
 static int
+get_index_of_preferred_mode (drmModeConnector *connector)
+{
+        int i;
+
+        for (i = 0; i < connector->count_modes; i++)
+                if (connector->modes[i].type & DRM_MODE_TYPE_PREFERRED) {
+                        ply_trace ("Found preferred mode %dx%d at index %d\n",
+                                   connector->modes[i].hdisplay,
+                                   connector->modes[i].vdisplay, i);
+                        return i;
+                }
+
+        return -1;
+}
+
+static int
 get_index_of_active_mode (ply_renderer_backend_t *backend,
                           drmModeCrtc            *controller,
                           drmModeConnector       *connector)
@@ -1023,7 +1104,10 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 drmModeCrtc *controller;
                 uint32_t controller_id;
                 uint32_t console_buffer_id;
-                int connector_mode_index;
+                int connector_mode_index = -1;
+                int gamma_size;
+                ply_pixel_buffer_rotation_t rotation;
+                bool tiled;
 
                 connector = drmModeGetConnector (backend->device_fd,
                                                  backend->resources->connectors[i]);
@@ -1059,7 +1143,13 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 
                 controller_id = controller->crtc_id;
 
-                connector_mode_index = get_index_of_active_mode (backend, controller, connector);
+                ply_renderer_connector_get_rotation_and_tiled (backend, connector, &rotation, &tiled);
+
+                if (!tiled && backend->use_preferred_mode)
+                        connector_mode_index = get_index_of_preferred_mode (connector);
+
+                if (connector_mode_index < 0)
+                        connector_mode_index = get_index_of_active_mode (backend, controller, connector);
 
                 /* If we couldn't find the current active mode, fall back to the first available.
                  */
@@ -1069,6 +1159,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 }
 
                 console_buffer_id = controller->buffer_id;
+                gamma_size = controller->gamma_size;
                 drmModeFreeCrtc (controller);
 
                 head = ply_hashtable_lookup (heads_by_controller_id,
@@ -1077,7 +1168,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 if (head == NULL) {
                         head = ply_renderer_head_new (backend, connector, connector_mode_index,
                                                       encoder_id, controller_id,
-                                                      console_buffer_id);
+                                                      console_buffer_id, gamma_size, rotation);
 
                         ply_list_append_data (backend->heads, head);
 

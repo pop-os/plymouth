@@ -55,6 +55,8 @@ struct _ply_image
         ply_pixel_buffer_t *buffer;
 };
 
+const uint8_t png_header[8] = { 0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a };
+
 ply_image_t *
 ply_image_new (const char *filename)
 {
@@ -112,8 +114,8 @@ transform_to_argb32 (png_struct   *png,
         }
 }
 
-bool
-ply_image_load (ply_image_t *image)
+static bool
+ply_image_load_png (ply_image_t *image, FILE *fp)
 {
         png_struct *png;
         png_info *info;
@@ -121,13 +123,9 @@ ply_image_load (ply_image_t *image)
         int bits_per_pixel, color_type, interlace_method;
         png_byte **rows;
         uint32_t *bytes;
-        FILE *fp;
 
         assert (image != NULL);
-
-        fp = fopen (image->filename, "re");
-        if (fp == NULL)
-                return false;
+        assert (fp != NULL);
 
         png = png_create_read_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
         assert (png != NULL);
@@ -137,10 +135,8 @@ ply_image_load (ply_image_t *image)
 
         png_init_io (png, fp);
 
-        if (setjmp (png_jmpbuf (png)) != 0) {
-                fclose (fp);
+        if (setjmp (png_jmpbuf (png)) != 0)
                 return false;
-        }
 
         png_read_info (png, info);
         png_get_IHDR (png, info,
@@ -188,10 +184,37 @@ ply_image_load (ply_image_t *image)
 
         free (rows);
         png_read_end (png, info);
-        fclose (fp);
         png_destroy_read_struct (&png, &info, NULL);
 
         return true;
+}
+
+bool
+ply_image_load (ply_image_t *image)
+{
+        uint8_t header[16];
+        bool ret = false;
+        FILE *fp;
+
+        assert (image != NULL);
+
+        fp = fopen (image->filename, "re");
+        if (fp == NULL)
+                return false;
+
+        if (fread (header, 1, 16, fp) != 16)
+                goto out;
+
+        /* Rewind */
+        if (fseek (fp, 0, SEEK_SET) != 0)
+                goto out;
+
+        if (memcmp (header, png_header, sizeof(png_header)) == 0)
+                ret = ply_image_load_png (image, fp);
+
+out:
+        fclose (fp);
+        return ret;
 }
 
 uint32_t *

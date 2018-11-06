@@ -1079,4 +1079,34 @@ ply_pixel_buffer_set_device_scale (ply_pixel_buffer_t *buffer,
         buffer->logical_area.height = buffer->area.height / scale;
 }
 
+ply_pixel_buffer_rotation_t
+ply_pixel_buffer_get_device_rotation (ply_pixel_buffer_t *buffer)
+{
+        return buffer->device_rotation;
+}
+
+void
+ply_pixel_buffer_set_device_rotation (ply_pixel_buffer_t *buffer,
+                                      ply_pixel_buffer_rotation_t device_rotation)
+{
+        if (buffer->device_rotation == device_rotation)
+                return;
+
+        buffer->device_rotation = device_rotation;
+
+        if (device_rotation == PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE ||
+            device_rotation == PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE) {
+                unsigned long tmp = buffer->area.width;
+                buffer->area.width = buffer->area.height;
+                buffer->area.height = tmp;
+
+                ply_pixel_buffer_set_device_scale (buffer, buffer->device_scale);
+        }
+
+        while (ply_list_get_length (buffer->clip_areas) > 0) {
+                ply_pixel_buffer_pop_clip_area (buffer);
+        }
+        ply_pixel_buffer_push_clip_area (buffer, &buffer->area);
+}
+
 /* vim: set ts=4 sw=4 et ai ci cino={.5s,^-2,+.5s,t0,g0,e-2,n-2,p2s,(0,=.5s,:.5s */

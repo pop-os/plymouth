@@ -94,6 +94,7 @@ typedef struct
         ply_rectangle_t           box_area, lock_area, watermark_area;
         ply_trigger_t            *end_trigger;
         ply_pixel_buffer_t       *background_buffer;
+        bool                      background_is_bgrt;
 } view_t;
 
 struct _ply_boot_splash_plugin
@@ -105,6 +106,7 @@ struct _ply_boot_splash_plugin
         ply_image_t                        *corner_image;
         ply_image_t                        *header_image;
         ply_image_t                        *background_tile_image;
+        ply_image_t                        *background_bgrt_image;
         ply_image_t                        *watermark_image;
         ply_list_t                         *views;
 
@@ -242,6 +244,62 @@ view_load_end_animation (view_t *view)
         view->end_animation = NULL;
 }
 
+/* The Microsoft boot logo spec says that the logo must use a black background
+ * and have its center at 38.2% from the screen's top (golden ratio).
+ * We reproduce this exactly here so that we get a background which is an exact
+ * match of the firmware's boot splash.
+ * At the time of writing this comment this is documented in a document called
+ * "Boot screen components" which is available here:
+ * https://docs.microsoft.com/en-us/windows-hardware/drivers/bringup/boot-screen-components
+ * Note that we normally do not use the firmware reported x and y-offset as
+ * that is based on the EFI fb resolution which may not be the native
+ * resolution of the screen (esp. when using multiple heads).
+ */
+static void
+view_set_bgrt_background (view_t *view)
+{
+        ply_pixel_buffer_rotation_t panel_rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+        int x_offset, y_offset, sysfs_x_offset, sysfs_y_offset, width, height;
+        int panel_width = 0, panel_height = 0, panel_scale = 1;
+        int screen_width, screen_height, screen_scale;
+        ply_pixel_buffer_t *bgrt_buffer;
+
+        if (!view->plugin->background_bgrt_image)
+                return;
+
+        screen_width = ply_pixel_display_get_width (view->display);
+        screen_height = ply_pixel_display_get_height (view->display);
+        screen_scale = ply_pixel_display_get_device_scale (view->display);
+
+        bgrt_buffer = ply_image_get_buffer (view->plugin->background_bgrt_image);
+
+        if (ply_renderer_get_panel_properties (ply_pixel_display_get_renderer (view->display),
+                                               &panel_width, &panel_height,
+                                               &panel_rotation, &panel_scale)) {
+               ply_pixel_buffer_set_device_rotation (bgrt_buffer, panel_rotation);
+               ply_pixel_buffer_set_device_scale (bgrt_buffer, panel_scale);
+        }
+
+        width = ply_pixel_buffer_get_width (bgrt_buffer);
+        height = ply_pixel_buffer_get_height (bgrt_buffer);
+
+        x_offset = (screen_width - width) / 2;
+        y_offset = screen_height * 382 / 1000 - height / 2;
+
+        ply_trace ("using %dx%d bgrt image centered at %dx%d for %dx%d screen",
+                   width, height, x_offset, y_offset, screen_width, screen_height);
+
+        view->background_buffer = ply_pixel_buffer_new (screen_width * screen_scale, screen_height * screen_scale);
+        ply_pixel_buffer_set_device_scale (view->background_buffer, screen_scale);
+        ply_pixel_buffer_fill_with_hex_color (view->background_buffer, NULL, 0x000000);
+        if (x_offset >= 0 && y_offset >= 0) {
+                bgrt_buffer = ply_pixel_buffer_rotate_upright (bgrt_buffer);
+                ply_pixel_buffer_fill_with_buffer (view->background_buffer, bgrt_buffer, x_offset, y_offset);
+                ply_pixel_buffer_free (bgrt_buffer);
+        }
+        view->background_is_bgrt = true;
+}
+
 static bool
 view_load (view_t *view)
 {
@@ -259,7 +317,9 @@ view_load (view_t *view)
                         ply_pixel_display_get_renderer_head (view->display));
         screen_scale = ply_pixel_buffer_get_device_scale (buffer);
 
-        if (plugin->background_tile_image != NULL) {
+        view_set_bgrt_background (view);
+
+        if (!view->background_buffer && plugin->background_tile_image != NULL) {
                 ply_trace ("tiling background to %lux%lu", screen_width, screen_height);
 
                 /* Create a buffer at screen scale so that we only do the slow interpolating scale once */
@@ -670,6 +730,10 @@ create_plugin (ply_key_file_t *key_file)
 
         free (color);
 
+        /* Boolean option, true if the key is present */
+        if (ply_key_file_get_value (key_file, "two-step", "UseBGRT"))
+                plugin->background_bgrt_image = ply_image_new ("/sys/firmware/acpi/bgrt/image");
+
         progress_function = ply_key_file_get_value (key_file, "two-step", "ProgressFunction");
 
         if (progress_function != NULL) {
@@ -746,6 +810,9 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
 
         if (plugin->background_tile_image != NULL)
                 ply_image_free (plugin->background_tile_image);
+
+        if (plugin->background_bgrt_image != NULL)
+                ply_image_free (plugin->background_bgrt_image);
 
         if (plugin->watermark_image != NULL)
                 ply_image_free (plugin->watermark_image);
@@ -895,7 +962,14 @@ draw_background (view_t             *view,
         area.width = width;
         area.height = height;
 
-        if (view->background_buffer != NULL)
+        /* When using the firmware logo as background, use solid black as
+         * background for dialogs.
+         */
+        if ((plugin->state == PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY ||
+             plugin->state == PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY) &&
+            view->background_is_bgrt)
+                ply_pixel_buffer_fill_with_hex_color (pixel_buffer, &area, 0);
+        else if (view->background_buffer != NULL)
                 ply_pixel_buffer_fill_with_buffer (pixel_buffer, view->background_buffer, 0, 0);
         else if (plugin->background_start_color != plugin->background_end_color)
                 ply_pixel_buffer_fill_with_gradient (pixel_buffer, &area,
@@ -1094,6 +1168,14 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                 if (!ply_image_load (plugin->background_tile_image)) {
                         ply_image_free (plugin->background_tile_image);
                         plugin->background_tile_image = NULL;
+                }
+        }
+
+        if (plugin->background_bgrt_image != NULL) {
+                ply_trace ("loading background bgrt image");
+                if (!ply_image_load (plugin->background_bgrt_image)) {
+                        ply_image_free (plugin->background_bgrt_image);
+                        plugin->background_bgrt_image = NULL;
                 }
         }
 

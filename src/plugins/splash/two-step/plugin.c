@@ -93,7 +93,7 @@ typedef struct
         ply_label_t              *message_label;
         ply_rectangle_t           box_area, lock_area, watermark_area;
         ply_trigger_t            *end_trigger;
-        ply_image_t              *background_image;
+        ply_pixel_buffer_t       *background_buffer;
 } view_t;
 
 struct _ply_boot_splash_plugin
@@ -181,8 +181,8 @@ view_free (view_t *view)
         ply_label_free (view->label);
         ply_label_free (view->message_label);
 
-        if (view->background_image != NULL)
-                ply_image_free (view->background_image);
+        if (view->background_buffer != NULL)
+                ply_pixel_buffer_free (view->background_buffer);
 
         free (view);
 }
@@ -255,7 +255,7 @@ view_load (view_t *view)
 
         if (plugin->background_tile_image != NULL) {
                 ply_trace ("tiling background to %lux%lu", screen_width, screen_height);
-                view->background_image = ply_image_tile (plugin->background_tile_image, screen_width, screen_height);
+                view->background_buffer = ply_pixel_buffer_tile (ply_image_get_buffer (plugin->background_tile_image), screen_width, screen_height);
         }
 
         if (plugin->watermark_image != NULL) {
@@ -882,9 +882,9 @@ draw_background (view_t             *view,
                 ply_pixel_buffer_fill_with_hex_color (pixel_buffer, &area,
                                                       plugin->background_start_color);
 
-        if (view->background_image != NULL) {
+        if (view->background_buffer != NULL) {
                 uint32_t *data;
-                data = ply_image_get_data (view->background_image);
+                data = ply_pixel_buffer_get_argb32_data (view->background_buffer);
 
                 /* We must pass NULL as fill area, because the fill area
                    must be sized as the image we're sourcing from, otherwise

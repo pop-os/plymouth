@@ -51,6 +51,7 @@ ply_renderer_head_t *ply_pixel_display_get_renderer_head (ply_pixel_display_t *d
 
 unsigned long ply_pixel_display_get_width (ply_pixel_display_t *display);
 unsigned long ply_pixel_display_get_height (ply_pixel_display_t *display);
+int ply_pixel_display_get_device_scale (ply_pixel_display_t *display);
 
 void ply_pixel_display_set_draw_handler (ply_pixel_display_t             *display,
                                          ply_pixel_display_draw_handler_t draw_handler,

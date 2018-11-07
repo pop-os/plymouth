@@ -245,17 +245,38 @@ view_load_end_animation (view_t *view)
 static bool
 view_load (view_t *view)
 {
-        unsigned long screen_width, screen_height;
+        unsigned long screen_width, screen_height, screen_scale;
         ply_boot_splash_plugin_t *plugin;
+        ply_pixel_buffer_t *buffer;
 
         plugin = view->plugin;
 
         screen_width = ply_pixel_display_get_width (view->display);
         screen_height = ply_pixel_display_get_height (view->display);
 
+        buffer = ply_renderer_get_buffer_for_head(
+                        ply_pixel_display_get_renderer (view->display),
+                        ply_pixel_display_get_renderer_head (view->display));
+        screen_scale = ply_pixel_buffer_get_device_scale (buffer);
+
         if (plugin->background_tile_image != NULL) {
                 ply_trace ("tiling background to %lux%lu", screen_width, screen_height);
-                view->background_buffer = ply_pixel_buffer_tile (ply_image_get_buffer (plugin->background_tile_image), screen_width, screen_height);
+
+                /* Create a buffer at screen scale so that we only do the slow interpolating scale once */
+                view->background_buffer = ply_pixel_buffer_new (screen_width * screen_scale, screen_height * screen_scale);
+                ply_pixel_buffer_set_device_scale (view->background_buffer, screen_scale);
+
+                if (plugin->background_start_color != plugin->background_end_color)
+                        ply_pixel_buffer_fill_with_gradient (view->background_buffer, NULL,
+                                                             plugin->background_start_color,
+                                                             plugin->background_end_color);
+                else
+                        ply_pixel_buffer_fill_with_hex_color (view->background_buffer, NULL,
+                                                              plugin->background_start_color);
+
+                buffer = ply_pixel_buffer_tile (ply_image_get_buffer (plugin->background_tile_image), screen_width, screen_height);
+                ply_pixel_buffer_fill_with_buffer (view->background_buffer, buffer, 0, 0);
+                ply_pixel_buffer_free (buffer);
         }
 
         if (plugin->watermark_image != NULL) {
@@ -874,24 +895,15 @@ draw_background (view_t             *view,
         area.width = width;
         area.height = height;
 
-        if (plugin->background_start_color != plugin->background_end_color)
+        if (view->background_buffer != NULL)
+                ply_pixel_buffer_fill_with_buffer (pixel_buffer, view->background_buffer, 0, 0);
+        else if (plugin->background_start_color != plugin->background_end_color)
                 ply_pixel_buffer_fill_with_gradient (pixel_buffer, &area,
                                                      plugin->background_start_color,
                                                      plugin->background_end_color);
         else
                 ply_pixel_buffer_fill_with_hex_color (pixel_buffer, &area,
                                                       plugin->background_start_color);
-
-        if (view->background_buffer != NULL) {
-                uint32_t *data;
-                data = ply_pixel_buffer_get_argb32_data (view->background_buffer);
-
-                /* We must pass NULL as fill area, because the fill area
-                   must be sized as the image we're sourcing from, otherwise
-                   sampling does not work
-                */
-                ply_pixel_buffer_fill_with_argb32_data_with_clip (pixel_buffer, NULL, NULL, data);
-        }
 
         if (plugin->watermark_image != NULL) {
                 uint32_t *data;

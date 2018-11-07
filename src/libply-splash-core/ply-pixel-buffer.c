@@ -868,8 +868,8 @@ ply_pixel_buffer_fill_with_buffer_at_opacity_with_clip (ply_pixel_buffer_t *canv
                 if (cropped_area.width == 0 || cropped_area.height == 0)
                         return;
 
-                x = cropped_area.x - x_offset;
-                y = cropped_area.y - y_offset;
+                x = cropped_area.x - x_offset * canvas->device_scale;
+                y = cropped_area.y - y_offset * canvas->device_scale;
 
                 ply_pixel_buffer_copy_area (canvas, source, x, y, &cropped_area);
 

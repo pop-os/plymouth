@@ -1109,4 +1109,29 @@ ply_pixel_buffer_set_device_rotation (ply_pixel_buffer_t *buffer,
         ply_pixel_buffer_push_clip_area (buffer, &buffer->area);
 }
 
+ply_pixel_buffer_t *
+ply_pixel_buffer_rotate_upright (ply_pixel_buffer_t *old_buffer)
+{
+        ply_pixel_buffer_t *buffer;
+        int x,y, width, height;
+        uint32_t pixel;
+
+        width = old_buffer->area.width;
+        height = old_buffer->area.height;
+
+        buffer = ply_pixel_buffer_new (width, height);
+
+        for (y = 0; y < height; y++) {
+                for (x = 0; x < width; x++) {
+                        pixel = ply_pixel_buffer_get_pixel (old_buffer, x, y);
+                        ply_pixel_buffer_set_pixel (buffer, x, y, pixel);
+                }
+        }
+
+        ply_pixel_buffer_set_device_scale (buffer, old_buffer->device_scale);
+        ply_pixel_buffer_set_opaque (buffer, old_buffer->is_opaque);
+
+        return buffer;
+}
+
 /* vim: set ts=4 sw=4 et ai ci cino={.5s,^-2,+.5s,t0,g0,e-2,n-2,p2s,(0,=.5s,:.5s */

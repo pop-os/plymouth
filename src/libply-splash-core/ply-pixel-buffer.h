@@ -159,6 +159,12 @@ ply_pixel_buffer_t *ply_pixel_buffer_tile (ply_pixel_buffer_t *old_buffer,
                                            long                width,
                                            long                height);
 
+/* Return the upright version of a buffer which is non upright.
+ * This is the *only* ply_pixel_buffer function which works correctly with a
+ * non upright buffer as source.
+ */
+ply_pixel_buffer_t *ply_pixel_buffer_rotate_upright (ply_pixel_buffer_t *old_buffer);
+
 #endif
 
 #endif /* PLY_PIXEL_BUFFER_H */

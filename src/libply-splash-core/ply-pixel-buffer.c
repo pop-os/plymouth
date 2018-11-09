@@ -315,7 +315,7 @@ ply_pixel_buffer_fill_area_with_pixel_value (ply_pixel_buffer_t *buffer,
         /* If we're filling the entire buffer with a fully opaque color,
          * then make note of it
          */
-        if (fill_area == &buffer->area &&
+        if (memcmp(fill_area, &buffer->area, sizeof(ply_rectangle_t)) == 0 &&
             (pixel_value >> 24) == 0xff) {
                 buffer->is_opaque = true;
         }

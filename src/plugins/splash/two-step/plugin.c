@@ -124,6 +124,7 @@ struct _ply_boot_splash_plugin
 
         uint32_t                            background_start_color;
         uint32_t                            background_end_color;
+        int                                 background_bgrt_raw_width;
 
         progress_function_t                 progress_function;
 
@@ -244,6 +245,41 @@ view_load_end_animation (view_t *view)
         view->end_animation = NULL;
 }
 
+static bool
+get_bgrt_sysfs_offsets(int *x_offset, int *y_offset)
+{
+        bool ret = false;
+        char buf[64];
+        FILE *f;
+
+        f = fopen("/sys/firmware/acpi/bgrt/xoffset", "r");
+        if (!f)
+                return false;
+
+        if (!fgets(buf, sizeof(buf), f))
+                goto out;
+
+        if (sscanf(buf, "%d", x_offset) != 1)
+                goto out;
+
+        fclose(f);
+
+        f = fopen("/sys/firmware/acpi/bgrt/yoffset", "r");
+        if (!f)
+                return false;
+
+        if (!fgets(buf, sizeof(buf), f))
+                goto out;
+
+        if (sscanf(buf, "%d", y_offset) != 1)
+                goto out;
+
+        ret = true;
+out:
+        fclose(f);
+        return ret;
+}
+
 /* The Microsoft boot logo spec says that the logo must use a black background
  * and have its center at 38.2% from the screen's top (golden ratio).
  * We reproduce this exactly here so that we get a background which is an exact
@@ -285,6 +321,45 @@ view_set_bgrt_background (view_t *view)
 
         x_offset = (screen_width - width) / 2;
         y_offset = screen_height * 382 / 1000 - height / 2;
+
+        /*
+         * On laptops / tablets the LCD panel is typically brought up in
+         * its native resolution, so we can trust the x- and y-offset values
+         * provided by the firmware to be correct for a screen with the panels
+         * resolution.
+         *
+         * Moreover some laptop / tablet firmwares to do all kind of hacks wrt
+         * the y offset. This happens especially on devices where the panel is
+         * mounted 90 degrees rotated, but also on other devices.
+         *
+         * So on devices with an internal LCD panel, we prefer to use the
+         * firmware provided offsets, to make sure we match its quirky behavior.
+         *
+         * We check that the x-offset matches what we expect for the panel's
+         * native resolution to make sure that the values are indeed for the
+         * panel's native resolution and then we correct for any difference
+         * between the (external) screen's and the panel's resolution.
+         */
+        if (panel_width != 0 && panel_height != 0 &&
+            get_bgrt_sysfs_offsets(&sysfs_x_offset, &sysfs_y_offset) &&
+            (panel_width - view->plugin->background_bgrt_raw_width) / 2 == sysfs_x_offset) {
+                if (panel_rotation == PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE ||
+                    panel_rotation == PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE) {
+                        /* 90 degrees rotated, swap x and y */
+                        x_offset = sysfs_y_offset / panel_scale;
+                        y_offset = sysfs_x_offset / panel_scale;
+
+                        x_offset += (screen_width - panel_height / panel_scale) / 2;
+                        y_offset += (screen_height - panel_width / panel_scale) * 382 / 1000;
+                } else {
+                        /* Normal orientation */
+                        x_offset = sysfs_x_offset / panel_scale;
+                        y_offset = sysfs_y_offset / panel_scale;
+
+                        x_offset += (screen_width - panel_width / panel_scale) / 2;
+                        y_offset += (screen_height - panel_height / panel_scale) * 382 / 1000;
+                }
+        }
 
         ply_trace ("using %dx%d bgrt image centered at %dx%d for %dx%d screen",
                    width, height, x_offset, y_offset, screen_width, screen_height);
@@ -1173,7 +1248,9 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
 
         if (plugin->background_bgrt_image != NULL) {
                 ply_trace ("loading background bgrt image");
-                if (!ply_image_load (plugin->background_bgrt_image)) {
+                if (ply_image_load (plugin->background_bgrt_image)) {
+                        plugin->background_bgrt_raw_width = ply_image_get_width (plugin->background_bgrt_image);
+                } else {
                         ply_image_free (plugin->background_bgrt_image);
                         plugin->background_bgrt_image = NULL;
                 }

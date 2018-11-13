@@ -1,0 +1,16 @@
+[Plymouth Theme]
+Name=BGRT
+Description=Jimmac's spinner theme using the ACPI BGRT graphics as background
+ModuleName=two-step
+
+[two-step]
+ImageDir=@PLYMOUTH_THEME_PATH@/bgrt
+HorizontalAlignment=.5
+VerticalAlignment=.75
+WatermarkHorizontalAlignment=.5
+WatermarkVerticalAlignment=.96
+Transition=none
+TransitionDuration=0.0
+BackgroundStartColor=0x202020
+BackgroundEndColor=0x202020
+UseBGRT=true

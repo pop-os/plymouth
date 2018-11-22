@@ -81,6 +81,8 @@ struct _ply_device_manager
 
         uint32_t                    paused : 1;
         uint32_t                    device_timeout_elapsed : 1;
+        uint32_t                    found_drm_device : 1;
+        uint32_t                    found_fb_device : 1;
 };
 
 static void
@@ -254,6 +256,12 @@ create_devices_for_udev_device (ply_device_manager_t *manager,
                                                                                  device_path,
                                                                                  terminal,
                                                                                  renderer_type);
+                        if (created) {
+                                if (renderer_type == PLY_RENDERER_TYPE_DRM)
+                                        manager->found_drm_device = 1;
+                                if (renderer_type == PLY_RENDERER_TYPE_FRAME_BUFFER)
+                                        manager->found_fb_device = 1;
+                        }
                 }
         }
 
@@ -818,8 +826,6 @@ create_non_graphical_devices (ply_device_manager_t *manager)
 static void
 create_devices_from_udev (ply_device_manager_t *manager)
 {
-        bool found_drm_device, found_fb_device;
-
         manager->device_timeout_elapsed = true;
 
         if (manager->paused) {
@@ -829,10 +835,10 @@ create_devices_from_udev (ply_device_manager_t *manager)
 
         ply_trace ("Timeout elapsed, looking for devices from udev");
 
-        found_drm_device = create_devices_for_subsystem (manager, SUBSYSTEM_DRM);
-        found_fb_device = create_devices_for_subsystem (manager, SUBSYSTEM_FRAME_BUFFER);
+        create_devices_for_subsystem (manager, SUBSYSTEM_DRM);
+        create_devices_for_subsystem (manager, SUBSYSTEM_FRAME_BUFFER);
 
-        if (found_drm_device || found_fb_device)
+        if (manager->found_drm_device || manager->found_fb_device)
                 return;
 
         ply_trace ("Creating non-graphical devices, since there's no suitable graphics hardware");

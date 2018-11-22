@@ -1002,10 +1002,12 @@ add_pixel_display (ply_boot_splash_plugin_t *plugin,
                                             (ply_pixel_display_draw_handler_t)
                                             on_draw, view);
         if (plugin->is_visible) {
-                if (view_load (view))
+                if (view_load (view)) {
                         ply_list_append_data (plugin->views, view);
-                else
+                        view_start_progress_animation (view);
+                } else {
                         view_free (view);
+                }
         } else {
                 ply_list_append_data (plugin->views, view);
         }

@@ -120,6 +120,8 @@ typedef struct
         drmModeConnector *connector;
         drmModeModeInfo *mode;
         drmModeCrtc *controller;
+        ply_pixel_buffer_rotation_t rotation;
+        bool tiled;
 } ply_output_t;
 
 struct _ply_renderer_backend
@@ -442,28 +444,26 @@ connector_orientation_prop_to_rotation (drmModePropertyPtr prop,
 
 static void
 ply_renderer_connector_get_rotation_and_tiled (ply_renderer_backend_t      *backend,
-                                               drmModeConnector            *connector,
-                                               ply_pixel_buffer_rotation_t *rotation,
-                                               bool                        *tiled)
+                                               ply_output_t                *output)
 {
         drmModePropertyPtr prop;
         int i;
 
-        *rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
-        *tiled = false;
+        output->rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+        output->tiled = false;
 
-        for (i = 0; i < connector->count_props; i++) {
-                prop = drmModeGetProperty (backend->device_fd, connector->props[i]);
+        for (i = 0; i < output->connector->count_props; i++) {
+                prop = drmModeGetProperty (backend->device_fd, output->connector->props[i]);
                 if (!prop)
                         continue;
 
                 if ((prop->flags & DRM_MODE_PROP_ENUM) &&
                     strcmp (prop->name, "panel orientation") == 0)
-                        *rotation = connector_orientation_prop_to_rotation (prop, connector->prop_values[i]);
+                        output->rotation = connector_orientation_prop_to_rotation (prop, output->connector->prop_values[i]);
 
                 if ((prop->flags & DRM_MODE_PROP_BLOB) &&
                     strcmp (prop->name, "TILE") == 0)
-                        *tiled = true;
+                        output->tiled = true;
 
                 drmModeFreeProperty (prop);
         }
@@ -1114,8 +1114,6 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
         for (i = 0; i < backend->resources->count_connectors; i++) {
                 drmModeConnector *connector;
                 drmModeEncoder *encoder;
-                ply_pixel_buffer_rotation_t rotation;
-                bool tiled;
 
                 connector = drmModeGetConnector (backend->device_fd,
                                                  backend->resources->connectors[i]);
@@ -1141,9 +1139,9 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                         drmModeFreeEncoder (encoder);
                 }
 
-                ply_renderer_connector_get_rotation_and_tiled (backend, connector, &rotation, &tiled);
+                ply_renderer_connector_get_rotation_and_tiled (backend, &outputs[found]);
 
-                if (!tiled && backend->use_preferred_mode)
+                if (!outputs[found].tiled && backend->use_preferred_mode)
                         outputs[found].mode = get_preferred_mode (connector);
 
                 if (!outputs[found].mode && outputs[found].controller)
@@ -1177,16 +1175,12 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 uint32_t controller_id;
                 uint32_t console_buffer_id;
                 int gamma_size;
-                ply_pixel_buffer_rotation_t rotation;
-                bool tiled;
 
                 /* Skip outputs for which we failed to get a controller */
                 if (!outputs[i].controller) {
                         drmModeFreeConnector (connector);
                         continue;
                 }
-
-                ply_renderer_connector_get_rotation_and_tiled (backend, connector, &rotation, &tiled);
 
                 controller_id = outputs[i].controller->crtc_id;
                 console_buffer_id = outputs[i].controller->buffer_id;
@@ -1199,7 +1193,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 if (head == NULL) {
                         head = ply_renderer_head_new (backend, connector, outputs[i].mode,
                                                       controller_id, console_buffer_id,
-                                                      gamma_size, rotation);
+                                                      gamma_size, outputs[i].rotation);
 
                         ply_list_append_data (backend->heads, head);
 

@@ -81,7 +81,6 @@ struct _ply_renderer_head
         int                     connector0_mode_index;
 
         uint32_t                controller_id;
-        uint32_t                encoder_id;
         uint32_t                console_buffer_id;
         uint32_t                scan_out_buffer_id;
 
@@ -492,7 +491,6 @@ static ply_renderer_head_t *
 ply_renderer_head_new (ply_renderer_backend_t     *backend,
                        drmModeConnector           *connector,
                        int                         connector_mode_index,
-                       uint32_t                    encoder_id,
                        uint32_t                    controller_id,
                        uint32_t                    console_buffer_id,
                        int                         gamma_size,
@@ -505,7 +503,6 @@ ply_renderer_head_new (ply_renderer_backend_t     *backend,
         head = calloc (1, sizeof(ply_renderer_head_t));
 
         head->backend = backend;
-        head->encoder_id = encoder_id;
         head->connector_ids = ply_array_new (PLY_ARRAY_ELEMENT_TYPE_UINT32);
         head->controller_id = controller_id;
         head->console_buffer_id = console_buffer_id;
@@ -1114,7 +1111,6 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
         for (i = 0; i < backend->resources->count_connectors; i++) {
                 ply_renderer_head_t *head;
                 drmModeEncoder *encoder;
-                uint32_t encoder_id;
                 drmModeCrtc *controller;
                 uint32_t controller_id;
                 uint32_t console_buffer_id;
@@ -1146,7 +1142,6 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                         continue;
                 }
 
-                encoder_id = encoder->encoder_id;
                 controller = find_controller_for_encoder (backend, encoder);
                 drmModeFreeEncoder (encoder);
 
@@ -1181,8 +1176,8 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 
                 if (head == NULL) {
                         head = ply_renderer_head_new (backend, connector, connector_mode_index,
-                                                      encoder_id, controller_id,
-                                                      console_buffer_id, gamma_size, rotation);
+                                                      controller_id, console_buffer_id,
+                                                      gamma_size, rotation);
 
                         ply_list_append_data (backend->heads, head);
 

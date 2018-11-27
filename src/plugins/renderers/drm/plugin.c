@@ -980,7 +980,7 @@ close_device (ply_renderer_backend_t *backend)
 }
 
 static void
-find_controller_for_output (ply_renderer_backend_t *backend,
+output_get_controller_info (ply_renderer_backend_t *backend,
                             ply_output_t           *output)
 {
         int i;
@@ -1092,12 +1092,119 @@ get_active_mode (ply_renderer_backend_t *backend,
         return mode;
 }
 
+/* Some controllers can only drive some outputs, we want to find a combination
+ * where all (connected) outputs get a controller. To do this setup_outputs
+ * picks which output to assign a controller for first (trying all outputs), so
+ * that that one will get the first (free) controller and then recurses into
+ * itself to assign the remaining outputs. This tries assigning all remainig
+ * unassigned outputs first and returns the best result of all possible
+ * assignment orders for the remaining unassigned outputs.
+ * This repeats until we find an assignment order which results in a controller
+ * for all outputs, or we've tried all possible assignment orders.
+ */
+
+static uint32_t
+find_controller_for_output (ply_renderer_backend_t *backend,
+                            const ply_output_t     *outputs,
+                            int                     outputs_len,
+                            int                     output_idx)
+{
+        uint32_t possible_controllers = outputs[output_idx].possible_controllers;
+        int i, j;
+
+        for (i = 0; i < backend->resources->count_crtcs; i++) {
+                uint32_t controller_id = backend->resources->crtcs[i];
+
+                if (!(possible_controllers & (1 << i)))
+                        continue; /* controller not usable for this connector */
+
+                for (j = 0; j < outputs_len; j++) {
+                        if (outputs[j].controller_id == controller_id)
+                                break;
+                }
+                if (j < outputs_len)
+                        continue; /* controller already in use */
+
+                return controller_id;
+        }
+
+        return 0;
+}
+
+static int
+count_setup_controllers (const ply_output_t *outputs,
+                         int                 outputs_len)
+{
+        int i, count = 0;
+
+        for (i = 0; i < outputs_len; i++) {
+                if (outputs[i].controller_id)
+                        count++;
+        }
+
+        return count;
+}
+
+static ply_output_t *
+setup_outputs (ply_renderer_backend_t *backend,
+               const ply_output_t     *outputs,
+               int                     outputs_len)
+{
+        const ply_output_t *best_outputs;
+        ply_output_t *new_outputs;
+        int i, count, best_count;
+        uint32_t controller_id;
+
+        best_count = count_setup_controllers (outputs, outputs_len);
+        best_outputs = outputs;
+
+        for (i = 0; i < outputs_len && best_count < outputs_len; i++) {
+                /* Already assigned? */
+                if (outputs[i].controller_id)
+                        continue;
+
+                /* Assign controller for connector i */
+                controller_id = find_controller_for_output (backend, outputs, outputs_len, i);
+                if (!controller_id)
+                        continue;
+
+                /* Add the new controller to a copy of the passed in connector
+                 * template, we want to try all possible permutations of
+                 * unassigned outputs without modifying the template.
+                 */
+                new_outputs = calloc (outputs_len, sizeof(*new_outputs));
+                memcpy (new_outputs, outputs, outputs_len * sizeof(ply_output_t));
+                new_outputs[i].controller_id = controller_id;
+
+                /* Recurse into ourselves to assign remaining controllers,
+                 * trying all possible assignment orders.
+                 */
+                new_outputs = setup_outputs (backend, new_outputs, outputs_len);
+
+                count = count_setup_controllers (new_outputs, outputs_len);
+                if (count > best_count) {
+                        if (best_outputs != outputs)
+                                free ((void *)best_outputs);
+                        best_outputs = new_outputs;
+                        best_count = count;
+                } else {
+                        free (new_outputs);
+                }
+        }
+
+        if (best_outputs != outputs)
+                free ((void *)outputs);
+
+        /* Our caller is allowed to modify outputs, cast-away the const */
+        return (ply_output_t *)best_outputs;
+}
+
 static bool
 create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 {
         ply_hashtable_t *heads_by_controller_id;
         ply_output_t *outputs;
-        int i, j, found, outputs_len;
+        int i, j, found, number_of_setup_outputs, outputs_len;
 
         heads_by_controller_id = ply_hashtable_new (NULL, NULL);
 
@@ -1127,7 +1234,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 
                 outputs[found].connector = connector;
 
-                find_controller_for_output (backend, &outputs[found]);
+                output_get_controller_info (backend, &outputs[found]);
                 ply_renderer_connector_get_rotation_and_tiled (backend, &outputs[found]);
 
                 if (!outputs[found].tiled && backend->use_preferred_mode)
@@ -1169,9 +1276,26 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 }
         }
 
-        /* Step 3: TODO
+        /* Step 3:
          * Assign controllers to outputs without a controller
          */
+        number_of_setup_outputs = count_setup_controllers (outputs, outputs_len);
+        if (number_of_setup_outputs != outputs_len) {
+                /* First try, try to assign controllers to outputs without one */
+                ply_trace ("Some outputs don't have controllers, picking controllers");
+                outputs = setup_outputs (backend, outputs, outputs_len);
+                number_of_setup_outputs = count_setup_controllers (outputs, outputs_len);
+        }
+        if (number_of_setup_outputs != outputs_len) {
+                /* Second try, re-assing controller for all outputs */
+                ply_trace ("Some outputs still don't have controllers, re-assigning controllers for all outputs");
+                for (i = 0; i < outputs_len; i++)
+                        outputs[i].controller_id = 0;
+                outputs = setup_outputs (backend, outputs, outputs_len);
+        }
+        for (i = 0; i < outputs_len; i++)
+                ply_trace ("Using controller %u for connector %u",
+                           outputs[i].controller_id, outputs[i].connector->connector_id);
 
         /* Step 4:
          * Create heads for all valid outputs

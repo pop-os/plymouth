@@ -1097,7 +1097,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 {
         ply_hashtable_t *heads_by_controller_id;
         ply_output_t *outputs;
-        int i, found, outputs_len;
+        int i, j, found, outputs_len;
 
         heads_by_controller_id = ply_hashtable_new (NULL, NULL);
 
@@ -1147,9 +1147,27 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
         }
         outputs_len = found; /* outputs now contains found valid entries */
 
-        /* Step 2: TODO
+        /* Step 2:
          * Drop controllers for clones for which we've picked different modes.
          */
+        for (i = 0; i < outputs_len; i++) {
+                if (!outputs[i].controller_id)
+                        continue;
+
+                for (j = i + 1; j < outputs_len; j++) {
+                        if (!outputs[j].controller_id)
+                                continue;
+
+                        if (outputs[i].controller_id == outputs[j].controller_id &&
+                            (outputs[i].mode->hdisplay != outputs[j].mode->hdisplay ||
+                             outputs[i].mode->vdisplay != outputs[j].mode->vdisplay)) {
+                                ply_trace ("connector %u uses same controller as %u and modes differ, unlinking controller",
+                                           outputs[j].connector->connector_id,
+                                           outputs[i].connector->connector_id);
+                                outputs[j].controller_id = 0;
+                        }
+                }
+        }
 
         /* Step 3: TODO
          * Assign controllers to outputs without a controller

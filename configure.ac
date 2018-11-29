@@ -322,6 +322,7 @@ AC_CONFIG_FILES([Makefile
            themes/glow/Makefile
            themes/spinner/Makefile
            themes/script/Makefile
+           themes/bgrt/Makefile
            images/Makefile
 	   scripts/plymouth-generate-initrd
 	   scripts/plymouth-populate-initrd

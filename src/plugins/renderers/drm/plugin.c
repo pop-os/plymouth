@@ -138,6 +138,11 @@ struct _ply_renderer_backend
         uint32_t                         is_active : 1;
         uint32_t        requires_explicit_flushing : 1;
         uint32_t                use_preferred_mode : 1;
+
+        int                              panel_width;
+        int                              panel_height;
+        ply_pixel_buffer_rotation_t      panel_rotation;
+        int                              panel_scale;
 };
 
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
@@ -541,6 +546,15 @@ ply_renderer_head_new (ply_renderer_backend_t     *backend,
         ply_trace ("Creating %ldx%ld renderer head", head->area.width, head->area.height);
         ply_pixel_buffer_fill_with_color (head->pixel_buffer, NULL,
                                           0.0, 0.0, 0.0, 1.0);
+
+        if (connector->connector_type == DRM_MODE_CONNECTOR_LVDS ||
+            connector->connector_type == DRM_MODE_CONNECTOR_eDP ||
+            connector->connector_type == DRM_MODE_CONNECTOR_DSI) {
+                backend->panel_width = mode->hdisplay;
+                backend->panel_height = mode->vdisplay;
+                backend->panel_rotation = rotation;
+                backend->panel_scale = ply_pixel_buffer_get_device_scale (head->pixel_buffer);
+        }
 
         return head;
 }
@@ -1488,6 +1502,23 @@ close_input_source (ply_renderer_backend_t      *backend,
         input_source->backend = NULL;
 }
 
+static bool
+get_panel_properties (ply_renderer_backend_t      *backend,
+                      int                         *width,
+                      int                         *height,
+                      ply_pixel_buffer_rotation_t *rotation,
+                      int                         *scale)
+{
+        if (!backend->panel_width)
+                return false;
+
+        *width    = backend->panel_width;
+        *height   = backend->panel_height;
+        *rotation = backend->panel_rotation;
+        *scale    = backend->panel_scale;
+        return true;
+}
+
 ply_renderer_plugin_interface_t *
 ply_renderer_backend_get_interface (void)
 {
@@ -1509,7 +1540,8 @@ ply_renderer_backend_get_interface (void)
                 .open_input_source            = open_input_source,
                 .set_handler_for_input_source = set_handler_for_input_source,
                 .close_input_source           = close_input_source,
-                .get_device_name              = get_device_name
+                .get_device_name              = get_device_name,
+                .get_panel_properties         = get_panel_properties,
         };
 
         return &plugin_interface;

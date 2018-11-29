@@ -76,6 +76,12 @@ void ply_renderer_set_handler_for_input_source (ply_renderer_t                  
 
 void ply_renderer_close_input_source (ply_renderer_t              *renderer,
                                       ply_renderer_input_source_t *input_source);
+
+bool ply_renderer_get_panel_properties (ply_renderer_t              *renderer,
+                                        int                         *width,
+                                        int                         *height,
+                                        ply_pixel_buffer_rotation_t *rotation,
+                                        int                         *scale);
 #endif
 
 #endif /* PLY_RENDERER_H */

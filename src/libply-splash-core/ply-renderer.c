@@ -410,4 +410,19 @@ ply_renderer_close_input_source (ply_renderer_t              *renderer,
         renderer->input_source_is_open = false;
 }
 
+bool
+ply_renderer_get_panel_properties (ply_renderer_t              *renderer,
+                                   int                         *width,
+                                   int                         *height,
+                                   ply_pixel_buffer_rotation_t *rotation,
+                                   int                         *scale)
+{
+        if (!renderer->plugin_interface->get_panel_properties)
+                return false;
+
+        return renderer->plugin_interface->get_panel_properties (renderer->backend,
+                                                                 width, height,
+                                                                 rotation, scale);
+}
+
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

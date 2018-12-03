@@ -312,8 +312,12 @@ view_set_bgrt_background (view_t *view)
         if (ply_renderer_get_panel_properties (ply_pixel_display_get_renderer (view->display),
                                                &panel_width, &panel_height,
                                                &panel_rotation, &panel_scale)) {
-               ply_pixel_buffer_set_device_rotation (bgrt_buffer, panel_rotation);
-               ply_pixel_buffer_set_device_scale (bgrt_buffer, panel_scale);
+                /* Upside-down panels are fixed up in HW by the GOP, so the
+                 * bgrt image is not rotated in this case.
+                 */
+                if (panel_rotation != PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN)
+                        ply_pixel_buffer_set_device_rotation (bgrt_buffer, panel_rotation);
+                ply_pixel_buffer_set_device_scale (bgrt_buffer, panel_scale);
         }
 
         width = ply_pixel_buffer_get_width (bgrt_buffer);

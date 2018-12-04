@@ -78,10 +78,9 @@ struct _ply_renderer_head
 
         ply_array_t            *connector_ids;
         drmModeConnector       *connector0;
-        int                     connector0_mode_index;
+        drmModeModeInfo        *connector0_mode;
 
         uint32_t                controller_id;
-        uint32_t                encoder_id;
         uint32_t                console_buffer_id;
         uint32_t                scan_out_buffer_id;
 
@@ -115,6 +114,16 @@ typedef struct
 
         uint32_t added_fb : 1;
 } ply_renderer_buffer_t;
+
+typedef struct
+{
+        drmModeConnector *connector;
+        drmModeModeInfo *mode;
+        uint32_t controller_id;
+        uint32_t possible_controllers;
+        ply_pixel_buffer_rotation_t rotation;
+        bool tiled;
+} ply_output_t;
 
 struct _ply_renderer_backend
 {
@@ -436,28 +445,26 @@ connector_orientation_prop_to_rotation (drmModePropertyPtr prop,
 
 static void
 ply_renderer_connector_get_rotation_and_tiled (ply_renderer_backend_t      *backend,
-                                               drmModeConnector            *connector,
-                                               ply_pixel_buffer_rotation_t *rotation,
-                                               bool                        *tiled)
+                                               ply_output_t                *output)
 {
         drmModePropertyPtr prop;
         int i;
 
-        *rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
-        *tiled = false;
+        output->rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+        output->tiled = false;
 
-        for (i = 0; i < connector->count_props; i++) {
-                prop = drmModeGetProperty (backend->device_fd, connector->props[i]);
+        for (i = 0; i < output->connector->count_props; i++) {
+                prop = drmModeGetProperty (backend->device_fd, output->connector->props[i]);
                 if (!prop)
                         continue;
 
                 if ((prop->flags & DRM_MODE_PROP_ENUM) &&
                     strcmp (prop->name, "panel orientation") == 0)
-                        *rotation = connector_orientation_prop_to_rotation (prop, connector->prop_values[i]);
+                        output->rotation = connector_orientation_prop_to_rotation (prop, output->connector->prop_values[i]);
 
                 if ((prop->flags & DRM_MODE_PROP_BLOB) &&
                     strcmp (prop->name, "TILE") == 0)
-                        *tiled = true;
+                        output->tiled = true;
 
                 drmModeFreeProperty (prop);
         }
@@ -466,12 +473,8 @@ ply_renderer_connector_get_rotation_and_tiled (ply_renderer_backend_t      *back
 static bool
 ply_renderer_head_add_connector (ply_renderer_head_t *head,
                                  drmModeConnector    *connector,
-                                 int                  connector_mode_index)
+                                 drmModeModeInfo     *mode)
 {
-        drmModeModeInfo *mode;
-
-        mode = &connector->modes[connector_mode_index];
-
         if (mode->hdisplay != head->area.width || mode->vdisplay != head->area.height) {
                 ply_trace ("Tried to add connector with resolution %dx%d to %dx%d head",
                            (int) mode->hdisplay, (int) mode->vdisplay,
@@ -491,30 +494,24 @@ ply_renderer_head_add_connector (ply_renderer_head_t *head,
 static ply_renderer_head_t *
 ply_renderer_head_new (ply_renderer_backend_t     *backend,
                        drmModeConnector           *connector,
-                       int                         connector_mode_index,
-                       uint32_t                    encoder_id,
+                       drmModeModeInfo            *mode,
                        uint32_t                    controller_id,
                        uint32_t                    console_buffer_id,
                        int                         gamma_size,
                        ply_pixel_buffer_rotation_t rotation)
 {
         ply_renderer_head_t *head;
-        drmModeModeInfo *mode;
         int i, step;
 
         head = calloc (1, sizeof(ply_renderer_head_t));
 
         head->backend = backend;
-        head->encoder_id = encoder_id;
         head->connector_ids = ply_array_new (PLY_ARRAY_ELEMENT_TYPE_UINT32);
         head->controller_id = controller_id;
         head->console_buffer_id = console_buffer_id;
 
-        assert (connector_mode_index < connector->count_modes);
-        mode = &connector->modes[connector_mode_index];
-
         head->connector0 = connector;
-        head->connector0_mode_index = connector_mode_index;
+        head->connector0_mode = mode;
 
         head->area.x = 0;
         head->area.y = 0;
@@ -533,7 +530,7 @@ ply_renderer_head_new (ply_renderer_backend_t     *backend,
                 }
         }
 
-        ply_renderer_head_add_connector (head, connector, connector_mode_index);
+        ply_renderer_head_add_connector (head, connector, mode);
         assert (ply_array_get_size (head->connector_ids) > 0);
 
         head->pixel_buffer = ply_pixel_buffer_new_with_device_rotation (head->area.width, head->area.height, rotation);
@@ -655,14 +652,12 @@ ply_renderer_head_set_scan_out_buffer (ply_renderer_backend_t *backend,
                                        ply_renderer_head_t    *head,
                                        uint32_t                buffer_id)
 {
-        drmModeModeInfo *mode;
+        drmModeModeInfo *mode = head->connector0_mode;
         uint32_t *connector_ids;
         int number_of_connectors;
 
         connector_ids = (uint32_t *) ply_array_get_uint32_elements (head->connector_ids);
         number_of_connectors = ply_array_get_size (head->connector_ids);
-
-        mode = &head->connector0->modes[head->connector0_mode_index];
 
         ply_trace ("Setting scan out buffer of %ldx%ld head to our buffer",
                    head->area.width, head->area.height);
@@ -984,51 +979,39 @@ close_device (ply_renderer_backend_t *backend)
         unload_backend (backend);
 }
 
-static drmModeCrtc *
-find_controller_for_encoder (ply_renderer_backend_t *backend,
-                             drmModeEncoder         *encoder)
-{
-        drmModeCrtc *controller;
-
-        controller = NULL;
-
-        /* Monitor is already lit. We'll use the same controller.
-         */
-        if (encoder->crtc_id != 0) {
-                controller = drmModeGetCrtc (backend->device_fd, encoder->crtc_id);
-
-                if (controller != NULL) {
-                        ply_trace ("Found already lit monitor");
-                        return controller;
-                }
-        }
-
-        return NULL;
-}
-
-static drmModeEncoder *
-find_encoder_for_connector (ply_renderer_backend_t *backend,
-                            drmModeConnector       *connector)
+static void
+output_get_controller_info (ply_renderer_backend_t *backend,
+                            ply_output_t           *output)
 {
         int i;
         drmModeEncoder *encoder;
 
         assert (backend != NULL);
 
-        for (i = 0; i < connector->count_encoders; i++) {
+        output->possible_controllers = 0xffffffff;
+
+        for (i = 0; i < output->connector->count_encoders; i++) {
                 encoder = drmModeGetEncoder (backend->device_fd,
-                                             connector->encoders[i]);
+                                             output->connector->encoders[i]);
 
                 if (encoder == NULL)
                         continue;
 
-                if (encoder->encoder_id == connector->encoder_id)
-                        return encoder;
+                if (encoder->encoder_id == output->connector->encoder_id && encoder->crtc_id) {
+                        ply_trace ("Found already lit monitor on connector %u using controller %u",
+                                   output->connector->connector_id, encoder->crtc_id);
+                        output->controller_id = encoder->crtc_id;
+                }
 
+                /* Like mutter and xf86-drv-modesetting only select controllers
+                 * which are supported by all the connector's encoders.
+                 */
+                output->possible_controllers &= encoder->possible_crtcs;
+                ply_trace ("connector %u encoder %u possible controllers 0x%08x/0x%08x",
+                           output->connector->connector_id, encoder->encoder_id,
+                           encoder->possible_crtcs, output->possible_controllers);
                 drmModeFreeEncoder (encoder);
         }
-
-        return NULL;
 }
 
 static bool
@@ -1051,10 +1034,10 @@ modes_are_equal (drmModeModeInfo *a,
                a->type == b->type;
 }
 
-static int
-find_index_of_mode (ply_renderer_backend_t *backend,
-                    drmModeConnector       *connector,
-                    drmModeModeInfo        *mode)
+static drmModeModeInfo *
+find_matching_connector_mode (ply_renderer_backend_t *backend,
+                              drmModeConnector       *connector,
+                              drmModeModeInfo        *mode)
 {
         int i;
 
@@ -1063,15 +1046,15 @@ find_index_of_mode (ply_renderer_backend_t *backend,
                         ply_trace ("Found connector mode index %d for mode %dx%d",
                                    i, mode->hdisplay, mode->vdisplay);
 
-                        return i;
+                        return &connector->modes[i];
                 }
         }
 
-        return -1;
+        return NULL;
 }
 
-static int
-get_index_of_preferred_mode (drmModeConnector *connector)
+static drmModeModeInfo *
+get_preferred_mode (drmModeConnector *connector)
 {
         int i;
 
@@ -1080,52 +1063,162 @@ get_index_of_preferred_mode (drmModeConnector *connector)
                         ply_trace ("Found preferred mode %dx%d at index %d\n",
                                    connector->modes[i].hdisplay,
                                    connector->modes[i].vdisplay, i);
-                        return i;
+                        return &connector->modes[i];
                 }
 
-        return -1;
+        return NULL;
 }
 
-static int
-get_index_of_active_mode (ply_renderer_backend_t *backend,
-                          drmModeCrtc            *controller,
-                          drmModeConnector       *connector)
+static drmModeModeInfo *
+get_active_mode (ply_renderer_backend_t *backend,
+                 ply_output_t           *output)
 {
-        if (!controller->mode_valid) {
+        drmModeCrtc *controller;
+        drmModeModeInfo *mode;
+
+        controller = drmModeGetCrtc (backend->device_fd, output->controller_id);
+        if (!controller || !controller->mode_valid) {
                 ply_trace ("No valid mode currently active on monitor");
-                return -1;
+                return NULL;
         }
 
         ply_trace ("Looking for connector mode index of active mode %dx%d",
                    controller->mode.hdisplay, controller->mode.vdisplay);
 
-        return find_index_of_mode (backend, connector, &controller->mode);
+        mode = find_matching_connector_mode (backend, output->connector, &controller->mode);
+
+        drmModeFreeCrtc (controller);
+
+        return mode;
+}
+
+/* Some controllers can only drive some outputs, we want to find a combination
+ * where all (connected) outputs get a controller. To do this setup_outputs
+ * picks which output to assign a controller for first (trying all outputs), so
+ * that that one will get the first (free) controller and then recurses into
+ * itself to assign the remaining outputs. This tries assigning all remainig
+ * unassigned outputs first and returns the best result of all possible
+ * assignment orders for the remaining unassigned outputs.
+ * This repeats until we find an assignment order which results in a controller
+ * for all outputs, or we've tried all possible assignment orders.
+ */
+
+static uint32_t
+find_controller_for_output (ply_renderer_backend_t *backend,
+                            const ply_output_t     *outputs,
+                            int                     outputs_len,
+                            int                     output_idx)
+{
+        uint32_t possible_controllers = outputs[output_idx].possible_controllers;
+        int i, j;
+
+        for (i = 0; i < backend->resources->count_crtcs; i++) {
+                uint32_t controller_id = backend->resources->crtcs[i];
+
+                if (!(possible_controllers & (1 << i)))
+                        continue; /* controller not usable for this connector */
+
+                for (j = 0; j < outputs_len; j++) {
+                        if (outputs[j].controller_id == controller_id)
+                                break;
+                }
+                if (j < outputs_len)
+                        continue; /* controller already in use */
+
+                return controller_id;
+        }
+
+        return 0;
+}
+
+static int
+count_setup_controllers (const ply_output_t *outputs,
+                         int                 outputs_len)
+{
+        int i, count = 0;
+
+        for (i = 0; i < outputs_len; i++) {
+                if (outputs[i].controller_id)
+                        count++;
+        }
+
+        return count;
+}
+
+static ply_output_t *
+setup_outputs (ply_renderer_backend_t *backend,
+               const ply_output_t     *outputs,
+               int                     outputs_len)
+{
+        const ply_output_t *best_outputs;
+        ply_output_t *new_outputs;
+        int i, count, best_count;
+        uint32_t controller_id;
+
+        best_count = count_setup_controllers (outputs, outputs_len);
+        best_outputs = outputs;
+
+        for (i = 0; i < outputs_len && best_count < outputs_len; i++) {
+                /* Already assigned? */
+                if (outputs[i].controller_id)
+                        continue;
+
+                /* Assign controller for connector i */
+                controller_id = find_controller_for_output (backend, outputs, outputs_len, i);
+                if (!controller_id)
+                        continue;
+
+                /* Add the new controller to a copy of the passed in connector
+                 * template, we want to try all possible permutations of
+                 * unassigned outputs without modifying the template.
+                 */
+                new_outputs = calloc (outputs_len, sizeof(*new_outputs));
+                memcpy (new_outputs, outputs, outputs_len * sizeof(ply_output_t));
+                new_outputs[i].controller_id = controller_id;
+
+                /* Recurse into ourselves to assign remaining controllers,
+                 * trying all possible assignment orders.
+                 */
+                new_outputs = setup_outputs (backend, new_outputs, outputs_len);
+
+                count = count_setup_controllers (new_outputs, outputs_len);
+                if (count > best_count) {
+                        if (best_outputs != outputs)
+                                free ((void *)best_outputs);
+                        best_outputs = new_outputs;
+                        best_count = count;
+                } else {
+                        free (new_outputs);
+                }
+        }
+
+        if (best_outputs != outputs)
+                free ((void *)outputs);
+
+        /* Our caller is allowed to modify outputs, cast-away the const */
+        return (ply_output_t *)best_outputs;
 }
 
 static bool
 create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 {
-        int i;
-        drmModeConnector *connector;
         ply_hashtable_t *heads_by_controller_id;
+        ply_output_t *outputs;
+        int i, j, found, number_of_setup_outputs, outputs_len;
 
         heads_by_controller_id = ply_hashtable_new (NULL, NULL);
 
+        outputs = calloc (backend->resources->count_connectors, sizeof(*outputs));
+
+        /* Step 1:
+         * Build a list of connected outputs and get pre-configured controllers.
+         */
+        found = 0;
         for (i = 0; i < backend->resources->count_connectors; i++) {
-                ply_renderer_head_t *head;
-                drmModeEncoder *encoder;
-                uint32_t encoder_id;
-                drmModeCrtc *controller;
-                uint32_t controller_id;
-                uint32_t console_buffer_id;
-                int connector_mode_index = -1;
-                int gamma_size;
-                ply_pixel_buffer_rotation_t rotation;
-                bool tiled;
+                drmModeConnector *connector;
 
                 connector = drmModeGetConnector (backend->device_fd,
                                                  backend->resources->connectors[i]);
-
                 if (connector == NULL)
                         continue;
 
@@ -1139,39 +1232,89 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                         continue;
                 }
 
-                encoder = find_encoder_for_connector (backend, connector);
+                outputs[found].connector = connector;
 
-                if (encoder == NULL) {
-                        drmModeFreeConnector (connector);
-                        continue;
+                output_get_controller_info (backend, &outputs[found]);
+                ply_renderer_connector_get_rotation_and_tiled (backend, &outputs[found]);
+
+                if (!outputs[found].tiled && backend->use_preferred_mode)
+                        outputs[found].mode = get_preferred_mode (connector);
+
+                if (!outputs[found].mode && outputs[found].controller_id)
+                        outputs[found].mode = get_active_mode (backend, &outputs[found]);
+
+                /* If we couldn't find the current active mode, fall back to the first available.
+                 */
+                if (!outputs[found].mode) {
+                        ply_trace ("falling back to first available mode");
+                        outputs[found].mode = &connector->modes[0];
                 }
 
-                encoder_id = encoder->encoder_id;
-                controller = find_controller_for_encoder (backend, encoder);
-                drmModeFreeEncoder (encoder);
+                found++;
+        }
+        outputs_len = found; /* outputs now contains found valid entries */
 
-                if (controller == NULL) {
+        /* Step 2:
+         * Drop controllers for clones for which we've picked different modes.
+         */
+        for (i = 0; i < outputs_len; i++) {
+                if (!outputs[i].controller_id)
+                        continue;
+
+                for (j = i + 1; j < outputs_len; j++) {
+                        if (!outputs[j].controller_id)
+                                continue;
+
+                        if (outputs[i].controller_id == outputs[j].controller_id &&
+                            (outputs[i].mode->hdisplay != outputs[j].mode->hdisplay ||
+                             outputs[i].mode->vdisplay != outputs[j].mode->vdisplay)) {
+                                ply_trace ("connector %u uses same controller as %u and modes differ, unlinking controller",
+                                           outputs[j].connector->connector_id,
+                                           outputs[i].connector->connector_id);
+                                outputs[j].controller_id = 0;
+                        }
+                }
+        }
+
+        /* Step 3:
+         * Assign controllers to outputs without a controller
+         */
+        number_of_setup_outputs = count_setup_controllers (outputs, outputs_len);
+        if (number_of_setup_outputs != outputs_len) {
+                /* First try, try to assign controllers to outputs without one */
+                ply_trace ("Some outputs don't have controllers, picking controllers");
+                outputs = setup_outputs (backend, outputs, outputs_len);
+                number_of_setup_outputs = count_setup_controllers (outputs, outputs_len);
+        }
+        if (number_of_setup_outputs != outputs_len) {
+                /* Second try, re-assing controller for all outputs */
+                ply_trace ("Some outputs still don't have controllers, re-assigning controllers for all outputs");
+                for (i = 0; i < outputs_len; i++)
+                        outputs[i].controller_id = 0;
+                outputs = setup_outputs (backend, outputs, outputs_len);
+        }
+        for (i = 0; i < outputs_len; i++)
+                ply_trace ("Using controller %u for connector %u",
+                           outputs[i].controller_id, outputs[i].connector->connector_id);
+
+        /* Step 4:
+         * Create heads for all valid outputs
+         */
+        for (i = 0; i < outputs_len; i++) {
+                drmModeConnector *connector = outputs[i].connector;
+                drmModeCrtc *controller;
+                ply_renderer_head_t *head;
+                uint32_t controller_id;
+                uint32_t console_buffer_id;
+                int gamma_size;
+
+                controller = drmModeGetCrtc (backend->device_fd, outputs[i].controller_id);
+                if (!controller) {
                         drmModeFreeConnector (connector);
                         continue;
                 }
 
                 controller_id = controller->crtc_id;
-
-                ply_renderer_connector_get_rotation_and_tiled (backend, connector, &rotation, &tiled);
-
-                if (!tiled && backend->use_preferred_mode)
-                        connector_mode_index = get_index_of_preferred_mode (connector);
-
-                if (connector_mode_index < 0)
-                        connector_mode_index = get_index_of_active_mode (backend, controller, connector);
-
-                /* If we couldn't find the current active mode, fall back to the first available.
-                 */
-                if (connector_mode_index < 0) {
-                        ply_trace ("falling back to first available mode");
-                        connector_mode_index = 0;
-                }
-
                 console_buffer_id = controller->buffer_id;
                 gamma_size = controller->gamma_size;
                 drmModeFreeCrtc (controller);
@@ -1180,9 +1323,9 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                                              (void *) (intptr_t) controller_id);
 
                 if (head == NULL) {
-                        head = ply_renderer_head_new (backend, connector, connector_mode_index,
-                                                      encoder_id, controller_id,
-                                                      console_buffer_id, gamma_size, rotation);
+                        head = ply_renderer_head_new (backend, connector, outputs[i].mode,
+                                                      controller_id, console_buffer_id,
+                                                      gamma_size, outputs[i].rotation);
 
                         ply_list_append_data (backend->heads, head);
 
@@ -1190,7 +1333,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                                               (void *) (intptr_t) controller_id,
                                               head);
                 } else {
-                        if (!ply_renderer_head_add_connector (head, connector, connector_mode_index))
+                        if (!ply_renderer_head_add_connector (head, connector, outputs[i].mode))
                                 ply_trace ("couldn't connect monitor to existing head");
 
                         drmModeFreeConnector (connector);
@@ -1198,6 +1341,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
         }
 
         ply_hashtable_free (heads_by_controller_id);
+        free (outputs);
 
         return ply_list_get_length (backend->heads) > 0;
 }

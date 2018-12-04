@@ -137,6 +137,34 @@ free_displays_for_renderer (ply_device_manager_t *manager,
 }
 
 static void
+free_keyboards_for_renderer (ply_device_manager_t *manager,
+                            ply_renderer_t       *renderer)
+{
+        ply_list_node_t *node;
+
+        node = ply_list_get_first_node (manager->keyboards);
+        while (node != NULL) {
+                ply_list_node_t *next_node;
+                ply_keyboard_t *keyboard;
+                ply_renderer_t *keyboard_renderer;
+
+                keyboard = ply_list_node_get_data (node);
+                next_node = ply_list_get_next_node (manager->keyboards, node);
+                keyboard_renderer = ply_keyboard_get_renderer (keyboard);
+
+                if (keyboard_renderer == renderer) {
+                        ply_keyboard_free (keyboard);
+                        ply_list_remove_node (manager->keyboards, node);
+                }
+
+                node = next_node;
+        }
+        if (ply_list_get_first_node (manager->keyboards) == NULL) {
+                manager->local_console_managed = false;
+        }
+}
+
+static void
 free_devices_from_device_path (ply_device_manager_t *manager,
                                const char           *device_path)
 {
@@ -152,6 +180,7 @@ free_devices_from_device_path (ply_device_manager_t *manager,
                 return;
 
         free_displays_for_renderer (manager, renderer);
+        free_keyboards_for_renderer (manager, renderer);
 
         ply_hashtable_remove (manager->renderers, (void *) device_path);
         free (key);

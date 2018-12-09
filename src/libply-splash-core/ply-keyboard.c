@@ -596,8 +596,8 @@ ply_keyboard_get_renderer (ply_keyboard_t *keyboard)
         case PLY_KEYBOARD_PROVIDER_TYPE_RENDERER:
                 return keyboard->provider.if_renderer->renderer;
 
-        default:
-                break;
+        case PLY_KEYBOARD_PROVIDER_TYPE_TERMINAL:
+                return NULL;
         }
 
         return NULL;

@@ -112,6 +112,9 @@ struct _ply_boot_splash_plugin
 
         ply_boot_splash_display_type_t      state;
 
+        double                              dialog_horizontal_alignment;
+        double                              dialog_vertical_alignment;
+
         double                              watermark_horizontal_alignment;
         double                              watermark_vertical_alignment;
 
@@ -668,21 +671,27 @@ view_show_prompt (view_t     *view,
                 if (plugin->box_image) {
                         view->box_area.width = ply_image_get_width (plugin->box_image);
                         view->box_area.height = ply_image_get_height (plugin->box_image);
-                        view->box_area.x = (screen_width - view->box_area.width) * 0.5;
-                        view->box_area.y = (screen_height - view->box_area.height) * 0.5;
+                        view->box_area.x = (screen_width - view->box_area.width) * plugin->dialog_horizontal_alignment;
+                        view->box_area.y = (screen_height - view->box_area.height) * plugin->dialog_vertical_alignment;
                         view->dialog_area = view->box_area;
                 } else {
                         view->dialog_area.width = view->lock_area.width + entry_width;
                         view->dialog_area.height = MAX(view->lock_area.height, entry_height);
-                        view->dialog_area.x = (screen_width - view->dialog_area.width) * 0.5;
-                        view->dialog_area.y = (screen_height - view->dialog_area.height) * 0.5;
+                        view->dialog_area.x = (screen_width - view->dialog_area.width) * plugin->dialog_horizontal_alignment;
+                        view->dialog_area.y = (screen_height - view->dialog_area.height) * plugin->dialog_vertical_alignment;
                 }
 
-                x = screen_width / 2.0 - (view->lock_area.width + entry_width) / 2.0 + view->lock_area.width;
-                y = screen_height / 2.0 - entry_height / 2.0;
+                view->lock_area.x =
+                    view->dialog_area.x +
+                    (view->dialog_area.width - 
+                     (view->lock_area.width + entry_width)) / 2.0;
+                view->lock_area.y =
+                    view->dialog_area.y +
+                    (view->dialog_area.height - view->lock_area.height) / 2.0;
 
-                view->lock_area.x = screen_width / 2.0 - (view->lock_area.width + entry_width) / 2.0;
-                view->lock_area.y = screen_height / 2.0 - view->lock_area.height / 2.0;
+                x = view->lock_area.x + view->lock_area.width;
+                y = view->dialog_area.y +
+                    (view->dialog_area.height - entry_height) / 2.0;
 
                 ply_entry_show (view->entry, plugin->loop, view->display, x, y);
         }
@@ -781,6 +790,20 @@ create_plugin (ply_key_file_t *key_file)
                 plugin->watermark_vertical_alignment = ply_strtod (alignment);
         else
                 plugin->watermark_vertical_alignment = .5;
+        free (alignment);
+
+        alignment = ply_key_file_get_value (key_file, "two-step", "DialogHorizontalAlignment");
+        if (alignment != NULL)
+                plugin->dialog_horizontal_alignment = ply_strtod (alignment);
+        else
+                plugin->dialog_horizontal_alignment = .5;
+        free (alignment);
+
+        alignment = ply_key_file_get_value (key_file, "two-step", "DialogVerticalAlignment");
+        if (alignment != NULL)
+                plugin->dialog_vertical_alignment = ply_strtod (alignment);
+        else
+                plugin->dialog_vertical_alignment = .5;
         free (alignment);
 
         plugin->transition = PLY_PROGRESS_ANIMATION_TRANSITION_NONE;

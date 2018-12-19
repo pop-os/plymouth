@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009-2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
  * 02111-1307, USA.
  *
- * Written by: William Jon McCann
+ * Written by: William Jon McCann, Hans de Goede <hdegoede@redhat.com>
  *
  */
 #include "config.h"
@@ -138,6 +138,7 @@ struct _ply_boot_splash_plugin
         uint32_t                            is_visible : 1;
         uint32_t                            is_animating : 1;
         uint32_t                            is_idle : 1;
+        uint32_t                            dialog_clears_firmware_background : 1;
 };
 
 ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
@@ -846,6 +847,9 @@ create_plugin (ply_key_file_t *key_file)
         if (ply_key_file_get_bool (key_file, "two-step", "UseFirmwareBackground"))
                 plugin->background_bgrt_image = ply_image_new ("/sys/firmware/acpi/bgrt/image");
 
+        plugin->dialog_clears_firmware_background =
+                ply_key_file_get_bool (key_file, "two-step", "DialogClearsFirmwareBackground");
+
         progress_function = ply_key_file_get_value (key_file, "two-step", "ProgressFunction");
 
         if (progress_function != NULL) {
@@ -1081,7 +1085,7 @@ draw_background (view_t             *view,
          */
         if ((plugin->state == PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY ||
              plugin->state == PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY) &&
-            view->background_is_bgrt)
+            view->background_is_bgrt && plugin->dialog_clears_firmware_background)
                 ply_pixel_buffer_fill_with_hex_color (pixel_buffer, &area, 0);
         else if (view->background_buffer != NULL)
                 ply_pixel_buffer_fill_with_buffer (pixel_buffer, view->background_buffer, 0, 0);

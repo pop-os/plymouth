@@ -132,6 +132,8 @@ const char *ply_kernel_command_line_get_string_after_prefix (const char *prefix)
 bool ply_kernel_command_line_has_argument (const char *argument);
 void ply_kernel_command_line_override (const char *command_line);
 
+double ply_strtod(const char *str);
+
 #endif
 
 #endif /* PLY_UTILS_H */

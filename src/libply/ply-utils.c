@@ -29,6 +29,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <locale.h>
 #include <poll.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -1107,6 +1108,19 @@ ply_kernel_command_line_override (const char *command_line)
         strncpy (kernel_command_line, command_line, sizeof(kernel_command_line));
         kernel_command_line[sizeof(kernel_command_line) - 1] = '\0';
         kernel_command_line_is_set = true;
+}
+
+double ply_strtod(const char *str)
+{
+        char *old_locale;
+        double ret;
+
+        /* Ensure strtod uses '.' as decimal separator, as we use this in our cfg files. */
+        old_locale = setlocale(LC_NUMERIC, "C");
+        ret = strtod(str, NULL);
+        setlocale(LC_NUMERIC, old_locale);
+
+        return ret;
 }
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

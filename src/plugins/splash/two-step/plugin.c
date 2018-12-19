@@ -423,6 +423,10 @@ view_load (view_t *view)
                 view->watermark_area.height = ply_image_get_height (plugin->watermark_image);
                 view->watermark_area.x = screen_width * plugin->watermark_horizontal_alignment - ply_image_get_width (plugin->watermark_image) * plugin->watermark_horizontal_alignment;
                 view->watermark_area.y = screen_height * plugin->watermark_vertical_alignment - ply_image_get_height (plugin->watermark_image) * plugin->watermark_vertical_alignment;
+                ply_trace ("using %ldx%ld watermark centered at %ldx%ld for %ldx%ld screen",
+                           view->watermark_area.width, view->watermark_area.height,
+                           view->watermark_area.x, view->watermark_area.y,
+                           screen_width, screen_height);
         }
 
         ply_trace ("loading entry");
@@ -746,28 +750,28 @@ create_plugin (ply_key_file_t *key_file)
 
         alignment = ply_key_file_get_value (key_file, "two-step", "HorizontalAlignment");
         if (alignment != NULL)
-                plugin->animation_horizontal_alignment = strtod (alignment, NULL);
+                plugin->animation_horizontal_alignment = ply_strtod (alignment);
         else
                 plugin->animation_horizontal_alignment = .5;
         free (alignment);
 
         alignment = ply_key_file_get_value (key_file, "two-step", "VerticalAlignment");
         if (alignment != NULL)
-                plugin->animation_vertical_alignment = strtod (alignment, NULL);
+                plugin->animation_vertical_alignment = ply_strtod (alignment);
         else
                 plugin->animation_vertical_alignment = .5;
         free (alignment);
 
         alignment = ply_key_file_get_value (key_file, "two-step", "WatermarkHorizontalAlignment");
         if (alignment != NULL)
-                plugin->watermark_horizontal_alignment = strtod (alignment, NULL);
+                plugin->watermark_horizontal_alignment = ply_strtod (alignment);
         else
                 plugin->watermark_horizontal_alignment = 1.0;
         free (alignment);
 
         alignment = ply_key_file_get_value (key_file, "two-step", "WatermarkVerticalAlignment");
         if (alignment != NULL)
-                plugin->watermark_vertical_alignment = strtod (alignment, NULL);
+                plugin->watermark_vertical_alignment = ply_strtod (alignment);
         else
                 plugin->watermark_vertical_alignment = .5;
         free (alignment);
@@ -786,7 +790,7 @@ create_plugin (ply_key_file_t *key_file)
 
         transition_duration = ply_key_file_get_value (key_file, "two-step", "TransitionDuration");
         if (transition_duration != NULL)
-                plugin->transition_duration = strtod (transition_duration, NULL);
+                plugin->transition_duration = ply_strtod (transition_duration);
         else
                 plugin->transition_duration = 0.0;
         free (transition_duration);

@@ -91,7 +91,7 @@ typedef struct
         ply_throbber_t           *throbber;
         ply_label_t              *label;
         ply_label_t              *message_label;
-        ply_rectangle_t           box_area, lock_area, watermark_area;
+        ply_rectangle_t           box_area, lock_area, watermark_area, dialog_area;
         ply_trigger_t            *end_trigger;
         ply_pixel_buffer_t       *background_buffer;
         bool                      background_is_bgrt;
@@ -648,9 +648,8 @@ view_show_prompt (view_t     *view,
                   const char *prompt)
 {
         ply_boot_splash_plugin_t *plugin;
+        unsigned long screen_width, screen_height, entry_width, entry_height;
         int x, y;
-        int entry_width, entry_height;
-        unsigned long screen_width, screen_height;
 
         assert (view != NULL);
 
@@ -660,16 +659,24 @@ view_show_prompt (view_t     *view,
         screen_height = ply_pixel_display_get_height (view->display);
 
         if (ply_entry_is_hidden (view->entry)) {
-                view->box_area.width = ply_image_get_width (plugin->box_image);
-                view->box_area.height = ply_image_get_height (plugin->box_image);
-                view->box_area.x = screen_width / 2.0 - view->box_area.width / 2.0;
-                view->box_area.y = screen_height / 2.0 - view->box_area.height / 2.0;
-
                 view->lock_area.width = ply_image_get_width (plugin->lock_image);
                 view->lock_area.height = ply_image_get_height (plugin->lock_image);
 
                 entry_width = ply_entry_get_width (view->entry);
                 entry_height = ply_entry_get_height (view->entry);
+
+                if (plugin->box_image) {
+                        view->box_area.width = ply_image_get_width (plugin->box_image);
+                        view->box_area.height = ply_image_get_height (plugin->box_image);
+                        view->box_area.x = (screen_width - view->box_area.width) * 0.5;
+                        view->box_area.y = (screen_height - view->box_area.height) * 0.5;
+                        view->dialog_area = view->box_area;
+                } else {
+                        view->dialog_area.width = view->lock_area.width + entry_width;
+                        view->dialog_area.height = MAX(view->lock_area.height, entry_height);
+                        view->dialog_area.x = (screen_width - view->dialog_area.width) * 0.5;
+                        view->dialog_area.y = (screen_height - view->dialog_area.height) * 0.5;
+                }
 
                 x = screen_width / 2.0 - (view->lock_area.width + entry_width) / 2.0 + view->lock_area.width;
                 y = screen_height / 2.0 - entry_height / 2.0;
@@ -689,7 +696,7 @@ view_show_prompt (view_t     *view,
                 ply_label_set_width (view->label, label_width);
 
                 x = (screen_width - label_width) / 2;
-                y = view->box_area.y + view->box_area.height;
+                y = view->dialog_area.y + view->dialog_area.height;
 
                 ply_label_show (view->label, view->display, x, y);
         }
@@ -881,8 +888,10 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
                 detach_from_event_loop (plugin);
         }
 
-        ply_image_free (plugin->box_image);
         ply_image_free (plugin->lock_image);
+
+        if (plugin->box_image != NULL)
+                ply_image_free (plugin->box_image);
 
         if (plugin->corner_image != NULL)
                 ply_image_free (plugin->corner_image);
@@ -1091,10 +1100,12 @@ on_draw (view_t             *view,
             plugin->state == PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY) {
                 uint32_t *box_data, *lock_data;
 
-                box_data = ply_image_get_data (plugin->box_image);
-                ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
-                                                        &view->box_area,
-                                                        box_data);
+                if (plugin->box_image) {
+                        box_data = ply_image_get_data (plugin->box_image);
+                        ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
+                                                                &view->box_area,
+                                                                box_data);
+                }
 
                 ply_entry_draw_area (view->entry,
                                      pixel_buffer,
@@ -1223,9 +1234,14 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
         if (!ply_image_load (plugin->lock_image))
                 return false;
 
-        ply_trace ("loading box image");
-        if (!ply_image_load (plugin->box_image))
-                return false;
+        if (plugin->box_image != NULL) {
+                ply_trace ("loading box image");
+
+                if (!ply_image_load (plugin->box_image)) {
+                        ply_image_free (plugin->box_image);
+                        plugin->box_image = NULL;
+                }
+        }
 
         if (plugin->corner_image != NULL) {
                 ply_trace ("loading corner image");

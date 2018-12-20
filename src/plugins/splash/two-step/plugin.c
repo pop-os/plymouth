@@ -813,8 +813,7 @@ create_plugin (ply_key_file_t *key_file)
 
         free (color);
 
-        /* Boolean option, true if the key is present */
-        if (ply_key_file_get_value (key_file, "two-step", "UseBGRT"))
+        if (ply_key_file_get_bool (key_file, "two-step", "UseFirmwareBackground"))
                 plugin->background_bgrt_image = ply_image_new ("/sys/firmware/acpi/bgrt/image");
 
         progress_function = ply_key_file_get_value (key_file, "two-step", "ProgressFunction");

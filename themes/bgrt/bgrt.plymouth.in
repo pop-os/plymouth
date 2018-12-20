@@ -13,4 +13,4 @@ Transition=none
 TransitionDuration=0.0
 BackgroundStartColor=0x202020
 BackgroundEndColor=0x202020
-UseBGRT=true
+UseFirmwareBackground=true

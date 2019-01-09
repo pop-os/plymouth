@@ -29,6 +29,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
+#include <strings.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -354,6 +355,38 @@ ply_key_file_get_value (ply_key_file_t *key_file,
         }
 
         return strdup (entry->value);
+}
+
+bool
+ply_key_file_get_bool (ply_key_file_t *key_file,
+                       const char     *group_name,
+                       const char     *key)
+{
+        ply_key_file_group_t *group;
+        ply_key_file_entry_t *entry;
+
+        group = ply_key_file_find_group (key_file, group_name);
+
+        if (group == NULL) {
+                ply_trace ("key file does not have group '%s'", group_name);
+                return false;
+        }
+
+        entry = ply_key_file_find_entry (key_file, group, key);
+
+        if (entry == NULL) {
+                ply_trace ("key file does not have entry for key '%s'", key);
+                return false;
+        }
+
+        /* We treat "1", "y" and "yes" and "true" as true, all else is false */
+        if (strcasecmp (entry->value, "1")    == 0 ||
+            strcasecmp (entry->value, "y")    == 0 ||
+            strcasecmp (entry->value, "yes")  == 0 ||
+            strcasecmp (entry->value, "true") == 0)
+                return true;
+
+        return false;
 }
 
 static void

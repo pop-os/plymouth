@@ -4,7 +4,7 @@ Description=Jimmac's spinner theme using the ACPI BGRT graphics as background
 ModuleName=two-step
 
 [two-step]
-ImageDir=@PLYMOUTH_THEME_PATH@/bgrt
+ImageDir=@PLYMOUTH_THEME_PATH@/spinner
 HorizontalAlignment=.5
 VerticalAlignment=.75
 WatermarkHorizontalAlignment=.5

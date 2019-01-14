@@ -51,6 +51,9 @@ static bool create_devices_for_terminal_and_renderer_type (ply_device_manager_t 
                                                            const char           *device_path,
                                                            ply_terminal_t       *terminal,
                                                            ply_renderer_type_t   renderer_type);
+static void create_pixel_displays_for_renderer (ply_device_manager_t *manager,
+                                                ply_renderer_t       *renderer);
+
 struct _ply_device_manager
 {
         ply_device_manager_flags_t flags;
@@ -371,6 +374,39 @@ create_devices_for_subsystem (ply_device_manager_t *manager,
         return found_device;
 }
 
+static void
+on_drm_udev_add_or_change (ply_device_manager_t *manager,
+                           const char           *action,
+                           struct udev_device   *device)
+{
+        const char *device_path = udev_device_get_devnode (device);
+        ply_renderer_t *renderer;
+        bool changed;
+
+        if (device_path == NULL)
+                return;
+
+        renderer = ply_hashtable_lookup (manager->renderers, (void *) device_path);
+        if (renderer == NULL) {
+                /* We also try to create the renderer again on change events,
+                 * renderer creation fails when no outputs are connected and
+                 * this may have changed.
+                 */
+                create_devices_for_udev_device (manager, device);
+                return;
+        }
+
+        /* Renderer exists, bail if this is not a change event */
+        if (strcmp (action, "change"))
+                return;
+
+        changed = ply_renderer_handle_change_event (renderer);
+        if (changed) {
+                free_displays_for_renderer (manager, renderer);
+                create_pixel_displays_for_renderer (manager, renderer);
+        }
+}
+
 static bool
 on_udev_event (ply_device_manager_t *manager)
 {
@@ -388,7 +424,7 @@ on_udev_event (ply_device_manager_t *manager)
         if (action == NULL)
                 return false;
 
-        if (strcmp (action, "add") == 0) {
+        if (strcmp (action, "add") == 0 || strcmp (action, "change") == 0) {
                 const char *subsystem;
 
                 subsystem = udev_device_get_subsystem (device);
@@ -397,7 +433,7 @@ on_udev_event (ply_device_manager_t *manager)
                         if (manager->local_console_managed && manager->local_console_is_text)
                                 ply_trace ("ignoring since we're already using text splash for local console");
                         else
-                                create_devices_for_udev_device (manager, device);
+                                on_drm_udev_add_or_change (manager, action, device);
                 } else {
                         ply_trace ("ignoring since we only handle subsystem %s devices after timeout", subsystem);
                 }

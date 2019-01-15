@@ -77,8 +77,7 @@ struct _ply_renderer_head
         unsigned long           row_stride;
 
         ply_array_t            *connector_ids;
-        drmModeConnector       *connector0;
-        drmModeModeInfo        *connector0_mode;
+        drmModeModeInfo         connector0_mode;
 
         uint32_t                controller_id;
         uint32_t                console_buffer_id;
@@ -118,7 +117,7 @@ typedef struct
 typedef struct
 {
         drmModeConnector *connector;
-        drmModeModeInfo *mode;
+        drmModeModeInfo mode;
         uint32_t controller_id;
         uint32_t possible_controllers;
         ply_pixel_buffer_rotation_t rotation;
@@ -474,9 +473,9 @@ static bool
 ply_renderer_head_add_connector (ply_renderer_head_t *head,
                                  ply_output_t        *output)
 {
-        if (output->mode->hdisplay != head->area.width || output->mode->vdisplay != head->area.height) {
+        if (output->mode.hdisplay != head->area.width || output->mode.vdisplay != head->area.height) {
                 ply_trace ("Tried to add connector with resolution %dx%d to %dx%d head",
-                           (int) output->mode->hdisplay, (int) output->mode->vdisplay,
+                           (int) output->mode.hdisplay, (int) output->mode.vdisplay,
                            (int) head->area.width, (int) head->area.height);
                 return false;
         } else {
@@ -505,14 +504,12 @@ ply_renderer_head_new (ply_renderer_backend_t     *backend,
         head->connector_ids = ply_array_new (PLY_ARRAY_ELEMENT_TYPE_UINT32);
         head->controller_id = output->controller_id;
         head->console_buffer_id = console_buffer_id;
-
-        head->connector0 = output->connector;
         head->connector0_mode = output->mode;
 
         head->area.x = 0;
         head->area.y = 0;
-        head->area.width = output->mode->hdisplay;
-        head->area.height = output->mode->vdisplay;
+        head->area.width = output->mode.hdisplay;
+        head->area.height = output->mode.vdisplay;
 
         if (gamma_size) {
                 head->gamma_size = gamma_size;
@@ -543,8 +540,8 @@ ply_renderer_head_new (ply_renderer_backend_t     *backend,
         if (output->connector->connector_type == DRM_MODE_CONNECTOR_LVDS ||
             output->connector->connector_type == DRM_MODE_CONNECTOR_eDP ||
             output->connector->connector_type == DRM_MODE_CONNECTOR_DSI) {
-                backend->panel_width = output->mode->hdisplay;
-                backend->panel_height = output->mode->vdisplay;
+                backend->panel_width = output->mode.hdisplay;
+                backend->panel_height = output->mode.vdisplay;
                 backend->panel_rotation = output->rotation;
                 backend->panel_scale = ply_pixel_buffer_get_device_scale (head->pixel_buffer);
         }
@@ -558,7 +555,6 @@ ply_renderer_head_free (ply_renderer_head_t *head)
         ply_trace ("freeing %ldx%ld renderer head", head->area.width, head->area.height);
         ply_pixel_buffer_free (head->pixel_buffer);
 
-        drmModeFreeConnector (head->connector0);
         ply_array_free (head->connector_ids);
         free (head->gamma);
         free (head);
@@ -648,7 +644,7 @@ ply_renderer_head_set_scan_out_buffer (ply_renderer_backend_t *backend,
                                        ply_renderer_head_t    *head,
                                        uint32_t                buffer_id)
 {
-        drmModeModeInfo *mode = head->connector0_mode;
+        drmModeModeInfo *mode = &head->connector0_mode;
         uint32_t *connector_ids;
         int number_of_connectors;
 
@@ -1211,6 +1207,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
          */
         found = 0;
         for (i = 0; i < backend->resources->count_connectors; i++) {
+                drmModeModeInfo *mode = NULL;
                 drmModeConnector *connector;
 
                 connector = drmModeGetConnector (backend->device_fd,
@@ -1234,17 +1231,18 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 ply_renderer_connector_get_rotation_and_tiled (backend, &outputs[found]);
 
                 if (!outputs[found].tiled && backend->use_preferred_mode)
-                        outputs[found].mode = get_preferred_mode (connector);
+                        mode = get_preferred_mode (connector);
 
-                if (!outputs[found].mode && outputs[found].controller_id)
-                        outputs[found].mode = get_active_mode (backend, &outputs[found]);
+                if (!mode && outputs[found].controller_id)
+                        mode = get_active_mode (backend, &outputs[found]);
 
                 /* If we couldn't find the current active mode, fall back to the first available.
                  */
-                if (!outputs[found].mode) {
+                if (!mode) {
                         ply_trace ("falling back to first available mode");
-                        outputs[found].mode = &connector->modes[0];
+                        mode = &connector->modes[0];
                 }
+                outputs[found].mode = *mode;
 
                 found++;
         }
@@ -1262,8 +1260,8 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                                 continue;
 
                         if (outputs[i].controller_id == outputs[j].controller_id &&
-                            (outputs[i].mode->hdisplay != outputs[j].mode->hdisplay ||
-                             outputs[i].mode->vdisplay != outputs[j].mode->vdisplay)) {
+                            (outputs[i].mode.hdisplay != outputs[j].mode.hdisplay ||
+                             outputs[i].mode.vdisplay != outputs[j].mode.vdisplay)) {
                                 ply_trace ("connector %u uses same controller as %u and modes differ, unlinking controller",
                                            outputs[j].connector->connector_id,
                                            outputs[i].connector->connector_id);
@@ -1331,9 +1329,8 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 } else {
                         if (!ply_renderer_head_add_connector (head, &outputs[i]))
                                 ply_trace ("couldn't connect monitor to existing head");
-
-                        drmModeFreeConnector (connector);
                 }
+                drmModeFreeConnector (connector);
         }
 
         ply_hashtable_free (heads_by_controller_id);

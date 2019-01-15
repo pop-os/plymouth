@@ -124,6 +124,7 @@ typedef struct
         int device_scale;
         ply_pixel_buffer_rotation_t rotation;
         bool tiled;
+        bool connected;
 } ply_output_t;
 
 struct _ply_renderer_backend
@@ -1085,6 +1086,48 @@ get_active_mode (ply_renderer_backend_t *backend,
         return mode;
 }
 
+static void
+get_output_info (ply_renderer_backend_t *backend,
+                 uint32_t                connector_id,
+                 ply_output_t           *output)
+{
+        drmModeModeInfo *mode = NULL;
+        drmModeConnector *connector;
+
+        memset (output, 0, sizeof(*output));
+        output->connector_id = connector_id;
+
+        connector = drmModeGetConnector (backend->device_fd, connector_id);
+        if (connector == NULL)
+                return;
+
+        if (connector->connection != DRM_MODE_CONNECTED ||
+            connector->count_modes <= 0)
+                goto out;
+
+        output_get_controller_info (backend, connector, output);
+        ply_renderer_connector_get_rotation_and_tiled (backend, connector, output);
+
+        if (!output->tiled && backend->use_preferred_mode)
+                mode = get_preferred_mode (connector);
+
+        if (!mode && output->controller_id)
+                mode = get_active_mode (backend, connector, output);
+
+        /* If we couldn't find the current active mode, fall back to the first available. */
+        if (!mode) {
+                ply_trace ("falling back to first available mode");
+                mode = &connector->modes[0];
+        }
+        output->mode = *mode;
+        output->device_scale = ply_get_device_scale (mode->hdisplay, mode->vdisplay,
+                                                     connector->mmWidth, connector->mmHeight);
+        output->connector_type = connector->connector_type;
+        output->connected = true;
+out:
+        drmModeFreeConnector (connector);
+}
+
 /* Some controllers can only drive some outputs, we want to find a combination
  * where all (connected) outputs get a controller. To do this setup_outputs
  * picks which output to assign a controller for first (trying all outputs), so
@@ -1208,46 +1251,9 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
          */
         found = 0;
         for (i = 0; i < backend->resources->count_connectors; i++) {
-                drmModeModeInfo *mode = NULL;
-                drmModeConnector *connector;
-
-                connector = drmModeGetConnector (backend->device_fd,
-                                                 backend->resources->connectors[i]);
-                if (connector == NULL)
-                        continue;
-
-                if (connector->connection != DRM_MODE_CONNECTED) {
-                        drmModeFreeConnector (connector);
-                        continue;
-                }
-
-                if (connector->count_modes <= 0) {
-                        drmModeFreeConnector (connector);
-                        continue;
-                }
-
-                output_get_controller_info (backend, connector, &outputs[found]);
-                ply_renderer_connector_get_rotation_and_tiled (backend, connector, &outputs[found]);
-
-                if (!outputs[found].tiled && backend->use_preferred_mode)
-                        mode = get_preferred_mode (connector);
-
-                if (!mode && outputs[found].controller_id)
-                        mode = get_active_mode (backend, connector, &outputs[found]);
-
-                /* If we couldn't find the current active mode, fall back to the first available.
-                 */
-                if (!mode) {
-                        ply_trace ("falling back to first available mode");
-                        mode = &connector->modes[0];
-                }
-                outputs[found].mode = *mode;
-                outputs[found].device_scale = ply_get_device_scale (mode->hdisplay, mode->vdisplay,
-                                                                    connector->mmWidth, connector->mmHeight);
-                outputs[found].connector_type = connector->connector_type;
-                drmModeFreeConnector (connector);
-
-                found++;
+                get_output_info (backend, backend->resources->connectors[i], &outputs[found]);
+                if (outputs[found].connected)
+                        found++;
         }
         outputs_len = found; /* outputs now contains found valid entries */
 

@@ -486,12 +486,15 @@ ply_renderer_head_add_connector (ply_renderer_head_t *head,
                            (int) output->mode.hdisplay, (int) output->mode.vdisplay,
                            (int) head->area.width, (int) head->area.height);
                 return false;
-        } else {
-                ply_trace ("Adding connector with id %d to %dx%d head",
-                           (int) output->connector_id,
-                           (int) head->area.width, (int) head->area.height);
         }
 
+        if (ply_array_contains_uint32_element (head->connector_ids, output->connector_id)) {
+                ply_trace ("Head already contains connector with id %d", output->connector_id);
+                return false;
+        }
+
+        ply_trace ("Adding connector with id %d to %dx%d head",
+                   (int) output->connector_id, (int) head->area.width, (int) head->area.height);
         ply_array_add_uint32_element (head->connector_ids, output->connector_id);
 
         return true;

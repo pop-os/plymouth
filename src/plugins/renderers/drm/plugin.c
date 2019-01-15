@@ -138,9 +138,13 @@ struct _ply_renderer_backend
 
         ply_renderer_input_source_t      input_source;
         ply_list_t                      *heads;
-        ply_hashtable_t                 *heads_by_connector_id;
+        ply_hashtable_t                 *heads_by_controller_id;
 
         ply_hashtable_t                 *output_buffers;
+
+        ply_output_t                    *outputs;
+        int                              outputs_len;
+        int                              connected_count;
 
         int32_t                          dither_red;
         int32_t                          dither_green;
@@ -546,6 +550,10 @@ ply_renderer_head_new (ply_renderer_backend_t     *backend,
                 backend->panel_scale = output->device_scale;
         }
 
+        ply_list_append_data (backend->heads, head);
+        ply_hashtable_insert (backend->heads_by_controller_id,
+                              (void *) (intptr_t) output->controller_id,
+                              head);
         return head;
 }
 
@@ -808,6 +816,7 @@ create_backend (const char     *device_name,
         backend->requires_explicit_flushing = true;
         backend->output_buffers = ply_hashtable_new (ply_hashtable_direct_hash,
                                                      ply_hashtable_direct_compare);
+        backend->heads_by_controller_id = ply_hashtable_new (NULL, NULL);
         backend->use_preferred_mode = should_use_preferred_mode ();
 
         return backend;
@@ -827,9 +836,11 @@ destroy_backend (ply_renderer_backend_t *backend)
 
         free (backend->device_name);
         ply_hashtable_free (backend->output_buffers);
+        ply_hashtable_free (backend->heads_by_controller_id);
 
         drmModeFreeResources (backend->resources);
 
+        free (backend->outputs);
         free (backend);
 }
 
@@ -1194,9 +1205,9 @@ setup_outputs (ply_renderer_backend_t *backend,
         best_count = count_setup_controllers (outputs, outputs_len);
         best_outputs = outputs;
 
-        for (i = 0; i < outputs_len && best_count < outputs_len; i++) {
-                /* Already assigned? */
-                if (outputs[i].controller_id)
+        for (i = 0; i < outputs_len && best_count < backend->connected_count; i++) {
+                /* Not connected or already assigned? */
+                if (!outputs[i].connected || outputs[i].controller_id)
                         continue;
 
                 /* Assign controller for connector i */
@@ -1238,24 +1249,21 @@ setup_outputs (ply_renderer_backend_t *backend,
 static bool
 create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 {
-        ply_hashtable_t *heads_by_controller_id;
+        int i, j, number_of_setup_outputs, outputs_len;
         ply_output_t *outputs;
-        int i, j, found, number_of_setup_outputs, outputs_len;
-
-        heads_by_controller_id = ply_hashtable_new (NULL, NULL);
 
         outputs = calloc (backend->resources->count_connectors, sizeof(*outputs));
+        outputs_len = backend->resources->count_connectors;
 
         /* Step 1:
          * Build a list of connected outputs and get pre-configured controllers.
          */
-        found = 0;
-        for (i = 0; i < backend->resources->count_connectors; i++) {
-                get_output_info (backend, backend->resources->connectors[i], &outputs[found]);
-                if (outputs[found].connected)
-                        found++;
+        backend->connected_count = 0;
+        for (i = 0; i < outputs_len; i++) {
+                get_output_info (backend, backend->resources->connectors[i], &outputs[i]);
+                if (outputs[i].connected)
+                        backend->connected_count++;
         }
-        outputs_len = found; /* outputs now contains found valid entries */
 
         /* Step 2:
          * Drop controllers for clones for which we've picked different modes.
@@ -1282,13 +1290,13 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
          * Assign controllers to outputs without a controller
          */
         number_of_setup_outputs = count_setup_controllers (outputs, outputs_len);
-        if (number_of_setup_outputs != outputs_len) {
+        if (number_of_setup_outputs != backend->connected_count) {
                 /* First try, try to assign controllers to outputs without one */
                 ply_trace ("Some outputs don't have controllers, picking controllers");
                 outputs = setup_outputs (backend, outputs, outputs_len);
                 number_of_setup_outputs = count_setup_controllers (outputs, outputs_len);
         }
-        if (number_of_setup_outputs != outputs_len) {
+        if (number_of_setup_outputs != backend->connected_count) {
                 /* Second try, re-assing controller for all outputs */
                 ply_trace ("Some outputs still don't have controllers, re-assigning controllers for all outputs");
                 for (i = 0; i < outputs_len; i++)
@@ -1309,6 +1317,9 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 uint32_t console_buffer_id;
                 int gamma_size;
 
+                if (!outputs[i].controller_id)
+                        continue;
+
                 controller = drmModeGetCrtc (backend->device_fd, outputs[i].controller_id);
                 if (!controller)
                         continue;
@@ -1318,27 +1329,21 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 gamma_size = controller->gamma_size;
                 drmModeFreeCrtc (controller);
 
-                head = ply_hashtable_lookup (heads_by_controller_id,
+                head = ply_hashtable_lookup (backend->heads_by_controller_id,
                                              (void *) (intptr_t) controller_id);
 
                 if (head == NULL) {
                         head = ply_renderer_head_new (backend, &outputs[i],
                                                       console_buffer_id,
                                                       gamma_size);
-
-                        ply_list_append_data (backend->heads, head);
-
-                        ply_hashtable_insert (heads_by_controller_id,
-                                              (void *) (intptr_t) controller_id,
-                                              head);
                 } else {
                         if (!ply_renderer_head_add_connector (head, &outputs[i]))
                                 ply_trace ("couldn't connect monitor to existing head");
                 }
         }
 
-        ply_hashtable_free (heads_by_controller_id);
-        free (outputs);
+        backend->outputs_len = outputs_len;
+        backend->outputs = outputs;
 
         return ply_list_get_length (backend->heads) > 0;
 }

@@ -735,6 +735,47 @@ ply_renderer_head_unmap (ply_renderer_backend_t *backend,
 }
 
 static void
+ply_renderer_head_remove (ply_renderer_backend_t *backend,
+                          ply_renderer_head_t    *head)
+{
+        if (head->scan_out_buffer_id)
+                ply_renderer_head_unmap (backend, head);
+
+        ply_hashtable_remove (backend->heads_by_controller_id,
+                              (void *) (intptr_t) head->controller_id);
+        ply_list_remove_data (backend->heads, head);
+        ply_renderer_head_free (head);
+}
+
+static void
+ply_renderer_head_remove_connector (ply_renderer_backend_t *backend,
+                                    ply_renderer_head_t    *head,
+                                    uint32_t               connector_id)
+{
+        int i, size = ply_array_get_size (head->connector_ids);
+        uint32_t *connector_ids;
+
+        if (!ply_array_contains_uint32_element (head->connector_ids, connector_id)) {
+                ply_trace ("Head does not contain connector %u, cannot remove", connector_id);
+                return;
+        }
+
+        if (size == 1) {
+                ply_renderer_head_remove (backend, head);
+                return;
+        }
+
+        /* Empty the array and re-add all connectors except the one being removed */
+        connector_ids = ply_array_steal_uint32_elements (head->connector_ids);
+        for (i = 0; i < size; i++) {
+                if (connector_ids[i] != connector_id)
+                        ply_array_add_uint32_element (head->connector_ids,
+                                                      connector_ids[i]);
+        }
+        free (connector_ids);
+}
+
+static void
 flush_area (const char      *src,
             unsigned long    src_row_stride,
             char            *dst,
@@ -1247,18 +1288,65 @@ setup_outputs (ply_renderer_backend_t *backend,
         return (ply_output_t *)best_outputs;
 }
 
+static void
+remove_output (ply_renderer_backend_t *backend, ply_output_t *output)
+{
+        ply_renderer_head_t *head;
+
+        head = ply_hashtable_lookup (backend->heads_by_controller_id,
+                                     (void *) (intptr_t) output->controller_id);
+        if (head == NULL) {
+                ply_trace ("Could not find head for connector %u, controller %u, cannot remove",
+                           output->connector_id, output->controller_id);
+                return;
+        }
+
+        ply_renderer_head_remove_connector (backend, head, output->connector_id);
+}
+
+/* Update our outputs array to match the hardware state and
+ * create and/or remove heads as necessary.
+ * Returns true if any heads were modified.
+ */
 static bool
 create_heads_for_active_connectors (ply_renderer_backend_t *backend)
 {
         int i, j, number_of_setup_outputs, outputs_len;
-        ply_output_t *outputs;
+        ply_output_t output, *outputs;
+        bool changed = false;
+
+        /* Step 1:
+         * Remove existing outputs from heads if they have changed.
+         */
+        ply_trace ("Checking currently connected outputs for changes");
+        for (i = 0; i < backend->outputs_len; i++) {
+                if (!backend->outputs[i].controller_id)
+                        continue;
+
+                get_output_info (backend, backend->outputs[i].connector_id, &output);
+
+                if (memcmp(&backend->outputs[i], &output, sizeof(ply_output_t))) {
+                        ply_trace ("Output for connector %u changed, removing",
+                                   backend->outputs[i].connector_id);
+                        remove_output (backend, &backend->outputs[i]);
+                        changed = true;
+                }
+        }
+
+        /* Step 2:
+         * Now that we've removed changed connectors from the heads, we can
+         * simply rebuild the outputs array from scratch. For any unchanged
+         * outputs for which we already have a head, we will end up in
+         * ply_renderer_head_add_connector which will ignore the already
+         * added connector.
+         */
+        ply_trace ("(Re)enumerating all outputs");
+        free (backend->outputs);
+        backend->outputs = NULL;
 
         outputs = calloc (backend->resources->count_connectors, sizeof(*outputs));
         outputs_len = backend->resources->count_connectors;
 
-        /* Step 1:
-         * Build a list of connected outputs and get pre-configured controllers.
-         */
         backend->connected_count = 0;
         for (i = 0; i < outputs_len; i++) {
                 get_output_info (backend, backend->resources->connectors[i], &outputs[i]);
@@ -1266,7 +1354,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                         backend->connected_count++;
         }
 
-        /* Step 2:
+        /* Step 3:
          * Drop controllers for clones for which we've picked different modes.
          */
         for (i = 0; i < outputs_len; i++) {
@@ -1287,7 +1375,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 }
         }
 
-        /* Step 3:
+        /* Step 4:
          * Assign controllers to outputs without a controller
          */
         number_of_setup_outputs = count_setup_controllers (outputs, outputs_len);
@@ -1308,7 +1396,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 ply_trace ("Using controller %u for connector %u",
                            outputs[i].controller_id, outputs[i].connector_id);
 
-        /* Step 4:
+        /* Step 5:
          * Create heads for all valid outputs
          */
         for (i = 0; i < outputs_len; i++) {
@@ -1337,16 +1425,19 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                         head = ply_renderer_head_new (backend, &outputs[i],
                                                       console_buffer_id,
                                                       gamma_size);
+                        changed = true;
                 } else {
-                        if (!ply_renderer_head_add_connector (head, &outputs[i]))
-                                ply_trace ("couldn't connect monitor to existing head");
+                        if (ply_renderer_head_add_connector (head, &outputs[i]))
+                                changed = true;
                 }
         }
 
         backend->outputs_len = outputs_len;
         backend->outputs = outputs;
 
-        return ply_list_get_length (backend->heads) > 0;
+        ply_trace ("outputs %schanged\n", changed ? "" : "un");
+
+        return changed;
 }
 
 static bool

@@ -838,8 +838,6 @@ destroy_backend (ply_renderer_backend_t *backend)
         ply_hashtable_free (backend->output_buffers);
         ply_hashtable_free (backend->heads_by_controller_id);
 
-        drmModeFreeResources (backend->resources);
-
         free (backend->outputs);
         free (backend);
 }
@@ -1385,6 +1383,8 @@ has_32bpp_support (ply_renderer_backend_t *backend)
 static bool
 query_device (ply_renderer_backend_t *backend)
 {
+        bool ret = true;
+
         assert (backend != NULL);
         assert (backend->device_fd >= 0);
 
@@ -1397,15 +1397,16 @@ query_device (ply_renderer_backend_t *backend)
 
         if (!create_heads_for_active_connectors (backend)) {
                 ply_trace ("Could not initialize heads");
-                return false;
-        }
-
-        if (!has_32bpp_support (backend)) {
+                ret = false;
+        } else if (!has_32bpp_support (backend)) {
                 ply_trace ("Device doesn't support 32bpp framebuffer");
-                return false;
+                ret = false;
         }
 
-        return true;
+        drmModeFreeResources (backend->resources);
+        backend->resources = NULL;
+
+        return ret;
 }
 
 static bool

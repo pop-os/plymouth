@@ -715,11 +715,6 @@ ply_renderer_head_map (ply_renderer_backend_t *backend,
                 return false;
         }
 
-        /* FIXME: Maybe we should blit the fbcon contents instead of the (blank)
-         * shadow buffer?
-         */
-        ply_renderer_head_redraw (backend, head);
-
         return true;
 }
 
@@ -1518,8 +1513,13 @@ map_to_device (ply_renderer_backend_t *backend)
                 head = (ply_renderer_head_t *) ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (backend->heads, node);
 
-                if (ply_renderer_head_map (backend, head))
+                if (ply_renderer_head_map (backend, head)) {
+                        /* FIXME: Maybe we should blit the fbcon contents instead of the (blank)
+                         * shadow buffer?
+                         */
+                        ply_renderer_head_redraw (backend, head);
                         head_mapped = true;
+                }
 
                 node = next_node;
         }
@@ -1604,6 +1604,12 @@ flush_head (ply_renderer_backend_t *backend,
         pixel_buffer = head->pixel_buffer;
         updated_region = ply_pixel_buffer_get_updated_areas (pixel_buffer);
         areas_to_flush = ply_region_get_sorted_rectangle_list (updated_region);
+
+        /* A hotplugged head may not be mapped yet, map it now. */
+        if (!head->scan_out_buffer_id) {
+                if (!ply_renderer_head_map (backend, head))
+                        return;
+        }
 
         map_address = begin_flush (backend, head->scan_out_buffer_id);
 

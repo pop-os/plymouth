@@ -1304,7 +1304,7 @@ remove_output (ply_renderer_backend_t *backend, ply_output_t *output)
  * Returns true if any heads were modified.
  */
 static bool
-create_heads_for_active_connectors (ply_renderer_backend_t *backend)
+create_heads_for_active_connectors (ply_renderer_backend_t *backend, bool change)
 {
         int i, j, number_of_setup_outputs, outputs_len;
         ply_output_t output, *outputs;
@@ -1380,8 +1380,12 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
                 outputs = setup_outputs (backend, outputs, outputs_len);
                 number_of_setup_outputs = count_setup_controllers (outputs, outputs_len);
         }
-        if (number_of_setup_outputs != backend->connected_count) {
-                /* Second try, re-assing controller for all outputs */
+        /* Try again if necessary, re-assing controllers for all outputs.
+         * Note this is skipped when processing change events, as we don't
+         * want to mess with the controller assignment of already lit monitors
+         * in that case.
+         */
+        if (!change && number_of_setup_outputs != backend->connected_count) {
                 ply_trace ("Some outputs still don't have controllers, re-assigning controllers for all outputs");
                 for (i = 0; i < outputs_len; i++)
                         outputs[i].controller_id = 0;
@@ -1484,13 +1488,32 @@ query_device (ply_renderer_backend_t *backend)
                 return false;
         }
 
-        if (!create_heads_for_active_connectors (backend)) {
+        if (!create_heads_for_active_connectors (backend, false)) {
                 ply_trace ("Could not initialize heads");
                 ret = false;
         } else if (!has_32bpp_support (backend)) {
                 ply_trace ("Device doesn't support 32bpp framebuffer");
                 ret = false;
         }
+
+        drmModeFreeResources (backend->resources);
+        backend->resources = NULL;
+
+        return ret;
+}
+
+static bool
+handle_change_event (ply_renderer_backend_t *backend)
+{
+        bool ret = true;
+
+        backend->resources = drmModeGetResources (backend->device_fd);
+        if (backend->resources == NULL) {
+                ply_trace ("Could not get card resources for change event");
+                return false;
+        }
+
+        ret = create_heads_for_active_connectors (backend, true);
 
         drmModeFreeResources (backend->resources);
         backend->resources = NULL;
@@ -1776,6 +1799,7 @@ ply_renderer_backend_get_interface (void)
                 .open_device                  = open_device,
                 .close_device                 = close_device,
                 .query_device                 = query_device,
+                .handle_change_event          = handle_change_event,
                 .map_to_device                = map_to_device,
                 .unmap_from_device            = unmap_from_device,
                 .activate                     = activate,

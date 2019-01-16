@@ -1123,7 +1123,7 @@ load_devices (state_t                   *state,
 static void
 quit_splash (state_t *state)
 {
-        ply_trace ("quiting splash");
+        ply_trace ("quitting splash");
         if (state->boot_splash != NULL) {
                 ply_trace ("freeing splash");
                 ply_boot_splash_free (state->boot_splash);

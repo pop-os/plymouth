@@ -1100,7 +1100,7 @@ get_preferred_mode (drmModeConnector *connector)
 
         for (i = 0; i < connector->count_modes; i++)
                 if (connector->modes[i].type & DRM_MODE_TYPE_PREFERRED) {
-                        ply_trace ("Found preferred mode %dx%d at index %d\n",
+                        ply_trace ("Found preferred mode %dx%d at index %d",
                                    connector->modes[i].hdisplay,
                                    connector->modes[i].vdisplay, i);
                         return &connector->modes[i];

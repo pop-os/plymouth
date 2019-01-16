@@ -656,7 +656,7 @@ ply_open_module (const char *module_path)
                                                  RTLD_NODELETE | RTLD_NOW | RTLD_LOCAL);
 
         if (handle == NULL) {
-                ply_trace ("Could not load module \"%s\": %s\n", module_path, dlerror ());
+                ply_trace ("Could not load module \"%s\": %s", module_path, dlerror ());
                 if (errno == 0)
                         errno = ELIBACC;
         }

@@ -42,6 +42,10 @@ bool ply_key_file_has_key (ply_key_file_t *key_file,
 char *ply_key_file_get_value (ply_key_file_t *key_file,
                               const char     *group_name,
                               const char     *key);
+/* Note this returns false for non existing keys */
+bool ply_key_file_get_bool (ply_key_file_t *key_file,
+                            const char     *group_name,
+                            const char     *key);
 void ply_key_file_foreach_entry (ply_key_file_t             *key_file,
                                  ply_key_file_foreach_func_t func,
                                  void                       *user_data);

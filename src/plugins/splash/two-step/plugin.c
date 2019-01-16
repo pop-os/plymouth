@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009-2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
  * 02111-1307, USA.
  *
- * Written by: William Jon McCann
+ * Written by: William Jon McCann, Hans de Goede <hdegoede@redhat.com>
  *
  */
 #include "config.h"
@@ -91,7 +91,7 @@ typedef struct
         ply_throbber_t           *throbber;
         ply_label_t              *label;
         ply_label_t              *message_label;
-        ply_rectangle_t           box_area, lock_area, watermark_area;
+        ply_rectangle_t           box_area, lock_area, watermark_area, dialog_area;
         ply_trigger_t            *end_trigger;
         ply_pixel_buffer_t       *background_buffer;
         bool                      background_is_bgrt;
@@ -111,6 +111,9 @@ struct _ply_boot_splash_plugin
         ply_list_t                         *views;
 
         ply_boot_splash_display_type_t      state;
+
+        double                              dialog_horizontal_alignment;
+        double                              dialog_vertical_alignment;
 
         double                              watermark_horizontal_alignment;
         double                              watermark_vertical_alignment;
@@ -135,6 +138,7 @@ struct _ply_boot_splash_plugin
         uint32_t                            is_visible : 1;
         uint32_t                            is_animating : 1;
         uint32_t                            is_idle : 1;
+        uint32_t                            dialog_clears_firmware_background : 1;
 };
 
 ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
@@ -648,9 +652,8 @@ view_show_prompt (view_t     *view,
                   const char *prompt)
 {
         ply_boot_splash_plugin_t *plugin;
+        unsigned long screen_width, screen_height, entry_width, entry_height;
         int x, y;
-        int entry_width, entry_height;
-        unsigned long screen_width, screen_height;
 
         assert (view != NULL);
 
@@ -660,22 +663,36 @@ view_show_prompt (view_t     *view,
         screen_height = ply_pixel_display_get_height (view->display);
 
         if (ply_entry_is_hidden (view->entry)) {
-                view->box_area.width = ply_image_get_width (plugin->box_image);
-                view->box_area.height = ply_image_get_height (plugin->box_image);
-                view->box_area.x = screen_width / 2.0 - view->box_area.width / 2.0;
-                view->box_area.y = screen_height / 2.0 - view->box_area.height / 2.0;
-
                 view->lock_area.width = ply_image_get_width (plugin->lock_image);
                 view->lock_area.height = ply_image_get_height (plugin->lock_image);
 
                 entry_width = ply_entry_get_width (view->entry);
                 entry_height = ply_entry_get_height (view->entry);
 
-                x = screen_width / 2.0 - (view->lock_area.width + entry_width) / 2.0 + view->lock_area.width;
-                y = screen_height / 2.0 - entry_height / 2.0;
+                if (plugin->box_image) {
+                        view->box_area.width = ply_image_get_width (plugin->box_image);
+                        view->box_area.height = ply_image_get_height (plugin->box_image);
+                        view->box_area.x = (screen_width - view->box_area.width) * plugin->dialog_horizontal_alignment;
+                        view->box_area.y = (screen_height - view->box_area.height) * plugin->dialog_vertical_alignment;
+                        view->dialog_area = view->box_area;
+                } else {
+                        view->dialog_area.width = view->lock_area.width + entry_width;
+                        view->dialog_area.height = MAX(view->lock_area.height, entry_height);
+                        view->dialog_area.x = (screen_width - view->dialog_area.width) * plugin->dialog_horizontal_alignment;
+                        view->dialog_area.y = (screen_height - view->dialog_area.height) * plugin->dialog_vertical_alignment;
+                }
 
-                view->lock_area.x = screen_width / 2.0 - (view->lock_area.width + entry_width) / 2.0;
-                view->lock_area.y = screen_height / 2.0 - view->lock_area.height / 2.0;
+                view->lock_area.x =
+                    view->dialog_area.x +
+                    (view->dialog_area.width - 
+                     (view->lock_area.width + entry_width)) / 2.0;
+                view->lock_area.y =
+                    view->dialog_area.y +
+                    (view->dialog_area.height - view->lock_area.height) / 2.0;
+
+                x = view->lock_area.x + view->lock_area.width;
+                y = view->dialog_area.y +
+                    (view->dialog_area.height - entry_height) / 2.0;
 
                 ply_entry_show (view->entry, plugin->loop, view->display, x, y);
         }
@@ -689,7 +706,7 @@ view_show_prompt (view_t     *view,
                 ply_label_set_width (view->label, label_width);
 
                 x = (screen_width - label_width) / 2;
-                y = view->box_area.y + view->box_area.height;
+                y = view->dialog_area.y + view->dialog_area.height;
 
                 ply_label_show (view->label, view->display, x, y);
         }
@@ -776,6 +793,20 @@ create_plugin (ply_key_file_t *key_file)
                 plugin->watermark_vertical_alignment = .5;
         free (alignment);
 
+        alignment = ply_key_file_get_value (key_file, "two-step", "DialogHorizontalAlignment");
+        if (alignment != NULL)
+                plugin->dialog_horizontal_alignment = ply_strtod (alignment);
+        else
+                plugin->dialog_horizontal_alignment = .5;
+        free (alignment);
+
+        alignment = ply_key_file_get_value (key_file, "two-step", "DialogVerticalAlignment");
+        if (alignment != NULL)
+                plugin->dialog_vertical_alignment = ply_strtod (alignment);
+        else
+                plugin->dialog_vertical_alignment = .5;
+        free (alignment);
+
         plugin->transition = PLY_PROGRESS_ANIMATION_TRANSITION_NONE;
         transition = ply_key_file_get_value (key_file, "two-step", "Transition");
         if (transition != NULL) {
@@ -813,9 +844,11 @@ create_plugin (ply_key_file_t *key_file)
 
         free (color);
 
-        /* Boolean option, true if the key is present */
-        if (ply_key_file_get_value (key_file, "two-step", "UseBGRT"))
+        if (ply_key_file_get_bool (key_file, "two-step", "UseFirmwareBackground"))
                 plugin->background_bgrt_image = ply_image_new ("/sys/firmware/acpi/bgrt/image");
+
+        plugin->dialog_clears_firmware_background =
+                ply_key_file_get_bool (key_file, "two-step", "DialogClearsFirmwareBackground");
 
         progress_function = ply_key_file_get_value (key_file, "two-step", "ProgressFunction");
 
@@ -882,8 +915,10 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
                 detach_from_event_loop (plugin);
         }
 
-        ply_image_free (plugin->box_image);
         ply_image_free (plugin->lock_image);
+
+        if (plugin->box_image != NULL)
+                ply_image_free (plugin->box_image);
 
         if (plugin->corner_image != NULL)
                 ply_image_free (plugin->corner_image);
@@ -1050,7 +1085,7 @@ draw_background (view_t             *view,
          */
         if ((plugin->state == PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY ||
              plugin->state == PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY) &&
-            view->background_is_bgrt)
+            view->background_is_bgrt && plugin->dialog_clears_firmware_background)
                 ply_pixel_buffer_fill_with_hex_color (pixel_buffer, &area, 0);
         else if (view->background_buffer != NULL)
                 ply_pixel_buffer_fill_with_buffer (pixel_buffer, view->background_buffer, 0, 0);
@@ -1092,10 +1127,12 @@ on_draw (view_t             *view,
             plugin->state == PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY) {
                 uint32_t *box_data, *lock_data;
 
-                box_data = ply_image_get_data (plugin->box_image);
-                ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
-                                                        &view->box_area,
-                                                        box_data);
+                if (plugin->box_image) {
+                        box_data = ply_image_get_data (plugin->box_image);
+                        ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
+                                                                &view->box_area,
+                                                                box_data);
+                }
 
                 ply_entry_draw_area (view->entry,
                                      pixel_buffer,
@@ -1224,9 +1261,14 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
         if (!ply_image_load (plugin->lock_image))
                 return false;
 
-        ply_trace ("loading box image");
-        if (!ply_image_load (plugin->box_image))
-                return false;
+        if (plugin->box_image != NULL) {
+                ply_trace ("loading box image");
+
+                if (!ply_image_load (plugin->box_image)) {
+                        ply_image_free (plugin->box_image);
+                        plugin->box_image = NULL;
+                }
+        }
 
         if (plugin->corner_image != NULL) {
                 ply_trace ("loading corner image");

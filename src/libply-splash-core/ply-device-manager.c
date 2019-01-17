@@ -371,7 +371,7 @@ create_devices_for_subsystem (ply_device_manager_t *manager,
         return found_device;
 }
 
-static void
+static bool
 on_udev_event (ply_device_manager_t *manager)
 {
         struct udev_device *device;
@@ -379,14 +379,14 @@ on_udev_event (ply_device_manager_t *manager)
 
         device = udev_monitor_receive_device (manager->udev_monitor);
         if (device == NULL)
-                return;
+                return false;
 
         action = udev_device_get_action (device);
 
         ply_trace ("got %s event for device %s", action, udev_device_get_sysname (device));
 
         if (action == NULL)
-                return;
+                return false;
 
         if (strcmp (action, "add") == 0) {
                 const char *subsystem;
@@ -406,6 +406,14 @@ on_udev_event (ply_device_manager_t *manager)
         }
 
         udev_device_unref (device);
+        return true;
+}
+
+static void
+on_udev_event_loop (ply_device_manager_t *manager)
+{
+        /* Call on_udev_event until all events are consumed */
+        while (on_udev_event (manager)) {}
 }
 
 static void
@@ -435,7 +443,7 @@ watch_for_udev_events (ply_device_manager_t *manager)
                                                      fd,
                                                      PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
                                                      (ply_event_handler_t)
-                                                     on_udev_event,
+                                                     on_udev_event_loop,
                                                      NULL,
                                                      manager);
 }

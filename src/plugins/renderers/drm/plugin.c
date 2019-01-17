@@ -82,6 +82,7 @@ struct _ply_renderer_head
         uint32_t                controller_id;
         uint32_t                console_buffer_id;
         uint32_t                scan_out_buffer_id;
+        bool			scan_out_buffer_needs_reset;
 
         int                     gamma_size;
         uint16_t                *gamma;
@@ -122,6 +123,7 @@ typedef struct
         uint32_t controller_id;
         uint32_t possible_controllers;
         int device_scale;
+        int link_status;
         ply_pixel_buffer_rotation_t rotation;
         bool tiled;
         bool connected;
@@ -473,6 +475,12 @@ ply_renderer_connector_get_rotation_and_tiled (ply_renderer_backend_t      *back
                     strcmp (prop->name, "TILE") == 0)
                         output->tiled = true;
 
+                if ((prop->flags & DRM_MODE_PROP_ENUM) &&
+                    strcmp (prop->name, "link-status") == 0) {
+                        output->link_status = connector->prop_values[i];
+                        ply_trace ("link-status %d", output->link_status);
+                }
+
                 drmModeFreeProperty (prop);
         }
 }
@@ -481,6 +489,9 @@ static bool
 ply_renderer_head_add_connector (ply_renderer_head_t *head,
                                  ply_output_t        *output)
 {
+        if (output->link_status == DRM_MODE_LINK_STATUS_BAD)
+                head->scan_out_buffer_needs_reset = true;
+
         if (output->mode.hdisplay != head->area.width || output->mode.vdisplay != head->area.height) {
                 ply_trace ("Tried to add connector with resolution %dx%d to %dx%d head",
                            (int) output->mode.hdisplay, (int) output->mode.vdisplay,
@@ -715,6 +726,7 @@ ply_renderer_head_map (ply_renderer_backend_t *backend,
                 return false;
         }
 
+        head->scan_out_buffer_needs_reset = true;
         return true;
 }
 
@@ -1588,6 +1600,13 @@ reset_scan_out_buffer_if_needed (ply_renderer_backend_t *backend,
         if (backend->terminal != NULL)
                 if (!ply_terminal_is_active (backend->terminal))
                         return false;
+
+        if (head->scan_out_buffer_needs_reset) {
+                ply_renderer_head_set_scan_out_buffer (backend, head,
+                                                       head->scan_out_buffer_id);
+                head->scan_out_buffer_needs_reset = false;
+                return true;
+        }
 
         controller = drmModeGetCrtc (backend->device_fd, head->controller_id);
 

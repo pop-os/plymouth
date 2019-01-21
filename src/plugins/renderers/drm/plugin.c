@@ -172,19 +172,9 @@ static bool reset_scan_out_buffer_if_needed (ply_renderer_backend_t *backend,
 static void flush_head (ply_renderer_backend_t *backend,
                         ply_renderer_head_t    *head);
 
-static bool efi_enabled (void)
-{
-        return ply_directory_exists ("/sys/firmware/efi/efivars");
-}
-
 /* A small helper to determine if we should try to keep the current mode
- * or pick the best mode ourselves, we keep the current mode if:
- * 1. The user specified a specific mode using video= on the commandline
- * 2. The code to pick the best mode was added because with flicker-free boot
- *    we can no longer rely on the kernel's fbcon code setting things up.
- *    We should be able to do a better job then fbcon regardless, but for
- *    now lets only use the new code on flicker-free systems until it is
- *    more mature, this means only using it on UEFI systems.
+ * or pick the best mode ourselves, we keep the current mode only if the
+ * user specified a specific mode using video= on the commandline.
  */
 static bool
 should_use_preferred_mode (void)
@@ -192,9 +182,6 @@ should_use_preferred_mode (void)
         bool use_preferred_mode = true;
 
         if (ply_kernel_command_line_get_string_after_prefix ("video="))
-                use_preferred_mode = false;
-
-        if (!efi_enabled ())
                 use_preferred_mode = false;
 
         ply_trace ("should_use_preferred_mode: %d", use_preferred_mode);

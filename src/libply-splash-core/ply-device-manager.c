@@ -51,6 +51,9 @@ static bool create_devices_for_terminal_and_renderer_type (ply_device_manager_t 
                                                            const char           *device_path,
                                                            ply_terminal_t       *terminal,
                                                            ply_renderer_type_t   renderer_type);
+static void create_pixel_displays_for_renderer (ply_device_manager_t *manager,
+                                                ply_renderer_t       *renderer);
+
 struct _ply_device_manager
 {
         ply_device_manager_flags_t flags;
@@ -372,6 +375,39 @@ create_devices_for_subsystem (ply_device_manager_t *manager,
 }
 
 static void
+on_drm_udev_add_or_change (ply_device_manager_t *manager,
+                           const char           *action,
+                           struct udev_device   *device)
+{
+        const char *device_path = udev_device_get_devnode (device);
+        ply_renderer_t *renderer;
+        bool changed;
+
+        if (device_path == NULL)
+                return;
+
+        renderer = ply_hashtable_lookup (manager->renderers, (void *) device_path);
+        if (renderer == NULL) {
+                /* We also try to create the renderer again on change events,
+                 * renderer creation fails when no outputs are connected and
+                 * this may have changed.
+                 */
+                create_devices_for_udev_device (manager, device);
+                return;
+        }
+
+        /* Renderer exists, bail if this is not a change event */
+        if (strcmp (action, "change"))
+                return;
+
+        changed = ply_renderer_handle_change_event (renderer);
+        if (changed) {
+                free_displays_for_renderer (manager, renderer);
+                create_pixel_displays_for_renderer (manager, renderer);
+        }
+}
+
+static bool
 on_udev_event (ply_device_manager_t *manager)
 {
         struct udev_device *device;
@@ -379,16 +415,16 @@ on_udev_event (ply_device_manager_t *manager)
 
         device = udev_monitor_receive_device (manager->udev_monitor);
         if (device == NULL)
-                return;
+                return false;
 
         action = udev_device_get_action (device);
 
         ply_trace ("got %s event for device %s", action, udev_device_get_sysname (device));
 
         if (action == NULL)
-                return;
+                return false;
 
-        if (strcmp (action, "add") == 0) {
+        if (strcmp (action, "add") == 0 || strcmp (action, "change") == 0) {
                 const char *subsystem;
 
                 subsystem = udev_device_get_subsystem (device);
@@ -397,7 +433,7 @@ on_udev_event (ply_device_manager_t *manager)
                         if (manager->local_console_managed && manager->local_console_is_text)
                                 ply_trace ("ignoring since we're already using text splash for local console");
                         else
-                                create_devices_for_udev_device (manager, device);
+                                on_drm_udev_add_or_change (manager, action, device);
                 } else {
                         ply_trace ("ignoring since we only handle subsystem %s devices after timeout", subsystem);
                 }
@@ -406,6 +442,14 @@ on_udev_event (ply_device_manager_t *manager)
         }
 
         udev_device_unref (device);
+        return true;
+}
+
+static void
+on_udev_event_loop (ply_device_manager_t *manager)
+{
+        /* Call on_udev_event until all events are consumed */
+        while (on_udev_event (manager)) {}
 }
 
 static void
@@ -435,7 +479,7 @@ watch_for_udev_events (ply_device_manager_t *manager)
                                                      fd,
                                                      PLY_EVENT_LOOP_FD_STATUS_HAS_DATA,
                                                      (ply_event_handler_t)
-                                                     on_udev_event,
+                                                     on_udev_event_loop,
                                                      NULL,
                                                      manager);
 }

@@ -297,6 +297,15 @@ ply_renderer_close (ply_renderer_t *renderer)
         renderer->is_active = false;
 }
 
+bool
+ply_renderer_handle_change_event (ply_renderer_t *renderer)
+{
+        if (renderer->plugin_interface->handle_change_event)
+                return renderer->plugin_interface->handle_change_event (renderer->backend);
+
+        return false;
+}
+
 void
 ply_renderer_activate (ply_renderer_t *renderer)
 {

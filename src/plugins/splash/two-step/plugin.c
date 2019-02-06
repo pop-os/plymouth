@@ -91,6 +91,8 @@ typedef struct
         ply_throbber_t           *throbber;
         ply_label_t              *label;
         ply_label_t              *message_label;
+        ply_label_t              *title_label;
+        ply_label_t              *subtitle_label;
         ply_rectangle_t           box_area, lock_area, watermark_area, dialog_area;
         ply_trigger_t            *end_trigger;
         ply_pixel_buffer_t       *background_buffer;
@@ -99,6 +101,8 @@ typedef struct
 typedef struct
 {
         bool                      use_firmware_background;
+        char                     *title;
+        char                     *subtitle;
 } mode_settings_t;
 
 struct _ply_boot_splash_plugin
@@ -106,6 +110,7 @@ struct _ply_boot_splash_plugin
         ply_event_loop_t                   *loop;
         ply_boot_splash_mode_t              mode;
         mode_settings_t                     mode_settings[PLY_BOOT_SPLASH_MODE_COUNT];
+        char                               *font;
         ply_image_t                        *lock_image;
         ply_image_t                        *box_image;
         ply_image_t                        *corner_image;
@@ -119,6 +124,10 @@ struct _ply_boot_splash_plugin
 
         double                              dialog_horizontal_alignment;
         double                              dialog_vertical_alignment;
+
+        double                              title_horizontal_alignment;
+        double                              title_vertical_alignment;
+        char                               *title_font;
 
         double                              watermark_horizontal_alignment;
         double                              watermark_vertical_alignment;
@@ -179,7 +188,16 @@ view_new (ply_boot_splash_plugin_t *plugin,
                                                plugin->transition_duration);
 
         view->label = ply_label_new ();
+        ply_label_set_font (view->label, plugin->font);
+
         view->message_label = ply_label_new ();
+        ply_label_set_font (view->message_label, plugin->font);
+
+        view->title_label = ply_label_new ();
+        ply_label_set_font (view->title_label, plugin->title_font);
+
+        view->subtitle_label = ply_label_new ();
+        ply_label_set_font (view->subtitle_label, plugin->font);
 
         return view;
 }
@@ -193,6 +211,8 @@ view_free (view_t *view)
         ply_throbber_free (view->throbber);
         ply_label_free (view->label);
         ply_label_free (view->message_label);
+        ply_label_free (view->title_label);
+        ply_label_free (view->subtitle_label);
 
         if (view->background_buffer != NULL)
                 ply_pixel_buffer_free (view->background_buffer);
@@ -391,6 +411,7 @@ view_set_bgrt_background (view_t *view)
 static bool
 view_load (view_t *view)
 {
+        unsigned long x, y, width, title_height = 0, subtitle_height = 0;
         unsigned long screen_width, screen_height, screen_scale;
         ply_boot_splash_plugin_t *plugin;
         ply_pixel_buffer_t *buffer;
@@ -464,6 +485,42 @@ view_load (view_t *view)
                 }
         } else {
                 ply_trace ("this theme has no throbber\n");
+        }
+
+        if (plugin->mode_settings[plugin->mode].title) {
+                ply_label_set_text (view->title_label,
+                                    plugin->mode_settings[plugin->mode].title);
+                title_height = ply_label_get_height (view->title_label);
+        } else {
+                ply_label_hide (view->title_label);
+        }
+
+        if (plugin->mode_settings[plugin->mode].subtitle) {
+                ply_label_set_text (view->subtitle_label,
+                                    plugin->mode_settings[plugin->mode].subtitle);
+                subtitle_height = ply_label_get_height (view->subtitle_label);
+        } else {
+                ply_label_hide (view->subtitle_label);
+        }
+
+        y = (screen_height - title_height - 2 * subtitle_height) * plugin->title_vertical_alignment;
+
+        if (plugin->mode_settings[plugin->mode].title) {
+                width = ply_label_get_width (view->title_label);
+                x = (screen_width - width) * plugin->title_horizontal_alignment;
+                ply_trace ("using %ldx%ld title centered at %ldx%ld for %ldx%ld screen",
+                           width, title_height, x, y, screen_width, screen_height);
+                ply_label_show (view->title_label, view->display, x, y);
+                /* Use subtitle_height pixels seperation between title and subtitle */
+                y += title_height + subtitle_height;
+        }
+
+        if (plugin->mode_settings[plugin->mode].subtitle) {
+                width = ply_label_get_width (view->subtitle_label);
+                x = (screen_width - width) * plugin->title_horizontal_alignment;
+                ply_trace ("using %ldx%ld subtitle centered at %ldx%ld for %ldx%ld screen",
+                           width, subtitle_height, x, y, screen_width, screen_height);
+                ply_label_show (view->subtitle_label, view->display, x, y);
         }
 
         return true;
@@ -740,6 +797,9 @@ load_mode_settings (ply_boot_splash_plugin_t *plugin,
         /* If any mode uses the firmware background, then we need to load it */
         if (settings->use_firmware_background)
                 plugin->use_firmware_background = true;
+
+        settings->title = ply_key_file_get_value (key_file, group_name, "Title");
+        settings->subtitle = ply_key_file_get_value (key_file, group_name, "SubTitle");
 }
 
 static ply_boot_splash_plugin_t *
@@ -786,6 +846,9 @@ create_plugin (ply_key_file_t *key_file)
 
         plugin->animation_dir = image_dir;
 
+        plugin->font = ply_key_file_get_value (key_file, "two-step", "Font");
+        plugin->title_font = ply_key_file_get_value (key_file, "two-step", "TitleFont");
+
         alignment = ply_key_file_get_value (key_file, "two-step", "HorizontalAlignment");
         if (alignment != NULL)
                 plugin->animation_horizontal_alignment = ply_strtod (alignment);
@@ -826,6 +889,20 @@ create_plugin (ply_key_file_t *key_file)
                 plugin->dialog_vertical_alignment = ply_strtod (alignment);
         else
                 plugin->dialog_vertical_alignment = .5;
+        free (alignment);
+
+        alignment = ply_key_file_get_value (key_file, "two-step", "TitleHorizontalAlignment");
+        if (alignment != NULL)
+                plugin->title_horizontal_alignment = ply_strtod (alignment);
+        else
+                plugin->title_horizontal_alignment = .5;
+        free (alignment);
+
+        alignment = ply_key_file_get_value (key_file, "two-step", "TitleVerticalAlignment");
+        if (alignment != NULL)
+                plugin->title_vertical_alignment = ply_strtod (alignment);
+        else
+                plugin->title_vertical_alignment = .5;
         free (alignment);
 
         plugin->transition = PLY_PROGRESS_ANIMATION_TRANSITION_NONE;
@@ -926,6 +1003,8 @@ free_views (ply_boot_splash_plugin_t *plugin)
 static void
 destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
+        int i;
+
         if (plugin == NULL)
                 return;
 
@@ -960,6 +1039,13 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
         if (plugin->watermark_image != NULL)
                 ply_image_free (plugin->watermark_image);
 
+        for (i = 0; i < PLY_BOOT_SPLASH_MODE_COUNT; i++) {
+                free (plugin->mode_settings[i].title);
+                free (plugin->mode_settings[i].subtitle);
+        }
+
+        free (plugin->font);
+        free (plugin->title_font);
         free (plugin->animation_dir);
         free_views (plugin);
         free (plugin);
@@ -1225,6 +1311,12 @@ on_draw (view_t             *view,
 
                         ply_pixel_buffer_fill_with_argb32_data (pixel_buffer, &image_area, ply_image_get_data (plugin->header_image));
                 }
+                ply_label_draw_area (view->title_label,
+                                     pixel_buffer,
+                                     x, y, width, height);
+                ply_label_draw_area (view->subtitle_label,
+                                     pixel_buffer,
+                                     x, y, width, height);
         }
         ply_label_draw_area (view->message_label,
                              pixel_buffer,

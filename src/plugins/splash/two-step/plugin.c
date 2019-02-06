@@ -94,7 +94,6 @@ typedef struct
         ply_rectangle_t           box_area, lock_area, watermark_area, dialog_area;
         ply_trigger_t            *end_trigger;
         ply_pixel_buffer_t       *background_buffer;
-        bool                      background_is_bgrt;
 } view_t;
 
 struct _ply_boot_splash_plugin
@@ -380,7 +379,6 @@ view_set_bgrt_background (view_t *view)
                 ply_pixel_buffer_fill_with_buffer (view->background_buffer, bgrt_buffer, x_offset, y_offset);
                 ply_pixel_buffer_free (bgrt_buffer);
         }
-        view->background_is_bgrt = true;
 }
 
 static bool
@@ -1085,7 +1083,7 @@ draw_background (view_t             *view,
          */
         if ((plugin->state == PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY ||
              plugin->state == PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY) &&
-            view->background_is_bgrt && plugin->dialog_clears_firmware_background)
+            plugin->background_bgrt_image && plugin->dialog_clears_firmware_background)
                 ply_pixel_buffer_fill_with_hex_color (pixel_buffer, &area, 0);
         else if (view->background_buffer != NULL)
                 ply_pixel_buffer_fill_with_buffer (pixel_buffer, view->background_buffer, 0, 0);

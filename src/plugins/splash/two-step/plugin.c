@@ -96,10 +96,16 @@ typedef struct
         ply_pixel_buffer_t       *background_buffer;
 } view_t;
 
+typedef struct
+{
+        bool                      use_firmware_background;
+} mode_settings_t;
+
 struct _ply_boot_splash_plugin
 {
         ply_event_loop_t                   *loop;
         ply_boot_splash_mode_t              mode;
+        mode_settings_t                     mode_settings[PLY_BOOT_SPLASH_MODE_COUNT];
         ply_image_t                        *lock_image;
         ply_image_t                        *box_image;
         ply_image_t                        *corner_image;
@@ -137,6 +143,7 @@ struct _ply_boot_splash_plugin
         uint32_t                            is_visible : 1;
         uint32_t                            is_animating : 1;
         uint32_t                            is_idle : 1;
+        uint32_t                            use_firmware_background : 1;
         uint32_t                            dialog_clears_firmware_background : 1;
 };
 
@@ -719,6 +726,22 @@ view_hide_prompt (view_t *view)
         ply_label_hide (view->label);
 }
 
+static void
+load_mode_settings (ply_boot_splash_plugin_t *plugin,
+                    ply_key_file_t           *key_file,
+                    const char               *group_name,
+                    ply_boot_splash_mode_t    mode)
+{
+        mode_settings_t *settings = &plugin->mode_settings[mode];
+
+        settings->use_firmware_background =
+                ply_key_file_get_bool (key_file, group_name, "UseFirmwareBackground");
+
+        /* If any mode uses the firmware background, then we need to load it */
+        if (settings->use_firmware_background)
+                plugin->use_firmware_background = true;
+}
+
 static ply_boot_splash_plugin_t *
 create_plugin (ply_key_file_t *key_file)
 {
@@ -842,7 +865,11 @@ create_plugin (ply_key_file_t *key_file)
 
         free (color);
 
-        if (ply_key_file_get_bool (key_file, "two-step", "UseFirmwareBackground"))
+        load_mode_settings (plugin, key_file, "boot-up", PLY_BOOT_SPLASH_MODE_BOOT_UP);
+        load_mode_settings (plugin, key_file, "shutdown", PLY_BOOT_SPLASH_MODE_SHUTDOWN);
+        load_mode_settings (plugin, key_file, "updates", PLY_BOOT_SPLASH_MODE_UPDATES);
+
+        if (plugin->use_firmware_background)
                 plugin->background_bgrt_image = ply_image_new ("/sys/firmware/acpi/bgrt/image");
 
         plugin->dialog_clears_firmware_background =
@@ -1070,6 +1097,7 @@ draw_background (view_t             *view,
 {
         ply_boot_splash_plugin_t *plugin;
         ply_rectangle_t area;
+        bool use_black_background = false;
 
         plugin = view->plugin;
 
@@ -1078,12 +1106,22 @@ draw_background (view_t             *view,
         area.width = width;
         area.height = height;
 
+        /* When using the firmware logo as background and we should not use
+         * it for this mode, use solid black as background.
+         */
+        if (plugin->background_bgrt_image &&
+            !plugin->mode_settings[plugin->mode].use_firmware_background)
+                use_black_background = true;
+
         /* When using the firmware logo as background, use solid black as
          * background for dialogs.
          */
         if ((plugin->state == PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY ||
              plugin->state == PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY) &&
             plugin->background_bgrt_image && plugin->dialog_clears_firmware_background)
+                use_black_background = true;
+
+        if (use_black_background)
                 ply_pixel_buffer_fill_with_hex_color (pixel_buffer, &area, 0);
         else if (view->background_buffer != NULL)
                 ply_pixel_buffer_fill_with_buffer (pixel_buffer, view->background_buffer, 0, 0);
@@ -1250,6 +1288,8 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_buffer_t             *boot_buffer,
                     ply_boot_splash_mode_t    mode)
 {
+        int i;
+
         assert (plugin != NULL);
 
         plugin->loop = loop;
@@ -1301,6 +1341,9 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                 } else {
                         ply_image_free (plugin->background_bgrt_image);
                         plugin->background_bgrt_image = NULL;
+                        for (i = 0; i < PLY_BOOT_SPLASH_MODE_COUNT; i++)
+                                plugin->mode_settings[i].use_firmware_background = false;
+                        plugin->use_firmware_background = false;
                 }
         }
 

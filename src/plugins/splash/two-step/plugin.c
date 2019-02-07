@@ -96,6 +96,7 @@ typedef struct
         ply_rectangle_t           box_area, lock_area, watermark_area, dialog_area;
         ply_trigger_t            *end_trigger;
         ply_pixel_buffer_t       *background_buffer;
+        int                       animation_bottom;
 } view_t;
 
 typedef struct
@@ -154,6 +155,7 @@ struct _ply_boot_splash_plugin
         uint32_t                            is_idle : 1;
         uint32_t                            use_firmware_background : 1;
         uint32_t                            dialog_clears_firmware_background : 1;
+        uint32_t                            message_below_animation : 1;
 };
 
 ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
@@ -647,6 +649,7 @@ view_start_end_animation (view_t        *view,
         ply_animation_start (view->end_animation,
                              view->display,
                              trigger, x, y);
+        view->animation_bottom = y + height;
 }
 
 static void
@@ -689,6 +692,7 @@ view_start_progress_animation (view_t *view)
                                     plugin->loop,
                                     view->display, x, y);
                 ply_pixel_display_draw_area (view->display, x, y, width, height);
+                view->animation_bottom = y + height;
         }
 
         /* We don't really know how long shutdown will so
@@ -706,6 +710,7 @@ view_start_progress_animation (view_t *view)
                                              view->display, x, y);
 
                 ply_pixel_display_draw_area (view->display, x, y, width, height);
+                view->animation_bottom = y + height;
         }
 }
 
@@ -951,6 +956,9 @@ create_plugin (ply_key_file_t *key_file)
 
         plugin->dialog_clears_firmware_background =
                 ply_key_file_get_bool (key_file, "two-step", "DialogClearsFirmwareBackground");
+
+        plugin->message_below_animation =
+                ply_key_file_get_bool (key_file, "two-step", "MessageBelowAnimation");
 
         progress_function = ply_key_file_get_value (key_file, "two-step", "ProgressFunction");
 
@@ -1669,6 +1677,29 @@ hide_prompt (ply_boot_splash_plugin_t *plugin)
 
 
 static void
+view_show_message (view_t     *view,
+                   const char  *message)
+{
+        ply_boot_splash_plugin_t *plugin = view->plugin;
+        int x, y, width, height;
+
+        ply_label_set_text (view->message_label, message);
+        width = ply_label_get_width (view->message_label);
+        height = ply_label_get_height (view->message_label);
+
+        if (plugin->message_below_animation) {
+                x = (ply_pixel_display_get_width (view->display) - width) * 0.5;
+                y = view->animation_bottom + 10;
+        } else {
+                x = 10;
+                y = 10;
+        }
+
+        ply_label_show (view->message_label, view->display, x, y);
+        ply_pixel_display_draw_area (view->display, x, y, width, height);
+}
+
+static void
 show_message (ply_boot_splash_plugin_t *plugin,
               const char               *message)
 {
@@ -1676,19 +1707,8 @@ show_message (ply_boot_splash_plugin_t *plugin,
         ply_list_node_t *node;
         node = ply_list_get_first_node (plugin->views);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                view_t *view;
-
-                view = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (plugin->views, node);
-
-                ply_label_set_text (view->message_label, message);
-                ply_label_show (view->message_label, view->display, 10, 10);
-
-                ply_pixel_display_draw_area (view->display, 10, 10,
-                                             ply_label_get_width (view->message_label),
-                                             ply_label_get_height (view->message_label));
-                node = next_node;
+                view_show_message (ply_list_node_get_data (node), message);
+                node = ply_list_get_next_node (plugin->views, node);
         }
 }
 

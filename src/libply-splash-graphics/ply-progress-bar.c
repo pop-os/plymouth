@@ -199,6 +199,7 @@ ply_progress_bar_set_percent_done (ply_progress_bar_t *progress_bar,
                                    double              percent_done)
 {
         progress_bar->percent_done = percent_done;
+        ply_progress_bar_draw (progress_bar);
 }
 
 double

@@ -57,6 +57,10 @@ long ply_progress_bar_get_height (ply_progress_bar_t *bar);
 void ply_progress_bar_set_percent_done (ply_progress_bar_t *bar,
                                         double              percent_done);
 double ply_progress_bar_get_percent_done (ply_progress_bar_t *bar);
+
+void ply_progress_bar_set_colors (ply_progress_bar_t *bar,
+                                  uint32_t            fg_color,
+                                  uint32_t            bg_color);
 #endif
 
 #endif /* PLY_PROGRESS_BAR_H */

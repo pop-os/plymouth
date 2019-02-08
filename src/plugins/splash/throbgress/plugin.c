@@ -316,7 +316,10 @@ view_start_animation (view_t *view)
                             view->logo_area.y + view->logo_area.height + height / 2);
         ply_progress_bar_show (view->progress_bar,
                                view->display,
-                               0, screen_height - ply_progress_bar_get_height (view->progress_bar));
+                               0,
+                               screen_height - BAR_HEIGHT,
+                               screen_width,
+                               BAR_HEIGHT);
         view_redraw (view);
 }
 

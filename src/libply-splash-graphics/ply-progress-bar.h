@@ -40,7 +40,9 @@ void ply_progress_bar_free (ply_progress_bar_t *bar);
 void ply_progress_bar_show (ply_progress_bar_t  *bar,
                             ply_pixel_display_t *display,
                             long                 x,
-                            long                 y);
+                            long                 y,
+                            unsigned long        width,
+                            unsigned long        height);
 void ply_progress_bar_hide (ply_progress_bar_t *bar);
 void ply_progress_bar_draw (ply_progress_bar_t *bar);
 void ply_progress_bar_draw_area (ply_progress_bar_t *bar,

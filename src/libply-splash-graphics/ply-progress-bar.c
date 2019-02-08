@@ -51,10 +51,6 @@
 #include "ply-image.h"
 #include "ply-utils.h"
 
-#ifndef BAR_HEIGHT
-#define BAR_HEIGHT 16
-#endif
-
 struct _ply_progress_bar
 {
         ply_pixel_display_t *display;
@@ -134,15 +130,17 @@ void
 ply_progress_bar_show (ply_progress_bar_t  *progress_bar,
                        ply_pixel_display_t *display,
                        long                 x,
-                       long                 y)
+                       long                 y,
+                       unsigned long        width,
+                       unsigned long        height)
 {
         assert (progress_bar != NULL);
 
         progress_bar->display = display;
         progress_bar->area.x = x;
         progress_bar->area.y = y;
-        progress_bar->area.height = BAR_HEIGHT;
-        progress_bar->area.width = ply_pixel_display_get_width (display);
+        progress_bar->area.height = height;
+        progress_bar->area.width = width;
 
         progress_bar->is_hidden = false;
         ply_progress_bar_draw (progress_bar);

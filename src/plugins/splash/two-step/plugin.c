@@ -57,6 +57,7 @@
 #include "ply-animation.h"
 #include "ply-progress-animation.h"
 #include "ply-throbber.h"
+#include "ply-progress-bar.h"
 
 #include <linux/kd.h>
 
@@ -67,6 +68,9 @@
 #ifndef SHOW_ANIMATION_PERCENT
 #define SHOW_ANIMATION_PERCENT 0.9
 #endif
+
+#define PROGRESS_BAR_WIDTH  400
+#define PROGRESS_BAR_HEIGHT 5
 
 typedef enum
 {
@@ -88,6 +92,7 @@ typedef struct
         ply_entry_t              *entry;
         ply_animation_t          *end_animation;
         ply_progress_animation_t *progress_animation;
+        ply_progress_bar_t       *progress_bar;
         ply_throbber_t           *throbber;
         ply_label_t              *label;
         ply_label_t              *message_label;
@@ -101,6 +106,7 @@ typedef struct
 
 typedef struct
 {
+        bool                      use_progress_bar;
         bool                      use_firmware_background;
         char                     *title;
         char                     *subtitle;
@@ -144,6 +150,9 @@ struct _ply_boot_splash_plugin
         uint32_t                            background_end_color;
         int                                 background_bgrt_raw_width;
 
+        uint32_t                            progress_bar_bg_color;
+        uint32_t                            progress_bar_fg_color;
+
         progress_function_t                 progress_function;
 
         ply_trigger_t                      *idle_trigger;
@@ -156,6 +165,7 @@ struct _ply_boot_splash_plugin
         uint32_t                            use_firmware_background : 1;
         uint32_t                            dialog_clears_firmware_background : 1;
         uint32_t                            message_below_animation : 1;
+        uint32_t                            progress_bar_show_percent_complete : 1;
 };
 
 ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
@@ -182,6 +192,10 @@ view_new (ply_boot_splash_plugin_t *plugin,
         view->entry = ply_entry_new (plugin->animation_dir);
         view->progress_animation = ply_progress_animation_new (plugin->animation_dir,
                                                                "progress-");
+        view->progress_bar = ply_progress_bar_new ();
+        ply_progress_bar_set_colors (view->progress_bar,
+                                     plugin->progress_bar_fg_color,
+                                     plugin->progress_bar_bg_color);
 
         view->throbber = ply_throbber_new (plugin->animation_dir,
                                            "throbber-");
@@ -210,6 +224,7 @@ view_free (view_t *view)
         ply_entry_free (view->entry);
         ply_animation_free (view->end_animation);
         ply_progress_animation_free (view->progress_animation);
+        ply_progress_bar_free (view->progress_bar);
         ply_throbber_free (view->throbber);
         ply_label_free (view->label);
         ply_label_free (view->message_label);
@@ -683,7 +698,16 @@ view_start_progress_animation (view_t *view)
         ply_pixel_display_draw_area (view->display, 0, 0,
                                      screen_width, screen_height);
 
-        if (view->throbber != NULL) {
+        if (plugin->mode_settings[plugin->mode].use_progress_bar) {
+                width = PROGRESS_BAR_WIDTH;
+                height = PROGRESS_BAR_HEIGHT;
+                x = plugin->animation_horizontal_alignment * screen_width - width / 2.0;
+                y = plugin->animation_vertical_alignment * screen_height - height / 2.0;
+                ply_progress_bar_show (view->progress_bar, view->display,
+                                       x, y, width, height);
+                ply_pixel_display_draw_area (view->display, x, y, width, height);
+                view->animation_bottom = y + height;
+        } else if (view->throbber != NULL) {
                 width = ply_throbber_get_width (view->throbber);
                 height = ply_throbber_get_height (view->throbber);
                 x = plugin->animation_horizontal_alignment * screen_width - width / 2.0;
@@ -796,6 +820,8 @@ load_mode_settings (ply_boot_splash_plugin_t *plugin,
 {
         mode_settings_t *settings = &plugin->mode_settings[mode];
 
+        settings->use_progress_bar =
+                ply_key_file_get_bool (key_file, group_name, "UseProgressBar");
         settings->use_firmware_background =
                 ply_key_file_get_bool (key_file, group_name, "UseFirmwareBackground");
 
@@ -947,6 +973,26 @@ create_plugin (ply_key_file_t *key_file)
 
         free (color);
 
+        color = ply_key_file_get_value (key_file, "two-step", "ProgressBarBackgroundColor");
+
+        if (color != NULL)
+                plugin->progress_bar_bg_color = strtol (color, NULL, 0);
+        else
+                plugin->progress_bar_bg_color = 0xffffff; /* white */
+
+        free (color);
+
+        color = ply_key_file_get_value (key_file, "two-step", "ProgressBarForegroundColor");
+
+        if (color != NULL)
+                plugin->progress_bar_fg_color = strtol (color, NULL, 0);
+        else
+                plugin->progress_bar_fg_color = 0x000000; /* black */
+
+        free (color);
+
+        plugin->progress_bar_show_percent_complete = ply_key_file_get_bool (key_file, "two-step", "ProgressBarShowPercentComplete");
+
         load_mode_settings (plugin, key_file, "boot-up", PLY_BOOT_SPLASH_MODE_BOOT_UP);
         load_mode_settings (plugin, key_file, "shutdown", PLY_BOOT_SPLASH_MODE_SHUTDOWN);
         load_mode_settings (plugin, key_file, "updates", PLY_BOOT_SPLASH_MODE_UPDATES);
@@ -1063,6 +1109,12 @@ static void
 start_end_animation (ply_boot_splash_plugin_t *plugin,
                      ply_trigger_t            *trigger)
 {
+        if (plugin->mode_settings[plugin->mode].use_progress_bar) {
+                /* Leave the progress-bar at 100% rather then showing the end animation */
+                ply_trigger_pull (trigger, NULL);
+                return;
+        }
+
         ply_trace ("starting end animation");
 
         ply_list_node_t *node;
@@ -1276,7 +1328,10 @@ on_draw (view_t             *view,
                                                         &view->lock_area,
                                                         lock_data);
         } else {
-                if (view->throbber != NULL &&
+                if (plugin->mode_settings[plugin->mode].use_progress_bar)
+                        ply_progress_bar_draw_area (view->progress_bar, pixel_buffer,
+                                                    x, y, width, height);
+                else if (view->throbber != NULL &&
                     !ply_throbber_is_stopped (view->throbber))
                         ply_throbber_draw_area (view->throbber, pixel_buffer,
                                                 x, y, width, height);
@@ -1717,6 +1772,7 @@ system_update (ply_boot_splash_plugin_t *plugin,
                int                       progress)
 {
         ply_list_node_t *node;
+        char buf[64];
 
         if (plugin->mode != PLY_BOOT_SPLASH_MODE_UPDATES)
                 return;
@@ -1730,6 +1786,12 @@ system_update (ply_boot_splash_plugin_t *plugin,
                 next_node = ply_list_get_next_node (plugin->views, node);
                 if (view->progress_animation != NULL)
                         ply_progress_animation_set_percent_done (view->progress_animation, (double) progress / 100.f);
+                ply_progress_bar_set_percent_done (view->progress_bar, (double) progress / 100.f);
+                if (!ply_progress_bar_is_hidden (view->progress_bar) &&
+                    plugin->progress_bar_show_percent_complete) {
+                        snprintf (buf, sizeof(buf), "%d%% complete", progress);
+                        view_show_message (view, buf);
+                }
                 node = next_node;
         }
 }

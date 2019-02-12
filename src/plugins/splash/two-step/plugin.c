@@ -106,6 +106,7 @@ typedef struct
 
 typedef struct
 {
+        bool                      suppress_messages;
         bool                      use_progress_bar;
         bool                      use_firmware_background;
         char                     *title;
@@ -820,6 +821,8 @@ load_mode_settings (ply_boot_splash_plugin_t *plugin,
 {
         mode_settings_t *settings = &plugin->mode_settings[mode];
 
+        settings->suppress_messages =
+                ply_key_file_get_bool (key_file, group_name, "SuppressMessages");
         settings->use_progress_bar =
                 ply_key_file_get_bool (key_file, group_name, "UseProgressBar");
         settings->use_firmware_background =
@@ -1758,6 +1761,10 @@ static void
 show_message (ply_boot_splash_plugin_t *plugin,
               const char               *message)
 {
+        if (plugin->mode_settings[plugin->mode].suppress_messages) {
+                ply_trace ("Suppressing message '%s'", message);
+                return;
+        }
         ply_trace ("Showing message '%s'", message);
         ply_list_node_t *node;
         node = ply_list_get_first_node (plugin->views);

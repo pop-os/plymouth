@@ -316,7 +316,10 @@ view_start_animation (view_t *view)
                             view->logo_area.y + view->logo_area.height + height / 2);
         ply_progress_bar_show (view->progress_bar,
                                view->display,
-                               0, screen_height - ply_progress_bar_get_height (view->progress_bar));
+                               0,
+                               screen_height - BAR_HEIGHT,
+                               screen_width,
+                               BAR_HEIGHT);
         view_redraw (view);
 }
 
@@ -736,7 +739,6 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
                 next_node = ply_list_get_next_node (plugin->views, node);
 
                 ply_progress_bar_set_percent_done (view->progress_bar, percent_done);
-                ply_progress_bar_draw (view->progress_bar);
 
                 node = next_node;
         }
@@ -940,7 +942,6 @@ system_update (ply_boot_splash_plugin_t *plugin,
                 view = ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (plugin->views, node);
                 ply_progress_bar_set_percent_done (view->progress_bar, (double) progress / 100.f);
-                ply_progress_bar_draw (view->progress_bar);
                 node = next_node;
         }
 }

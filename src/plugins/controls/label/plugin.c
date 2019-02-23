@@ -66,6 +66,7 @@ struct _ply_label_plugin_control
         float                alpha;
 
         uint32_t             is_hidden : 1;
+        uint32_t             needs_size_update : 1;
 };
 
 ply_label_plugin_interface_t *ply_label_plugin_get_interface (void);
@@ -91,18 +92,6 @@ destroy_control (ply_label_plugin_control_t *label)
                 return;
 
         free (label);
-}
-
-static long
-get_width_of_control (ply_label_plugin_control_t *label)
-{
-        return label->area.width;
-}
-
-static long
-get_height_of_control (ply_label_plugin_control_t *label)
-{
-        return label->area.height;
 }
 
 static cairo_t *
@@ -175,15 +164,20 @@ init_pango_text_layout (cairo_t       *cairo_context,
 }
 
 static void
-size_control (ply_label_plugin_control_t *label)
+size_control (ply_label_plugin_control_t *label, bool force)
 {
         cairo_t *cairo_context;
         PangoLayout *pango_layout;
         int text_width;
         int text_height;
 
-        if (label->is_hidden)
+        if (force && !label->needs_size_update)
+                return; /* Size already is up to date */
+
+        if (!force && label->is_hidden) {
+                label->needs_size_update = true;
                 return;
+        }
 
         cairo_context = get_cairo_context_for_sizing (label);
 
@@ -195,6 +189,7 @@ size_control (ply_label_plugin_control_t *label)
 
         g_object_unref (pango_layout);
         cairo_destroy (cairo_context);
+        label->needs_size_update = false;
 }
 
 static void
@@ -261,7 +256,7 @@ set_alignment_for_control (ply_label_plugin_control_t *label,
         if (label->alignment != pango_alignment) {
                 dirty_area = label->area;
                 label->alignment = pango_alignment;
-                size_control (label);
+                size_control (label, false);
                 if (!label->is_hidden && label->display != NULL)
                         ply_pixel_display_draw_area (label->display,
                                                      dirty_area.x, dirty_area.y,
@@ -278,7 +273,7 @@ set_width_for_control (ply_label_plugin_control_t *label,
         if (label->width != width) {
                 dirty_area = label->area;
                 label->width = width;
-                size_control (label);
+                size_control (label, false);
                 if (!label->is_hidden && label->display != NULL)
                         ply_pixel_display_draw_area (label->display,
                                                      dirty_area.x, dirty_area.y,
@@ -296,7 +291,7 @@ set_text_for_control (ply_label_plugin_control_t *label,
                 dirty_area = label->area;
                 free (label->text);
                 label->text = strdup (text);
-                size_control (label);
+                size_control (label, false);
                 if (!label->is_hidden && label->display != NULL)
                         ply_pixel_display_draw_area (label->display,
                                                      dirty_area.x, dirty_area.y,
@@ -317,7 +312,7 @@ set_font_for_control (ply_label_plugin_control_t *label,
                         label->fontdesc = strdup (fontdesc);
                 else
                         label->fontdesc = NULL;
-                size_control (label);
+                size_control (label, false);
                 if (!label->is_hidden && label->display != NULL)
                         ply_pixel_display_draw_area (label->display,
                                                      dirty_area.x, dirty_area.y,
@@ -358,7 +353,7 @@ show_control (ply_label_plugin_control_t *label,
 
         label->is_hidden = false;
 
-        size_control (label);
+        size_control (label, true);
 
         if (!label->is_hidden && label->display != NULL)
                 ply_pixel_display_draw_area (label->display,
@@ -387,6 +382,20 @@ static bool
 is_control_hidden (ply_label_plugin_control_t *label)
 {
         return label->is_hidden;
+}
+
+static long
+get_width_of_control (ply_label_plugin_control_t *label)
+{
+        size_control (label, true);
+        return label->area.width;
+}
+
+static long
+get_height_of_control (ply_label_plugin_control_t *label)
+{
+        size_control (label, true);
+        return label->area.height;
 }
 
 ply_label_plugin_interface_t *

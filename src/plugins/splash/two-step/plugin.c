@@ -57,6 +57,7 @@
 #include "ply-animation.h"
 #include "ply-progress-animation.h"
 #include "ply-throbber.h"
+#include "ply-progress-bar.h"
 
 #include <linux/kd.h>
 
@@ -67,6 +68,9 @@
 #ifndef SHOW_ANIMATION_PERCENT
 #define SHOW_ANIMATION_PERCENT 0.9
 #endif
+
+#define PROGRESS_BAR_WIDTH  400
+#define PROGRESS_BAR_HEIGHT 5
 
 typedef enum
 {
@@ -88,19 +92,33 @@ typedef struct
         ply_entry_t              *entry;
         ply_animation_t          *end_animation;
         ply_progress_animation_t *progress_animation;
+        ply_progress_bar_t       *progress_bar;
         ply_throbber_t           *throbber;
         ply_label_t              *label;
         ply_label_t              *message_label;
+        ply_label_t              *title_label;
+        ply_label_t              *subtitle_label;
         ply_rectangle_t           box_area, lock_area, watermark_area, dialog_area;
         ply_trigger_t            *end_trigger;
         ply_pixel_buffer_t       *background_buffer;
-        bool                      background_is_bgrt;
+        int                       animation_bottom;
 } view_t;
+
+typedef struct
+{
+        bool                      suppress_messages;
+        bool                      use_progress_bar;
+        bool                      use_firmware_background;
+        char                     *title;
+        char                     *subtitle;
+} mode_settings_t;
 
 struct _ply_boot_splash_plugin
 {
         ply_event_loop_t                   *loop;
         ply_boot_splash_mode_t              mode;
+        mode_settings_t                     mode_settings[PLY_BOOT_SPLASH_MODE_COUNT];
+        char                               *font;
         ply_image_t                        *lock_image;
         ply_image_t                        *box_image;
         ply_image_t                        *corner_image;
@@ -114,6 +132,10 @@ struct _ply_boot_splash_plugin
 
         double                              dialog_horizontal_alignment;
         double                              dialog_vertical_alignment;
+
+        double                              title_horizontal_alignment;
+        double                              title_vertical_alignment;
+        char                               *title_font;
 
         double                              watermark_horizontal_alignment;
         double                              watermark_vertical_alignment;
@@ -129,6 +151,9 @@ struct _ply_boot_splash_plugin
         uint32_t                            background_end_color;
         int                                 background_bgrt_raw_width;
 
+        uint32_t                            progress_bar_bg_color;
+        uint32_t                            progress_bar_fg_color;
+
         progress_function_t                 progress_function;
 
         ply_trigger_t                      *idle_trigger;
@@ -138,7 +163,10 @@ struct _ply_boot_splash_plugin
         uint32_t                            is_visible : 1;
         uint32_t                            is_animating : 1;
         uint32_t                            is_idle : 1;
+        uint32_t                            use_firmware_background : 1;
         uint32_t                            dialog_clears_firmware_background : 1;
+        uint32_t                            message_below_animation : 1;
+        uint32_t                            progress_bar_show_percent_complete : 1;
 };
 
 ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
@@ -165,6 +193,10 @@ view_new (ply_boot_splash_plugin_t *plugin,
         view->entry = ply_entry_new (plugin->animation_dir);
         view->progress_animation = ply_progress_animation_new (plugin->animation_dir,
                                                                "progress-");
+        view->progress_bar = ply_progress_bar_new ();
+        ply_progress_bar_set_colors (view->progress_bar,
+                                     plugin->progress_bar_fg_color,
+                                     plugin->progress_bar_bg_color);
 
         view->throbber = ply_throbber_new (plugin->animation_dir,
                                            "throbber-");
@@ -173,7 +205,16 @@ view_new (ply_boot_splash_plugin_t *plugin,
                                                plugin->transition_duration);
 
         view->label = ply_label_new ();
+        ply_label_set_font (view->label, plugin->font);
+
         view->message_label = ply_label_new ();
+        ply_label_set_font (view->message_label, plugin->font);
+
+        view->title_label = ply_label_new ();
+        ply_label_set_font (view->title_label, plugin->title_font);
+
+        view->subtitle_label = ply_label_new ();
+        ply_label_set_font (view->subtitle_label, plugin->font);
 
         return view;
 }
@@ -184,9 +225,12 @@ view_free (view_t *view)
         ply_entry_free (view->entry);
         ply_animation_free (view->end_animation);
         ply_progress_animation_free (view->progress_animation);
+        ply_progress_bar_free (view->progress_bar);
         ply_throbber_free (view->throbber);
         ply_label_free (view->label);
         ply_label_free (view->message_label);
+        ply_label_free (view->title_label);
+        ply_label_free (view->subtitle_label);
 
         if (view->background_buffer != NULL)
                 ply_pixel_buffer_free (view->background_buffer);
@@ -380,12 +424,12 @@ view_set_bgrt_background (view_t *view)
                 ply_pixel_buffer_fill_with_buffer (view->background_buffer, bgrt_buffer, x_offset, y_offset);
                 ply_pixel_buffer_free (bgrt_buffer);
         }
-        view->background_is_bgrt = true;
 }
 
 static bool
 view_load (view_t *view)
 {
+        unsigned long x, y, width, title_height = 0, subtitle_height = 0;
         unsigned long screen_width, screen_height, screen_scale;
         ply_boot_splash_plugin_t *plugin;
         ply_pixel_buffer_t *buffer;
@@ -459,6 +503,42 @@ view_load (view_t *view)
                 }
         } else {
                 ply_trace ("this theme has no throbber\n");
+        }
+
+        if (plugin->mode_settings[plugin->mode].title) {
+                ply_label_set_text (view->title_label,
+                                    plugin->mode_settings[plugin->mode].title);
+                title_height = ply_label_get_height (view->title_label);
+        } else {
+                ply_label_hide (view->title_label);
+        }
+
+        if (plugin->mode_settings[plugin->mode].subtitle) {
+                ply_label_set_text (view->subtitle_label,
+                                    plugin->mode_settings[plugin->mode].subtitle);
+                subtitle_height = ply_label_get_height (view->subtitle_label);
+        } else {
+                ply_label_hide (view->subtitle_label);
+        }
+
+        y = (screen_height - title_height - 2 * subtitle_height) * plugin->title_vertical_alignment;
+
+        if (plugin->mode_settings[plugin->mode].title) {
+                width = ply_label_get_width (view->title_label);
+                x = (screen_width - width) * plugin->title_horizontal_alignment;
+                ply_trace ("using %ldx%ld title centered at %ldx%ld for %ldx%ld screen",
+                           width, title_height, x, y, screen_width, screen_height);
+                ply_label_show (view->title_label, view->display, x, y);
+                /* Use subtitle_height pixels seperation between title and subtitle */
+                y += title_height + subtitle_height;
+        }
+
+        if (plugin->mode_settings[plugin->mode].subtitle) {
+                width = ply_label_get_width (view->subtitle_label);
+                x = (screen_width - width) * plugin->title_horizontal_alignment;
+                ply_trace ("using %ldx%ld subtitle centered at %ldx%ld for %ldx%ld screen",
+                           width, subtitle_height, x, y, screen_width, screen_height);
+                ply_label_show (view->subtitle_label, view->display, x, y);
         }
 
         return true;
@@ -585,6 +665,7 @@ view_start_end_animation (view_t        *view,
         ply_animation_start (view->end_animation,
                              view->display,
                              trigger, x, y);
+        view->animation_bottom = y + height;
 }
 
 static void
@@ -618,7 +699,16 @@ view_start_progress_animation (view_t *view)
         ply_pixel_display_draw_area (view->display, 0, 0,
                                      screen_width, screen_height);
 
-        if (view->throbber != NULL) {
+        if (plugin->mode_settings[plugin->mode].use_progress_bar) {
+                width = PROGRESS_BAR_WIDTH;
+                height = PROGRESS_BAR_HEIGHT;
+                x = plugin->animation_horizontal_alignment * screen_width - width / 2.0;
+                y = plugin->animation_vertical_alignment * screen_height - height / 2.0;
+                ply_progress_bar_show (view->progress_bar, view->display,
+                                       x, y, width, height);
+                ply_pixel_display_draw_area (view->display, x, y, width, height);
+                view->animation_bottom = y + height;
+        } else if (view->throbber != NULL) {
                 width = ply_throbber_get_width (view->throbber);
                 height = ply_throbber_get_height (view->throbber);
                 x = plugin->animation_horizontal_alignment * screen_width - width / 2.0;
@@ -627,6 +717,7 @@ view_start_progress_animation (view_t *view)
                                     plugin->loop,
                                     view->display, x, y);
                 ply_pixel_display_draw_area (view->display, x, y, width, height);
+                view->animation_bottom = y + height;
         }
 
         /* We don't really know how long shutdown will so
@@ -644,6 +735,7 @@ view_start_progress_animation (view_t *view)
                                              view->display, x, y);
 
                 ply_pixel_display_draw_area (view->display, x, y, width, height);
+                view->animation_bottom = y + height;
         }
 }
 
@@ -721,6 +813,29 @@ view_hide_prompt (view_t *view)
         ply_label_hide (view->label);
 }
 
+static void
+load_mode_settings (ply_boot_splash_plugin_t *plugin,
+                    ply_key_file_t           *key_file,
+                    const char               *group_name,
+                    ply_boot_splash_mode_t    mode)
+{
+        mode_settings_t *settings = &plugin->mode_settings[mode];
+
+        settings->suppress_messages =
+                ply_key_file_get_bool (key_file, group_name, "SuppressMessages");
+        settings->use_progress_bar =
+                ply_key_file_get_bool (key_file, group_name, "UseProgressBar");
+        settings->use_firmware_background =
+                ply_key_file_get_bool (key_file, group_name, "UseFirmwareBackground");
+
+        /* If any mode uses the firmware background, then we need to load it */
+        if (settings->use_firmware_background)
+                plugin->use_firmware_background = true;
+
+        settings->title = ply_key_file_get_value (key_file, group_name, "Title");
+        settings->subtitle = ply_key_file_get_value (key_file, group_name, "SubTitle");
+}
+
 static ply_boot_splash_plugin_t *
 create_plugin (ply_key_file_t *key_file)
 {
@@ -765,6 +880,9 @@ create_plugin (ply_key_file_t *key_file)
 
         plugin->animation_dir = image_dir;
 
+        plugin->font = ply_key_file_get_value (key_file, "two-step", "Font");
+        plugin->title_font = ply_key_file_get_value (key_file, "two-step", "TitleFont");
+
         alignment = ply_key_file_get_value (key_file, "two-step", "HorizontalAlignment");
         if (alignment != NULL)
                 plugin->animation_horizontal_alignment = ply_strtod (alignment);
@@ -807,6 +925,20 @@ create_plugin (ply_key_file_t *key_file)
                 plugin->dialog_vertical_alignment = .5;
         free (alignment);
 
+        alignment = ply_key_file_get_value (key_file, "two-step", "TitleHorizontalAlignment");
+        if (alignment != NULL)
+                plugin->title_horizontal_alignment = ply_strtod (alignment);
+        else
+                plugin->title_horizontal_alignment = .5;
+        free (alignment);
+
+        alignment = ply_key_file_get_value (key_file, "two-step", "TitleVerticalAlignment");
+        if (alignment != NULL)
+                plugin->title_vertical_alignment = ply_strtod (alignment);
+        else
+                plugin->title_vertical_alignment = .5;
+        free (alignment);
+
         plugin->transition = PLY_PROGRESS_ANIMATION_TRANSITION_NONE;
         transition = ply_key_file_get_value (key_file, "two-step", "Transition");
         if (transition != NULL) {
@@ -844,11 +976,38 @@ create_plugin (ply_key_file_t *key_file)
 
         free (color);
 
-        if (ply_key_file_get_bool (key_file, "two-step", "UseFirmwareBackground"))
+        color = ply_key_file_get_value (key_file, "two-step", "ProgressBarBackgroundColor");
+
+        if (color != NULL)
+                plugin->progress_bar_bg_color = strtol (color, NULL, 0);
+        else
+                plugin->progress_bar_bg_color = 0xffffff; /* white */
+
+        free (color);
+
+        color = ply_key_file_get_value (key_file, "two-step", "ProgressBarForegroundColor");
+
+        if (color != NULL)
+                plugin->progress_bar_fg_color = strtol (color, NULL, 0);
+        else
+                plugin->progress_bar_fg_color = 0x000000; /* black */
+
+        free (color);
+
+        plugin->progress_bar_show_percent_complete = ply_key_file_get_bool (key_file, "two-step", "ProgressBarShowPercentComplete");
+
+        load_mode_settings (plugin, key_file, "boot-up", PLY_BOOT_SPLASH_MODE_BOOT_UP);
+        load_mode_settings (plugin, key_file, "shutdown", PLY_BOOT_SPLASH_MODE_SHUTDOWN);
+        load_mode_settings (plugin, key_file, "updates", PLY_BOOT_SPLASH_MODE_UPDATES);
+
+        if (plugin->use_firmware_background)
                 plugin->background_bgrt_image = ply_image_new ("/sys/firmware/acpi/bgrt/image");
 
         plugin->dialog_clears_firmware_background =
                 ply_key_file_get_bool (key_file, "two-step", "DialogClearsFirmwareBackground");
+
+        plugin->message_below_animation =
+                ply_key_file_get_bool (key_file, "two-step", "MessageBelowAnimation");
 
         progress_function = ply_key_file_get_value (key_file, "two-step", "ProgressFunction");
 
@@ -901,6 +1060,8 @@ free_views (ply_boot_splash_plugin_t *plugin)
 static void
 destroy_plugin (ply_boot_splash_plugin_t *plugin)
 {
+        int i;
+
         if (plugin == NULL)
                 return;
 
@@ -935,6 +1096,13 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
         if (plugin->watermark_image != NULL)
                 ply_image_free (plugin->watermark_image);
 
+        for (i = 0; i < PLY_BOOT_SPLASH_MODE_COUNT; i++) {
+                free (plugin->mode_settings[i].title);
+                free (plugin->mode_settings[i].subtitle);
+        }
+
+        free (plugin->font);
+        free (plugin->title_font);
         free (plugin->animation_dir);
         free_views (plugin);
         free (plugin);
@@ -944,6 +1112,12 @@ static void
 start_end_animation (ply_boot_splash_plugin_t *plugin,
                      ply_trigger_t            *trigger)
 {
+        if (plugin->mode_settings[plugin->mode].use_progress_bar) {
+                /* Leave the progress-bar at 100% rather then showing the end animation */
+                ply_trigger_pull (trigger, NULL);
+                return;
+        }
+
         ply_trace ("starting end animation");
 
         ply_list_node_t *node;
@@ -1072,6 +1246,7 @@ draw_background (view_t             *view,
 {
         ply_boot_splash_plugin_t *plugin;
         ply_rectangle_t area;
+        bool use_black_background = false;
 
         plugin = view->plugin;
 
@@ -1080,12 +1255,22 @@ draw_background (view_t             *view,
         area.width = width;
         area.height = height;
 
+        /* When using the firmware logo as background and we should not use
+         * it for this mode, use solid black as background.
+         */
+        if (plugin->background_bgrt_image &&
+            !plugin->mode_settings[plugin->mode].use_firmware_background)
+                use_black_background = true;
+
         /* When using the firmware logo as background, use solid black as
          * background for dialogs.
          */
         if ((plugin->state == PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY ||
              plugin->state == PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY) &&
-            view->background_is_bgrt && plugin->dialog_clears_firmware_background)
+            plugin->background_bgrt_image && plugin->dialog_clears_firmware_background)
+                use_black_background = true;
+
+        if (use_black_background)
                 ply_pixel_buffer_fill_with_hex_color (pixel_buffer, &area, 0);
         else if (view->background_buffer != NULL)
                 ply_pixel_buffer_fill_with_buffer (pixel_buffer, view->background_buffer, 0, 0);
@@ -1146,7 +1331,10 @@ on_draw (view_t             *view,
                                                         &view->lock_area,
                                                         lock_data);
         } else {
-                if (view->throbber != NULL &&
+                if (plugin->mode_settings[plugin->mode].use_progress_bar)
+                        ply_progress_bar_draw_area (view->progress_bar, pixel_buffer,
+                                                    x, y, width, height);
+                else if (view->throbber != NULL &&
                     !ply_throbber_is_stopped (view->throbber))
                         ply_throbber_draw_area (view->throbber, pixel_buffer,
                                                 x, y, width, height);
@@ -1189,6 +1377,12 @@ on_draw (view_t             *view,
 
                         ply_pixel_buffer_fill_with_argb32_data (pixel_buffer, &image_area, ply_image_get_data (plugin->header_image));
                 }
+                ply_label_draw_area (view->title_label,
+                                     pixel_buffer,
+                                     x, y, width, height);
+                ply_label_draw_area (view->subtitle_label,
+                                     pixel_buffer,
+                                     x, y, width, height);
         }
         ply_label_draw_area (view->message_label,
                              pixel_buffer,
@@ -1252,6 +1446,8 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_buffer_t             *boot_buffer,
                     ply_boot_splash_mode_t    mode)
 {
+        int i;
+
         assert (plugin != NULL);
 
         plugin->loop = loop;
@@ -1303,6 +1499,9 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                 } else {
                         ply_image_free (plugin->background_bgrt_image);
                         plugin->background_bgrt_image = NULL;
+                        for (i = 0; i < PLY_BOOT_SPLASH_MODE_COUNT; i++)
+                                plugin->mode_settings[i].use_firmware_background = false;
+                        plugin->use_firmware_background = false;
                 }
         }
 
@@ -1536,26 +1735,42 @@ hide_prompt (ply_boot_splash_plugin_t *plugin)
 
 
 static void
+view_show_message (view_t     *view,
+                   const char  *message)
+{
+        ply_boot_splash_plugin_t *plugin = view->plugin;
+        int x, y, width, height;
+
+        ply_label_set_text (view->message_label, message);
+        width = ply_label_get_width (view->message_label);
+        height = ply_label_get_height (view->message_label);
+
+        if (plugin->message_below_animation) {
+                x = (ply_pixel_display_get_width (view->display) - width) * 0.5;
+                y = view->animation_bottom + 10;
+        } else {
+                x = 10;
+                y = 10;
+        }
+
+        ply_label_show (view->message_label, view->display, x, y);
+        ply_pixel_display_draw_area (view->display, x, y, width, height);
+}
+
+static void
 show_message (ply_boot_splash_plugin_t *plugin,
               const char               *message)
 {
+        if (plugin->mode_settings[plugin->mode].suppress_messages) {
+                ply_trace ("Suppressing message '%s'", message);
+                return;
+        }
         ply_trace ("Showing message '%s'", message);
         ply_list_node_t *node;
         node = ply_list_get_first_node (plugin->views);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                view_t *view;
-
-                view = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (plugin->views, node);
-
-                ply_label_set_text (view->message_label, message);
-                ply_label_show (view->message_label, view->display, 10, 10);
-
-                ply_pixel_display_draw_area (view->display, 10, 10,
-                                             ply_label_get_width (view->message_label),
-                                             ply_label_get_height (view->message_label));
-                node = next_node;
+                view_show_message (ply_list_node_get_data (node), message);
+                node = ply_list_get_next_node (plugin->views, node);
         }
 }
 
@@ -1564,6 +1779,7 @@ system_update (ply_boot_splash_plugin_t *plugin,
                int                       progress)
 {
         ply_list_node_t *node;
+        char buf[64];
 
         if (plugin->mode != PLY_BOOT_SPLASH_MODE_UPDATES)
                 return;
@@ -1577,6 +1793,12 @@ system_update (ply_boot_splash_plugin_t *plugin,
                 next_node = ply_list_get_next_node (plugin->views, node);
                 if (view->progress_animation != NULL)
                         ply_progress_animation_set_percent_done (view->progress_animation, (double) progress / 100.f);
+                ply_progress_bar_set_percent_done (view->progress_bar, (double) progress / 100.f);
+                if (!ply_progress_bar_is_hidden (view->progress_bar) &&
+                    plugin->progress_bar_show_percent_complete) {
+                        snprintf (buf, sizeof(buf), "%d%% complete", progress);
+                        view_show_message (view, buf);
+                }
                 node = next_node;
         }
 }

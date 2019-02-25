@@ -107,6 +107,7 @@ typedef struct
 typedef struct
 {
         bool                      suppress_messages;
+        bool                      progress_bar_show_percent_complete;
         bool                      use_progress_bar;
         bool                      use_firmware_background;
         char                     *title;
@@ -166,7 +167,6 @@ struct _ply_boot_splash_plugin
         uint32_t                            use_firmware_background : 1;
         uint32_t                            dialog_clears_firmware_background : 1;
         uint32_t                            message_below_animation : 1;
-        uint32_t                            progress_bar_show_percent_complete : 1;
 };
 
 ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
@@ -823,6 +823,8 @@ load_mode_settings (ply_boot_splash_plugin_t *plugin,
 
         settings->suppress_messages =
                 ply_key_file_get_bool (key_file, group_name, "SuppressMessages");
+        settings->progress_bar_show_percent_complete =
+                ply_key_file_get_bool (key_file, group_name, "ProgressBarShowPercentComplete");
         settings->use_progress_bar =
                 ply_key_file_get_bool (key_file, group_name, "UseProgressBar");
         settings->use_firmware_background =
@@ -994,7 +996,6 @@ create_plugin (ply_key_file_t *key_file)
 
         free (color);
 
-        plugin->progress_bar_show_percent_complete = ply_key_file_get_bool (key_file, "two-step", "ProgressBarShowPercentComplete");
 
         load_mode_settings (plugin, key_file, "boot-up", PLY_BOOT_SPLASH_MODE_BOOT_UP);
         load_mode_settings (plugin, key_file, "shutdown", PLY_BOOT_SPLASH_MODE_SHUTDOWN);
@@ -1795,7 +1796,7 @@ system_update (ply_boot_splash_plugin_t *plugin,
                         ply_progress_animation_set_percent_done (view->progress_animation, (double) progress / 100.f);
                 ply_progress_bar_set_percent_done (view->progress_bar, (double) progress / 100.f);
                 if (!ply_progress_bar_is_hidden (view->progress_bar) &&
-                    plugin->progress_bar_show_percent_complete) {
+                    plugin->mode_settings[plugin->mode].progress_bar_show_percent_complete) {
                         snprintf (buf, sizeof(buf), "%d%% complete", progress);
                         view_show_message (view, buf);
                 }

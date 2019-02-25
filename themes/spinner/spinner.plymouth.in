@@ -21,11 +21,11 @@ BackgroundStartColor=0x202020
 BackgroundEndColor=0x202020
 ProgressBarBackgroundColor=0x606060
 ProgressBarForegroundColor=0xffffff
-ProgressBarShowPercentComplete=true
 MessageBelowAnimation=true
 
 [updates]
 SuppressMessages=true
+ProgressBarShowPercentComplete=true
 UseProgressBar=true
 Title=Installing Updates...
 SubTitle=Do not turn off your computer

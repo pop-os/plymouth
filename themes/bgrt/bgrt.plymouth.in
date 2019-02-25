@@ -30,9 +30,19 @@ UseFirmwareBackground=true
 [shutdown]
 UseFirmwareBackground=true
 
+[reboot]
+UseFirmwareBackground=true
+
 [updates]
 SuppressMessages=true
 ProgressBarShowPercentComplete=true
 UseProgressBar=true
 Title=Installing Updates...
+SubTitle=Do not turn off your computer
+
+[system-upgrade]
+SuppressMessages=true
+ProgressBarShowPercentComplete=true
+UseProgressBar=true
+Title=Upgrading System...
 SubTitle=Do not turn off your computer

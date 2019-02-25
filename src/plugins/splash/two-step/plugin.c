@@ -251,9 +251,11 @@ view_load_end_animation (view_t *view)
         switch (plugin->mode) {
         case PLY_BOOT_SPLASH_MODE_BOOT_UP:
         case PLY_BOOT_SPLASH_MODE_UPDATES:
+        case PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE:
                 animation_prefix = "startup-animation-";
                 break;
         case PLY_BOOT_SPLASH_MODE_SHUTDOWN:
+        case PLY_BOOT_SPLASH_MODE_REBOOT:
                 animation_prefix = "shutdown-animation-";
                 break;
         case PLY_BOOT_SPLASH_MODE_INVALID:
@@ -723,7 +725,8 @@ view_start_progress_animation (view_t *view)
         /* We don't really know how long shutdown will so
          * don't show the progress animation
          */
-        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
+            plugin->mode == PLY_BOOT_SPLASH_MODE_REBOOT)
                 return;
 
         if (view->progress_animation != NULL) {
@@ -999,7 +1002,9 @@ create_plugin (ply_key_file_t *key_file)
 
         load_mode_settings (plugin, key_file, "boot-up", PLY_BOOT_SPLASH_MODE_BOOT_UP);
         load_mode_settings (plugin, key_file, "shutdown", PLY_BOOT_SPLASH_MODE_SHUTDOWN);
+        load_mode_settings (plugin, key_file, "reboot", PLY_BOOT_SPLASH_MODE_REBOOT);
         load_mode_settings (plugin, key_file, "updates", PLY_BOOT_SPLASH_MODE_UPDATES);
+        load_mode_settings (plugin, key_file, "system-upgrade", PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE);
 
         if (plugin->use_firmware_background)
                 plugin->background_bgrt_image = ply_image_new ("/sys/firmware/acpi/bgrt/image");
@@ -1185,7 +1190,8 @@ start_progress_animation (ply_boot_splash_plugin_t *plugin)
          * but it's normally really fast, so just jump to
          * the end animation
          */
-        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
+            plugin->mode == PLY_BOOT_SPLASH_MODE_REBOOT)
                 become_idle (plugin, NULL);
 }
 
@@ -1575,7 +1581,8 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
                   double                    percent_done)
 {
-        if (plugin->mode == PLY_BOOT_SPLASH_MODE_UPDATES)
+        if (plugin->mode == PLY_BOOT_SPLASH_MODE_UPDATES ||
+            plugin->mode == PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE)
                 return;
 
         if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_NORMAL)
@@ -1782,7 +1789,8 @@ system_update (ply_boot_splash_plugin_t *plugin,
         ply_list_node_t *node;
         char buf[64];
 
-        if (plugin->mode != PLY_BOOT_SPLASH_MODE_UPDATES)
+        if (plugin->mode != PLY_BOOT_SPLASH_MODE_UPDATES &&
+            plugin->mode != PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE)
                 return;
 
         node = ply_list_get_first_node (plugin->views);

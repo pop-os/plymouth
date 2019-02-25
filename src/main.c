@@ -199,8 +199,12 @@ on_change_mode (state_t    *state,
                 state->mode = PLY_BOOT_SPLASH_MODE_BOOT_UP;
         else if (strcmp (mode, "shutdown") == 0)
                 state->mode = PLY_BOOT_SPLASH_MODE_SHUTDOWN;
+        else if (strcmp (mode, "reboot") == 0)
+                state->mode = PLY_BOOT_SPLASH_MODE_REBOOT;
         else if (strcmp (mode, "updates") == 0)
                 state->mode = PLY_BOOT_SPLASH_MODE_UPDATES;
+        else if (strcmp (mode, "system-upgrade") == 0)
+                state->mode = PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE;
         else
                 return;
 
@@ -663,9 +667,11 @@ get_cache_file_for_mode (ply_boot_splash_mode_t mode)
                 filename = BOOT_DURATION_FILE;
                 break;
         case PLY_BOOT_SPLASH_MODE_SHUTDOWN:
+        case PLY_BOOT_SPLASH_MODE_REBOOT:
                 filename = SHUTDOWN_DURATION_FILE;
                 break;
         case PLY_BOOT_SPLASH_MODE_UPDATES:
+        case PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE:
                 filename = NULL;
                 break;
         case PLY_BOOT_SPLASH_MODE_INVALID:
@@ -692,7 +698,9 @@ get_log_file_for_state (state_t *state)
                         filename = PLYMOUTH_LOG_DIRECTORY "/boot.log";
                 break;
         case PLY_BOOT_SPLASH_MODE_SHUTDOWN:
+        case PLY_BOOT_SPLASH_MODE_REBOOT:
         case PLY_BOOT_SPLASH_MODE_UPDATES:
+        case PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE:
                 filename = _PATH_DEVNULL;
                 break;
         case PLY_BOOT_SPLASH_MODE_INVALID:
@@ -716,7 +724,9 @@ get_log_spool_file_for_mode (ply_boot_splash_mode_t mode)
                 filename = PLYMOUTH_SPOOL_DIRECTORY "/boot.log";
                 break;
         case PLY_BOOT_SPLASH_MODE_SHUTDOWN:
+        case PLY_BOOT_SPLASH_MODE_REBOOT:
         case PLY_BOOT_SPLASH_MODE_UPDATES:
+        case PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE:
                 filename = NULL;
                 break;
         case PLY_BOOT_SPLASH_MODE_INVALID:
@@ -1950,7 +1960,8 @@ initialize_environment (state_t *state)
                 if (getenv ("DISPLAY") != NULL && access (PLYMOUTH_PLUGIN_PATH "renderers/x11.so", F_OK) == 0)
                         state->default_tty = "/dev/tty";
         if (!state->default_tty) {
-                if (state->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+                if (state->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
+                    state->mode == PLY_BOOT_SPLASH_MODE_REBOOT)
                         state->default_tty = SHUTDOWN_TTY;
                 else
                         state->default_tty = BOOT_TTY;
@@ -2147,8 +2158,12 @@ main (int    argc,
         if (mode_string != NULL) {
                 if (strcmp (mode_string, "shutdown") == 0)
                         state.mode = PLY_BOOT_SPLASH_MODE_SHUTDOWN;
+                else if (strcmp (mode_string, "reboot") == 0)
+                        state.mode = PLY_BOOT_SPLASH_MODE_REBOOT;
                 else if (strcmp (mode_string, "updates") == 0)
                         state.mode = PLY_BOOT_SPLASH_MODE_UPDATES;
+                else if (strcmp (mode_string, "system-upgrade") == 0)
+                        state.mode = PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE;
                 else
                         state.mode = PLY_BOOT_SPLASH_MODE_BOOT_UP;
 

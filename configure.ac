@@ -15,6 +15,13 @@ AM_INIT_AUTOMAKE([dist-xz no-dist-gzip])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_MAINTAINER_MODE([enable])
 
+AM_GNU_GETTEXT_VERSION([0.19.8])
+AM_GNU_GETTEXT([external])
+AC_PATH_PROG([INTLTOOL_EXTRACT], [intltool-extract])
+if test x$INTLTOOL_EXTRACT = x; then
+  AC_MSG_ERROR([intltool-extract is required to build plymouth])
+fi
+
 PKG_PROG_PKG_CONFIG
 LT_INIT([dlopen disable-static pic-only])
 
@@ -286,7 +293,7 @@ AS_AC_EXPAND(PLYMOUTH_LIBDIR, $libdir)
 AS_AC_EXPAND(PLYMOUTH_LIBEXECDIR, $libexecdir)
 AS_AC_EXPAND(PLYMOUTH_DATADIR, $datadir)
 
-AC_CONFIG_FILES([Makefile
+AC_CONFIG_FILES([Makefile po/Makefile.in
            src/libply/Makefile
            src/libply-splash-core/Makefile
            src/libply-splash-graphics/Makefile

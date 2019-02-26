@@ -53,6 +53,7 @@
 #include "ply-pixel-buffer.h"
 #include "ply-pixel-display.h"
 #include "ply-utils.h"
+#include "ply-i18n.h"
 
 #include "ply-animation.h"
 #include "ply-progress-animation.h"
@@ -509,7 +510,7 @@ view_load (view_t *view)
 
         if (plugin->mode_settings[plugin->mode].title) {
                 ply_label_set_text (view->title_label,
-                                    plugin->mode_settings[plugin->mode].title);
+                                    _(plugin->mode_settings[plugin->mode].title));
                 title_height = ply_label_get_height (view->title_label);
         } else {
                 ply_label_hide (view->title_label);
@@ -517,7 +518,7 @@ view_load (view_t *view)
 
         if (plugin->mode_settings[plugin->mode].subtitle) {
                 ply_label_set_text (view->subtitle_label,
-                                    plugin->mode_settings[plugin->mode].subtitle);
+                                    _(plugin->mode_settings[plugin->mode].subtitle));
                 subtitle_height = ply_label_get_height (view->subtitle_label);
         } else {
                 ply_label_hide (view->subtitle_label);
@@ -1805,7 +1806,7 @@ system_update (ply_boot_splash_plugin_t *plugin,
                 ply_progress_bar_set_percent_done (view->progress_bar, (double) progress / 100.f);
                 if (!ply_progress_bar_is_hidden (view->progress_bar) &&
                     plugin->mode_settings[plugin->mode].progress_bar_show_percent_complete) {
-                        snprintf (buf, sizeof(buf), "%d%% complete", progress);
+                        snprintf (buf, sizeof(buf), _("%d%% complete"), progress);
                         view_show_message (view, buf);
                 }
                 node = next_node;

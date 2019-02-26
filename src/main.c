@@ -36,6 +36,7 @@
 #include <paths.h>
 #include <assert.h>
 #include <values.h>
+#include <locale.h>
 
 #include <linux/kd.h>
 #include <linux/vt.h>
@@ -652,6 +653,8 @@ on_newroot (state_t    *state,
         chdir (root_dir);
         chroot (".");
         chdir ("/");
+        /* Update local now that we have /usr/share/locale available */
+        setlocale(LC_ALL, "");
         ply_progress_load_cache (state->progress, get_cache_file_for_mode (state->mode));
         if (state->boot_splash != NULL)
                 ply_boot_splash_root_mounted (state->boot_splash);

@@ -190,7 +190,8 @@ view_start_animation (view_t *view)
         ply_text_display_clear_screen (view->display);
         ply_text_display_hide_cursor (view->display);
 
-        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN) {
+        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
+            plugin->mode == PLY_BOOT_SPLASH_MODE_REBOOT) {
                 ply_text_progress_bar_hide (view->progress_bar);
                 return;
         }

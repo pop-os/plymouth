@@ -302,7 +302,8 @@ view_start_animation (view_t *view)
         ply_pixel_display_draw_area (view->display, 0, 0,
                                      screen_width, screen_height);
 
-        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
+            plugin->mode == PLY_BOOT_SPLASH_MODE_REBOOT)
                 return;
 
         plugin->is_idle = false;
@@ -528,7 +529,8 @@ start_animation (ply_boot_splash_plugin_t *plugin)
 
         plugin->is_animating = true;
 
-        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN)
+        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
+            plugin->mode == PLY_BOOT_SPLASH_MODE_REBOOT)
                 plugin->is_idle = true;
 }
 
@@ -720,7 +722,8 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
         ply_list_node_t *node;
         double total_duration;
 
-        if (plugin->mode == PLY_BOOT_SPLASH_MODE_UPDATES)
+        if (plugin->mode == PLY_BOOT_SPLASH_MODE_UPDATES ||
+            plugin->mode == PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE)
                 return;
 
         total_duration = duration / percent_done;
@@ -931,7 +934,8 @@ system_update (ply_boot_splash_plugin_t *plugin,
 {
         ply_list_node_t *node;
 
-        if (plugin->mode != PLY_BOOT_SPLASH_MODE_UPDATES)
+        if (plugin->mode != PLY_BOOT_SPLASH_MODE_UPDATES &&
+            plugin->mode != PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE)
                 return;
 
         node = ply_list_get_first_node (plugin->views);

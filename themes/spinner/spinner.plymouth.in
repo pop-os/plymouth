@@ -27,12 +27,12 @@ MessageBelowAnimation=true
 SuppressMessages=true
 ProgressBarShowPercentComplete=true
 UseProgressBar=true
-Title=Installing Updates...
-SubTitle=Do not turn off your computer
+_Title=Installing Updates...
+_SubTitle=Do not turn off your computer
 
 [system-upgrade]
 SuppressMessages=true
 ProgressBarShowPercentComplete=true
 UseProgressBar=true
-Title=Upgrading System...
-SubTitle=Do not turn off your computer
+_Title=Upgrading System...
+_SubTitle=Do not turn off your computer

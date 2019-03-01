@@ -667,7 +667,13 @@ ply_pixels_interpolate (uint32_t *bytes,
                         ix = x + offset_x;
                         iy = y + offset_y;
 
-                        if (ix < 0 || ix >= width || iy < 0 || iy >= height)
+                        if (ix >= width)
+                                ix = width - 1;
+
+                        if (iy >= height)
+                                ix = height - 1;
+
+                        if (ix < 0 || iy < 0)
                                 pixels[offset_y][offset_x] = 0x00000000;
                         else
                                 pixels[offset_y][offset_x] = bytes[ix + iy * width];

@@ -459,7 +459,8 @@ ply_renderer_connector_get_rotation_and_tiled (ply_renderer_backend_t      *back
                         output->rotation = connector_orientation_prop_to_rotation (prop, connector->prop_values[i]);
 
                 if ((prop->flags & DRM_MODE_PROP_BLOB) &&
-                    strcmp (prop->name, "TILE") == 0)
+                    strcmp (prop->name, "TILE") == 0 &&
+                    connector->prop_values[i] != 0)
                         output->tiled = true;
 
                 if ((prop->flags & DRM_MODE_PROP_ENUM) &&

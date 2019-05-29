@@ -41,8 +41,9 @@ typedef enum
         PLY_BOOT_SPLASH_MODE_REBOOT,
         PLY_BOOT_SPLASH_MODE_UPDATES,
         PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE,
+        PLY_BOOT_SPLASH_MODE_FIRMWARE_UPGRADE,
         PLY_BOOT_SPLASH_MODE_INVALID,
-        PLY_BOOT_SPLASH_MODE_COUNT = PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE + 1,
+        PLY_BOOT_SPLASH_MODE_COUNT = PLY_BOOT_SPLASH_MODE_FIRMWARE_UPGRADE + 1,
 } ply_boot_splash_mode_t;
 
 typedef struct _ply_boot_splash_plugin ply_boot_splash_plugin_t;

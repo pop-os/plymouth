@@ -723,7 +723,8 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
         double total_duration;
 
         if (plugin->mode == PLY_BOOT_SPLASH_MODE_UPDATES ||
-            plugin->mode == PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE)
+            plugin->mode == PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE ||
+            plugin->mode == PLY_BOOT_SPLASH_MODE_FIRMWARE_UPGRADE)
                 return;
 
         total_duration = duration / percent_done;
@@ -935,7 +936,8 @@ system_update (ply_boot_splash_plugin_t *plugin,
         ply_list_node_t *node;
 
         if (plugin->mode != PLY_BOOT_SPLASH_MODE_UPDATES &&
-            plugin->mode != PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE)
+            plugin->mode != PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE &&
+            plugin->mode != PLY_BOOT_SPLASH_MODE_FIRMWARE_UPGRADE)
                 return;
 
         node = ply_list_get_first_node (plugin->views);

@@ -36,3 +36,11 @@ ProgressBarShowPercentComplete=true
 UseProgressBar=true
 _Title=Upgrading System...
 _SubTitle=Do not turn off your computer
+
+[firmware-upgrade]
+SuppressMessages=true
+ProgressBarShowPercentComplete=true
+UseProgressBar=true
+UseFirmwareBackground=true
+_Title=Upgrading Firmware...
+_SubTitle=Do not turn off your computer

@@ -253,6 +253,7 @@ view_load_end_animation (view_t *view)
         case PLY_BOOT_SPLASH_MODE_BOOT_UP:
         case PLY_BOOT_SPLASH_MODE_UPDATES:
         case PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE:
+        case PLY_BOOT_SPLASH_MODE_FIRMWARE_UPGRADE:
                 animation_prefix = "startup-animation-";
                 break;
         case PLY_BOOT_SPLASH_MODE_SHUTDOWN:
@@ -1006,6 +1007,7 @@ create_plugin (ply_key_file_t *key_file)
         load_mode_settings (plugin, key_file, "reboot", PLY_BOOT_SPLASH_MODE_REBOOT);
         load_mode_settings (plugin, key_file, "updates", PLY_BOOT_SPLASH_MODE_UPDATES);
         load_mode_settings (plugin, key_file, "system-upgrade", PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE);
+        load_mode_settings (plugin, key_file, "firmware-upgrade", PLY_BOOT_SPLASH_MODE_FIRMWARE_UPGRADE);
 
         if (plugin->use_firmware_background)
                 plugin->background_bgrt_image = ply_image_new ("/sys/firmware/acpi/bgrt/image");
@@ -1583,7 +1585,8 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    percent_done)
 {
         if (plugin->mode == PLY_BOOT_SPLASH_MODE_UPDATES ||
-            plugin->mode == PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE)
+            plugin->mode == PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE ||
+            plugin->mode == PLY_BOOT_SPLASH_MODE_FIRMWARE_UPGRADE)
                 return;
 
         if (plugin->state != PLY_BOOT_SPLASH_DISPLAY_NORMAL)
@@ -1791,7 +1794,8 @@ system_update (ply_boot_splash_plugin_t *plugin,
         char buf[64];
 
         if (plugin->mode != PLY_BOOT_SPLASH_MODE_UPDATES &&
-            plugin->mode != PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE)
+            plugin->mode != PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE &&
+            plugin->mode != PLY_BOOT_SPLASH_MODE_FIRMWARE_UPGRADE)
                 return;
 
         node = ply_list_get_first_node (plugin->views);

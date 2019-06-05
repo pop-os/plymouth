@@ -1049,4 +1049,4 @@ ply_terminal_stop_watching_for_input (ply_terminal_t              *terminal,
         }
 }
 
-/* vim: set ts=4 sw=4 et ai ci cino={.5s,^-2,+.5s,t0,g0,e-2,n-2,p2s,(0,=.5s,:.5s */
+/* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

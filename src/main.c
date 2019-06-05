@@ -2308,4 +2308,4 @@ main (int    argc,
 
         return exit_code;
 }
-/* vim: set sts=4 ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */
+/* vim: set ts=4 ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

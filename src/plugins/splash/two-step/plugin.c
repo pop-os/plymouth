@@ -73,6 +73,12 @@
 #define PROGRESS_BAR_WIDTH  400
 #define PROGRESS_BAR_HEIGHT 5
 
+#define BGRT_STATUS_ORIENTATION_OFFSET_0    (0 << 1)
+#define BGRT_STATUS_ORIENTATION_OFFSET_90   (1 << 1)
+#define BGRT_STATUS_ORIENTATION_OFFSET_180  (2 << 1)
+#define BGRT_STATUS_ORIENTATION_OFFSET_270  (3 << 1)
+#define BGRT_STATUS_ORIENTATION_OFFSET_MASK (3 << 1)
+
 typedef enum
 {
         PLY_BOOT_SPLASH_DISPLAY_NORMAL,
@@ -298,11 +304,40 @@ view_load_end_animation (view_t *view)
 }
 
 static bool
-get_bgrt_sysfs_offsets(int *x_offset, int *y_offset)
+get_bgrt_sysfs_info(int *x_offset, int *y_offset,
+                    ply_pixel_buffer_rotation_t *rotation)
 {
         bool ret = false;
         char buf[64];
+        int status;
         FILE *f;
+
+        f = fopen("/sys/firmware/acpi/bgrt/status", "r");
+        if (!f)
+                return false;
+
+        if (!fgets(buf, sizeof(buf), f))
+                goto out;
+
+        if (sscanf(buf, "%d", &status) != 1)
+                goto out;
+
+        fclose(f);
+
+        switch (status & BGRT_STATUS_ORIENTATION_OFFSET_MASK) {
+        case BGRT_STATUS_ORIENTATION_OFFSET_0:
+                *rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+                break;
+        case BGRT_STATUS_ORIENTATION_OFFSET_90:
+                *rotation = PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE;
+                break;
+        case BGRT_STATUS_ORIENTATION_OFFSET_180:
+                *rotation = PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN;
+                break;
+        case BGRT_STATUS_ORIENTATION_OFFSET_270:
+                *rotation = PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE;
+                break;
+        }
 
         f = fopen("/sys/firmware/acpi/bgrt/xoffset", "r");
         if (!f)
@@ -347,13 +382,21 @@ static void
 view_set_bgrt_background (view_t *view)
 {
         ply_pixel_buffer_rotation_t panel_rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+        ply_pixel_buffer_rotation_t bgrt_rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
         int x_offset, y_offset, sysfs_x_offset, sysfs_y_offset, width, height;
         int panel_width = 0, panel_height = 0, panel_scale = 1;
         int screen_width, screen_height, screen_scale;
         ply_pixel_buffer_t *bgrt_buffer;
+        bool have_panel_props;
 
         if (!view->plugin->background_bgrt_image)
                 return;
+
+        if (!get_bgrt_sysfs_info(&sysfs_x_offset, &sysfs_y_offset,
+                                 &bgrt_rotation)) {
+                ply_trace ("get bgrt sysfs info failed");
+                return;
+        }
 
         screen_width = ply_pixel_display_get_width (view->display);
         screen_height = ply_pixel_display_get_height (view->display);
@@ -361,9 +404,39 @@ view_set_bgrt_background (view_t *view)
 
         bgrt_buffer = ply_image_get_buffer (view->plugin->background_bgrt_image);
 
-        if (ply_renderer_get_panel_properties (ply_pixel_display_get_renderer (view->display),
-                                               &panel_width, &panel_height,
-                                               &panel_rotation, &panel_scale)) {
+        have_panel_props = ply_renderer_get_panel_properties (ply_pixel_display_get_renderer (view->display),
+                                                              &panel_width, &panel_height,
+                                                              &panel_rotation, &panel_scale);
+
+        /*
+         * Before the ACPI 6.2 specification, the BGRT table did not contain
+         * any rotation information, so to make sure that the firmware-splash
+         * showed the right way up the firmware would contain a pre-rotated
+         * image. Starting with ACPI 6.2 the bgrt status fields has 2 bits
+         * to tell the firmware the image needs to be rotated before being
+         * displayed.
+         * If these bits are set then the firmwares-splash is not pre-rotated,
+         * in this case we must not rotate it when rendering and when doing
+         * comparisons with the panel-size we must use the post rotation
+         * panel-size.
+         */
+        if (bgrt_rotation != PLY_PIXEL_BUFFER_ROTATE_UPRIGHT) {
+                if (bgrt_rotation != panel_rotation) {
+                        ply_trace ("bgrt orientation mismatch, bgrt_rot %d panel_rot %d", (int)bgrt_rotation, (int)panel_rotation);
+                        return;
+                }
+
+                /* Set panel properties to their post-rotations values */
+                if (panel_rotation == PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE ||
+                    panel_rotation == PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE) {
+                        int temp = panel_width;
+                        panel_width = panel_height;
+                        panel_height = temp;
+                }
+                panel_rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+        }
+
+        if (have_panel_props) {        
                 /* Upside-down panels are fixed up in HW by the GOP, so the
                  * bgrt image is not rotated in this case.
                  */
@@ -396,8 +469,7 @@ view_set_bgrt_background (view_t *view)
          * panel's native resolution and then we correct for any difference
          * between the (external) screen's and the panel's resolution.
          */
-        if (panel_width != 0 && panel_height != 0 &&
-            get_bgrt_sysfs_offsets(&sysfs_x_offset, &sysfs_y_offset) &&
+        if (have_panel_props &&
             (panel_width - view->plugin->background_bgrt_raw_width) / 2 == sysfs_x_offset) {
                 if (panel_rotation == PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE ||
                     panel_rotation == PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE) {

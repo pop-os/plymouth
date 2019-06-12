@@ -7,8 +7,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: plymouth 0.9.5\n"
-"Report-Msgid-Bugs-To: https://gitlab.freedesktop.org/plymouth/plymouth/issues\n"
-"POT-Creation-Date: 2019-02-26 12:09+0100\n"
+"Report-Msgid-Bugs-To: https://gitlab.freedesktop.org/plymouth/plymouth/"
+"issues\n"
+"POT-Creation-Date: 2019-06-12 11:54+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/plugins/splash/two-step/plugin.c:1809
+#: src/plugins/splash/two-step/plugin.c:1885
 #, c-format
 msgid "%d%% complete"
 msgstr ""
@@ -32,4 +33,8 @@ msgstr ""
 
 #: themes/bgrt/bgrt.plymouth.in.h:3 themes/spinner/spinner.plymouth.in.h:3
 msgid "Upgrading System..."
+msgstr ""
+
+#: themes/bgrt/bgrt.plymouth.in.h:4 themes/spinner/spinner.plymouth.in.h:4
+msgid "Upgrading Firmware..."
 msgstr ""

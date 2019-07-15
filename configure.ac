@@ -26,7 +26,7 @@ PKG_PROG_PKG_CONFIG
 LT_INIT([dlopen disable-static pic-only])
 
 ## increment if the interface has additions, changes, removals.
-LT_CURRENT=4
+LT_CURRENT=5
 
 ## increment any time the source changes; set to
 ##  0 if you increment CURRENT

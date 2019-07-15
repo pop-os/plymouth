@@ -59,66 +59,8 @@ struct _ply_terminal_session
         uint32_t                              created_terminal_device : 1;
 };
 
-static bool ply_terminal_session_open_console (ply_terminal_session_t *session);
-static bool ply_terminal_session_execute (ply_terminal_session_t *session,
-                                          bool                    look_in_path);
 static void ply_terminal_session_start_logging (ply_terminal_session_t *session);
 static void ply_terminal_session_stop_logging (ply_terminal_session_t *session);
-
-static bool
-ply_terminal_session_open_console (ply_terminal_session_t *session)
-{
-        int fd;
-        const char *terminal_name;
-
-        terminal_name = ptsname (session->pseudoterminal_master_fd);
-
-        fd = open (terminal_name, O_RDONLY);
-
-        if (fd < 0)
-                return false;
-
-        assert (fd == STDIN_FILENO);
-        assert (ttyname (fd) != NULL);
-        assert (strcmp (ttyname (fd), terminal_name) == 0);
-
-        fd = open (terminal_name, O_WRONLY);
-
-        if (fd < 0)
-                return false;
-
-        assert (fd == STDOUT_FILENO);
-        assert (ttyname (fd) != NULL);
-        assert (strcmp (ttyname (fd), terminal_name) == 0);
-
-        fd = open (terminal_name, O_WRONLY);
-
-        if (fd < 0)
-                return false;
-
-        assert (fd == STDERR_FILENO);
-        assert (ttyname (fd) != NULL);
-        assert (strcmp (ttyname (fd), terminal_name) == 0);
-
-        return true;
-}
-
-static bool
-ply_terminal_session_execute (ply_terminal_session_t *session,
-                              bool                    look_in_path)
-{
-        ply_close_all_fds ();
-
-        if (!ply_terminal_session_open_console (session))
-                return false;
-
-        if (look_in_path)
-                execvp (session->argv[0], session->argv);
-        else
-                execv (session->argv[0], session->argv);
-
-        return false;
-}
 
 ply_terminal_session_t *
 ply_terminal_session_new (const char *const *argv)

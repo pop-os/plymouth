@@ -5,8 +5,9 @@ stages:
   script:
     - NOCONFIGURE=1 ./autogen.sh
     - mkdir _build && cd _build
-    - ../configure --prefix /usr --disable-documentation --disable-dependency-tracking
+    - ../configure --prefix /usr
     - make
+    - make distcheck
 
 fedora-x86_64:
   stage: build

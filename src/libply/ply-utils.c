@@ -403,32 +403,6 @@ ply_fd_has_data (int fd)
 }
 
 bool
-ply_fd_can_take_data (int fd)
-{
-        struct pollfd poll_data;
-        int result;
-
-        poll_data.fd = fd;
-        poll_data.events = POLLOUT;
-        poll_data.revents = 0;
-        result = poll (&poll_data, 1, 10);
-
-        return result == 1;
-}
-
-bool
-ply_fd_may_block (int fd)
-{
-        int flags;
-
-        assert (fd >= 0);
-
-        flags = fcntl (fd, F_GETFL);
-
-        return (flags & O_NONBLOCK) != 0;
-}
-
-bool
 ply_set_fd_as_blocking (int fd)
 {
         int flags;

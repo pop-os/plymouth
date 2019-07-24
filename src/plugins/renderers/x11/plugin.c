@@ -223,10 +223,17 @@ create_fullscreen_single_head_setup (ply_renderer_backend_t *backend)
         GdkRectangle monitor_geometry;
         int width_mm, height_mm;
 
+#if GTK_CHECK_VERSION(3,22,0)
+        GdkDisplay* const display = gdk_display_get_default();
+        GdkMonitor* const monitor = gdk_display_get_primary_monitor(display);
+        gdk_monitor_get_geometry(monitor, &monitor_geometry);
+        width_mm = gdk_monitor_get_width_mm (monitor);
+        height_mm = gdk_monitor_get_height_mm (monitor);
+#else
         gdk_screen_get_monitor_geometry (gdk_screen_get_default (), 0, &monitor_geometry);
         width_mm = gdk_screen_get_monitor_width_mm (gdk_screen_get_default (), 0);
         height_mm = gdk_screen_get_monitor_height_mm (gdk_screen_get_default (), 0);
-
+#endif
         head = calloc (1, sizeof(ply_renderer_head_t));
 
         head->backend = backend;

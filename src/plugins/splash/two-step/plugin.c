@@ -409,6 +409,23 @@ view_set_bgrt_background (view_t *view)
                                                               &panel_rotation, &panel_scale);
 
         /*
+         * Some buggy Lenovo 2-in-1s with a 90 degree rotated panel, behave as
+         * if the panel is mounted up-right / not rotated at all. These devices
+         * have a buggy efifb size (landscape resolution instead of the actual
+         * portrait resolution of the panel), this gets fixed-up by the kernel.
+         * These buggy devices also do not pre-rotate the bgrt_image nor do
+         * they set the ACPI-6.2 rotation status-bits. We can detect this by
+         * checking that the bgrt_image is perfectly centered horizontally
+         * when we use the panel's height as the width.
+         */
+        if (have_panel_props &&
+            (panel_rotation == PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE ||
+             panel_rotation == PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE) &&
+            (panel_width  - view->plugin->background_bgrt_raw_width) / 2 != sysfs_x_offset &&
+            (panel_height - view->plugin->background_bgrt_raw_width) / 2 == sysfs_x_offset)
+                bgrt_rotation = panel_rotation;
+
+        /*
          * Before the ACPI 6.2 specification, the BGRT table did not contain
          * any rotation information, so to make sure that the firmware-splash
          * showed the right way up the firmware would contain a pre-rotated

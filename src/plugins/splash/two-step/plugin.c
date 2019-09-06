@@ -506,6 +506,24 @@ view_set_bgrt_background (view_t *view)
                 }
         }
 
+        /*
+         * On desktops (no panel) we normally do not use the BGRT provided
+         * xoffset and yoffset because the resolution they are intended for
+         * may be differtent then the resolution of the current display.
+         *
+         * On some desktops (no panel) the image gets centered not only
+         * horizontally, but also vertically. In this case our default of using
+         * the golden ratio for the vertical position causes the BGRT image
+         * to jump.  To avoid this we check here if the provided xoffset and
+         * yoffset perfectly center the image and in that case we use them.
+         */
+        if (!have_panel_props && screen_scale == 1 &&
+            (screen_width  - width ) / 2 == sysfs_x_offset &&
+            (screen_height - height) / 2 == sysfs_y_offset) {
+                x_offset = sysfs_x_offset;
+                y_offset = sysfs_y_offset;
+        }
+
         ply_trace ("using %dx%d bgrt image centered at %dx%d for %dx%d screen",
                    width, height, x_offset, y_offset, screen_width, screen_height);
 

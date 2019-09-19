@@ -169,7 +169,8 @@ free_keyboards_for_renderer (ply_device_manager_t *manager,
 
 static void
 free_devices_from_device_path (ply_device_manager_t *manager,
-                               const char           *device_path)
+                               const char           *device_path,
+                               bool                  close)
 {
         void *key = NULL;
         void *renderer = NULL;
@@ -187,6 +188,13 @@ free_devices_from_device_path (ply_device_manager_t *manager,
 
         ply_hashtable_remove (manager->renderers, (void *) device_path);
         free (key);
+
+        if (manager->renderers_activated)
+                ply_renderer_deactivate (renderer);
+
+        if (close)
+                ply_renderer_close (renderer);
+
         ply_renderer_free (renderer);
 }
 
@@ -309,7 +317,7 @@ free_devices_for_udev_device (ply_device_manager_t *manager,
         device_path = udev_device_get_devnode (device);
 
         if (device_path != NULL)
-                free_devices_from_device_path (manager, device_path);
+                free_devices_from_device_path (manager, device_path, true);
 }
 
 static bool
@@ -557,7 +565,7 @@ free_renderer (char                 *device_path,
                ply_renderer_t       *renderer,
                ply_device_manager_t *manager)
 {
-        free_devices_from_device_path (manager, device_path);
+        free_devices_from_device_path (manager, device_path, false);
 }
 
 static void

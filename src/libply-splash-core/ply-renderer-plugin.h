@@ -74,6 +74,7 @@ typedef struct
                                      int                         *height,
                                      ply_pixel_buffer_rotation_t *rotation,
                                      int                         *scale);
+        bool (*get_capslock_state)(ply_renderer_backend_t *backend);
 } ply_renderer_plugin_interface_t;
 
 #endif /* PLY_RENDERER_PLUGIN_H */

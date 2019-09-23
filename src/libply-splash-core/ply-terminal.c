@@ -855,6 +855,17 @@ ply_terminal_get_name (ply_terminal_t *terminal)
         return terminal->name;
 }
 
+bool
+ply_terminal_get_capslock_state (ply_terminal_t *terminal)
+{
+        char state;
+
+        if (ioctl (terminal->fd, KDGETLED, &state) < 0)
+                return false;
+
+        return (state & LED_CAP);
+}
+
 int
 ply_terminal_get_vt_number (ply_terminal_t *terminal)
 {

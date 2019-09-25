@@ -955,10 +955,7 @@ create_plugin (ply_key_file_t *key_file)
 {
         ply_boot_splash_plugin_t *plugin;
         char *image_dir, *image_path;
-        char *alignment;
         char *transition;
-        char *transition_duration;
-        char *color;
         char *progress_function;
 
         srand ((int) ply_get_timestamp ());
@@ -997,61 +994,33 @@ create_plugin (ply_key_file_t *key_file)
         plugin->font = ply_key_file_get_value (key_file, "two-step", "Font");
         plugin->title_font = ply_key_file_get_value (key_file, "two-step", "TitleFont");
 
-        alignment = ply_key_file_get_value (key_file, "two-step", "HorizontalAlignment");
-        if (alignment != NULL)
-                plugin->animation_horizontal_alignment = ply_strtod (alignment);
-        else
-                plugin->animation_horizontal_alignment = .5;
-        free (alignment);
+        plugin->animation_horizontal_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "HorizontalAlignment", 0.5);
+        plugin->animation_vertical_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "VerticalAlignment", 0.5);
 
-        alignment = ply_key_file_get_value (key_file, "two-step", "VerticalAlignment");
-        if (alignment != NULL)
-                plugin->animation_vertical_alignment = ply_strtod (alignment);
-        else
-                plugin->animation_vertical_alignment = .5;
-        free (alignment);
+        plugin->watermark_horizontal_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "WatermarkHorizontalAlignment", 1.0);
+        plugin->watermark_vertical_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "WatermarkVerticalAlignment", 0.5);
 
-        alignment = ply_key_file_get_value (key_file, "two-step", "WatermarkHorizontalAlignment");
-        if (alignment != NULL)
-                plugin->watermark_horizontal_alignment = ply_strtod (alignment);
-        else
-                plugin->watermark_horizontal_alignment = 1.0;
-        free (alignment);
+        plugin->dialog_horizontal_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "DialogHorizontalAlignment", 0.5);
+        plugin->dialog_vertical_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "DialogVerticalAlignment", 0.5);
 
-        alignment = ply_key_file_get_value (key_file, "two-step", "WatermarkVerticalAlignment");
-        if (alignment != NULL)
-                plugin->watermark_vertical_alignment = ply_strtod (alignment);
-        else
-                plugin->watermark_vertical_alignment = .5;
-        free (alignment);
-
-        alignment = ply_key_file_get_value (key_file, "two-step", "DialogHorizontalAlignment");
-        if (alignment != NULL)
-                plugin->dialog_horizontal_alignment = ply_strtod (alignment);
-        else
-                plugin->dialog_horizontal_alignment = .5;
-        free (alignment);
-
-        alignment = ply_key_file_get_value (key_file, "two-step", "DialogVerticalAlignment");
-        if (alignment != NULL)
-                plugin->dialog_vertical_alignment = ply_strtod (alignment);
-        else
-                plugin->dialog_vertical_alignment = .5;
-        free (alignment);
-
-        alignment = ply_key_file_get_value (key_file, "two-step", "TitleHorizontalAlignment");
-        if (alignment != NULL)
-                plugin->title_horizontal_alignment = ply_strtod (alignment);
-        else
-                plugin->title_horizontal_alignment = .5;
-        free (alignment);
-
-        alignment = ply_key_file_get_value (key_file, "two-step", "TitleVerticalAlignment");
-        if (alignment != NULL)
-                plugin->title_vertical_alignment = ply_strtod (alignment);
-        else
-                plugin->title_vertical_alignment = .5;
-        free (alignment);
+        plugin->title_horizontal_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "TitleHorizontalAlignment", 0.5);
+        plugin->title_vertical_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "TitleVerticalAlignment", 0.5);
 
         plugin->transition = PLY_PROGRESS_ANIMATION_TRANSITION_NONE;
         transition = ply_key_file_get_value (key_file, "two-step", "Transition");
@@ -1065,49 +1034,27 @@ create_plugin (ply_key_file_t *key_file)
         }
         free (transition);
 
-        transition_duration = ply_key_file_get_value (key_file, "two-step", "TransitionDuration");
-        if (transition_duration != NULL)
-                plugin->transition_duration = ply_strtod (transition_duration);
-        else
-                plugin->transition_duration = 0.0;
-        free (transition_duration);
+        plugin->transition_duration =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "TransitionDuration", 0.0);
 
-        color = ply_key_file_get_value (key_file, "two-step", "BackgroundStartColor");
+        plugin->background_start_color =
+                ply_key_file_get_long (key_file, "two-step",
+                                       "BackgroundStartColor",
+                                       PLYMOUTH_BACKGROUND_START_COLOR);
+        plugin->background_end_color =
+                ply_key_file_get_long (key_file, "two-step",
+                                       "BackgroundEndColor",
+                                       PLYMOUTH_BACKGROUND_END_COLOR);
 
-        if (color != NULL)
-                plugin->background_start_color = strtol (color, NULL, 0);
-        else
-                plugin->background_start_color = PLYMOUTH_BACKGROUND_START_COLOR;
-
-        free (color);
-
-        color = ply_key_file_get_value (key_file, "two-step", "BackgroundEndColor");
-
-        if (color != NULL)
-                plugin->background_end_color = strtol (color, NULL, 0);
-        else
-                plugin->background_end_color = PLYMOUTH_BACKGROUND_END_COLOR;
-
-        free (color);
-
-        color = ply_key_file_get_value (key_file, "two-step", "ProgressBarBackgroundColor");
-
-        if (color != NULL)
-                plugin->progress_bar_bg_color = strtol (color, NULL, 0);
-        else
-                plugin->progress_bar_bg_color = 0xffffff; /* white */
-
-        free (color);
-
-        color = ply_key_file_get_value (key_file, "two-step", "ProgressBarForegroundColor");
-
-        if (color != NULL)
-                plugin->progress_bar_fg_color = strtol (color, NULL, 0);
-        else
-                plugin->progress_bar_fg_color = 0x000000; /* black */
-
-        free (color);
-
+        plugin->progress_bar_bg_color =
+                ply_key_file_get_long (key_file, "two-step",
+                                       "ProgressBarBackgroundColor",
+                                       0xffffff /* white */);
+        plugin->progress_bar_fg_color =
+                ply_key_file_get_long (key_file, "two-step",
+                                       "ProgressBarForegroundColor",
+                                       0x000000 /* black */);
 
         load_mode_settings (plugin, key_file, "boot-up", PLY_BOOT_SPLASH_MODE_BOOT_UP);
         load_mode_settings (plugin, key_file, "shutdown", PLY_BOOT_SPLASH_MODE_SHUTDOWN);

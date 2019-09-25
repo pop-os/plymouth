@@ -118,6 +118,7 @@ typedef struct
         bool                      suppress_messages;
         bool                      progress_bar_show_percent_complete;
         bool                      use_progress_bar;
+        bool                      use_animation;
         bool                      use_firmware_background;
         char                     *title;
         char                     *subtitle;
@@ -833,7 +834,10 @@ view_start_progress_animation (view_t *view)
                                        x, y, width, height);
                 ply_pixel_display_draw_area (view->display, x, y, width, height);
                 view->animation_bottom = y + height;
-        } else if (view->throbber != NULL) {
+        }
+
+        if (plugin->mode_settings[plugin->mode].use_animation &&
+            view->throbber != NULL) {
                 width = ply_throbber_get_width (view->throbber);
                 height = ply_throbber_get_height (view->throbber);
                 x = plugin->animation_horizontal_alignment * screen_width - width / 2.0;
@@ -852,7 +856,8 @@ view_start_progress_animation (view_t *view)
             plugin->mode == PLY_BOOT_SPLASH_MODE_REBOOT)
                 return;
 
-        if (view->progress_animation != NULL) {
+        if (plugin->mode_settings[plugin->mode].use_animation &&
+            view->progress_animation != NULL) {
                 width = ply_progress_animation_get_width (view->progress_animation);
                 height = ply_progress_animation_get_height (view->progress_animation);
                 x = plugin->animation_horizontal_alignment * screen_width - width / 2.0;
@@ -965,6 +970,13 @@ load_mode_settings (ply_boot_splash_plugin_t *plugin,
                 ply_key_file_get_bool (key_file, group_name, "UseProgressBar");
         settings->use_firmware_background =
                 ply_key_file_get_bool (key_file, group_name, "UseFirmwareBackground");
+
+        /* This defaults to !use_progress_bar for compat. with older themes */
+        if (ply_key_file_has_key (key_file, group_name, "UseAnimation"))
+                settings->use_animation =
+                        ply_key_file_get_bool (key_file, group_name, "UseAnimation");
+        else
+                settings->use_animation = !settings->use_progress_bar;
 
         /* If any mode uses the firmware background, then we need to load it */
         if (settings->use_firmware_background)
@@ -1235,8 +1247,7 @@ static void
 start_end_animation (ply_boot_splash_plugin_t *plugin,
                      ply_trigger_t            *trigger)
 {
-        if (plugin->mode_settings[plugin->mode].use_progress_bar) {
-                /* Leave the progress-bar at 100% rather then showing the end animation */
+        if (!plugin->mode_settings[plugin->mode].use_animation) {
                 ply_trigger_pull (trigger, NULL);
                 return;
         }
@@ -1458,19 +1469,26 @@ on_draw (view_t             *view,
                 if (plugin->mode_settings[plugin->mode].use_progress_bar)
                         ply_progress_bar_draw_area (view->progress_bar, pixel_buffer,
                                                     x, y, width, height);
-                else if (view->throbber != NULL &&
+
+                if (plugin->mode_settings[plugin->mode].use_animation &&
+                    view->throbber != NULL &&
                     !ply_throbber_is_stopped (view->throbber))
                         ply_throbber_draw_area (view->throbber, pixel_buffer,
                                                 x, y, width, height);
-                if (view->progress_animation != NULL && !ply_progress_animation_is_hidden (view->progress_animation)) {
+
+                if (plugin->mode_settings[plugin->mode].use_animation &&
+                    view->progress_animation != NULL &&
+                    !ply_progress_animation_is_hidden (view->progress_animation))
                         ply_progress_animation_draw_area (view->progress_animation,
                                                           pixel_buffer,
                                                           x, y, width, height);
-                } else if (!ply_animation_is_stopped (view->end_animation)) {
+
+                if (plugin->mode_settings[plugin->mode].use_animation &&
+                    view->end_animation != NULL &&
+                    !ply_animation_is_stopped (view->end_animation))
                         ply_animation_draw_area (view->end_animation,
                                                  pixel_buffer,
                                                  x, y, width, height);
-                }
 
                 if (plugin->corner_image != NULL) {
                         image_area.width = ply_image_get_width (plugin->corner_image);

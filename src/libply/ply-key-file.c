@@ -387,6 +387,20 @@ ply_key_file_get_bool (ply_key_file_t *key_file,
         return false;
 }
 
+double
+ply_key_file_get_double (ply_key_file_t *key_file,
+                         const char     *group,
+                         const char     *key,
+                         double          default_value)
+{
+        char *raw_value = ply_key_file_get_raw_value (key_file, group, key);
+
+        if (!raw_value)
+                return default_value;
+
+        return ply_strtod (raw_value);
+}
+
 static void
 ply_key_file_foreach_entry_entries (void *key,
                                     void *data,

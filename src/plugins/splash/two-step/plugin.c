@@ -164,6 +164,10 @@ struct _ply_boot_splash_plugin
         uint32_t                            background_end_color;
         int                                 background_bgrt_raw_width;
 
+        double                              progress_bar_horizontal_alignment;
+        double                              progress_bar_vertical_alignment;
+        long                                progress_bar_width;
+        long                                progress_bar_height;
         uint32_t                            progress_bar_bg_color;
         uint32_t                            progress_bar_fg_color;
 
@@ -818,10 +822,13 @@ view_start_progress_animation (view_t *view)
                                      screen_width, screen_height);
 
         if (plugin->mode_settings[plugin->mode].use_progress_bar) {
-                width = PROGRESS_BAR_WIDTH;
-                height = PROGRESS_BAR_HEIGHT;
-                x = plugin->animation_horizontal_alignment * screen_width - width / 2.0;
-                y = plugin->animation_vertical_alignment * screen_height - height / 2.0;
+                if (plugin->progress_bar_width != -1)
+                        width = plugin->progress_bar_width;
+                else
+                        width = screen_width;
+                height = plugin->progress_bar_height;
+                x = plugin->progress_bar_horizontal_alignment * (screen_width - width);
+                y = plugin->progress_bar_vertical_alignment * (screen_height - height);
                 ply_progress_bar_show (view->progress_bar, view->display,
                                        x, y, width, height);
                 ply_pixel_display_draw_area (view->display, x, y, width, height);
@@ -1019,6 +1026,18 @@ create_plugin (ply_key_file_t *key_file)
                 ply_key_file_get_double (key_file, "two-step",
                                          "VerticalAlignment", 0.5);
 
+        /* Progressbar alignment, this defaults to the animation alignment
+         * for compatibility with older themes.
+         */
+        plugin->progress_bar_horizontal_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "ProgressBarHorizontalAlignment",
+                                         plugin->animation_horizontal_alignment);
+        plugin->progress_bar_vertical_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "ProgressBarVerticalAlignment",
+                                         plugin->animation_vertical_alignment);
+
         /* Watermark alignment */
         plugin->watermark_horizontal_alignment =
                 ply_key_file_get_double (key_file, "two-step",
@@ -1088,6 +1107,14 @@ create_plugin (ply_key_file_t *key_file)
                 ply_key_file_get_long (key_file, "two-step",
                                        "ProgressBarForegroundColor",
                                        0x000000 /* black */);
+        plugin->progress_bar_width =
+                ply_key_file_get_long (key_file, "two-step",
+                                       "ProgressBarWidth",
+                                       PROGRESS_BAR_WIDTH);
+        plugin->progress_bar_height =
+                ply_key_file_get_long (key_file, "two-step",
+                                       "ProgressBarHeight",
+                                       PROGRESS_BAR_HEIGHT);
 
         load_mode_settings (plugin, key_file, "boot-up", PLY_BOOT_SPLASH_MODE_BOOT_UP);
         load_mode_settings (plugin, key_file, "shutdown", PLY_BOOT_SPLASH_MODE_SHUTDOWN);

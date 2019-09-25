@@ -332,10 +332,10 @@ ply_key_file_has_key (ply_key_file_t *key_file,
         return entry != NULL;
 }
 
-char *
-ply_key_file_get_value (ply_key_file_t *key_file,
-                        const char     *group_name,
-                        const char     *key)
+static char *
+ply_key_file_get_raw_value (ply_key_file_t *key_file,
+                            const char     *group_name,
+                            const char     *key)
 {
         ply_key_file_group_t *group;
         ply_key_file_entry_t *entry;
@@ -354,36 +354,34 @@ ply_key_file_get_value (ply_key_file_t *key_file,
                 return NULL;
         }
 
-        return strdup (entry->value);
+        return entry->value;
+}
+
+char *
+ply_key_file_get_value (ply_key_file_t *key_file,
+                        const char     *group,
+                        const char     *key)
+{
+        char *raw_value = ply_key_file_get_raw_value (key_file, group, key);
+
+        return raw_value ? strdup (raw_value) : NULL;
 }
 
 bool
 ply_key_file_get_bool (ply_key_file_t *key_file,
-                       const char     *group_name,
+                       const char     *group,
                        const char     *key)
 {
-        ply_key_file_group_t *group;
-        ply_key_file_entry_t *entry;
+        char *raw_value = ply_key_file_get_raw_value (key_file, group, key);
 
-        group = ply_key_file_find_group (key_file, group_name);
-
-        if (group == NULL) {
-                ply_trace ("key file does not have group '%s'", group_name);
+        if (!raw_value)
                 return false;
-        }
-
-        entry = ply_key_file_find_entry (key_file, group, key);
-
-        if (entry == NULL) {
-                ply_trace ("key file does not have entry for key '%s'", key);
-                return false;
-        }
 
         /* We treat "1", "y" and "yes" and "true" as true, all else is false */
-        if (strcasecmp (entry->value, "1")    == 0 ||
-            strcasecmp (entry->value, "y")    == 0 ||
-            strcasecmp (entry->value, "yes")  == 0 ||
-            strcasecmp (entry->value, "true") == 0)
+        if (strcasecmp (raw_value, "1")    == 0 ||
+            strcasecmp (raw_value, "y")    == 0 ||
+            strcasecmp (raw_value, "yes")  == 0 ||
+            strcasecmp (raw_value, "true") == 0)
                 return true;
 
         return false;

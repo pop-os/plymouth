@@ -191,6 +191,7 @@ static void display_message (ply_boot_splash_plugin_t *plugin,
                              const char               *message);
 static void become_idle (ply_boot_splash_plugin_t *plugin,
                          ply_trigger_t            *idle_trigger);
+static void view_show_message (view_t *view, const char *message);
 
 static view_t *
 view_new (ply_boot_splash_plugin_t *plugin,
@@ -1646,6 +1647,7 @@ update_progress_animation (ply_boot_splash_plugin_t *plugin,
                            double                    percent_done)
 {
         ply_list_node_t *node;
+        char buf[64];
 
         node = ply_list_get_first_node (plugin->views);
         while (node != NULL) {
@@ -1658,6 +1660,13 @@ update_progress_animation (ply_boot_splash_plugin_t *plugin,
                 if (view->progress_animation != NULL)
                         ply_progress_animation_set_percent_done (view->progress_animation,
                                                                  percent_done);
+
+                ply_progress_bar_set_percent_done (view->progress_bar, percent_done);
+                if (!ply_progress_bar_is_hidden (view->progress_bar) &&
+                    plugin->mode_settings[plugin->mode].progress_bar_show_percent_complete) {
+                        snprintf (buf, sizeof(buf), _("%d%% complete"), (int)(percent_done * 100));
+                        view_show_message (view, buf);
+                }
 
                 node = next_node;
         }
@@ -1874,31 +1883,12 @@ static void
 system_update (ply_boot_splash_plugin_t *plugin,
                int                       progress)
 {
-        ply_list_node_t *node;
-        char buf[64];
-
         if (plugin->mode != PLY_BOOT_SPLASH_MODE_UPDATES &&
             plugin->mode != PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE &&
             plugin->mode != PLY_BOOT_SPLASH_MODE_FIRMWARE_UPGRADE)
                 return;
 
-        node = ply_list_get_first_node (plugin->views);
-        while (node != NULL) {
-                ply_list_node_t *next_node;
-                view_t *view;
-
-                view = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (plugin->views, node);
-                if (view->progress_animation != NULL)
-                        ply_progress_animation_set_percent_done (view->progress_animation, (double) progress / 100.f);
-                ply_progress_bar_set_percent_done (view->progress_bar, (double) progress / 100.f);
-                if (!ply_progress_bar_is_hidden (view->progress_bar) &&
-                    plugin->mode_settings[plugin->mode].progress_bar_show_percent_complete) {
-                        snprintf (buf, sizeof(buf), _("%d%% complete"), progress);
-                        view_show_message (view, buf);
-                }
-                node = next_node;
-        }
+        update_progress_animation (plugin, progress / 100.0);
 }
 
 static void

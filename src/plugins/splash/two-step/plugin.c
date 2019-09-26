@@ -766,13 +766,12 @@ static void
 view_start_end_animation (view_t        *view,
                           ply_trigger_t *trigger)
 {
-        ply_boot_splash_plugin_t *plugin;
-
-        long x, y;
-        long width, height;
+        ply_boot_splash_plugin_t *plugin = view->plugin;
         unsigned long screen_width, screen_height;
+        long x, y, width, height;
 
-        plugin = view->plugin;
+        if (view->progress_animation != NULL)
+                ply_progress_animation_hide (view->progress_animation);
 
         screen_width = ply_pixel_display_get_width (view->display);
         screen_height = ply_pixel_display_get_height (view->display);
@@ -791,9 +790,6 @@ view_start_end_animation (view_t        *view,
 static void
 on_view_throbber_stopped (view_t *view)
 {
-        ply_trace ("hiding progress animation");
-        if (view->progress_animation != NULL)
-                ply_progress_animation_hide (view->progress_animation);
         view_start_end_animation (view, view->end_trigger);
         view->end_trigger = NULL;
 }
@@ -1241,10 +1237,6 @@ start_end_animation (ply_boot_splash_plugin_t *plugin,
                                                  view);
                         ply_throbber_stop (view->throbber, throbber_trigger);
                 } else {
-                        if (view->progress_animation != NULL) {
-                                ply_trace ("hiding progress animation");
-                                ply_progress_animation_hide (view->progress_animation);
-                        }
                         view_start_end_animation (view, trigger);
                 }
 

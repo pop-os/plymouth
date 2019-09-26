@@ -771,6 +771,7 @@ view_start_end_animation (view_t        *view,
         unsigned long screen_width, screen_height;
         long x, y, width, height;
 
+        ply_progress_bar_hide (view->progress_bar);
         if (view->progress_animation != NULL)
                 ply_progress_animation_hide (view->progress_animation);
 
@@ -1305,6 +1306,7 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
                 view = ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (plugin->views, node);
 
+                ply_progress_bar_hide (view->progress_bar);
                 if (view->progress_animation != NULL) {
                         ply_trace ("hiding progress animation");
                         ply_progress_animation_hide (view->progress_animation);

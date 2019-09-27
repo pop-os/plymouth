@@ -84,6 +84,8 @@ bool ply_renderer_get_panel_properties (ply_renderer_t              *renderer,
                                         int                         *height,
                                         ply_pixel_buffer_rotation_t *rotation,
                                         int                         *scale);
+
+bool ply_renderer_get_capslock_state (ply_renderer_t *renderer);
 #endif
 
 #endif /* PLY_RENDERER_H */

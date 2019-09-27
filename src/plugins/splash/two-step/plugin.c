@@ -42,6 +42,7 @@
 
 #include "ply-boot-splash-plugin.h"
 #include "ply-buffer.h"
+#include "ply-capslock-icon.h"
 #include "ply-entry.h"
 #include "ply-event-loop.h"
 #include "ply-label.h"
@@ -97,6 +98,7 @@ typedef struct
         ply_boot_splash_plugin_t *plugin;
         ply_pixel_display_t      *display;
         ply_entry_t              *entry;
+        ply_capslock_icon_t      *capslock_icon;
         ply_animation_t          *end_animation;
         ply_progress_animation_t *progress_animation;
         ply_progress_bar_t       *progress_bar;
@@ -140,6 +142,9 @@ struct _ply_boot_splash_plugin
 
         double                              dialog_horizontal_alignment;
         double                              dialog_vertical_alignment;
+
+        double                              keyboard_indicator_horizontal_alignment;
+        double                              keyboard_indicator_vertical_alignment;
 
         double                              title_horizontal_alignment;
         double                              title_vertical_alignment;
@@ -198,6 +203,7 @@ view_new (ply_boot_splash_plugin_t *plugin,
         view->display = display;
 
         view->entry = ply_entry_new (plugin->animation_dir);
+        view->capslock_icon = ply_capslock_icon_new (plugin->animation_dir);
         view->progress_animation = ply_progress_animation_new (plugin->animation_dir,
                                                                "progress-");
         view->progress_bar = ply_progress_bar_new ();
@@ -230,6 +236,7 @@ static void
 view_free (view_t *view)
 {
         ply_entry_free (view->entry);
+        ply_capslock_icon_free (view->capslock_icon);
         ply_animation_free (view->end_animation);
         ply_progress_animation_free (view->progress_animation);
         ply_progress_bar_free (view->progress_bar);
@@ -592,6 +599,8 @@ view_load (view_t *view)
         if (!ply_entry_load (view->entry))
                 return false;
 
+        ply_capslock_icon_load (view->capslock_icon);
+
         view_load_end_animation (view);
 
         if (view->progress_animation != NULL) {
@@ -857,6 +866,7 @@ view_show_prompt (view_t     *view,
 {
         ply_boot_splash_plugin_t *plugin;
         unsigned long screen_width, screen_height, entry_width, entry_height;
+        unsigned long capslock_width, capslock_height;
         int x, y;
 
         assert (view != NULL);
@@ -899,6 +909,14 @@ view_show_prompt (view_t     *view,
                     (view->dialog_area.height - entry_height) / 2.0;
 
                 ply_entry_show (view->entry, plugin->loop, view->display, x, y);
+
+                capslock_width = ply_capslock_icon_get_width (view->capslock_icon);
+                capslock_height = ply_capslock_icon_get_height (view->capslock_icon);
+
+                x = (screen_width - capslock_width) * plugin->keyboard_indicator_horizontal_alignment;
+                y = (screen_height - capslock_height) * plugin->keyboard_indicator_vertical_alignment;
+
+                ply_capslock_icon_show (view->capslock_icon, plugin->loop, view->display, x, y);
         }
 
         if (prompt != NULL) {
@@ -922,6 +940,7 @@ view_hide_prompt (view_t *view)
         assert (view != NULL);
 
         ply_entry_hide (view->entry);
+        ply_capslock_icon_hide (view->capslock_icon);
         ply_label_hide (view->label);
 }
 
@@ -955,10 +974,7 @@ create_plugin (ply_key_file_t *key_file)
 {
         ply_boot_splash_plugin_t *plugin;
         char *image_dir, *image_path;
-        char *alignment;
         char *transition;
-        char *transition_duration;
-        char *color;
         char *progress_function;
 
         srand ((int) ply_get_timestamp ());
@@ -997,61 +1013,49 @@ create_plugin (ply_key_file_t *key_file)
         plugin->font = ply_key_file_get_value (key_file, "two-step", "Font");
         plugin->title_font = ply_key_file_get_value (key_file, "two-step", "TitleFont");
 
-        alignment = ply_key_file_get_value (key_file, "two-step", "HorizontalAlignment");
-        if (alignment != NULL)
-                plugin->animation_horizontal_alignment = ply_strtod (alignment);
-        else
-                plugin->animation_horizontal_alignment = .5;
-        free (alignment);
+        /* Throbber, progress- and end-animation alignment */
+        plugin->animation_horizontal_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "HorizontalAlignment", 0.5);
+        plugin->animation_vertical_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "VerticalAlignment", 0.5);
 
-        alignment = ply_key_file_get_value (key_file, "two-step", "VerticalAlignment");
-        if (alignment != NULL)
-                plugin->animation_vertical_alignment = ply_strtod (alignment);
-        else
-                plugin->animation_vertical_alignment = .5;
-        free (alignment);
+        /* Watermark alignment */
+        plugin->watermark_horizontal_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "WatermarkHorizontalAlignment", 1.0);
+        plugin->watermark_vertical_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "WatermarkVerticalAlignment", 0.5);
 
-        alignment = ply_key_file_get_value (key_file, "two-step", "WatermarkHorizontalAlignment");
-        if (alignment != NULL)
-                plugin->watermark_horizontal_alignment = ply_strtod (alignment);
-        else
-                plugin->watermark_horizontal_alignment = 1.0;
-        free (alignment);
+        /* Password (or other) dialog alignment */
+        plugin->dialog_horizontal_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "DialogHorizontalAlignment", 0.5);
+        plugin->dialog_vertical_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "DialogVerticalAlignment", 0.5);
 
-        alignment = ply_key_file_get_value (key_file, "two-step", "WatermarkVerticalAlignment");
-        if (alignment != NULL)
-                plugin->watermark_vertical_alignment = ply_strtod (alignment);
-        else
-                plugin->watermark_vertical_alignment = .5;
-        free (alignment);
+        /* Keyboard layout + capslock indicator alignment, this defaults
+         * to halfway between the dialog and the bottom of the screen.
+         */
+        plugin->keyboard_indicator_horizontal_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "KeyboardIndicatorHorizontalAlignment",
+                                         plugin->dialog_horizontal_alignment);
+        plugin->keyboard_indicator_vertical_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "KeyboardIndicatorVerticalAlignment",
+                                         0.5 + 0.5 * plugin->dialog_vertical_alignment);
 
-        alignment = ply_key_file_get_value (key_file, "two-step", "DialogHorizontalAlignment");
-        if (alignment != NULL)
-                plugin->dialog_horizontal_alignment = ply_strtod (alignment);
-        else
-                plugin->dialog_horizontal_alignment = .5;
-        free (alignment);
-
-        alignment = ply_key_file_get_value (key_file, "two-step", "DialogVerticalAlignment");
-        if (alignment != NULL)
-                plugin->dialog_vertical_alignment = ply_strtod (alignment);
-        else
-                plugin->dialog_vertical_alignment = .5;
-        free (alignment);
-
-        alignment = ply_key_file_get_value (key_file, "two-step", "TitleHorizontalAlignment");
-        if (alignment != NULL)
-                plugin->title_horizontal_alignment = ply_strtod (alignment);
-        else
-                plugin->title_horizontal_alignment = .5;
-        free (alignment);
-
-        alignment = ply_key_file_get_value (key_file, "two-step", "TitleVerticalAlignment");
-        if (alignment != NULL)
-                plugin->title_vertical_alignment = ply_strtod (alignment);
-        else
-                plugin->title_vertical_alignment = .5;
-        free (alignment);
+        /* Title alignment */
+        plugin->title_horizontal_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "TitleHorizontalAlignment", 0.5);
+        plugin->title_vertical_alignment =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "TitleVerticalAlignment", 0.5);
 
         plugin->transition = PLY_PROGRESS_ANIMATION_TRANSITION_NONE;
         transition = ply_key_file_get_value (key_file, "two-step", "Transition");
@@ -1065,49 +1069,27 @@ create_plugin (ply_key_file_t *key_file)
         }
         free (transition);
 
-        transition_duration = ply_key_file_get_value (key_file, "two-step", "TransitionDuration");
-        if (transition_duration != NULL)
-                plugin->transition_duration = ply_strtod (transition_duration);
-        else
-                plugin->transition_duration = 0.0;
-        free (transition_duration);
+        plugin->transition_duration =
+                ply_key_file_get_double (key_file, "two-step",
+                                         "TransitionDuration", 0.0);
 
-        color = ply_key_file_get_value (key_file, "two-step", "BackgroundStartColor");
+        plugin->background_start_color =
+                ply_key_file_get_long (key_file, "two-step",
+                                       "BackgroundStartColor",
+                                       PLYMOUTH_BACKGROUND_START_COLOR);
+        plugin->background_end_color =
+                ply_key_file_get_long (key_file, "two-step",
+                                       "BackgroundEndColor",
+                                       PLYMOUTH_BACKGROUND_END_COLOR);
 
-        if (color != NULL)
-                plugin->background_start_color = strtol (color, NULL, 0);
-        else
-                plugin->background_start_color = PLYMOUTH_BACKGROUND_START_COLOR;
-
-        free (color);
-
-        color = ply_key_file_get_value (key_file, "two-step", "BackgroundEndColor");
-
-        if (color != NULL)
-                plugin->background_end_color = strtol (color, NULL, 0);
-        else
-                plugin->background_end_color = PLYMOUTH_BACKGROUND_END_COLOR;
-
-        free (color);
-
-        color = ply_key_file_get_value (key_file, "two-step", "ProgressBarBackgroundColor");
-
-        if (color != NULL)
-                plugin->progress_bar_bg_color = strtol (color, NULL, 0);
-        else
-                plugin->progress_bar_bg_color = 0xffffff; /* white */
-
-        free (color);
-
-        color = ply_key_file_get_value (key_file, "two-step", "ProgressBarForegroundColor");
-
-        if (color != NULL)
-                plugin->progress_bar_fg_color = strtol (color, NULL, 0);
-        else
-                plugin->progress_bar_fg_color = 0x000000; /* black */
-
-        free (color);
-
+        plugin->progress_bar_bg_color =
+                ply_key_file_get_long (key_file, "two-step",
+                                       "ProgressBarBackgroundColor",
+                                       0xffffff /* white */);
+        plugin->progress_bar_fg_color =
+                ply_key_file_get_long (key_file, "two-step",
+                                       "ProgressBarForegroundColor",
+                                       0x000000 /* black */);
 
         load_mode_settings (plugin, key_file, "boot-up", PLY_BOOT_SPLASH_MODE_BOOT_UP);
         load_mode_settings (plugin, key_file, "shutdown", PLY_BOOT_SPLASH_MODE_SHUTDOWN);
@@ -1439,6 +1421,9 @@ on_draw (view_t             *view,
                 ply_entry_draw_area (view->entry,
                                      pixel_buffer,
                                      x, y, width, height);
+                ply_capslock_icon_draw_area (view->capslock_icon,
+                                             pixel_buffer,
+                                             x, y, width, height);
                 ply_label_draw_area (view->label,
                                      pixel_buffer,
                                      x, y, width, height);

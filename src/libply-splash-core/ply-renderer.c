@@ -434,4 +434,13 @@ ply_renderer_get_panel_properties (ply_renderer_t              *renderer,
                                                                  rotation, scale);
 }
 
+bool
+ply_renderer_get_capslock_state (ply_renderer_t *renderer)
+{
+        if (!renderer->plugin_interface->get_capslock_state)
+                return false;
+
+        return renderer->plugin_interface->get_capslock_state (renderer->backend);
+}
+
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

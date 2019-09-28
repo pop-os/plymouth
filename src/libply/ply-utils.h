@@ -128,6 +128,7 @@ int ply_get_device_scale (uint32_t width,
 const char *ply_kernel_command_line_get_string_after_prefix (const char *prefix);
 bool ply_kernel_command_line_has_argument (const char *argument);
 void ply_kernel_command_line_override (const char *command_line);
+char *ply_kernel_command_line_get_key_value (const char *key);
 
 double ply_strtod(const char *str);
 

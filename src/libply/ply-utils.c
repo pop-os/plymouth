@@ -995,6 +995,18 @@ ply_kernel_command_line_has_argument (const char *argument)
         return true;
 }
 
+char *
+ply_kernel_command_line_get_key_value (const char *key)
+{
+        const char *value;
+
+        value = ply_kernel_command_line_get_string_after_prefix (key);
+        if (value == NULL || value[0] == '\0')
+                return NULL;
+
+        return strndup(value, strcspn (value, " \n"));
+}
+
 void
 ply_kernel_command_line_override (const char *command_line)
 {

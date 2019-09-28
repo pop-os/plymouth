@@ -871,7 +871,9 @@ view_start_progress_animation (view_t *view)
 
 static void
 view_show_prompt (view_t     *view,
-                  const char *prompt)
+                  const char *prompt,
+                  const char *entry_text,
+                  int         number_of_bullets)
 {
         ply_boot_splash_plugin_t *plugin;
         unsigned long screen_width, screen_height, entry_width, entry_height;
@@ -927,6 +929,12 @@ view_show_prompt (view_t     *view,
 
                 ply_capslock_icon_show (view->capslock_icon, plugin->loop, view->display, x, y);
         }
+
+        if (entry_text != NULL)
+                ply_entry_set_text (view->entry, entry_text);
+
+        if (number_of_bullets != -1)
+                ply_entry_set_bullet_count (view->entry, number_of_bullets);
 
         if (prompt != NULL) {
                 ply_label_set_text (view->label, prompt);
@@ -1774,32 +1782,10 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 }
 
 static void
-show_password_prompt (ply_boot_splash_plugin_t *plugin,
-                      const char               *text,
-                      int                       number_of_bullets)
-{
-        ply_list_node_t *node;
-
-        ply_trace ("showing password prompt");
-        node = ply_list_get_first_node (plugin->views);
-        while (node != NULL) {
-                ply_list_node_t *next_node;
-                view_t *view;
-
-                view = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (plugin->views, node);
-
-                view_show_prompt (view, text);
-                ply_entry_set_bullet_count (view->entry, number_of_bullets);
-
-                node = next_node;
-        }
-}
-
-static void
 show_prompt (ply_boot_splash_plugin_t *plugin,
              const char               *prompt,
-             const char               *entry_text)
+             const char               *entry_text,
+             int                       number_of_bullets)
 {
         ply_list_node_t *node;
 
@@ -1812,8 +1798,7 @@ show_prompt (ply_boot_splash_plugin_t *plugin,
                 view = ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (plugin->views, node);
 
-                view_show_prompt (view, prompt);
-                ply_entry_set_text (view->entry, entry_text);
+                view_show_prompt (view, prompt, entry_text, number_of_bullets);
 
                 node = next_node;
         }
@@ -1948,7 +1933,7 @@ display_password (ply_boot_splash_plugin_t *plugin,
                 stop_animation (plugin);
 
         plugin->state = PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY;
-        show_password_prompt (plugin, prompt, bullets);
+        show_prompt (plugin, prompt, NULL, bullets);
         redraw_views (plugin);
         unpause_views (plugin);
 }
@@ -1963,7 +1948,7 @@ display_question (ply_boot_splash_plugin_t *plugin,
                 stop_animation (plugin);
 
         plugin->state = PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY;
-        show_prompt (plugin, prompt, entry_text);
+        show_prompt (plugin, prompt, entry_text, -1);
         redraw_views (plugin);
         unpause_views (plugin);
 }

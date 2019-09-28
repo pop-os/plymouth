@@ -1461,21 +1461,18 @@ on_draw (view_t             *view,
                                                     x, y, width, height);
 
                 if (plugin->mode_settings[plugin->mode].use_animation &&
-                    view->throbber != NULL &&
-                    !ply_throbber_is_stopped (view->throbber))
+                    view->throbber != NULL)
                         ply_throbber_draw_area (view->throbber, pixel_buffer,
                                                 x, y, width, height);
 
                 if (plugin->mode_settings[plugin->mode].use_animation &&
-                    view->progress_animation != NULL &&
-                    !ply_progress_animation_is_hidden (view->progress_animation))
+                    view->progress_animation != NULL)
                         ply_progress_animation_draw_area (view->progress_animation,
                                                           pixel_buffer,
                                                           x, y, width, height);
 
                 if (plugin->mode_settings[plugin->mode].use_animation &&
-                    view->end_animation != NULL &&
-                    !ply_animation_is_stopped (view->end_animation))
+                    view->end_animation != NULL)
                         ply_animation_draw_area (view->end_animation,
                                                  pixel_buffer,
                                                  x, y, width, height);

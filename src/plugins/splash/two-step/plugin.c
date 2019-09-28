@@ -188,9 +188,7 @@ struct _ply_boot_splash_plugin
 
 ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
 
-static void stop_animation (ply_boot_splash_plugin_t *plugin,
-                            ply_trigger_t            *idle_trigger);
-
+static void stop_animation (ply_boot_splash_plugin_t *plugin);
 static void detach_from_event_loop (ply_boot_splash_plugin_t *plugin);
 static void display_message (ply_boot_splash_plugin_t *plugin,
                              const char               *message);
@@ -1204,7 +1202,7 @@ destroy_plugin (ply_boot_splash_plugin_t *plugin)
         ply_trace ("destroying plugin");
 
         if (plugin->loop != NULL) {
-                stop_animation (plugin, NULL);
+                stop_animation (plugin);
 
                 ply_event_loop_stop_watching_for_exit (plugin->loop, (ply_event_loop_exit_handler_t)
                                                        detach_from_event_loop,
@@ -1321,8 +1319,7 @@ start_progress_animation (ply_boot_splash_plugin_t *plugin)
 }
 
 static void
-stop_animation (ply_boot_splash_plugin_t *plugin,
-                ply_trigger_t            *trigger)
+stop_animation (ply_boot_splash_plugin_t *plugin)
 {
         ply_list_node_t *node;
 
@@ -1332,9 +1329,7 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
         if (!plugin->is_animating)
                 return;
 
-        ply_trace ("stopping animation%s",
-                   trigger != NULL ? " with trigger" : "");
-
+        ply_trace ("stopping animation");
         plugin->is_animating = false;
 
         node = ply_list_get_first_node (plugin->views);
@@ -1346,21 +1341,15 @@ stop_animation (ply_boot_splash_plugin_t *plugin,
                 next_node = ply_list_get_next_node (plugin->views, node);
 
                 ply_progress_bar_hide (view->progress_bar);
-                if (view->progress_animation != NULL) {
-                        ply_trace ("hiding progress animation");
+                if (view->progress_animation != NULL)
                         ply_progress_animation_hide (view->progress_animation);
-                }
-                if (trigger != NULL)
-                        ply_trigger_ignore_next_pull (trigger);
                 if (view->throbber != NULL)
-                        ply_throbber_stop (view->throbber, trigger);
-                ply_animation_stop (view->end_animation);
+                        ply_throbber_stop (view->throbber, NULL);
+                if (view->end_animation != NULL)
+                        ply_animation_stop (view->end_animation);
 
                 node = next_node;
         }
-
-        if (trigger != NULL)
-                ply_trigger_pull (trigger, NULL);
 }
 
 static void
@@ -1776,7 +1765,7 @@ hide_splash_screen (ply_boot_splash_plugin_t *plugin,
 
         ply_trace ("hiding splash");
         if (plugin->loop != NULL) {
-                stop_animation (plugin, NULL);
+                stop_animation (plugin);
 
                 ply_event_loop_stop_watching_for_exit (plugin->loop, (ply_event_loop_exit_handler_t)
                                                        detach_from_event_loop,
@@ -1959,7 +1948,7 @@ display_password (ply_boot_splash_plugin_t *plugin,
 {
         pause_views (plugin);
         if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_NORMAL)
-                stop_animation (plugin, NULL);
+                stop_animation (plugin);
 
         plugin->state = PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY;
         show_password_prompt (plugin, prompt, bullets);
@@ -1974,7 +1963,7 @@ display_question (ply_boot_splash_plugin_t *plugin,
 {
         pause_views (plugin);
         if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_NORMAL)
-                stop_animation (plugin, NULL);
+                stop_animation (plugin);
 
         plugin->state = PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY;
         show_prompt (plugin, prompt, entry_text);

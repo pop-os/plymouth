@@ -83,8 +83,6 @@ bool ply_fd_has_data (int fd);
 bool ply_set_fd_as_blocking (int fd);
 char **ply_copy_string_array (const char *const *array);
 void ply_free_string_array (char **array);
-bool ply_string_has_prefix (const char *string,
-                            const char *prefix);
 double ply_get_timestamp (void);
 
 void ply_save_errno (void);

@@ -212,6 +212,10 @@ view_new (ply_boot_splash_plugin_t *plugin,
         view->capslock_icon = ply_capslock_icon_new (plugin->animation_dir);
         view->progress_animation = ply_progress_animation_new (plugin->animation_dir,
                                                                "progress-");
+        ply_progress_animation_set_transition (view->progress_animation,
+                                               plugin->transition,
+                                               plugin->transition_duration);
+
         view->progress_bar = ply_progress_bar_new ();
         ply_progress_bar_set_colors (view->progress_bar,
                                      plugin->progress_bar_fg_color,
@@ -219,9 +223,6 @@ view_new (ply_boot_splash_plugin_t *plugin,
 
         view->throbber = ply_throbber_new (plugin->animation_dir,
                                            "throbber-");
-        ply_progress_animation_set_transition (view->progress_animation,
-                                               plugin->transition,
-                                               plugin->transition_duration);
 
         view->label = ply_label_new ();
         ply_label_set_font (view->label, plugin->font);

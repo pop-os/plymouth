@@ -354,33 +354,29 @@ show_detailed_splash (state_t *state)
 static void
 find_override_splash (state_t *state)
 {
-        const char *splash_string;
+        char *splash_string;
 
         if (state->override_splash_path != NULL)
                 return;
 
-        splash_string = ply_kernel_command_line_get_string_after_prefix ("plymouth.splash=");
+        splash_string = ply_kernel_command_line_get_key_value ("plymouth.splash=");
 
         if (splash_string != NULL) {
-                const char *end;
-                int length;
-
-                end = splash_string + strcspn (splash_string, " \n");
-                length = end - splash_string;
-
-                ply_trace ("Splash is configured to be '%*.*s'", length, length, splash_string);
-
+                ply_trace ("Splash is configured to be '%s'", splash_string);
                 asprintf (&state->override_splash_path,
-                          PLYMOUTH_RUNTIME_THEME_PATH "%*.*s/%*.*s.plymouth",
-                          length, length, splash_string, length, length, splash_string);
+                          PLYMOUTH_RUNTIME_THEME_PATH "%s/%s.plymouth",
+                          splash_string, splash_string);
+
                 ply_trace ("Checking if %s exists", state->override_splash_path);
                 if (!ply_file_exists (state->override_splash_path)) {
                         ply_trace ("%s not found, fallbacking to " PLYMOUTH_THEME_PATH,
                                    state->override_splash_path);
+                        free (state->override_splash_path);
                         asprintf (&state->override_splash_path,
-                                  PLYMOUTH_THEME_PATH "%*.*s/%*.*s.plymouth",
-                                  length, length, splash_string, length, length, splash_string);
+                                  PLYMOUTH_THEME_PATH "%s/%s.plymouth",
+                                  splash_string, splash_string);
                 }
+                free (splash_string);
         }
 
         if (isnan (state->splash_delay)) {
@@ -839,18 +835,20 @@ plymouth_should_ignore_show_splash_calls (state_t *state)
 static bool
 sh_is_init (state_t *state)
 {
-        const char *init_string;
+        char *init_string = ply_kernel_command_line_get_key_value ("init=");
+        bool result = false;
         size_t length;
 
-        init_string = ply_kernel_command_line_get_string_after_prefix ("init=");
-
         if (init_string) {
-                length = strcspn (init_string, " \n");
-                if (length > 2 && ply_string_has_prefix (init_string + length - 2, "sh"))
-                        return true;
+                length = strlen (init_string);
+                if (length > 2 && init_string[length - 2] == 's' &&
+                                  init_string[length - 1] == 'h')
+                        result = true;
+
+                free (init_string);
         }
 
-        return false;
+        return result;
 }
 
 static bool
@@ -1805,15 +1803,15 @@ detach_from_running_session (state_t *state)
 static void
 check_verbosity (state_t *state)
 {
-        const char *stream;
-        const char *path;
+        char *stream;
 
         ply_trace ("checking if tracing should be enabled");
 
-        stream = ply_kernel_command_line_get_string_after_prefix ("plymouth.debug=stream:");
+        if (!debug_buffer_path)
+                debug_buffer_path = ply_kernel_command_line_get_key_value ("plymouth.debug=file:");
 
-        path = ply_kernel_command_line_get_string_after_prefix ("plymouth.debug=file:");
-        if (stream != NULL || path != NULL ||
+        stream = ply_kernel_command_line_get_key_value ("plymouth.debug=stream:");
+        if (stream != NULL || debug_buffer_path != NULL ||
             ply_kernel_command_line_has_argument ("plymouth.debug")) {
                 int fd;
 
@@ -1821,33 +1819,18 @@ check_verbosity (state_t *state)
                 if (!ply_is_tracing ())
                         ply_toggle_tracing ();
 
-                if (path != NULL && debug_buffer_path == NULL) {
-                        char *end;
-
-                        debug_buffer_path = strdup (path);
-                        end = debug_buffer_path + strcspn (debug_buffer_path, " \n");
-                        *end = '\0';
-                }
-
                 if (debug_buffer == NULL)
                         debug_buffer = ply_buffer_new ();
 
                 if (stream != NULL) {
-                        char *end;
-                        char *stream_copy;
-
-                        stream_copy = strdup (stream);
-                        end = stream_copy + strcspn (stream_copy, " \n");
-                        *end = '\0';
-
-                        ply_trace ("streaming debug output to %s instead of screen", stream_copy);
-                        fd = open (stream_copy, O_RDWR | O_NOCTTY | O_CREAT, 0600);
+                        ply_trace ("streaming debug output to %s instead of screen", stream);
+                        fd = open (stream, O_RDWR | O_NOCTTY | O_CREAT, 0600);
 
                         if (fd < 0)
-                                ply_trace ("could not stream output to %s: %m", stream_copy);
+                                ply_trace ("could not stream output to %s: %m", stream);
                         else
                                 ply_logger_set_output_fd (ply_logger_get_error_default (), fd);
-                        free (stream_copy);
+                        free (stream);
                 } else {
                         const char *device;
                         char *file;

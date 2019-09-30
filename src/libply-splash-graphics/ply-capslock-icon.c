@@ -96,6 +96,15 @@ ply_capslock_icon_update_state (ply_capslock_icon_t *capslock_icon)
 }
 
 static void
+ply_capslock_icon_draw (ply_capslock_icon_t *capslock_icon)
+{
+        ply_pixel_display_draw_area (capslock_icon->display,
+                                     capslock_icon->x, capslock_icon->y,
+                                     capslock_icon->width,
+                                     capslock_icon->height);
+}
+
+static void
 on_timeout (void             *user_data,
             ply_event_loop_t *loop)
 {
@@ -104,12 +113,8 @@ on_timeout (void             *user_data,
 
         ply_capslock_icon_update_state (capslock_icon);
         
-        if (capslock_icon->is_on != old_is_on) {
-                ply_pixel_display_draw_area (capslock_icon->display,
-                                             capslock_icon->x, capslock_icon->y,
-                                             capslock_icon->width,
-                                             capslock_icon->height);
-        }
+        if (capslock_icon->is_on != old_is_on)
+                ply_capslock_icon_draw (capslock_icon);
 
         ply_event_loop_watch_for_timeout (capslock_icon->loop,
                                           1.0 / FRAMES_PER_SECOND,
@@ -160,6 +165,8 @@ ply_capslock_icon_show (ply_capslock_icon_t *capslock_icon,
         capslock_icon->x = x;
         capslock_icon->y = y;
 
+        ply_capslock_icon_draw (capslock_icon);
+
         ply_event_loop_watch_for_timeout (capslock_icon->loop,
                                           1.0 / FRAMES_PER_SECOND,
                                           on_timeout, capslock_icon);
@@ -175,10 +182,7 @@ ply_capslock_icon_hide (ply_capslock_icon_t *capslock_icon)
 
         capslock_icon->is_hidden = true;
 
-        ply_pixel_display_draw_area (capslock_icon->display,
-                                     capslock_icon->x, capslock_icon->y,
-                                     capslock_icon->width,
-                                     capslock_icon->height);
+        ply_capslock_icon_draw (capslock_icon);
 
         ply_event_loop_stop_watching_for_timeout (capslock_icon->loop,
                                                   (ply_event_loop_timeout_handler_t)

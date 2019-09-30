@@ -50,6 +50,7 @@
 #include "ply-logger.h"
 #include "ply-image.h"
 #include "ply-key-file.h"
+#include "ply-keymap-icon.h"
 #include "ply-trigger.h"
 #include "ply-pixel-buffer.h"
 #include "ply-pixel-display.h"
@@ -98,6 +99,7 @@ typedef struct
         ply_boot_splash_plugin_t *plugin;
         ply_pixel_display_t      *display;
         ply_entry_t              *entry;
+        ply_keymap_icon_t        *keymap_icon;
         ply_capslock_icon_t      *capslock_icon;
         ply_animation_t          *end_animation;
         ply_progress_animation_t *progress_animation;
@@ -207,6 +209,7 @@ view_new (ply_boot_splash_plugin_t *plugin,
         view->display = display;
 
         view->entry = ply_entry_new (plugin->animation_dir);
+        view->keymap_icon = ply_keymap_icon_new (display, plugin->animation_dir);
         view->capslock_icon = ply_capslock_icon_new (plugin->animation_dir);
         view->progress_animation = ply_progress_animation_new (plugin->animation_dir,
                                                                "progress-");
@@ -241,6 +244,7 @@ static void
 view_free (view_t *view)
 {
         ply_entry_free (view->entry);
+        ply_keymap_icon_free (view->keymap_icon);
         ply_capslock_icon_free (view->capslock_icon);
         ply_animation_free (view->end_animation);
         ply_progress_animation_free (view->progress_animation);
@@ -604,6 +608,7 @@ view_load (view_t *view)
         if (!ply_entry_load (view->entry))
                 return false;
 
+        ply_keymap_icon_load (view->keymap_icon);
         ply_capslock_icon_load (view->capslock_icon);
 
         view_load_end_animation (view);
@@ -877,7 +882,7 @@ view_show_prompt (view_t     *view,
 {
         ply_boot_splash_plugin_t *plugin;
         unsigned long screen_width, screen_height, entry_width, entry_height;
-        unsigned long capslock_width, capslock_height;
+        unsigned long keyboard_indicator_width, keyboard_indicator_height;
         int x, y;
 
         assert (view != NULL);
@@ -921,12 +926,20 @@ view_show_prompt (view_t     *view,
 
                 ply_entry_show (view->entry, plugin->loop, view->display, x, y);
 
-                capslock_width = ply_capslock_icon_get_width (view->capslock_icon);
-                capslock_height = ply_capslock_icon_get_height (view->capslock_icon);
+                keyboard_indicator_width =
+                        ply_keymap_icon_get_width (view->keymap_icon);
+                keyboard_indicator_height = MAX(
+                        ply_capslock_icon_get_height (view->capslock_icon),
+                        ply_keymap_icon_get_height (view->keymap_icon));
 
-                x = (screen_width - capslock_width) * plugin->keyboard_indicator_horizontal_alignment;
-                y = (screen_height - capslock_height) * plugin->keyboard_indicator_vertical_alignment;
+                x = (screen_width - keyboard_indicator_width) * plugin->keyboard_indicator_horizontal_alignment;
+                y = (screen_height - keyboard_indicator_height) * plugin->keyboard_indicator_vertical_alignment +
+                    (keyboard_indicator_height - ply_keymap_icon_get_height (view->keymap_icon)) / 2.0;
+                ply_keymap_icon_show (view->keymap_icon, x, y);
 
+                x += ply_keymap_icon_get_width (view->keymap_icon);
+                y = (screen_height - keyboard_indicator_height) * plugin->keyboard_indicator_vertical_alignment +
+                    (keyboard_indicator_height - ply_capslock_icon_get_height (view->capslock_icon)) / 2.0;
                 ply_capslock_icon_show (view->capslock_icon, plugin->loop, view->display, x, y);
         }
 
@@ -958,6 +971,7 @@ view_hide_prompt (view_t *view)
 
         ply_entry_hide (view->entry);
         ply_capslock_icon_hide (view->capslock_icon);
+        ply_keymap_icon_hide (view->keymap_icon);
         ply_label_hide (view->label);
 }
 
@@ -1452,6 +1466,9 @@ on_draw (view_t             *view,
                 ply_entry_draw_area (view->entry,
                                      pixel_buffer,
                                      x, y, width, height);
+                ply_keymap_icon_draw_area (view->keymap_icon,
+                                           pixel_buffer,
+                                           x, y, width, height);
                 ply_capslock_icon_draw_area (view->capslock_icon,
                                              pixel_buffer,
                                              x, y, width, height);

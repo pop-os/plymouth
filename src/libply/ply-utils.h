@@ -83,8 +83,6 @@ bool ply_fd_has_data (int fd);
 bool ply_set_fd_as_blocking (int fd);
 char **ply_copy_string_array (const char *const *array);
 void ply_free_string_array (char **array);
-bool ply_string_has_prefix (const char *string,
-                            const char *prefix);
 double ply_get_timestamp (void);
 
 void ply_save_errno (void);
@@ -128,6 +126,7 @@ int ply_get_device_scale (uint32_t width,
 const char *ply_kernel_command_line_get_string_after_prefix (const char *prefix);
 bool ply_kernel_command_line_has_argument (const char *argument);
 void ply_kernel_command_line_override (const char *command_line);
+char *ply_kernel_command_line_get_key_value (const char *key);
 
 double ply_strtod(const char *str);
 

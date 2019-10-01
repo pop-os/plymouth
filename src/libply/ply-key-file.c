@@ -60,6 +60,7 @@ struct _ply_key_file
         FILE            *fp;
 
         ply_hashtable_t *groups;
+        ply_key_file_group_t *groupless_group;
 };
 
 typedef struct
@@ -152,6 +153,8 @@ ply_key_file_free (ply_key_file_t *key_file)
                                ply_key_file_free_group,
                                NULL);
 
+        if (key_file->groupless_group)
+                ply_key_file_free_group (NULL, key_file->groupless_group, NULL);
 
         ply_hashtable_free (key_file->groups);
         free (key_file->filename);
@@ -303,6 +306,9 @@ static ply_key_file_group_t *
 ply_key_file_find_group (ply_key_file_t *key_file,
                          const char     *group_name)
 {
+        if (!group_name)
+                return key_file->groupless_group;
+
         return ply_hashtable_lookup (key_file->groups, (void *) group_name);
 }
 
@@ -461,6 +467,20 @@ ply_key_file_foreach_entry (ply_key_file_t             *key_file,
         ply_hashtable_foreach (key_file->groups,
                                ply_key_file_foreach_entry_groups,
                                &func_data);
+}
+
+bool
+ply_key_file_load_groupless_file (ply_key_file_t *key_file)
+{
+        if (!ply_key_file_open_file (key_file))
+                return false;
+
+        key_file->groupless_group =
+                ply_key_file_load_group (key_file, "NONE");
+
+        ply_key_file_close_file (key_file);
+
+        return key_file->groupless_group != NULL;
 }
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

@@ -5,6 +5,9 @@ dist_theme_DATA =                                                     \
                     bullet.png                                        \
                     entry.png                                         \
                     lock.png                                          \
+                    capslock.png                                      \
+                    keyboard.png                                      \
+                    keymap-render.png                                 \
                     animation-0001.png                                \
                     animation-0002.png                                \
                     animation-0003.png                                \

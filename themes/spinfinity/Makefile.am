@@ -5,6 +5,9 @@ dist_theme_DATA =                                                     \
                   bullet.png                                          \
                   entry.png                                           \
                   lock.png                                            \
+                  capslock.png                                        \
+                  keyboard.png                                        \
+                  keymap-render.png                                   \
                   animation-0001.png                                  \
                   throbber-00.png                                     \
                   throbber-01.png                                     \

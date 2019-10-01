@@ -443,4 +443,13 @@ ply_renderer_get_capslock_state (ply_renderer_t *renderer)
         return renderer->plugin_interface->get_capslock_state (renderer->backend);
 }
 
+const char *
+ply_renderer_get_keymap (ply_renderer_t *renderer)
+{
+        if (!renderer->plugin_interface->get_keymap)
+                return NULL;
+
+        return renderer->plugin_interface->get_keymap (renderer->backend);
+}
+
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

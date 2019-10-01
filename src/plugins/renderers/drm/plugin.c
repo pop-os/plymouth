@@ -1805,6 +1805,15 @@ get_capslock_state (ply_renderer_backend_t *backend)
         return ply_terminal_get_capslock_state (backend->terminal);
 }
 
+static const char *
+get_keymap (ply_renderer_backend_t *backend)
+{
+        if (!backend->terminal)
+                return NULL;
+
+        return ply_terminal_get_keymap (backend->terminal);
+}
+
 ply_renderer_plugin_interface_t *
 ply_renderer_backend_get_interface (void)
 {
@@ -1830,6 +1839,7 @@ ply_renderer_backend_get_interface (void)
                 .get_device_name              = get_device_name,
                 .get_panel_properties         = get_panel_properties,
                 .get_capslock_state           = get_capslock_state,
+                .get_keymap                   = get_keymap,
         };
 
         return &plugin_interface;

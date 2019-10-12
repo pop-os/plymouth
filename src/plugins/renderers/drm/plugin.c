@@ -1614,6 +1614,7 @@ flush_head (ply_renderer_backend_t *backend,
         ply_list_node_t *node;
         ply_pixel_buffer_t *pixel_buffer;
         char *map_address;
+        bool dirty = false;
 
         assert (backend != NULL);
 
@@ -1645,16 +1646,19 @@ flush_head (ply_renderer_backend_t *backend,
 
                 next_node = ply_list_get_next_node (areas_to_flush, node);
 
-                if (reset_scan_out_buffer_if_needed (backend, head))
-                        ply_trace ("Needed to reset scan out buffer on %ldx%ld renderer head",
-                                   head->area.width, head->area.height);
-
                 ply_renderer_head_flush_area (head, area_to_flush, map_address);
+                dirty = true;
 
                 node = next_node;
         }
 
-        end_flush (backend, head->scan_out_buffer_id);
+        if (dirty) {
+                if (reset_scan_out_buffer_if_needed (backend, head))
+                        ply_trace ("Needed to reset scan out buffer on %ldx%ld renderer head",
+                                   head->area.width, head->area.height);
+
+                end_flush (backend, head->scan_out_buffer_id);
+        }
 
         ply_region_clear (updated_region);
 }

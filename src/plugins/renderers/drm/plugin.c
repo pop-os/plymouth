@@ -163,8 +163,6 @@ struct _ply_renderer_backend
 };
 
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
-static void ply_renderer_head_redraw (ply_renderer_backend_t *backend,
-                                      ply_renderer_head_t    *head);
 static bool open_input_source (ply_renderer_backend_t      *backend,
                                ply_renderer_input_source_t *input_source);
 static bool reset_scan_out_buffer_if_needed (ply_renderer_backend_t *backend,
@@ -1536,13 +1534,8 @@ map_to_device (ply_renderer_backend_t *backend)
                 head = (ply_renderer_head_t *) ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (backend->heads, node);
 
-                if (ply_renderer_head_map (backend, head)) {
-                        /* FIXME: Maybe we should blit the fbcon contents instead of the (blank)
-                         * shadow buffer?
-                         */
-                        ply_renderer_head_redraw (backend, head);
+                if (ply_renderer_head_map (backend, head))
                         head_mapped = true;
-                }
 
                 node = next_node;
         }
@@ -1664,21 +1657,6 @@ flush_head (ply_renderer_backend_t *backend,
         end_flush (backend, head->scan_out_buffer_id);
 
         ply_region_clear (updated_region);
-}
-
-static void
-ply_renderer_head_redraw (ply_renderer_backend_t *backend,
-                          ply_renderer_head_t    *head)
-{
-        ply_region_t *region;
-
-        ply_trace ("Redrawing %ldx%ld renderer head", head->area.width, head->area.height);
-
-        region = ply_pixel_buffer_get_updated_areas (head->pixel_buffer);
-
-        ply_region_add_rectangle (region, &head->area);
-
-        flush_head (backend, head);
 }
 
 static ply_list_t *

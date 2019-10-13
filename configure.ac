@@ -143,17 +143,25 @@ if test x$enable_systemd_integration = xyes; then
   AC_SUBST(SYSTEMD_UNIT_DIR)
 fi
 
+AC_ARG_WITH([runtimedir],
+            AC_HELP_STRING([--with-runtimedir=DIR], [runtime data dir [LOCALSTATEDIR/run]]),
+            [plymouthruntimedir=${withval}/plymouth], [plymouthruntimedir=""])
+
 AC_ARG_WITH(system-root-install, AS_HELP_STRING([--with-system-root-install],[Install client in /bin and daemon in /sbin]),with_system_root_install=${withval},with_system_root_install=no)
 AM_CONDITIONAL(WITH_SYSTEM_ROOT_INSTALL,  [test "$with_system_root_install" = yes])
 
 if test x$with_system_root_install = xyes; then
   plymouthclientdir=/bin
   plymouthdaemondir=/sbin
-  plymouthruntimedir=/run/plymouth
+  if (test -z "${plymouthruntimedir}"); then
+    plymouthruntimedir=/run/plymouth
+  fi
 else
   plymouthclientdir=$bindir
   plymouthdaemondir=$sbindir
-  plymouthruntimedir=$localstatedir/run/plymouth
+  if (test -z "${plymouthruntimedir}"); then
+    plymouthruntimedir=$localstatedir/run/plymouth
+  fi
 fi
 AC_SUBST(plymouthclientdir)
 AC_SUBST(plymouthdaemondir)

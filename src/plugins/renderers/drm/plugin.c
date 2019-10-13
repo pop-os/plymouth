@@ -83,7 +83,8 @@ struct _ply_renderer_head
         uint32_t                controller_id;
         uint32_t                console_buffer_id;
         uint32_t                scan_out_buffer_id;
-        bool			scan_out_buffer_needs_reset;
+        bool                    scan_out_buffer_needs_reset;
+        bool                    uses_hw_rotation;
 
         int                     gamma_size;
         uint16_t                *gamma;
@@ -128,6 +129,7 @@ typedef struct
         ply_pixel_buffer_rotation_t rotation;
         bool tiled;
         bool connected;
+        bool uses_hw_rotation;
 } ply_output_t;
 
 struct _ply_renderer_backend
@@ -526,8 +528,9 @@ ply_renderer_connector_get_rotation_and_tiled (ply_renderer_backend_t      *back
                                                drmModeConnector            *connector,
                                                ply_output_t                *output)
 {
+        int i, primary_id, rotation_prop_id;
         drmModePropertyPtr prop;
-        int i;
+        uint64_t rotation;
 
         output->rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
         output->tiled = false;
@@ -553,6 +556,21 @@ ply_renderer_connector_get_rotation_and_tiled (ply_renderer_backend_t      *back
                 }
 
                 drmModeFreeProperty (prop);
+        }
+
+        /* If the firmware setup the plane to use hw 180° rotation, then we keep
+         * the hw rotation. This avoids a flicker and avoids the splash turning
+         * upside-down when mutter turns hw-rotation back on and then fades from
+         * the splash to the login screen.
+         */
+        if (output->rotation == PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN &&
+            get_primary_plane_rotation (backend, output->controller_id,
+                                        &primary_id, &rotation_prop_id,
+                                        &rotation) &&
+            rotation == DRM_MODE_ROTATE_180) {
+                ply_trace("Keeping hw 180° rotation");
+                output->rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+                output->uses_hw_rotation = true;
         }
 }
 
@@ -598,6 +616,7 @@ ply_renderer_head_new (ply_renderer_backend_t     *backend,
         head->controller_id = output->controller_id;
         head->console_buffer_id = console_buffer_id;
         head->connector0_mode = output->mode;
+        head->uses_hw_rotation = output->uses_hw_rotation;
 
         head->area.x = 0;
         head->area.y = 0;
@@ -659,6 +678,9 @@ ply_renderer_head_clear_plane_rotation (ply_renderer_backend_t *backend,
 {
         int primary_id, rotation_prop_id, err;
         uint64_t rotation;
+
+        if (head->uses_hw_rotation)
+                return;
 
         if (get_primary_plane_rotation (backend, head->controller_id,
                                         &primary_id, &rotation_prop_id,
@@ -1412,8 +1434,11 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend, bool change
          */
         if (!change && number_of_setup_outputs != backend->connected_count) {
                 ply_trace ("Some outputs still don't have controllers, re-assigning controllers for all outputs");
-                for (i = 0; i < outputs_len; i++)
+                for (i = 0; i < outputs_len; i++) {
+                        if (outputs[i].uses_hw_rotation)
+                                continue; /* Do not re-assign hw-rotated outputs */
                         outputs[i].controller_id = 0;
+                }
                 outputs = setup_outputs (backend, outputs, outputs_len);
         }
         for (i = 0; i < outputs_len; i++)

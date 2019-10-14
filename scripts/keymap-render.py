@@ -67,7 +67,7 @@ ct.paint()
 ct.restore()
 ct.select_font_face("Cantarell", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
 ct.set_font_size(FONT_SIZE)
-ct.set_source_rgba(0.9, 0.9, 0.9, 1.0)
+ct.set_source_rgba(0.75, 0.75, 0.75, 1.0)
 
 ct.move_to(MARGIN, MARGIN + max_height - descent)
 current_x, current_y = (MARGIN, MARGIN + max_height - descent)

@@ -470,11 +470,7 @@ view_set_bgrt_background (view_t *view)
         }
 
         if (have_panel_props) {        
-                /* Upside-down panels are fixed up in HW by the GOP, so the
-                 * bgrt image is not rotated in this case.
-                 */
-                if (panel_rotation != PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN)
-                        ply_pixel_buffer_set_device_rotation (bgrt_buffer, panel_rotation);
+                ply_pixel_buffer_set_device_rotation (bgrt_buffer, panel_rotation);
                 ply_pixel_buffer_set_device_scale (bgrt_buffer, panel_scale);
         }
 

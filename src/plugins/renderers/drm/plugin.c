@@ -1,6 +1,6 @@
 /* plugin.c - drm backend renderer plugin
  *
- * Copyright (C) 2006-2009 Red Hat, Inc.
+ * Copyright (C) 2006-2019 Red Hat, Inc.
  *               2008 Charlie Brej <cbrej@cs.man.ac.uk>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -22,6 +22,7 @@
  *             Kristian Høgsberg <krh@redhat.com>
  *             Peter Jones <pjones@redhat.com>
  *             Ray Strode <rstrode@redhat.com>
+ *             Hans de Goede <hdegoede@redhat.com>
  */
 #include "config.h"
 
@@ -82,7 +83,8 @@ struct _ply_renderer_head
         uint32_t                controller_id;
         uint32_t                console_buffer_id;
         uint32_t                scan_out_buffer_id;
-        bool			scan_out_buffer_needs_reset;
+        bool                    scan_out_buffer_needs_reset;
+        bool                    uses_hw_rotation;
 
         int                     gamma_size;
         uint16_t                *gamma;
@@ -127,6 +129,7 @@ typedef struct
         ply_pixel_buffer_rotation_t rotation;
         bool tiled;
         bool connected;
+        bool uses_hw_rotation;
 } ply_output_t;
 
 struct _ply_renderer_backend
@@ -414,6 +417,90 @@ destroy_output_buffer (ply_renderer_backend_t *backend,
         ply_renderer_buffer_free (backend, buffer);
 }
 
+static bool
+get_primary_plane_rotation (ply_renderer_backend_t *backend,
+                            uint32_t               controller_id,
+                            int                   *primary_id_ret,
+                            int                   *rotation_prop_id_ret,
+                            uint64_t              *rotation_ret)
+{
+        drmModeObjectPropertiesPtr plane_props;
+        drmModePlaneResPtr plane_resources;
+        drmModePropertyPtr prop;
+        drmModePlanePtr plane;
+        uint64_t rotation;
+        uint32_t i, j;
+        int rotation_prop_id = -1;
+        int primary_id = -1;
+        int err;
+
+        if (!controller_id)
+                return false;
+
+        err = drmSetClientCap (backend->device_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
+        if (err)
+                return false;
+
+        plane_resources = drmModeGetPlaneResources (backend->device_fd);
+        if (!plane_resources)
+                return false;
+
+        for (i = 0; i < plane_resources->count_planes; i++) {
+                plane = drmModeGetPlane (backend->device_fd,
+                                         plane_resources->planes[i]);
+                if (!plane)
+                        continue;
+
+                if (plane->crtc_id != controller_id) {
+                        drmModeFreePlane (plane);
+                        continue;
+                }
+
+                plane_props = drmModeObjectGetProperties (backend->device_fd,
+                                                          plane->plane_id,
+                                                          DRM_MODE_OBJECT_PLANE);
+
+                for (j = 0; plane_props && (j < plane_props->count_props); j++) {
+                        prop = drmModeGetProperty (backend->device_fd,
+                                                   plane_props->props[j]);
+                        if (!prop)
+                                continue;
+
+                        if (strcmp (prop->name, "type") == 0 &&
+                            plane_props->prop_values[j] == DRM_PLANE_TYPE_PRIMARY) {
+                                primary_id = plane->plane_id;
+                        }
+
+                        if (strcmp (prop->name, "rotation") == 0) {
+                                rotation_prop_id = plane_props->props[j];
+                                rotation = plane_props->prop_values[j];
+                        }
+
+                        drmModeFreeProperty (prop);
+                }
+
+                drmModeFreeObjectProperties (plane_props);
+                drmModeFreePlane (plane);
+
+                if (primary_id != -1)
+                        break;
+
+                /* Not primary -> clear any found rotation property */
+                rotation_prop_id = -1;
+        }
+
+        drmModeFreePlaneResources (plane_resources);
+
+        if (primary_id != -1 && rotation_prop_id != -1) {
+                *primary_id_ret = primary_id;
+                *rotation_prop_id_ret = rotation_prop_id;
+                *rotation_ret = rotation;
+                return true;
+        }
+
+        return false;
+}
+
 static ply_pixel_buffer_rotation_t
 connector_orientation_prop_to_rotation (drmModePropertyPtr prop,
                                         int orientation)
@@ -441,8 +528,9 @@ ply_renderer_connector_get_rotation_and_tiled (ply_renderer_backend_t      *back
                                                drmModeConnector            *connector,
                                                ply_output_t                *output)
 {
+        int i, primary_id, rotation_prop_id;
         drmModePropertyPtr prop;
-        int i;
+        uint64_t rotation;
 
         output->rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
         output->tiled = false;
@@ -468,6 +556,21 @@ ply_renderer_connector_get_rotation_and_tiled (ply_renderer_backend_t      *back
                 }
 
                 drmModeFreeProperty (prop);
+        }
+
+        /* If the firmware setup the plane to use hw 180° rotation, then we keep
+         * the hw rotation. This avoids a flicker and avoids the splash turning
+         * upside-down when mutter turns hw-rotation back on and then fades from
+         * the splash to the login screen.
+         */
+        if (output->rotation == PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN &&
+            get_primary_plane_rotation (backend, output->controller_id,
+                                        &primary_id, &rotation_prop_id,
+                                        &rotation) &&
+            rotation == DRM_MODE_ROTATE_180) {
+                ply_trace("Keeping hw 180° rotation");
+                output->rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+                output->uses_hw_rotation = true;
         }
 }
 
@@ -513,6 +616,7 @@ ply_renderer_head_new (ply_renderer_backend_t     *backend,
         head->controller_id = output->controller_id;
         head->console_buffer_id = console_buffer_id;
         head->connector0_mode = output->mode;
+        head->uses_hw_rotation = output->uses_hw_rotation;
 
         head->area.x = 0;
         head->area.y = 0;
@@ -572,69 +676,16 @@ static void
 ply_renderer_head_clear_plane_rotation (ply_renderer_backend_t *backend,
                                         ply_renderer_head_t    *head)
 {
-        drmModeObjectPropertiesPtr plane_props;
-        drmModePlaneResPtr plane_resources;
-        drmModePropertyPtr prop;
-        drmModePlanePtr plane;
+        int primary_id, rotation_prop_id, err;
         uint64_t rotation;
-        uint32_t i, j;
-        int rotation_prop_id = -1;
-        int primary_id = -1;
-        int err;
 
-        err = drmSetClientCap (backend->device_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
-        if (err)
+        if (head->uses_hw_rotation)
                 return;
 
-        plane_resources = drmModeGetPlaneResources (backend->device_fd);
-        if (!plane_resources)
-                return;
-
-        for (i = 0; i < plane_resources->count_planes; i++) {
-                plane = drmModeGetPlane (backend->device_fd,
-                                         plane_resources->planes[i]);
-                if (!plane)
-                        continue;
-
-                if (plane->crtc_id != head->controller_id) {
-                        drmModeFreePlane (plane);
-                        continue;
-                }
-
-                plane_props = drmModeObjectGetProperties (backend->device_fd,
-                                                          plane->plane_id,
-                                                          DRM_MODE_OBJECT_PLANE);
-
-                for (j = 0; plane_props && (j < plane_props->count_props); j++) {
-                        prop = drmModeGetProperty (backend->device_fd,
-                                                   plane_props->props[j]);
-                        if (!prop)
-                                continue;
-
-                        if (strcmp (prop->name, "type") == 0 &&
-                            plane_props->prop_values[j] == DRM_PLANE_TYPE_PRIMARY) {
-                                primary_id = plane->plane_id;
-                        }
-
-                        if (strcmp (prop->name, "rotation") == 0) {
-                                rotation_prop_id = plane_props->props[j];
-                                rotation = plane_props->prop_values[j];
-                        }
-
-                        drmModeFreeProperty (prop);
-                }
-
-                drmModeFreeObjectProperties (plane_props);
-                drmModeFreePlane (plane);
-
-                if (primary_id != -1)
-                        break;
-
-                /* Not primary -> clear any found rotation property */
-                rotation_prop_id = -1;
-        }
-
-        if (primary_id != -1 && rotation_prop_id != -1 && rotation != DRM_MODE_ROTATE_0) {
+        if (get_primary_plane_rotation (backend, head->controller_id,
+                                        &primary_id, &rotation_prop_id,
+                                        &rotation) &&
+            rotation != DRM_MODE_ROTATE_0) {
                 err = drmModeObjectSetProperty (backend->device_fd,
                                                 primary_id,
                                                 DRM_MODE_OBJECT_PLANE,
@@ -643,8 +694,6 @@ ply_renderer_head_clear_plane_rotation (ply_renderer_backend_t *backend,
                 ply_trace ("Cleared rotation on primary plane %d result %d",
                            primary_id, err);
         }
-
-        drmModeFreePlaneResources (plane_resources);
 }
 
 static bool
@@ -1385,8 +1434,11 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend, bool change
          */
         if (!change && number_of_setup_outputs != backend->connected_count) {
                 ply_trace ("Some outputs still don't have controllers, re-assigning controllers for all outputs");
-                for (i = 0; i < outputs_len; i++)
+                for (i = 0; i < outputs_len; i++) {
+                        if (outputs[i].uses_hw_rotation)
+                                continue; /* Do not re-assign hw-rotated outputs */
                         outputs[i].controller_id = 0;
+                }
                 outputs = setup_outputs (backend, outputs, outputs_len);
         }
         for (i = 0; i < outputs_len; i++)

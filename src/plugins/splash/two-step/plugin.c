@@ -146,9 +146,6 @@ struct _ply_boot_splash_plugin
         double                              dialog_horizontal_alignment;
         double                              dialog_vertical_alignment;
 
-        double                              keyboard_indicator_horizontal_alignment;
-        double                              keyboard_indicator_vertical_alignment;
-
         double                              title_horizontal_alignment;
         double                              title_vertical_alignment;
         char                               *title_font;
@@ -879,6 +876,8 @@ view_show_prompt (view_t     *view,
         ply_boot_splash_plugin_t *plugin;
         unsigned long screen_width, screen_height, entry_width, entry_height;
         unsigned long keyboard_indicator_width, keyboard_indicator_height;
+        bool show_keyboard_indicators = false;
+        long dialog_bottom;
         int x, y;
 
         assert (view != NULL);
@@ -922,21 +921,7 @@ view_show_prompt (view_t     *view,
 
                 ply_entry_show (view->entry, plugin->loop, view->display, x, y);
 
-                keyboard_indicator_width =
-                        ply_keymap_icon_get_width (view->keymap_icon);
-                keyboard_indicator_height = MAX(
-                        ply_capslock_icon_get_height (view->capslock_icon),
-                        ply_keymap_icon_get_height (view->keymap_icon));
-
-                x = (screen_width - keyboard_indicator_width) * plugin->keyboard_indicator_horizontal_alignment;
-                y = (screen_height - keyboard_indicator_height) * plugin->keyboard_indicator_vertical_alignment +
-                    (keyboard_indicator_height - ply_keymap_icon_get_height (view->keymap_icon)) / 2.0;
-                ply_keymap_icon_show (view->keymap_icon, x, y);
-
-                x += ply_keymap_icon_get_width (view->keymap_icon);
-                y = (screen_height - keyboard_indicator_height) * plugin->keyboard_indicator_vertical_alignment +
-                    (keyboard_indicator_height - ply_capslock_icon_get_height (view->capslock_icon)) / 2.0;
-                ply_capslock_icon_show (view->capslock_icon, plugin->loop, view->display, x, y);
+                show_keyboard_indicators = true;
         }
 
         if (entry_text != NULL)
@@ -944,6 +929,8 @@ view_show_prompt (view_t     *view,
 
         if (number_of_bullets != -1)
                 ply_entry_set_bullet_count (view->entry, number_of_bullets);
+
+        dialog_bottom = view->dialog_area.y + view->dialog_area.height;
 
         if (prompt != NULL) {
                 ply_label_set_text (view->label, prompt);
@@ -954,9 +941,29 @@ view_show_prompt (view_t     *view,
                 ply_label_set_width (view->label, label_width);
 
                 x = (screen_width - label_width) / 2;
-                y = view->dialog_area.y + view->dialog_area.height;
+                y = dialog_bottom;
 
                 ply_label_show (view->label, view->display, x, y);
+
+                dialog_bottom += ply_label_get_height (view->label);
+        }
+
+        if (show_keyboard_indicators) {
+                keyboard_indicator_width =
+                        ply_keymap_icon_get_width (view->keymap_icon);
+                keyboard_indicator_height = MAX(
+                        ply_capslock_icon_get_height (view->capslock_icon),
+                        ply_keymap_icon_get_height (view->keymap_icon));
+
+                x = (screen_width - keyboard_indicator_width) * plugin->dialog_horizontal_alignment;
+                y = dialog_bottom + keyboard_indicator_height / 2 +
+                    (keyboard_indicator_height - ply_keymap_icon_get_height (view->keymap_icon)) / 2.0;
+                ply_keymap_icon_show (view->keymap_icon, x, y);
+
+                x += ply_keymap_icon_get_width (view->keymap_icon);
+                y = dialog_bottom + keyboard_indicator_height / 2 +
+                    (keyboard_indicator_height - ply_capslock_icon_get_height (view->capslock_icon)) / 2.0;
+                ply_capslock_icon_show (view->capslock_icon, plugin->loop, view->display, x, y);
         }
 }
 
@@ -1082,18 +1089,6 @@ create_plugin (ply_key_file_t *key_file)
         plugin->dialog_vertical_alignment =
                 ply_key_file_get_double (key_file, "two-step",
                                          "DialogVerticalAlignment", 0.5);
-
-        /* Keyboard layout + capslock indicator alignment, this defaults
-         * to halfway between the dialog and the bottom of the screen.
-         */
-        plugin->keyboard_indicator_horizontal_alignment =
-                ply_key_file_get_double (key_file, "two-step",
-                                         "KeyboardIndicatorHorizontalAlignment",
-                                         plugin->dialog_horizontal_alignment);
-        plugin->keyboard_indicator_vertical_alignment =
-                ply_key_file_get_double (key_file, "two-step",
-                                         "KeyboardIndicatorVerticalAlignment",
-                                         0.5 + 0.5 * plugin->dialog_vertical_alignment);
 
         /* Title alignment */
         plugin->title_horizontal_alignment =

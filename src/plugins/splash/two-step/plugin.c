@@ -163,6 +163,7 @@ struct _ply_boot_splash_plugin
         uint32_t                            background_start_color;
         uint32_t                            background_end_color;
         int                                 background_bgrt_raw_width;
+        int                                 background_bgrt_raw_height;
 
         double                              progress_bar_horizontal_alignment;
         double                              progress_bar_vertical_alignment;
@@ -499,6 +500,16 @@ view_set_bgrt_background (view_t *view)
             (panel_width - view->plugin->background_bgrt_raw_width) / 2 == sysfs_x_offset) {
                 if (panel_rotation == PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE ||
                     panel_rotation == PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE) {
+                        /*
+                         * For left side up panels the y_offset is from the
+                         * right side of the image once rotated upright (the
+                         * top of the physicial LCD panel is on the right side).
+                         * Our coordinates have the left side as 0, so we need
+                         * to "flip" the y_offset in this case.
+                         */
+                        if (panel_rotation == PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE)
+                                sysfs_y_offset = panel_height - view->plugin->background_bgrt_raw_height - sysfs_y_offset;
+
                         /* 90 degrees rotated, swap x and y */
                         x_offset = sysfs_y_offset / panel_scale;
                         y_offset = sysfs_x_offset / panel_scale;
@@ -1641,6 +1652,7 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                 ply_trace ("loading background bgrt image");
                 if (ply_image_load (plugin->background_bgrt_image)) {
                         plugin->background_bgrt_raw_width = ply_image_get_width (plugin->background_bgrt_image);
+                        plugin->background_bgrt_raw_height = ply_image_get_height (plugin->background_bgrt_image);
                 } else {
                         ply_image_free (plugin->background_bgrt_image);
                         plugin->background_bgrt_image = NULL;

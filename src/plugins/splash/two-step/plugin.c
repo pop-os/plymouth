@@ -683,21 +683,18 @@ load_views (ply_boot_splash_plugin_t *plugin)
 {
         ply_list_node_t *node;
         bool view_loaded;
+        view_t *view;
 
         view_loaded = false;
         node = ply_list_get_first_node (plugin->views);
 
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                view_t *view;
-
                 view = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (plugin->views, node);
 
                 if (view_load (view))
                         view_loaded = true;
 
-                node = next_node;
+                node = ply_list_get_next_node (plugin->views, node);
         }
 
         return view_loaded;
@@ -719,18 +716,13 @@ static void
 redraw_views (ply_boot_splash_plugin_t *plugin)
 {
         ply_list_node_t *node;
+        view_t *view;
 
         node = ply_list_get_first_node (plugin->views);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                view_t *view;
-
                 view = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (plugin->views, node);
-
                 view_redraw (view);
-
-                node = next_node;
+                node = ply_list_get_next_node (plugin->views, node);
         }
 }
 
@@ -738,20 +730,15 @@ static void
 pause_views (ply_boot_splash_plugin_t *plugin)
 {
         ply_list_node_t *node;
+        view_t *view;
 
         ply_trace ("pausing views");
 
         node = ply_list_get_first_node (plugin->views);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                view_t *view;
-
                 view = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (plugin->views, node);
-
                 ply_pixel_display_pause_updates (view->display);
-
-                node = next_node;
+                node = ply_list_get_next_node (plugin->views, node);
         }
 }
 
@@ -759,20 +746,15 @@ static void
 unpause_views (ply_boot_splash_plugin_t *plugin)
 {
         ply_list_node_t *node;
+        view_t *view;
 
         ply_trace ("unpausing views");
 
         node = ply_list_get_first_node (plugin->views);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                view_t *view;
-
                 view = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (plugin->views, node);
-
                 ply_pixel_display_unpause_updates (view->display);
-
-                node = next_node;
+                node = ply_list_get_next_node (plugin->views, node);
         }
 }
 
@@ -1270,6 +1252,9 @@ static void
 start_end_animation (ply_boot_splash_plugin_t *plugin,
                      ply_trigger_t            *trigger)
 {
+        ply_list_node_t *node;
+        view_t *view;
+
         if (!plugin->mode_settings[plugin->mode].use_animation) {
                 ply_trigger_pull (trigger, NULL);
                 return;
@@ -1277,20 +1262,14 @@ start_end_animation (ply_boot_splash_plugin_t *plugin,
 
         ply_trace ("starting end animation");
 
-        ply_list_node_t *node;
-
         node = ply_list_get_first_node (plugin->views);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                view_t *view;
-                ply_trigger_t *throbber_trigger;
-
                 view = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (plugin->views, node);
 
                 ply_trigger_ignore_next_pull (trigger);
 
                 if (view->throbber != NULL) {
+                        ply_trigger_t *throbber_trigger;
                         ply_trace ("stopping throbber");
                         view->end_trigger = trigger;
                         throbber_trigger = ply_trigger_new (NULL);
@@ -1303,7 +1282,7 @@ start_end_animation (ply_boot_splash_plugin_t *plugin,
                         view_start_end_animation (view, trigger);
                 }
 
-                node = next_node;
+                node = ply_list_get_next_node (plugin->views, node);
         }
         ply_trigger_pull (trigger, NULL);
 }
@@ -1312,6 +1291,7 @@ static void
 start_progress_animation (ply_boot_splash_plugin_t *plugin)
 {
         ply_list_node_t *node;
+        view_t *view;
 
         if (plugin->is_animating)
                 return;
@@ -1320,15 +1300,9 @@ start_progress_animation (ply_boot_splash_plugin_t *plugin)
 
         node = ply_list_get_first_node (plugin->views);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                view_t *view;
-
                 view = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (plugin->views, node);
-
                 view_start_progress_animation (view);
-
-                node = next_node;
+                node = ply_list_get_next_node (plugin->views, node);
         }
 
         plugin->is_animating = true;
@@ -1346,6 +1320,7 @@ static void
 stop_animation (ply_boot_splash_plugin_t *plugin)
 {
         ply_list_node_t *node;
+        view_t *view;
 
         assert (plugin != NULL);
         assert (plugin->loop != NULL);
@@ -1358,11 +1333,7 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
 
         node = ply_list_get_first_node (plugin->views);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                view_t *view;
-
                 view = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (plugin->views, node);
 
                 ply_progress_bar_hide (view->progress_bar);
                 if (view->progress_animation != NULL)
@@ -1372,7 +1343,7 @@ stop_animation (ply_boot_splash_plugin_t *plugin)
                 if (view->end_animation != NULL)
                         ply_animation_stop (view->end_animation);
 
-                node = next_node;
+                node = ply_list_get_next_node (plugin->views, node);
         }
 }
 
@@ -1709,15 +1680,12 @@ update_progress_animation (ply_boot_splash_plugin_t *plugin,
                            double                    percent_done)
 {
         ply_list_node_t *node;
+        view_t *view;
         char buf[64];
 
         node = ply_list_get_first_node (plugin->views);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                view_t *view;
-
                 view = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (plugin->views, node);
 
                 if (view->progress_animation != NULL)
                         ply_progress_animation_set_percent_done (view->progress_animation,
@@ -1730,7 +1698,7 @@ update_progress_animation (ply_boot_splash_plugin_t *plugin,
                         view_show_message (view, buf);
                 }
 
-                node = next_node;
+                node = ply_list_get_next_node (plugin->views, node);
         }
 }
 
@@ -1808,19 +1776,14 @@ show_prompt (ply_boot_splash_plugin_t *plugin,
              int                       number_of_bullets)
 {
         ply_list_node_t *node;
+        view_t *view;
 
         ply_trace ("showing prompt");
         node = ply_list_get_first_node (plugin->views);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                view_t *view;
-
                 view = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (plugin->views, node);
-
                 view_show_prompt (view, prompt, entry_text, number_of_bullets);
-
-                node = next_node;
+                node = ply_list_get_next_node (plugin->views, node);
         }
 }
 
@@ -1861,22 +1824,16 @@ static void
 hide_prompt (ply_boot_splash_plugin_t *plugin)
 {
         ply_list_node_t *node;
+        view_t *view;
 
         ply_trace ("hiding prompt");
         node = ply_list_get_first_node (plugin->views);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                view_t *view;
-
                 view = ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (plugin->views, node);
-
                 view_hide_prompt (view);
-
-                node = next_node;
+                node = ply_list_get_next_node (plugin->views, node);
         }
 }
-
 
 static void
 view_show_message (view_t     *view,
@@ -1905,15 +1862,18 @@ static void
 show_message (ply_boot_splash_plugin_t *plugin,
               const char               *message)
 {
+        ply_list_node_t *node;
+        view_t *view;
+
         if (plugin->mode_settings[plugin->mode].suppress_messages) {
                 ply_trace ("Suppressing message '%s'", message);
                 return;
         }
         ply_trace ("Showing message '%s'", message);
-        ply_list_node_t *node;
         node = ply_list_get_first_node (plugin->views);
         while (node != NULL) {
-                view_show_message (ply_list_node_get_data (node), message);
+                view = ply_list_node_get_data (node);
+                view_show_message (view, message);
                 node = ply_list_get_next_node (plugin->views, node);
         }
 }

@@ -644,6 +644,8 @@ ply_renderer_head_new (ply_renderer_backend_t     *backend,
         ply_trace ("Creating %ldx%ld renderer head", head->area.width, head->area.height);
         ply_pixel_buffer_fill_with_color (head->pixel_buffer, NULL,
                                           0.0, 0.0, 0.0, 1.0);
+        /* Delay flush till first actual draw */
+        ply_region_clear (ply_pixel_buffer_get_updated_areas (head->pixel_buffer));
 
         if (output->connector_type == DRM_MODE_CONNECTOR_LVDS ||
             output->connector_type == DRM_MODE_CONNECTOR_eDP ||
@@ -945,16 +947,8 @@ activate (ply_renderer_backend_t *backend)
                 head = (ply_renderer_head_t *) ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (backend->heads, node);
 
-                if (head->scan_out_buffer_id != 0) {
-                        /* Flush out any pending drawing to the buffer
-                         */
-                        flush_head (backend, head);
-
-                        /* Then send the buffer to the monitor
-                         */
-                        ply_renderer_head_set_scan_out_buffer (backend, head,
-                                                               head->scan_out_buffer_id);
-                }
+                /* Flush out any pending drawing to the buffer */
+                flush_head (backend, head);
 
                 node = next_node;
         }

@@ -644,6 +644,8 @@ ply_renderer_head_new (ply_renderer_backend_t     *backend,
         ply_trace ("Creating %ldx%ld renderer head", head->area.width, head->area.height);
         ply_pixel_buffer_fill_with_color (head->pixel_buffer, NULL,
                                           0.0, 0.0, 0.0, 1.0);
+        /* Delay flush till first actual draw */
+        ply_region_clear (ply_pixel_buffer_get_updated_areas (head->pixel_buffer));
 
         if (output->connector_type == DRM_MODE_CONNECTOR_LVDS ||
             output->connector_type == DRM_MODE_CONNECTOR_eDP ||

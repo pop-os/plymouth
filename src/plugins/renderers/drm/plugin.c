@@ -168,8 +168,6 @@ struct _ply_renderer_backend
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
 static bool open_input_source (ply_renderer_backend_t      *backend,
                                ply_renderer_input_source_t *input_source);
-static bool reset_scan_out_buffer_if_needed (ply_renderer_backend_t *backend,
-                                             ply_renderer_head_t    *head);
 static void flush_head (ply_renderer_backend_t *backend,
                         ply_renderer_head_t    *head);
 

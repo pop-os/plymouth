@@ -168,8 +168,6 @@ struct _ply_renderer_backend
 ply_renderer_plugin_interface_t *ply_renderer_backend_get_interface (void);
 static bool open_input_source (ply_renderer_backend_t      *backend,
                                ply_renderer_input_source_t *input_source);
-static bool reset_scan_out_buffer_if_needed (ply_renderer_backend_t *backend,
-                                             ply_renderer_head_t    *head);
 static void flush_head (ply_renderer_backend_t *backend,
                         ply_renderer_head_t    *head);
 
@@ -933,6 +931,7 @@ destroy_backend (ply_renderer_backend_t *backend)
 static void
 activate (ply_renderer_backend_t *backend)
 {
+        ply_renderer_head_t *head;
         ply_list_node_t *node;
 
         ply_trace ("taking master and scanning out");
@@ -941,16 +940,10 @@ activate (ply_renderer_backend_t *backend)
         drmSetMaster (backend->device_fd);
         node = ply_list_get_first_node (backend->heads);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                ply_renderer_head_t *head;
-
                 head = (ply_renderer_head_t *) ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (backend->heads, node);
-
                 /* Flush out any pending drawing to the buffer */
                 flush_head (backend, head);
-
-                node = next_node;
+                node = ply_list_get_next_node (backend->heads, node);
         }
 }
 
@@ -1568,22 +1561,19 @@ handle_change_event (ply_renderer_backend_t *backend)
 static bool
 map_to_device (ply_renderer_backend_t *backend)
 {
+        ply_renderer_head_t *head;
         ply_list_node_t *node;
         bool head_mapped;
 
         head_mapped = false;
         node = ply_list_get_first_node (backend->heads);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                ply_renderer_head_t *head;
-
                 head = (ply_renderer_head_t *) ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (backend->heads, node);
 
                 if (ply_renderer_head_map (backend, head))
                         head_mapped = true;
 
-                node = next_node;
+                node = ply_list_get_next_node (backend->heads, node);
         }
 
         if (backend->terminal != NULL) {
@@ -1601,19 +1591,14 @@ map_to_device (ply_renderer_backend_t *backend)
 static void
 unmap_from_device (ply_renderer_backend_t *backend)
 {
+        ply_renderer_head_t *head;
         ply_list_node_t *node;
 
         node = ply_list_get_first_node (backend->heads);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                ply_renderer_head_t *head;
-
                 head = (ply_renderer_head_t *) ply_list_node_get_data (node);
-                next_node = ply_list_get_next_node (backend->heads, node);
-
                 ply_renderer_head_unmap (backend, head);
-
-                node = next_node;
+                node = ply_list_get_next_node (backend->heads, node);
         }
 }
 
@@ -1655,6 +1640,7 @@ static void
 flush_head (ply_renderer_backend_t *backend,
             ply_renderer_head_t    *head)
 {
+        ply_rectangle_t *area_to_flush;
         ply_region_t *updated_region;
         ply_list_t *areas_to_flush;
         ply_list_node_t *node;
@@ -1685,17 +1671,12 @@ flush_head (ply_renderer_backend_t *backend,
 
         node = ply_list_get_first_node (areas_to_flush);
         while (node != NULL) {
-                ply_list_node_t *next_node;
-                ply_rectangle_t *area_to_flush;
-
                 area_to_flush = (ply_rectangle_t *) ply_list_node_get_data (node);
-
-                next_node = ply_list_get_next_node (areas_to_flush, node);
 
                 ply_renderer_head_flush_area (head, area_to_flush, map_address);
                 dirty = true;
 
-                node = next_node;
+                node = ply_list_get_next_node (areas_to_flush, node);
         }
 
         if (dirty) {

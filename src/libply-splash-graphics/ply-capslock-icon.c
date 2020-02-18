@@ -52,6 +52,8 @@ struct _ply_capslock_icon
         bool                 is_on;
 };
 
+static void ply_capslock_stop_polling (ply_capslock_icon_t *capslock_icon);
+
 ply_capslock_icon_t *
 ply_capslock_icon_new (const char *image_dir)
 {
@@ -74,7 +76,7 @@ ply_capslock_icon_free (ply_capslock_icon_t *capslock_icon)
                 return;
 
         if (!capslock_icon->is_hidden)
-                ply_capslock_icon_hide (capslock_icon);
+                ply_capslock_stop_polling (capslock_icon);
 
         if (capslock_icon->buffer != NULL)
                 ply_pixel_buffer_free (capslock_icon->buffer);
@@ -119,6 +121,14 @@ on_timeout (void             *user_data,
         ply_event_loop_watch_for_timeout (capslock_icon->loop,
                                           1.0 / FRAMES_PER_SECOND,
                                           on_timeout, capslock_icon);
+}
+
+static void
+ply_capslock_stop_polling (ply_capslock_icon_t *capslock_icon)
+{
+        ply_event_loop_stop_watching_for_timeout (capslock_icon->loop,
+                                                  (ply_event_loop_timeout_handler_t)
+                                                  on_timeout, capslock_icon);
 }
 
 bool
@@ -183,10 +193,8 @@ ply_capslock_icon_hide (ply_capslock_icon_t *capslock_icon)
         capslock_icon->is_hidden = true;
 
         ply_capslock_icon_draw (capslock_icon);
+        ply_capslock_stop_polling (capslock_icon);
 
-        ply_event_loop_stop_watching_for_timeout (capslock_icon->loop,
-                                                  (ply_event_loop_timeout_handler_t)
-                                                  on_timeout, capslock_icon);
         capslock_icon->loop = NULL;
         capslock_icon->display = NULL;
 }

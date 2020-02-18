@@ -1061,14 +1061,8 @@ ply_event_loop_handle_disconnect_for_source (ply_event_loop_t   *loop,
                 destination = (ply_event_destination_t *) ply_list_node_get_data (node);
                 next_node = ply_list_get_next_node (source->destinations, node);
 
-                if (destination->disconnected_handler != NULL) {
-                        ply_trace ("calling disconnected_handler %p for fd %d",
-                                   destination->disconnected_handler, source->fd);
+                if (destination->disconnected_handler != NULL)
                         destination->disconnected_handler (destination->user_data, source->fd);
-
-                        ply_trace ("done calling disconnected_handler %p for fd %d",
-                                   destination->disconnected_handler, source->fd);
-                }
 
                 node = next_node;
         }

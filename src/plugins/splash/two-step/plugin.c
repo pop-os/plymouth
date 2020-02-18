@@ -121,6 +121,7 @@ typedef struct
         bool                      progress_bar_show_percent_complete;
         bool                      use_progress_bar;
         bool                      use_animation;
+        bool                      use_end_animation;
         bool                      use_firmware_background;
         char                     *title;
         char                     *subtitle;
@@ -262,12 +263,13 @@ view_free (view_t *view)
 static void
 view_load_end_animation (view_t *view)
 {
+        ply_boot_splash_plugin_t *plugin = view->plugin;
         const char *animation_prefix;
-        ply_boot_splash_plugin_t *plugin;
+
+        if (!plugin->mode_settings[plugin->mode].use_end_animation)
+                return;
 
         ply_trace ("loading animation");
-
-        plugin = view->plugin;
 
         switch (plugin->mode) {
         case PLY_BOOT_SPLASH_MODE_BOOT_UP:
@@ -315,6 +317,7 @@ view_load_end_animation (view_t *view)
         ply_trace ("optional animation didn't load");
         ply_animation_free (view->end_animation);
         view->end_animation = NULL;
+        plugin->mode_settings[plugin->mode].use_end_animation = false;
 }
 
 static bool
@@ -995,6 +998,13 @@ load_mode_settings (ply_boot_splash_plugin_t *plugin,
         else
                 settings->use_animation = !settings->use_progress_bar;
 
+        /* This defaults to true for compat. with older themes */
+        if (ply_key_file_has_key (key_file, group_name, "UseEndAnimation"))
+                settings->use_end_animation =
+                        ply_key_file_get_bool (key_file, group_name, "UseEndAnimation");
+        else
+                settings->use_end_animation = true;
+
         /* If any mode uses the firmware background, then we need to load it */
         if (settings->use_firmware_background)
                 plugin->use_firmware_background = true;
@@ -1256,6 +1266,25 @@ start_end_animation (ply_boot_splash_plugin_t *plugin,
         view_t *view;
 
         if (!plugin->mode_settings[plugin->mode].use_animation) {
+                ply_trigger_pull (trigger, NULL);
+                return;
+        }
+
+        if (!plugin->mode_settings[plugin->mode].use_end_animation) {
+                node = ply_list_get_first_node (plugin->views);
+                while (node != NULL) {
+                        view = ply_list_node_get_data (node);
+
+                        ply_progress_bar_hide (view->progress_bar);
+
+                        if (view->throbber != NULL)
+                                ply_throbber_stop (view->throbber, NULL);
+
+                        if (view->progress_animation != NULL)
+                                ply_progress_animation_hide (view->progress_animation);
+
+                        node = ply_list_get_next_node (plugin->views, node);
+                }
                 ply_trigger_pull (trigger, NULL);
                 return;
         }
@@ -1718,7 +1747,12 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
         if (plugin->is_idle)
                 return;
 
-        if (percent_done >= SHOW_ANIMATION_PERCENT) {
+        /*
+         * If we do not have an end animation, we keep showing progress until
+         * become_idle gets called.
+         */
+        if (plugin->mode_settings[plugin->mode].use_end_animation &&
+            percent_done >= SHOW_ANIMATION_PERCENT) {
                 if (plugin->stop_trigger == NULL) {
                         ply_trace ("boot progressed to end");
 

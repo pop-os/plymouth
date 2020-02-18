@@ -41,6 +41,5 @@ _SubTitle=Do not turn off your computer
 SuppressMessages=true
 ProgressBarShowPercentComplete=true
 UseProgressBar=true
-UseFirmwareBackground=true
 _Title=Upgrading Firmware...
 _SubTitle=Do not turn off your computer

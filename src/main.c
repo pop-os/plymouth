@@ -108,6 +108,7 @@ typedef struct
         uint32_t                is_inactive : 1;
         uint32_t                is_shown : 1;
         uint32_t                should_force_details : 1;
+        uint32_t                splash_is_becoming_idle : 1;
 
         char                   *override_splash_path;
         char                   *system_default_splash_path;
@@ -1250,6 +1251,8 @@ on_boot_splash_idle (state_t *state)
                 ply_trace ("deactivating splash");
                 deactivate_splash (state);
         }
+
+        state->splash_is_becoming_idle = false;
 }
 
 static void
@@ -1279,10 +1282,13 @@ on_deactivate (state_t       *state,
         ply_device_manager_deactivate_keyboards (state->device_manager);
 
         if (state->boot_splash != NULL) {
-                ply_boot_splash_become_idle (state->boot_splash,
-                                             (ply_boot_splash_on_idle_handler_t)
-                                             on_boot_splash_idle,
-                                             state);
+                if (!state->splash_is_becoming_idle) {
+                        ply_boot_splash_become_idle (state->boot_splash,
+                                                     (ply_boot_splash_on_idle_handler_t)
+                                                     on_boot_splash_idle,
+                                                     state);
+                        state->splash_is_becoming_idle = true;
+                }
         } else {
                 ply_trace ("deactivating splash");
                 deactivate_splash (state);
@@ -1362,10 +1368,13 @@ on_quit (state_t       *state,
                 dump_details_and_quit_splash (state);
                 quit_program (state);
         } else if (state->boot_splash != NULL) {
-                ply_boot_splash_become_idle (state->boot_splash,
-                                             (ply_boot_splash_on_idle_handler_t)
-                                             on_boot_splash_idle,
-                                             state);
+                if (!state->splash_is_becoming_idle) {
+                        ply_boot_splash_become_idle (state->boot_splash,
+                                                     (ply_boot_splash_on_idle_handler_t)
+                                                     on_boot_splash_idle,
+                                                     state);
+                        state->splash_is_becoming_idle = true;
+                }
         } else {
                 quit_program (state);
         }

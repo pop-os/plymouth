@@ -222,7 +222,6 @@ sed -i -e 's/spinner/charge/g' src/plymouthd.defaults
            --with-background-start-color-stop=0x0073B3           \
            --with-background-end-color-stop=0x00457E             \
            --with-background-color=0x3391cd                      \
-           --disable-gdm-transition                              \
            --enable-systemd-integration                          \
            --without-system-root-install                         \
            --without-log-viewer					 \

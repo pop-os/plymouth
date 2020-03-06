@@ -183,16 +183,6 @@ open_pseudoterminal (ply_terminal_session_t *session)
 
         ply_trace (" opened device '/dev/ptmx'");
 
-        ply_trace ("creating pseudoterminal");
-        if (grantpt (session->pseudoterminal_master_fd) < 0) {
-                ply_save_errno ();
-                ply_trace ("could not create psuedoterminal: %m");
-                close_pseudoterminal (session);
-                ply_restore_errno ();
-                return false;
-        }
-        ply_trace ("done creating pseudoterminal");
-
         ply_trace ("unlocking pseudoterminal");
         if (unlockpt (session->pseudoterminal_master_fd) < 0) {
                 ply_save_errno ();

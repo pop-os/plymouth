@@ -130,9 +130,6 @@ ply_keymap_icon_free (ply_keymap_icon_t *keymap_icon)
         if (keymap_icon == NULL)
                 return;
 
-        if (!keymap_icon->is_hidden)
-                ply_keymap_icon_hide (keymap_icon);
-
         ply_pixel_buffer_free (keymap_icon->icon_buffer);
         ply_pixel_buffer_free (keymap_icon->keymap_buffer);
 

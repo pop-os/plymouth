@@ -131,6 +131,25 @@ static script_return_t image_rotate (script_state_t *state,
         return script_return_obj_null ();
 }
 
+static script_return_t image_crop (script_state_t *state,
+                                   void           *user_data)
+{
+        script_lib_image_data_t *data = user_data;
+        ply_pixel_buffer_t *image = script_obj_as_native_of_class (state->this, data->class);
+        int x = script_obj_hash_get_number (state->local, "x");
+        int y = script_obj_hash_get_number (state->local, "y");
+        int width = script_obj_hash_get_number (state->local, "width");
+        int height = script_obj_hash_get_number (state->local, "height");
+
+        if (image) {
+                ply_rectangle_t clip_area = { 0, 0, width, height };
+                ply_pixel_buffer_t *new_image = ply_pixel_buffer_new (width, height);
+                ply_pixel_buffer_fill_with_buffer_with_clip (new_image, image, -x, -y, &clip_area);
+                return script_return_obj (script_obj_new_native (new_image, data->class));
+        }
+        return script_return_obj_null ();
+}
+
 static script_return_t image_scale (script_state_t *state,
                                     void           *user_data)
 {
@@ -262,6 +281,15 @@ script_lib_image_data_t *script_lib_image_setup (script_state_t *state,
                                     image_rotate,
                                     data,
                                     "angle",
+                                    NULL);
+        script_add_native_function (image_hash,
+                                    "_Crop",
+                                    image_crop,
+                                    data,
+                                    "x",
+                                    "y",
+                                    "width",
+                                    "height",
                                     NULL);
         script_add_native_function (image_hash,
                                     "_Scale",

@@ -218,6 +218,7 @@ void script_lib_plymouth_destroy (script_lib_plymouth_data_t *data)
         script_obj_unref (data->script_display_message_func);
         script_obj_unref (data->script_hide_message_func);
         script_obj_unref (data->script_quit_func);
+        script_obj_unref (data->script_system_update_func);
         free (data);
 }
 

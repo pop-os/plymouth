@@ -23,6 +23,15 @@ ProgressBarBackgroundColor=0x606060
 ProgressBarForegroundColor=0xffffff
 MessageBelowAnimation=true
 
+[boot-up]
+UseEndAnimation=false
+
+[shutdown]
+UseEndAnimation=false
+
+[reboot]
+UseEndAnimation=false
+
 [updates]
 SuppressMessages=true
 ProgressBarShowPercentComplete=true

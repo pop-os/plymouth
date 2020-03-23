@@ -1340,8 +1340,9 @@ start_progress_animation (ply_boot_splash_plugin_t *plugin)
          * but it's normally really fast, so just jump to
          * the end animation
          */
-        if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
-            plugin->mode == PLY_BOOT_SPLASH_MODE_REBOOT)
+        if (plugin->mode_settings[plugin->mode].use_end_animation &&
+            (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
+             plugin->mode == PLY_BOOT_SPLASH_MODE_REBOOT))
                 become_idle (plugin, NULL);
 }
 

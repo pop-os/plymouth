@@ -1333,6 +1333,34 @@ remove_output (ply_renderer_backend_t *backend, ply_output_t *output)
         ply_renderer_head_remove_connector (backend, head, output->connector_id);
 }
 
+/* Check if an output has changed since we last enumerated it; and if
+ * it has changed remove it from the head it is part of.
+ */
+static bool
+check_if_output_has_changed (ply_renderer_backend_t *backend,
+                             ply_output_t *new_output)
+{
+        ply_output_t *old_output = NULL;
+        int i;
+
+        for (i = 0; i < backend->outputs_len; i++) {
+                if (backend->outputs[i].connector_id == new_output->connector_id) {
+                        old_output = &backend->outputs[i];
+                        break;
+                }
+        }
+
+        if (!old_output || !old_output->controller_id)
+                return false;
+
+        if (memcmp(old_output, new_output, sizeof(ply_output_t)) == 0)
+                return false;
+
+        ply_trace ("Output for connector %u changed, removing", old_output->connector_id);
+        remove_output (backend, old_output);
+        return true;
+}
+
 /* Update our outputs array to match the hardware state and
  * create and/or remove heads as necessary.
  * Returns true if any heads were modified.
@@ -1341,37 +1369,18 @@ static bool
 create_heads_for_active_connectors (ply_renderer_backend_t *backend, bool change)
 {
         int i, j, number_of_setup_outputs, outputs_len;
-        ply_output_t output, *outputs;
+        ply_output_t *outputs;
         bool changed = false;
 
         /* Step 1:
-         * Remove existing outputs from heads if they have changed.
-         */
-        ply_trace ("Checking currently connected outputs for changes");
-        for (i = 0; i < backend->outputs_len; i++) {
-                if (!backend->outputs[i].controller_id)
-                        continue;
-
-                get_output_info (backend, backend->outputs[i].connector_id, &output);
-
-                if (memcmp(&backend->outputs[i], &output, sizeof(ply_output_t))) {
-                        ply_trace ("Output for connector %u changed, removing",
-                                   backend->outputs[i].connector_id);
-                        remove_output (backend, &backend->outputs[i]);
-                        changed = true;
-                }
-        }
-
-        /* Step 2:
-         * Now that we've removed changed connectors from the heads, we can
-         * simply rebuild the outputs array from scratch. For any unchanged
-         * outputs for which we already have a head, we will end up in
-         * ply_renderer_head_add_connector which will ignore the already
-         * added connector.
+         * Query all outputs and:
+         * 1.1 Remove currently connected outputs from their heads if changed.
+         * 1.2 Build a new outputs array from scratch. For any unchanged
+         *     outputs for which we already have a head, we will end up in
+         *     ply_renderer_head_add_connector which will ignore the already
+         *     added connector.
          */
         ply_trace ("(Re)enumerating all outputs");
-        free (backend->outputs);
-        backend->outputs = NULL;
 
         outputs = calloc (backend->resources->count_connectors, sizeof(*outputs));
         outputs_len = backend->resources->count_connectors;
@@ -1379,9 +1388,20 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend, bool change
         backend->connected_count = 0;
         for (i = 0; i < outputs_len; i++) {
                 get_output_info (backend, backend->resources->connectors[i], &outputs[i]);
+
+                if (check_if_output_has_changed (backend, &outputs[i]))
+                        changed = true;
+
                 if (outputs[i].connected)
                         backend->connected_count++;
         }
+
+        /* Step 2:
+         * Free the old outputs array, now that we have checked for changes
+         * we no longer need it.
+         */
+        free (backend->outputs);
+        backend->outputs = NULL;
 
         /* Step 3:
          * Drop controllers for clones for which we've picked different modes.

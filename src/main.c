@@ -157,6 +157,7 @@ static void on_quit (state_t       *state,
                      ply_trigger_t *quit_trigger);
 static bool sh_is_init (state_t *state);
 static void cancel_pending_delayed_show (state_t *state);
+static void prepare_logging (state_t *state);
 
 static void
 on_session_output (state_t    *state,
@@ -211,6 +212,10 @@ on_change_mode (state_t    *state,
                 state->mode = PLY_BOOT_SPLASH_MODE_FIRMWARE_UPGRADE;
         else
                 return;
+
+        if (state->session != NULL) {
+                prepare_logging (state);
+        }
 
         if (!ply_boot_splash_show (state->boot_splash, state->mode)) {
                 ply_trace ("failed to update splash");
@@ -777,6 +782,8 @@ prepare_logging (state_t *state)
                 ply_trace ("not preparing logging, no session");
                 return;
         }
+
+        ply_terminal_session_close_log (state->session);
 
         logfile = get_log_file_for_state (state);
         if (logfile != NULL) {

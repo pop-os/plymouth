@@ -1877,6 +1877,9 @@ view_show_message (view_t     *view,
         ply_boot_splash_plugin_t *plugin = view->plugin;
         int x, y, width, height;
 
+        if (plugin->message_below_animation)
+                ply_label_set_alignment (view->message_label, PLY_LABEL_ALIGN_CENTER);
+
         ply_label_set_text (view->message_label, message);
         width = ply_label_get_width (view->message_label);
         height = ply_label_get_height (view->message_label);

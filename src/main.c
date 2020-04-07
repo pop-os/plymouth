@@ -192,11 +192,6 @@ static void
 on_change_mode (state_t    *state,
                 const char *mode)
 {
-        if (state->boot_splash == NULL) {
-                ply_trace ("no splash set");
-                return;
-        }
-
         ply_trace ("updating mode to '%s'", mode);
         if (strcmp (mode, "boot-up") == 0)
                 state->mode = PLY_BOOT_SPLASH_MODE_BOOT_UP;
@@ -215,6 +210,11 @@ on_change_mode (state_t    *state,
 
         if (state->session != NULL) {
                 prepare_logging (state);
+        }
+
+        if (state->boot_splash == NULL) {
+                ply_trace ("no splash set");
+                return;
         }
 
         if (!ply_boot_splash_show (state->boot_splash, state->mode)) {

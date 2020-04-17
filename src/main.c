@@ -278,19 +278,18 @@ load_settings (state_t    *state,
 
         splash_string = ply_key_file_get_value (key_file, "Daemon", "Theme");
 
-        if (splash_string == NULL)
-                goto out;
-
-        asprintf (theme_path,
-                  PLYMOUTH_RUNTIME_THEME_PATH "%s/%s.plymouth",
-                  splash_string, splash_string);
-        ply_trace ("Checking if %s exists", *theme_path);
-        if (!ply_file_exists (*theme_path)) {
-                ply_trace ("%s not found, fallbacking to " PLYMOUTH_THEME_PATH,
-                           *theme_path);
+        if (splash_string != NULL) {
                 asprintf (theme_path,
-                          PLYMOUTH_THEME_PATH "%s/%s.plymouth",
+                          PLYMOUTH_RUNTIME_THEME_PATH "%s/%s.plymouth",
                           splash_string, splash_string);
+                ply_trace ("Checking if %s exists", *theme_path);
+                if (!ply_file_exists (*theme_path)) {
+                        ply_trace ("%s not found, fallbacking to " PLYMOUTH_THEME_PATH,
+                                   *theme_path);
+                        asprintf (theme_path,
+                                  PLYMOUTH_THEME_PATH "%s/%s.plymouth",
+                                  splash_string, splash_string);
+                }
         }
 
         if (isnan (state->splash_delay)) {

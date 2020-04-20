@@ -54,4 +54,4 @@ spinfinity.plymouth: $(srcdir)/spinfinity.plymouth.in
 EXTRA_DIST = spinfinity.plymouth.in
 
 install-data-hook:
-	ln -sf /usr/share/pixmaps/system-logo-white.png $(DESTDIR)$(themedir)/header-image.png
+	ln -sf $(logofile) $(DESTDIR)$(themedir)/header-image.png

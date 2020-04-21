@@ -1149,11 +1149,11 @@ on_timeout (ply_boot_splash_plugin_t *plugin)
 static void
 on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
-                  double                    percent_done)
+                  double                    fraction_done)
 {
         if (plugin->progress_target < 0)
-                plugin->progress = percent_done;
-        plugin->progress_target = percent_done;
+                plugin->progress = fraction_done;
+        plugin->progress_target = fraction_done;
 }
 
 static void

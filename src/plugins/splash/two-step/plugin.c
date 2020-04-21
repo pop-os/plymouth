@@ -68,8 +68,8 @@
 #define FRAMES_PER_SECOND 30
 #endif
 
-#ifndef SHOW_ANIMATION_PERCENT
-#define SHOW_ANIMATION_PERCENT 0.9
+#ifndef SHOW_ANIMATION_FRACTION
+#define SHOW_ANIMATION_FRACTION 0.9
 #endif
 
 #define PROGRESS_BAR_WIDTH  400
@@ -1707,7 +1707,7 @@ on_animation_stopped (ply_boot_splash_plugin_t *plugin)
 
 static void
 update_progress_animation (ply_boot_splash_plugin_t *plugin,
-                           double                    percent_done)
+                           double                    fraction_done)
 {
         ply_list_node_t *node;
         view_t *view;
@@ -1718,13 +1718,13 @@ update_progress_animation (ply_boot_splash_plugin_t *plugin,
                 view = ply_list_node_get_data (node);
 
                 if (view->progress_animation != NULL)
-                        ply_progress_animation_set_percent_done (view->progress_animation,
-                                                                 percent_done);
+                        ply_progress_animation_set_fraction_done (view->progress_animation,
+                                                                  fraction_done);
 
-                ply_progress_bar_set_percent_done (view->progress_bar, percent_done);
+                ply_progress_bar_set_fraction_done (view->progress_bar, fraction_done);
                 if (!ply_progress_bar_is_hidden (view->progress_bar) &&
                     plugin->mode_settings[plugin->mode].progress_bar_show_percent_complete) {
-                        snprintf (buf, sizeof(buf), _("%d%% complete"), (int)(percent_done * 100));
+                        snprintf (buf, sizeof(buf), _("%d%% complete"), (int)(fraction_done * 100));
                         view_show_message (view, buf);
                 }
 
@@ -1735,7 +1735,7 @@ update_progress_animation (ply_boot_splash_plugin_t *plugin,
 static void
 on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
-                  double                    percent_done)
+                  double                    fraction_done)
 {
         if (plugin->mode == PLY_BOOT_SPLASH_MODE_UPDATES ||
             plugin->mode == PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE ||
@@ -1753,7 +1753,7 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
          * become_idle gets called.
          */
         if (plugin->mode_settings[plugin->mode].use_end_animation &&
-            percent_done >= SHOW_ANIMATION_PERCENT) {
+            fraction_done >= SHOW_ANIMATION_FRACTION) {
                 if (plugin->stop_trigger == NULL) {
                         ply_trace ("boot progressed to end");
 
@@ -1767,21 +1767,21 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
         } else {
                 double total_duration;
 
-                percent_done *= (1 / SHOW_ANIMATION_PERCENT);
+                fraction_done *= (1 / SHOW_ANIMATION_FRACTION);
 
                 switch (plugin->progress_function) {
                 /* Fun made-up smoothing function to make the growth asymptotic:
                  * fraction(time,estimate)=1-2^(-(time^1.45)/estimate) */
                 case PROGRESS_FUNCTION_TYPE_WWOODS:
-                        total_duration = duration / percent_done;
-                        percent_done = 1.0 - pow (2.0, -pow (duration, 1.45) / total_duration) * (1.0 - percent_done);
+                        total_duration = duration / fraction_done;
+                        fraction_done = 1.0 - pow (2.0, -pow (duration, 1.45) / total_duration) * (1.0 - fraction_done);
                         break;
 
                 case PROGRESS_FUNCTION_TYPE_LINEAR:
                         break;
                 }
 
-                update_progress_animation (plugin, percent_done);
+                update_progress_animation (plugin, fraction_done);
         }
 }
 

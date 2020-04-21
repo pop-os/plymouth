@@ -58,7 +58,7 @@ struct _ply_progress_bar
 
         uint32_t             fg_color;
         uint32_t             bg_color;
-        double               percent_done;
+        double               fraction_done;
 
         uint32_t             is_hidden : 1;
 };
@@ -73,7 +73,7 @@ ply_progress_bar_new (void)
         progress_bar->is_hidden = true;
         progress_bar->fg_color = 0xffffffff; /* Solid white */
         progress_bar->bg_color = 0x01000000; /* Transparent */
-        progress_bar->percent_done = 0.0;
+        progress_bar->fraction_done = 0.0;
 
         return progress_bar;
 }
@@ -105,7 +105,7 @@ ply_progress_bar_draw_area (ply_progress_bar_t *progress_bar,
          */
 
         fill_area = progress_bar->area;
-        fill_area.width = progress_bar->area.width * progress_bar->percent_done;
+        fill_area.width = progress_bar->area.width * progress_bar->fraction_done;
         ply_pixel_buffer_fill_with_hex_color (buffer, &fill_area, progress_bar->fg_color);
 
         fill_area.x = fill_area.x + fill_area.width;
@@ -179,17 +179,17 @@ ply_progress_bar_get_height (ply_progress_bar_t *progress_bar)
 }
 
 void
-ply_progress_bar_set_percent_done (ply_progress_bar_t *progress_bar,
-                                   double              percent_done)
+ply_progress_bar_set_fraction_done (ply_progress_bar_t *progress_bar,
+                                    double              fraction_done)
 {
-        progress_bar->percent_done = percent_done;
+        progress_bar->fraction_done = fraction_done;
         ply_progress_bar_draw (progress_bar);
 }
 
 double
-ply_progress_bar_get_percent_done (ply_progress_bar_t *progress_bar)
+ply_progress_bar_get_fraction_done (ply_progress_bar_t *progress_bar)
 {
-        return progress_bar->percent_done;
+        return progress_bar->fraction_done;
 }
 
 void

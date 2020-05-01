@@ -237,12 +237,12 @@ on_timeout (ply_boot_splash_plugin_t *plugin)
 static void
 on_boot_progress (ply_boot_splash_plugin_t *plugin,
                   double                    duration,
-                  double                    percent_done)
+                  double                    fraction_done)
 {
         script_lib_plymouth_on_boot_progress (plugin->script_state,
                                               plugin->script_plymouth_lib,
                                               duration,
-                                              percent_done);
+                                              fraction_done);
 }
 
 static bool

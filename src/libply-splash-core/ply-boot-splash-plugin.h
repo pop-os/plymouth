@@ -78,7 +78,7 @@ typedef struct
                                size_t                    size);
         void (*on_boot_progress)(ply_boot_splash_plugin_t *plugin,
                                  double                    duration,
-                                 double                    percent_done);
+                                 double                    fraction_done);
         void (*on_root_mounted)(ply_boot_splash_plugin_t *plugin);
         void (*hide_splash_screen)(ply_boot_splash_plugin_t *plugin,
                                    ply_event_loop_t         *loop);

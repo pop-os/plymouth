@@ -56,9 +56,9 @@ bool ply_progress_bar_is_hidden (ply_progress_bar_t *bar);
 long ply_progress_bar_get_width (ply_progress_bar_t *bar);
 long ply_progress_bar_get_height (ply_progress_bar_t *bar);
 
-void ply_progress_bar_set_percent_done (ply_progress_bar_t *bar,
-                                        double              percent_done);
-double ply_progress_bar_get_percent_done (ply_progress_bar_t *bar);
+void ply_progress_bar_set_fraction_done (ply_progress_bar_t *bar,
+                                         double              fraction_done);
+double ply_progress_bar_get_fraction_done (ply_progress_bar_t *bar);
 
 void ply_progress_bar_set_colors (ply_progress_bar_t *bar,
                                   uint32_t            fg_color,

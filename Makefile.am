@@ -1,4 +1,4 @@
-SUBDIRS = po src themes images scripts systemd-units
+SUBDIRS = src themes images scripts systemd-units po
 
 if BUILD_DOCUMENTATION
 SUBDIRS += docs

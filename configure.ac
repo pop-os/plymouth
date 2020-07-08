@@ -1,4 +1,4 @@
-AC_INIT([plymouth],[0.9.5],[https://gitlab.freedesktop.org/plymouth/plymouth/issues])
+AC_INIT([plymouth],[0.9.6],[https://gitlab.freedesktop.org/plymouth/plymouth/issues])
 AC_CONFIG_SRCDIR(src/main.c)
 AC_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(build-tools)

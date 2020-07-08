@@ -4,8 +4,10 @@ nodist_theme_DATA = bgrt.plymouth
 MAINTAINERCLEANFILES = Makefile.in bgrt.plymouth
 CLEANFILES = bgrt.plymouth
 
-bgrt.plymouth: $(srcdir)/bgrt.plymouth.in
+bgrt.plymouth: $(srcdir)/bgrt.plymouth.desktop
+	$(AM_V_GEN) \
 	sed -e 's,[@]PLYMOUTH_THEME_PATH[@],$(PLYMOUTH_THEME_PATH),g' \
-	       $(srcdir)/bgrt.plymouth.in > bgrt.plymouth
+	$(srcdir)/bgrt.plymouth.desktop | \
+	    $(MSGFMT) --desktop --template /dev/stdin -d $(top_srcdir)/po -o $@
 
-EXTRA_DIST = bgrt.plymouth.in
+EXTRA_DIST = bgrt.plymouth.desktop

@@ -11,16 +11,12 @@ AM_PROG_CC_C_O
 AC_HEADER_STDC
 AC_C_CONST
 
-AM_INIT_AUTOMAKE([dist-xz no-dist-gzip])
+AM_INIT_AUTOMAKE([dist-xz no-dist-gzip subdir-objects])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_MAINTAINER_MODE([enable])
 
 AM_GNU_GETTEXT_VERSION([0.19.8])
 AM_GNU_GETTEXT([external])
-AC_PATH_PROG([INTLTOOL_EXTRACT], [intltool-extract])
-if test x$INTLTOOL_EXTRACT = x; then
-  AC_MSG_ERROR([intltool-extract is required to build plymouth])
-fi
 
 PKG_PROG_PKG_CONFIG
 LT_INIT([dlopen disable-static pic-only])

@@ -1,5 +1,0 @@
-../themes/bgrt/bgrt.plymouth.in.h: ../themes/bgrt/bgrt.plymouth.in
-	intltool-extract --type=gettext/ini $<
-
-../themes/spinner/spinner.plymouth.in.h: ../themes/spinner/spinner.plymouth.in
-	intltool-extract --type=gettext/ini $<

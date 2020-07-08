@@ -1,0 +1,25 @@
+stages:
+  - build
+
+.autotools-build: &autotools-build
+  script:
+    - NOCONFIGURE=1 ./autogen.sh
+    - mkdir _build && cd _build
+    - ../configure --prefix /usr
+    - make
+    - make distcheck
+
+fedora-x86_64:
+  stage: build
+  image: 'registry.fedoraproject.org/fedora:30'
+  before_script:
+    - dnf install -y gcc libtool intltool gtk3-devel git libpng-devel gettext-devel libxslt docbook-style-xsl cairo-devel systemd-devel systemd-udev kernel-headers libdrm-devel pango-devel make
+  <<: *autotools-build
+
+debian-stable-x86_64:
+  stage: build
+  image: debian:stable
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y -qq --no-install-recommends autoconf automake autopoint bc build-essential docbook-xsl gcc gettext git intltool libdrm-dev libgtk-3-dev libpango1.0-dev libpng-dev libtool libudev-dev make pkg-config libsystemd-dev udev xsltproc  
+  <<: *autotools-build

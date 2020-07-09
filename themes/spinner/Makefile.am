@@ -82,7 +82,7 @@ spinner.plymouth: $(srcdir)/spinner.plymouth.desktop
 	$(AM_V_GEN) \
 	sed -e 's,[@]PLYMOUTH_THEME_PATH[@],$(PLYMOUTH_THEME_PATH),g' \
 	$(srcdir)/spinner.plymouth.desktop | \
-	    $(MSGFMT) --desktop --template /dev/stdin -d $(top_srcdir)/po -o $@
+	    $(MSGFMT) --desktop --template /proc/self/fd/0 -d $(top_srcdir)/po -o $@
 
 
 EXTRA_DIST = spinner.plymouth.desktop

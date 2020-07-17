@@ -158,6 +158,7 @@ static void on_quit (state_t       *state,
 static bool sh_is_init (state_t *state);
 static void cancel_pending_delayed_show (state_t *state);
 static void prepare_logging (state_t *state);
+static void dump_debug_buffer_to_file (void);
 
 static void
 on_session_output (state_t    *state,
@@ -653,6 +654,12 @@ on_newroot (state_t    *state,
         }
 
         ply_trace ("new root mounted at \"%s\", switching to it", root_dir);
+
+        if (!strcmp (root_dir, "/run/initramfs") && debug_buffer != NULL) {
+                ply_trace ("switching back to initramfs, dumping debug-buffer now");
+                dump_debug_buffer_to_file ();
+        }
+
         chdir (root_dir);
         chroot (".");
         chdir ("/");

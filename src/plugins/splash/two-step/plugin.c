@@ -1009,8 +1009,8 @@ load_mode_settings (ply_boot_splash_plugin_t *plugin,
         if (settings->use_firmware_background)
                 plugin->use_firmware_background = true;
 
-        settings->title = ply_key_file_get_value (key_file, group_name, "_Title");
-        settings->subtitle = ply_key_file_get_value (key_file, group_name, "_SubTitle");
+        settings->title = ply_key_file_get_value (key_file, group_name, "Title");
+        settings->subtitle = ply_key_file_get_value (key_file, group_name, "SubTitle");
 }
 
 static ply_boot_splash_plugin_t *

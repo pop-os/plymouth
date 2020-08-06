@@ -2089,6 +2089,10 @@ main (int    argc,
 
         state.loop = ply_event_loop_get_default ();
 
+        /* Initialize the translations if they are available (!initrd) */
+        if (ply_directory_exists (PLYMOUTH_LOCALE_DIRECTORY))
+                setlocale(LC_ALL, "");
+
         ply_command_parser_add_options (state.command_parser,
                                         "help", "This help message", PLY_COMMAND_OPTION_TYPE_FLAG,
                                         "attach-to-session", "Redirect console messages from screen to log", PLY_COMMAND_OPTION_TYPE_FLAG,

@@ -37,7 +37,5 @@ msgid "Upgrading System..."
 msgstr "Besturingssysteem upgrade wordt uitgevoerd..."
 
 #: themes/bgrt/bgrt.plymouth.in.h:4 themes/spinner/spinner.plymouth.in.h:4
-#, fuzzy
-#| msgid "Upgrading System..."
 msgid "Upgrading Firmware..."
-msgstr "Besturingssysteem upgrade wordt uitgevoerd..."
+msgstr "Firmware upgrade wordt uitgevoerd..."

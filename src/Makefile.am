@@ -6,6 +6,7 @@ AM_CPPFLAGS = -I$(top_srcdir)                                                 \
            -I$(srcdir)/libply                                                 \
            -I$(srcdir)/libply-splash-core                                     \
            -I$(srcdir)                                                        \
+           -DPLYMOUTH_LOCALE_DIRECTORY=\"$(localedir)\"                       \
            -DPLYMOUTH_LOG_DIRECTORY=\"$(localstatedir)/log\"                  \
            -DPLYMOUTH_SPOOL_DIRECTORY=\"$(localstatedir)/spool/plymouth\"     \
            -DPLYMOUTH_TIME_DIRECTORY=\"$(localstatedir)/lib/plymouth/\"       \

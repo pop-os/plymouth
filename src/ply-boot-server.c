@@ -47,6 +47,8 @@ typedef struct
         uid_t              uid;
         pid_t              pid;
 
+        int                reference_count;
+
         uint32_t           credentials_read : 1;
 } ply_boot_connection_t;
 
@@ -165,6 +167,7 @@ ply_boot_connection_new (ply_boot_server_t *server,
         connection->fd = fd;
         connection->server = server;
         connection->watch = NULL;
+        connection->reference_count = 1;
 
         return connection;
 }
@@ -177,6 +180,26 @@ ply_boot_connection_free (ply_boot_connection_t *connection)
 
         close (connection->fd);
         free (connection);
+}
+
+static void
+ply_boot_connection_take_reference (ply_boot_connection_t *connection)
+{
+        connection->reference_count++;
+}
+
+static void
+ply_boot_connection_drop_reference (ply_boot_connection_t *connection)
+{
+        if (connection == NULL)
+                return;
+
+        connection->reference_count--;
+
+        assert (connection->reference_count >= 0);
+
+        if (connection->reference_count == 0)
+                ply_boot_connection_free (connection);
 }
 
 bool
@@ -713,7 +736,7 @@ ply_boot_connection_on_hangup (ply_boot_connection_t *connection)
 
         assert (node != NULL);
 
-        ply_boot_connection_free (connection);
+        ply_boot_connection_drop_reference (connection);
         ply_list_remove_node (server->connections, node);
 }
 

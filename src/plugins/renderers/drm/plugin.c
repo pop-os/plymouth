@@ -157,7 +157,6 @@ struct _ply_renderer_backend
 
         uint32_t                         is_active : 1;
         uint32_t        requires_explicit_flushing : 1;
-        uint32_t                use_preferred_mode : 1;
 
         int                              panel_width;
         int                              panel_height;
@@ -170,23 +169,6 @@ static bool open_input_source (ply_renderer_backend_t      *backend,
                                ply_renderer_input_source_t *input_source);
 static void flush_head (ply_renderer_backend_t *backend,
                         ply_renderer_head_t    *head);
-
-/* A small helper to determine if we should try to keep the current mode
- * or pick the best mode ourselves, we keep the current mode only if the
- * user specified a specific mode using video= on the commandline.
- */
-static bool
-should_use_preferred_mode (void)
-{
-        bool use_preferred_mode = true;
-
-        if (ply_kernel_command_line_get_string_after_prefix ("video="))
-                use_preferred_mode = false;
-
-        ply_trace ("should_use_preferred_mode: %d", use_preferred_mode);
-
-        return use_preferred_mode;
-}
 
 static bool
 ply_renderer_buffer_map (ply_renderer_backend_t *backend,
@@ -903,7 +885,6 @@ create_backend (const char     *device_name,
         backend->output_buffers = ply_hashtable_new (ply_hashtable_direct_hash,
                                                      ply_hashtable_direct_compare);
         backend->heads_by_controller_id = ply_hashtable_new (NULL, NULL);
-        backend->use_preferred_mode = should_use_preferred_mode ();
 
         return backend;
 }
@@ -1134,6 +1115,14 @@ get_preferred_mode (drmModeConnector *connector)
         int i;
 
         for (i = 0; i < connector->count_modes; i++)
+                if (connector->modes[i].type & DRM_MODE_TYPE_USERDEF) {
+                        ply_trace ("Found user set mode %dx%d at index %d",
+                                   connector->modes[i].hdisplay,
+                                   connector->modes[i].vdisplay, i);
+                        return &connector->modes[i];
+                }
+
+        for (i = 0; i < connector->count_modes; i++)
                 if (connector->modes[i].type & DRM_MODE_TYPE_PREFERRED) {
                         ply_trace ("Found preferred mode %dx%d at index %d",
                                    connector->modes[i].hdisplay,
@@ -1190,7 +1179,7 @@ get_output_info (ply_renderer_backend_t *backend,
         output_get_controller_info (backend, connector, output);
         ply_renderer_connector_get_rotation_and_tiled (backend, connector, output);
 
-        if (!output->tiled && backend->use_preferred_mode)
+        if (!output->tiled)
                 mode = get_preferred_mode (connector);
 
         if (!mode && output->controller_id)

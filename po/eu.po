@@ -1,13 +1,13 @@
-# Máximo Castañeda Riloba <mcrcctm@gmail.com>, 2019. #zanata
+# Mikel Olasagasti Uranga <mikel@olasagasti.info>, 2019. #zanata
 msgid ""
 msgstr ""
 "Project-Id-Version: plymouth 0.9.5\n"
 "Report-Msgid-Bugs-To: https://gitlab.freedesktop.org/plymouth/plymouth/issues\n"
 "POT-Creation-Date: 2019-06-12 11:54+0200\n"
-"PO-Revision-Date: 2019-02-26 08:21-0500\n"
-"Last-Translator: Máximo Castañeda Riloba <mcrcctm@gmail.com>\n"
-"Language-Team: Spanish\n"
-"Language: es\n"
+"PO-Revision-Date: 2019-08-12 10:06-0400\n"
+"Last-Translator: Mikel Olasagasti Uranga <mikel@olasagasti.info>\n"
+"Language-Team: Basque\n"
+"Language: eu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -17,20 +17,20 @@ msgstr ""
 #: src/plugins/splash/two-step/plugin.c:1885
 #, c-format
 msgid "%d%% complete"
-msgstr "%d%% completado"
+msgstr "%d%% eginda"
 
 #: themes/bgrt/bgrt.plymouth.in.h:1 themes/spinner/spinner.plymouth.in.h:1
 msgid "Installing Updates..."
-msgstr "Instalando actualizaciones..."
+msgstr "Eguneraketak instalatzen..."
 
 #: themes/bgrt/bgrt.plymouth.in.h:2 themes/spinner/spinner.plymouth.in.h:2
 msgid "Do not turn off your computer"
-msgstr "No apague su equipo"
+msgstr "Ez itzali zure ordenagailua"
 
 #: themes/bgrt/bgrt.plymouth.in.h:3 themes/spinner/spinner.plymouth.in.h:3
 msgid "Upgrading System..."
-msgstr "Actualizando el sistema..."
+msgstr "Sistema bertsio-berritzen..."
 
 #: themes/bgrt/bgrt.plymouth.in.h:4 themes/spinner/spinner.plymouth.in.h:4
 msgid "Upgrading Firmware..."
-msgstr ""
+msgstr "Firmwarea bertsio-berritzen..."

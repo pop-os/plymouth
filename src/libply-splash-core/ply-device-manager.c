@@ -308,18 +308,6 @@ create_devices_for_udev_device (ply_device_manager_t *manager,
         return created;
 }
 
-static void
-free_devices_for_udev_device (ply_device_manager_t *manager,
-                              struct udev_device   *device)
-{
-        const char *device_path;
-
-        device_path = udev_device_get_devnode (device);
-
-        if (device_path != NULL)
-                free_devices_from_device_path (manager, device_path, true);
-}
-
 static bool
 create_devices_for_subsystem (ply_device_manager_t *manager,
                               const char           *subsystem)
@@ -385,14 +373,11 @@ create_devices_for_subsystem (ply_device_manager_t *manager,
 static void
 on_drm_udev_add_or_change (ply_device_manager_t *manager,
                            const char           *action,
+                           const char           *device_path,
                            struct udev_device   *device)
 {
-        const char *device_path = udev_device_get_devnode (device);
         ply_renderer_t *renderer;
         bool changed;
-
-        if (device_path == NULL)
-                return;
 
         renderer = ply_hashtable_lookup (manager->renderers, (void *) device_path);
         if (renderer == NULL) {
@@ -419,18 +404,20 @@ static void
 on_udev_event (ply_device_manager_t *manager)
 {
         struct udev_device *device;
-        const char *action;
+        const char *action, *device_path;
 
         device = udev_monitor_receive_device (manager->udev_monitor);
         if (device == NULL)
                 return;
 
         action = udev_device_get_action (device);
-
-        ply_trace ("got %s event for device %s", action, udev_device_get_sysname (device));
-
-        if (action == NULL)
+        device_path = udev_device_get_devnode (device);
+        if (action == NULL || device_path == NULL) {
+                udev_device_unref (device);
                 return;
+        }
+
+        ply_trace ("got %s event for device %s", action, device_path);
 
         if (strcmp (action, "add") == 0 || strcmp (action, "change") == 0) {
                 const char *subsystem;
@@ -441,12 +428,12 @@ on_udev_event (ply_device_manager_t *manager)
                         if (manager->local_console_managed && manager->local_console_is_text)
                                 ply_trace ("ignoring since we're already using text splash for local console");
                         else
-                                on_drm_udev_add_or_change (manager, action, device);
+                                on_drm_udev_add_or_change (manager, action, device_path, device);
                 } else {
                         ply_trace ("ignoring since we only handle subsystem %s devices after timeout", subsystem);
                 }
         } else if (strcmp (action, "remove") == 0) {
-                free_devices_for_udev_device (manager, device);
+                free_devices_from_device_path (manager, device_path, true);
         }
 
         udev_device_unref (device);

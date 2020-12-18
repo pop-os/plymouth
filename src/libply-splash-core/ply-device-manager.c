@@ -522,7 +522,6 @@ watch_for_udev_events (ply_device_manager_t *manager)
         int fd;
 
         assert (manager != NULL);
-        assert (manager->udev_monitor == NULL);
 
         if (manager->fd_watch != NULL)
                 return;

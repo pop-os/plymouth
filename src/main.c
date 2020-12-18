@@ -919,6 +919,7 @@ on_show_splash (state_t *state)
 
         if (plymouth_should_ignore_show_splash_calls (state)) {
                 ply_trace ("show splash called while ignoring show splash calls");
+                state->should_retain_splash = true;
                 dump_details_and_quit_splash (state);
                 return;
         }
@@ -1173,6 +1174,7 @@ on_hide_splash (state_t *state)
                 return;
 
         ply_trace ("hiding boot splash");
+        state->should_retain_splash = true;
         dump_details_and_quit_splash (state);
 }
 

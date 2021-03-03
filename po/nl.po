@@ -3,7 +3,7 @@
 # Copyright (C) 2019 Plymouth contributors
 # This file is distributed under the same license as the plymouth package.
 # Hans de Goede <hdegoede@redhat.com>, 2019.
-# Geert Warrink <geert.warrink@onsnet.nu>, 2019. #zanata
+# Geert Warrink <geert.warrink@onsnet.nu>, 2019. #zanata, 2021.
 # Hans de Goede <hdegoede@redhat.com>, 2019. #zanata
 msgid ""
 msgstr ""
@@ -11,15 +11,16 @@ msgstr ""
 "Report-Msgid-Bugs-To: https://gitlab.freedesktop.org/plymouth/plymouth/"
 "issues\n"
 "POT-Creation-Date: 2020-07-08 14:59-0400\n"
-"PO-Revision-Date: 2019-06-13 12:07-0400\n"
+"PO-Revision-Date: 2021-02-28 12:40+0000\n"
 "Last-Translator: Geert Warrink <geert.warrink@onsnet.nu>\n"
-"Language-Team: Dutch\n"
+"Language-Team: Dutch <https://translate.fedoraproject.org/projects/plymouth/"
+"master/nl/>\n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Zanata 4.6.2\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.4.2\n"
 
 #: src/plugins/splash/two-step/plugin.c:1727
 #, c-format
@@ -28,7 +29,7 @@ msgstr "%d%% voltooid"
 
 #: themes/bgrt/bgrt.plymouth.desktop:3
 msgid "BGRT"
-msgstr ""
+msgstr "BGRT"
 
 #: themes/bgrt/bgrt.plymouth.desktop:44
 #: themes/spinner/spinner.plymouth.desktop:40
@@ -55,4 +56,4 @@ msgstr "Firmware upgrade wordt uitgevoerd..."
 
 #: themes/spinner/spinner.plymouth.desktop:3
 msgid "Spinner"
-msgstr ""
+msgstr "Spinner"

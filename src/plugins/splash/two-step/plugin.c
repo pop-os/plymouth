@@ -1076,10 +1076,6 @@ create_plugin (ply_key_file_t *key_file)
         plugin->background_tile_image = ply_image_new (image_path);
         free (image_path);
 
-        asprintf (&image_path, "%s/bgrt-fallback.png", image_dir);
-        plugin->background_bgrt_fallback_image = ply_image_new (image_path);
-        free (image_path);
-
         asprintf (&image_path, "%s/watermark.png", image_dir);
         plugin->watermark_image = ply_image_new (image_path);
         free (image_path);
@@ -1182,8 +1178,13 @@ create_plugin (ply_key_file_t *key_file)
         load_mode_settings (plugin, key_file, "system-upgrade", PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE);
         load_mode_settings (plugin, key_file, "firmware-upgrade", PLY_BOOT_SPLASH_MODE_FIRMWARE_UPGRADE);
 
-        if (plugin->use_firmware_background)
+        if (plugin->use_firmware_background) {
                 plugin->background_bgrt_image = ply_image_new ("/sys/firmware/acpi/bgrt/image");
+
+                asprintf (&image_path, "%s/bgrt-fallback.png", image_dir);
+                plugin->background_bgrt_fallback_image = ply_image_new (image_path);
+                free (image_path);
+        }
 
         plugin->dialog_clears_firmware_background =
                 ply_key_file_get_bool (key_file, "two-step", "DialogClearsFirmwareBackground");

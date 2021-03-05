@@ -1693,16 +1693,16 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                         plugin->background_bgrt_raw_width = ply_image_get_width (plugin->background_bgrt_image);
                         plugin->background_bgrt_raw_height = ply_image_get_height (plugin->background_bgrt_image);
                 } else {
-                        ply_trace ("loading background bgrt fallback image");
-
                         ply_image_free (plugin->background_bgrt_image);
                         plugin->background_bgrt_image = NULL;
+                }
+        }
 
-                        if (!ply_image_load (plugin->background_bgrt_fallback_image)) {
-                                for (i = 0; i < PLY_BOOT_SPLASH_MODE_COUNT; i++)
-                                        plugin->mode_settings[i].use_firmware_background = false;
-                                plugin->use_firmware_background = false;
-                        }
+        if (plugin->background_bgrt_fallback_image != NULL) {
+                ply_trace ("loading background bgrt fallback image");
+                if (!ply_image_load (plugin->background_bgrt_fallback_image)) {
+                        ply_image_free (plugin->background_bgrt_fallback_image);
+                        plugin->background_bgrt_fallback_image = NULL;
                 }
         }
 

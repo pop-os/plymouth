@@ -400,6 +400,32 @@ on_drm_udev_add_or_change (ply_device_manager_t *manager,
         }
 }
 
+static bool
+verify_add_or_change (ply_device_manager_t *manager,
+                      const char           *action,
+                      const char           *device_path,
+                      struct udev_device   *device)
+{
+        const char *subsystem = udev_device_get_subsystem (device);
+
+        if (strcmp (action, "add") && strcmp (action, "change"))
+                return false;
+
+        subsystem = udev_device_get_subsystem (device);
+
+        if (strcmp (subsystem, SUBSYSTEM_DRM) == 0) {
+                if (manager->local_console_managed && manager->local_console_is_text) {
+                        ply_trace ("ignoring since we're already using text splash for local console");
+                        return false;
+                }
+        } else {
+                ply_trace ("ignoring since we only handle subsystem %s devices after timeout", subsystem);
+                return false;
+        }
+
+        return true;
+}
+
 static void
 on_udev_event (ply_device_manager_t *manager)
 {
@@ -420,18 +446,8 @@ on_udev_event (ply_device_manager_t *manager)
         ply_trace ("got %s event for device %s", action, device_path);
 
         if (strcmp (action, "add") == 0 || strcmp (action, "change") == 0) {
-                const char *subsystem;
-
-                subsystem = udev_device_get_subsystem (device);
-
-                if (strcmp (subsystem, SUBSYSTEM_DRM) == 0) {
-                        if (manager->local_console_managed && manager->local_console_is_text)
-                                ply_trace ("ignoring since we're already using text splash for local console");
-                        else
-                                on_drm_udev_add_or_change (manager, action, device_path, device);
-                } else {
-                        ply_trace ("ignoring since we only handle subsystem %s devices after timeout", subsystem);
-                }
+                if (verify_add_or_change (manager, action, device_path, device))
+                        on_drm_udev_add_or_change (manager, action, device_path, device);
         } else if (strcmp (action, "remove") == 0) {
                 free_devices_from_device_path (manager, device_path, true);
         }

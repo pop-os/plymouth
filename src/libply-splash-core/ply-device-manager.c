@@ -426,33 +426,94 @@ verify_add_or_change (ply_device_manager_t *manager,
         return true;
 }
 
+static bool
+duplicate_device_path (ply_list_t *events, const char *device_path)
+{
+        struct udev_device *device;
+        ply_list_node_t *node;
+
+        for (node = ply_list_get_first_node (events);
+             node; node = ply_list_get_next_node (events, node)) {
+                device = ply_list_node_get_data (node);
+
+                if (strcmp (udev_device_get_devnode (device), device_path) == 0)
+                        return true;
+        }
+
+        return false;
+}
+
+static void
+process_udev_add_or_change_events (ply_device_manager_t *manager, ply_list_t *events)
+{
+        const char *action, *device_path;
+        struct udev_device *device;
+        ply_list_node_t *node;
+
+        while ((node = ply_list_get_first_node (events))) {
+                device = ply_list_node_get_data (node);
+                action = udev_device_get_action (device);
+                device_path = udev_device_get_devnode (device);
+
+                on_drm_udev_add_or_change (manager, action, device_path, device);
+
+                ply_list_remove_node (events, node);
+                udev_device_unref (device);
+        }
+}
+
 static void
 on_udev_event (ply_device_manager_t *manager)
 {
-        struct udev_device *device;
         const char *action, *device_path;
+        struct udev_device *device;
+        ply_list_t *pending_events;
 
-        device = udev_monitor_receive_device (manager->udev_monitor);
-        if (device == NULL)
-                return;
+        pending_events = ply_list_new ();
 
-        action = udev_device_get_action (device);
-        device_path = udev_device_get_devnode (device);
-        if (action == NULL || device_path == NULL) {
+        /*
+         * During the initial monitor/connector enumeration on boot the kernel
+         * fires a large number of change events. If we process these 1 by 1,
+         * we spend a lot of time probing the drm-connectors. So instead we
+         * collect them all and then coalescence them so that if there are multiple
+         * change events pending for a single card, we only re-probe the card once.
+         */
+        while ((device = udev_monitor_receive_device (manager->udev_monitor))) {
+                action = udev_device_get_action (device);
+                device_path = udev_device_get_devnode (device);
+
+                if (action == NULL || device_path == NULL)
+                        goto unref;
+
+                ply_trace ("got %s event for device %s", action, device_path);
+
+                /*
+                 * Add/change events before and after a remove may not be
+                 * coalesced together. So flush the queue and then process
+                 * the remove event immediately.
+                 */
+                if (strcmp (action, "remove") == 0) {
+                        process_udev_add_or_change_events (manager, pending_events);
+                        free_devices_from_device_path (manager, device_path, true);
+                        goto unref;
+                }
+
+                if (!verify_add_or_change (manager, action, device_path, device))
+                        goto unref;
+
+                if (duplicate_device_path (pending_events, device_path)) {
+                        ply_trace ("ignoring duplicate %s event for device %s", action, device_path);
+                        goto unref;
+                }
+
+                ply_list_append_data (pending_events, udev_device_ref(device));
+unref:
                 udev_device_unref (device);
-                return;
         }
 
-        ply_trace ("got %s event for device %s", action, device_path);
+        process_udev_add_or_change_events (manager, pending_events);
 
-        if (strcmp (action, "add") == 0 || strcmp (action, "change") == 0) {
-                if (verify_add_or_change (manager, action, device_path, device))
-                        on_drm_udev_add_or_change (manager, action, device_path, device);
-        } else if (strcmp (action, "remove") == 0) {
-                free_devices_from_device_path (manager, device_path, true);
-        }
-
-        udev_device_unref (device);
+        ply_list_free (pending_events);
 }
 
 static void

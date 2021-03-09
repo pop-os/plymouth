@@ -308,18 +308,6 @@ create_devices_for_udev_device (ply_device_manager_t *manager,
         return created;
 }
 
-static void
-free_devices_for_udev_device (ply_device_manager_t *manager,
-                              struct udev_device   *device)
-{
-        const char *device_path;
-
-        device_path = udev_device_get_devnode (device);
-
-        if (device_path != NULL)
-                free_devices_from_device_path (manager, device_path, true);
-}
-
 static bool
 create_devices_for_subsystem (ply_device_manager_t *manager,
                               const char           *subsystem)
@@ -385,14 +373,11 @@ create_devices_for_subsystem (ply_device_manager_t *manager,
 static void
 on_drm_udev_add_or_change (ply_device_manager_t *manager,
                            const char           *action,
+                           const char           *device_path,
                            struct udev_device   *device)
 {
-        const char *device_path = udev_device_get_devnode (device);
         ply_renderer_t *renderer;
         bool changed;
-
-        if (device_path == NULL)
-                return;
 
         renderer = ply_hashtable_lookup (manager->renderers, (void *) device_path);
         if (renderer == NULL) {
@@ -415,41 +400,120 @@ on_drm_udev_add_or_change (ply_device_manager_t *manager,
         }
 }
 
+static bool
+verify_add_or_change (ply_device_manager_t *manager,
+                      const char           *action,
+                      const char           *device_path,
+                      struct udev_device   *device)
+{
+        const char *subsystem = udev_device_get_subsystem (device);
+
+        if (strcmp (action, "add") && strcmp (action, "change"))
+                return false;
+
+        subsystem = udev_device_get_subsystem (device);
+
+        if (strcmp (subsystem, SUBSYSTEM_DRM) == 0) {
+                if (manager->local_console_managed && manager->local_console_is_text) {
+                        ply_trace ("ignoring since we're already using text splash for local console");
+                        return false;
+                }
+        } else {
+                ply_trace ("ignoring since we only handle subsystem %s devices after timeout", subsystem);
+                return false;
+        }
+
+        return true;
+}
+
+static bool
+duplicate_device_path (ply_list_t *events, const char *device_path)
+{
+        struct udev_device *device;
+        ply_list_node_t *node;
+
+        for (node = ply_list_get_first_node (events);
+             node; node = ply_list_get_next_node (events, node)) {
+                device = ply_list_node_get_data (node);
+
+                if (strcmp (udev_device_get_devnode (device), device_path) == 0)
+                        return true;
+        }
+
+        return false;
+}
+
+static void
+process_udev_add_or_change_events (ply_device_manager_t *manager, ply_list_t *events)
+{
+        const char *action, *device_path;
+        struct udev_device *device;
+        ply_list_node_t *node;
+
+        while ((node = ply_list_get_first_node (events))) {
+                device = ply_list_node_get_data (node);
+                action = udev_device_get_action (device);
+                device_path = udev_device_get_devnode (device);
+
+                on_drm_udev_add_or_change (manager, action, device_path, device);
+
+                ply_list_remove_node (events, node);
+                udev_device_unref (device);
+        }
+}
+
 static void
 on_udev_event (ply_device_manager_t *manager)
 {
+        const char *action, *device_path;
         struct udev_device *device;
-        const char *action;
+        ply_list_t *pending_events;
 
-        device = udev_monitor_receive_device (manager->udev_monitor);
-        if (device == NULL)
-                return;
+        pending_events = ply_list_new ();
 
-        action = udev_device_get_action (device);
+        /*
+         * During the initial monitor/connector enumeration on boot the kernel
+         * fires a large number of change events. If we process these 1 by 1,
+         * we spend a lot of time probing the drm-connectors. So instead we
+         * collect them all and then coalescence them so that if there are multiple
+         * change events pending for a single card, we only re-probe the card once.
+         */
+        while ((device = udev_monitor_receive_device (manager->udev_monitor))) {
+                action = udev_device_get_action (device);
+                device_path = udev_device_get_devnode (device);
 
-        ply_trace ("got %s event for device %s", action, udev_device_get_sysname (device));
+                if (action == NULL || device_path == NULL)
+                        goto unref;
 
-        if (action == NULL)
-                return;
+                ply_trace ("got %s event for device %s", action, device_path);
 
-        if (strcmp (action, "add") == 0 || strcmp (action, "change") == 0) {
-                const char *subsystem;
-
-                subsystem = udev_device_get_subsystem (device);
-
-                if (strcmp (subsystem, SUBSYSTEM_DRM) == 0) {
-                        if (manager->local_console_managed && manager->local_console_is_text)
-                                ply_trace ("ignoring since we're already using text splash for local console");
-                        else
-                                on_drm_udev_add_or_change (manager, action, device);
-                } else {
-                        ply_trace ("ignoring since we only handle subsystem %s devices after timeout", subsystem);
+                /*
+                 * Add/change events before and after a remove may not be
+                 * coalesced together. So flush the queue and then process
+                 * the remove event immediately.
+                 */
+                if (strcmp (action, "remove") == 0) {
+                        process_udev_add_or_change_events (manager, pending_events);
+                        free_devices_from_device_path (manager, device_path, true);
+                        goto unref;
                 }
-        } else if (strcmp (action, "remove") == 0) {
-                free_devices_for_udev_device (manager, device);
+
+                if (!verify_add_or_change (manager, action, device_path, device))
+                        goto unref;
+
+                if (duplicate_device_path (pending_events, device_path)) {
+                        ply_trace ("ignoring duplicate %s event for device %s", action, device_path);
+                        goto unref;
+                }
+
+                ply_list_append_data (pending_events, udev_device_ref(device));
+unref:
+                udev_device_unref (device);
         }
 
-        udev_device_unref (device);
+        process_udev_add_or_change_events (manager, pending_events);
+
+        ply_list_free (pending_events);
 }
 
 static void

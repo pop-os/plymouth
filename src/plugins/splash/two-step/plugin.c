@@ -1642,8 +1642,6 @@ show_splash_screen (ply_boot_splash_plugin_t *plugin,
                     ply_buffer_t             *boot_buffer,
                     ply_boot_splash_mode_t    mode)
 {
-        int i;
-
         assert (plugin != NULL);
 
         plugin->loop = loop;

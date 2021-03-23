@@ -1,4 +1,4 @@
-# Andika Triwidada <andika@gmail.com>, 2019. #zanata
+# Andika Triwidada <andika@gmail.com>, 2019. #zanata, 2020.
 # Andika Triwidada <andika@gmail.com>, 2020. #zanata
 msgid ""
 msgstr ""
@@ -6,15 +6,16 @@ msgstr ""
 "Report-Msgid-Bugs-To: https://gitlab.freedesktop.org/plymouth/plymouth/"
 "issues\n"
 "POT-Creation-Date: 2020-07-08 14:59-0400\n"
-"PO-Revision-Date: 2020-03-31 11:27-0400\n"
+"PO-Revision-Date: 2020-12-17 08:36+0000\n"
 "Last-Translator: Andika Triwidada <andika@gmail.com>\n"
-"Language-Team: Indonesian\n"
+"Language-Team: Indonesian <https://translate.fedoraproject.org/projects/"
+"plymouth/master/id/>\n"
 "Language: id\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0\n"
-"X-Generator: Zanata 4.6.2\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 4.3.2\n"
 
 #: src/plugins/splash/two-step/plugin.c:1727
 #, c-format
@@ -23,7 +24,7 @@ msgstr "%d%% selesai"
 
 #: themes/bgrt/bgrt.plymouth.desktop:3
 msgid "BGRT"
-msgstr ""
+msgstr "BGRT"
 
 #: themes/bgrt/bgrt.plymouth.desktop:44
 #: themes/spinner/spinner.plymouth.desktop:40
@@ -50,4 +51,4 @@ msgstr "Meningkatkan Firmware..."
 
 #: themes/spinner/spinner.plymouth.desktop:3
 msgid "Spinner"
-msgstr ""
+msgstr "Spinner"

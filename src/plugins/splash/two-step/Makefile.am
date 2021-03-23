@@ -17,7 +17,7 @@ two_step_la_CFLAGS =    $(PLYMOUTH_CFLAGS)                                    \
                     -DPLYMOUTH_BACKGROUND_END_COLOR=$(background_end_color)   \
                     -DPLYMOUTH_BACKGROUND_START_COLOR=$(background_start_color)
 two_step_la_LDFLAGS =   -module -avoid-version -export-dynamic
-two_step_la_LIBADD =    $(PLYMOUTH_LIBS)                                      \
+two_step_la_LIBADD =    $(PLYMOUTH_LIBS) $(LTLIBINTL)                         \
                     ../../../libply/libply.la                                 \
                     ../../../libply-splash-core/libply-splash-core.la         \
                     ../../../libply-splash-graphics/libply-splash-graphics.la

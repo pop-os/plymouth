@@ -81,6 +81,7 @@ ply_logger_t *ply_logger_get_error_default (void);
 #ifdef PLY_ENABLE_TRACING
 void ply_logger_toggle_tracing (ply_logger_t *logger);
 bool ply_logger_is_tracing_enabled (ply_logger_t *logger);
+bool ply_logger_is_tracing_to_terminal (ply_logger_t *logger);
 
 #define ply_logger_trace(logger, format, args ...)                              \
         do                                                                             \
@@ -113,6 +114,7 @@ bool ply_logger_is_tracing_enabled (ply_logger_t *logger);
 #define ply_logger_trace(logger, format, args ...)
 #define ply_logger_toggle_tracing(logger)
 #define ply_logger_is_tracing_enabled(logger) (false)
+#define ply_logger_is_tracing_to_terminal(logger) (false)
 #endif /* PLY_ENABLE_TRACING */
 
 /* convenience macros
@@ -140,6 +142,8 @@ bool ply_logger_is_tracing_enabled (ply_logger_t *logger);
         ply_logger_toggle_tracing (ply_logger_get_error_default ())
 #define ply_is_tracing()                                                       \
         ply_logger_is_tracing_enabled (ply_logger_get_error_default ())
+#define ply_is_tracing_to_terminal()                                            \
+        ply_logger_is_tracing_to_terminal (ply_logger_get_error_default ())
 #define ply_trace(format, args ...)                                             \
         ply_logger_trace (ply_logger_get_error_default (), format, ## args)
 

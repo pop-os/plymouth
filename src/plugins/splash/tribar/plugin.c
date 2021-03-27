@@ -239,11 +239,10 @@ view_hide (view_t *view)
 
                 terminal = ply_text_display_get_terminal (view->display);
 
+                ply_terminal_reset_colors (terminal);
                 ply_text_display_set_background_color (view->display, PLY_TERMINAL_COLOR_DEFAULT);
                 ply_text_display_clear_screen (view->display);
                 ply_text_display_show_cursor (view->display);
-
-                ply_terminal_reset_colors (terminal);
         }
 }
 

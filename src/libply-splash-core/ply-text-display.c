@@ -43,7 +43,7 @@
 #include "ply-utils.h"
 
 #ifndef CLEAR_SCREEN_SEQUENCE
-#define CLEAR_SCREEN_SEQUENCE "\033[2J"
+#define CLEAR_SCREEN_SEQUENCE "\033[2J\033[3J"
 #endif
 
 #ifndef CLEAR_LINE_SEQUENCE

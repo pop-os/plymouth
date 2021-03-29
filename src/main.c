@@ -2214,11 +2214,14 @@ main (int    argc,
         }
 
         /* Make the first byte in argv be '@' so that we can survive systemd's killing
-         * spree when going from initrd to /, and so we stay alive all the way until
-         * the power is killed at shutdown.
+         * spree when going from initrd to /
          * http://www.freedesktop.org/wiki/Software/systemd/RootStorageDaemons
+         * Note ply_file_exists () does not work here because /etc/initrd-release
+         * is a symlink when using a dracut generated initrd.
          */
-        argv[0][0] = '@';
+        if (state.mode == PLY_BOOT_SPLASH_MODE_BOOT_UP &&
+            access ("/etc/initrd-release", F_OK) >= 0)
+                argv[0][0] = '@';
 
         state.boot_server = start_boot_server (&state);
 

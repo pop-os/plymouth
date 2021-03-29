@@ -2061,11 +2061,38 @@ on_crash (int signum)
 }
 
 static void
+start_plymouthd_fd_escrow (void)
+{
+        pid_t pid;
+
+        pid = fork ();
+        if (pid == 0) {
+                const char *argv[] = { PLYMOUTH_DRM_ESCROW_DIRECTORY "/plymouthd-fd-escrow", NULL };
+
+                execve (argv[0], (char * const *) argv, NULL);
+                ply_trace ("could not launch fd escrow process: %m");
+                _exit (1);
+        }
+}
+
+static void
 on_term_signal (state_t *state)
 {
         bool retain_splash = false;
 
         ply_trace ("received SIGTERM");
+
+        /*
+         * On shutdown/reboot with pixel-displays active, start the plymouthd-fd-escrow
+         * helper to hold on to the pixel-displays fds until the end.
+         */
+        if ((state->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
+             state->mode == PLY_BOOT_SPLASH_MODE_REBOOT) &&
+            !state->is_inactive && state->boot_splash &&
+            ply_boot_splash_uses_pixel_displays (state->boot_splash)) {
+                start_plymouthd_fd_escrow ();
+                retain_splash = true;
+        }
 
         on_quit (state, retain_splash, ply_trigger_new (NULL));
 }

@@ -61,6 +61,7 @@ typedef struct
 struct _ply_logger
 {
         int                       output_fd;
+        bool                      output_fd_is_terminal;
         char                     *filename;
 
         char                     *buffer;
@@ -229,6 +230,7 @@ ply_logger_new (void)
         logger = calloc (1, sizeof(ply_logger_t));
 
         logger->output_fd = -1;
+        logger->output_fd_is_terminal = false;
         logger->filename = NULL;
         logger->is_enabled = true;
         logger->tracing_is_enabled = false;
@@ -363,6 +365,7 @@ ply_logger_set_output_fd (ply_logger_t *logger,
         assert (logger != NULL);
 
         logger->output_fd = fd;
+        logger->output_fd_is_terminal = isatty(fd);
 }
 
 int
@@ -580,6 +583,15 @@ ply_logger_is_tracing_enabled (ply_logger_t *logger)
 
         return logger->tracing_is_enabled != false;
 }
+
+bool
+ply_logger_is_tracing_to_terminal (ply_logger_t *logger)
+{
+        assert (logger != NULL);
+
+        return logger->tracing_is_enabled && logger->output_fd_is_terminal;
+}
+
 #endif /* PLY_ENABLE_TRACING */
 
 /* vim: set ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

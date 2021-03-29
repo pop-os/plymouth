@@ -43,7 +43,7 @@
 #include "ply-utils.h"
 
 #ifndef CLEAR_SCREEN_SEQUENCE
-#define CLEAR_SCREEN_SEQUENCE "\033[2J"
+#define CLEAR_SCREEN_SEQUENCE "\033[2J\033[3J"
 #endif
 
 #ifndef CLEAR_LINE_SEQUENCE
@@ -150,7 +150,7 @@ ply_text_display_set_cursor_position (ply_text_display_t *display,
 void
 ply_text_display_clear_screen (ply_text_display_t *display)
 {
-        if (ply_is_tracing ())
+        if (ply_is_tracing_to_terminal ())
                 return;
 
         ply_terminal_write (display->terminal,

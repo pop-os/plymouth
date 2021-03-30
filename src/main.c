@@ -2056,6 +2056,16 @@ on_crash (int signum)
 }
 
 static void
+on_term_signal (state_t *state)
+{
+        bool retain_splash = false;
+
+        ply_trace ("received SIGTERM");
+
+        on_quit (state, retain_splash, ply_trigger_new (NULL));
+}
+
+static void
 write_pid_file (const char *filename)
 {
         FILE *fp;
@@ -2222,6 +2232,10 @@ main (int    argc,
         if (state.mode == PLY_BOOT_SPLASH_MODE_BOOT_UP &&
             access ("/etc/initrd-release", F_OK) >= 0)
                 argv[0][0] = '@';
+
+        /* Catch SIGTERM for clean shutdown on poweroff/reboot */
+        ply_event_loop_watch_signal (state.loop, SIGTERM,
+                                     (ply_event_handler_t) on_term_signal, &state);
 
         state.boot_server = start_boot_server (&state);
 

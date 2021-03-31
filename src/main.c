@@ -1875,8 +1875,13 @@ check_verbosity (state_t *state)
         }
 
         if (debug_buffer != NULL) {
-                if (debug_buffer_path == NULL)
-                        debug_buffer_path = strdup (PLYMOUTH_LOG_DIRECTORY "/plymouth-debug.log");
+                if (debug_buffer_path == NULL) {
+                        if (state->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
+                            state->mode == PLY_BOOT_SPLASH_MODE_REBOOT)
+                                debug_buffer_path = strdup (PLYMOUTH_LOG_DIRECTORY "/plymouth-shutdown-debug.log");
+                        else
+                                debug_buffer_path = strdup (PLYMOUTH_LOG_DIRECTORY "/plymouth-debug.log");
+                }
 
                 ply_logger_add_filter (ply_logger_get_error_default (),
                                        (ply_logger_filter_handler_t)

@@ -189,11 +189,16 @@ free_devices_from_device_path (ply_device_manager_t *manager,
         ply_hashtable_remove (manager->renderers, (void *) device_path);
         free (key);
 
-        if (manager->renderers_activated)
-                ply_renderer_deactivate (renderer);
+        /*
+         * Close is false when called from ply_device_manager_free (), in this
+         * case we don't deactivate / close for retain-splash purposes.
+         */
+        if (close) {
+                if (manager->renderers_activated)
+                        ply_renderer_deactivate (renderer);
 
-        if (close)
                 ply_renderer_close (renderer);
+        }
 
         ply_renderer_free (renderer);
 }

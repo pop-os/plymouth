@@ -1,5 +1,6 @@
 systemd_unit_templates =                                                     \
         plymouth-switch-root.service.in                                      \
+        plymouth-switch-root-initramfs.service.in                            \
         plymouth-start.service.in                                            \
         plymouth-read-write.service.in                                       \
         plymouth-quit.service.in                                             \
@@ -37,17 +38,25 @@ install-data-hook:
 		$(LN_S) ../plymouth-quit.service &&                          \
 		$(LN_S) ../plymouth-quit-wait.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/reboot.target.wants &&             \
-		rm -f plymouth-reboot.service &&                             \
-		$(LN_S) ../plymouth-reboot.service)
+		rm -f plymouth-reboot.service                                \
+		      plymouth-switch-root-initramfs.service &&              \
+		$(LN_S) ../plymouth-reboot.service &&                        \
+		$(LN_S) ../plymouth-switch-root-initramfs.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/kexec.target.wants &&              \
-		rm -f plymouth-kexec.service &&                              \
-		$(LN_S) ../plymouth-kexec.service)
+		rm -f plymouth-kexec.service                                 \
+		      plymouth-switch-root-initramfs.service &&              \
+		$(LN_S) ../plymouth-kexec.service &&                         \
+		$(LN_S) ../plymouth-switch-root-initramfs.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/poweroff.target.wants &&           \
-		rm -f plymouth-poweroff.service &&                           \
-		$(LN_S) ../plymouth-poweroff.service)
+		rm -f plymouth-poweroff.service                              \
+		      plymouth-switch-root-initramfs.service &&              \
+		$(LN_S) ../plymouth-poweroff.service &&                      \
+		$(LN_S) ../plymouth-switch-root-initramfs.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/halt.target.wants &&               \
-		rm -f plymouth-halt.service &&                               \
-		$(LN_S) ../plymouth-halt.service)
+		rm -f plymouth-halt.service                                  \
+		      plymouth-switch-root-initramfs.service &&              \
+		$(LN_S) ../plymouth-halt.service &&                          \
+		$(LN_S) ../plymouth-switch-root-initramfs.service)
 
 uninstall-hook:
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/initrd-switch-root.target.wants && \
@@ -57,13 +66,17 @@ uninstall-hook:
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/multi-user.target.wants &&         \
 		rm -f plymouth-quit.service plymouth-quit-wait.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/reboot.target.wants &&             \
-		rm -f plymouth-reboot.service)
+		rm -f plymouth-reboot.service                                \
+		      plymouth-switch-root-initramfs.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/kexec.target.wants &&              \
-		rm -f plymouth-kexec.service)
+		rm -f plymouth-kexec.service                                 \
+		      plymouth-switch-root-initramfs.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/poweroff.target.wants &&           \
-		rm -f plymouth-poweroff.service)
+		rm -f plymouth-poweroff.service                              \
+		      plymouth-switch-root-initramfs.service)
 	(cd $(DESTDIR)$(SYSTEMD_UNIT_DIR)/halt.target.wants &&               \
-		rm -f plymouth-halt.service)
+		rm -f plymouth-halt.service                                  \
+		      plymouth-switch-root-initramfs.service)
 	rmdir --ignore-fail-on-non-empty                                     \
 		$(DESTDIR)$(SYSTEMD_UNIT_DIR)/sysinit.target.wants           \
 		$(DESTDIR)$(SYSTEMD_UNIT_DIR)/multi-user.target.wants        \

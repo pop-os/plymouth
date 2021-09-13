@@ -574,7 +574,9 @@ on_hide_message (state_t    *state,
                 if (strcmp (list_message, message) == 0) {
                         free (list_message);
                         ply_list_remove_node (state->messages, node);
-                        ply_boot_splash_hide_message (state->boot_splash, message);
+                        if (state->boot_splash != NULL) {
+                            ply_boot_splash_hide_message (state->boot_splash, message);
+                        }
                 }
                 node = next_node;
         }

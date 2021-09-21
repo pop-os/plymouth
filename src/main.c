@@ -2113,6 +2113,7 @@ main (int    argc,
         bool no_boot_log = false;
         bool no_daemon = false;
         bool debug = false;
+        bool ignore_serial_consoles = false;
         bool attach_to_session;
         ply_daemon_handle_t *daemon_handle = NULL;
         char *mode_string = NULL;
@@ -2140,6 +2141,7 @@ main (int    argc,
                                         "kernel-command-line", "Fake kernel command line to use", PLY_COMMAND_OPTION_TYPE_STRING,
                                         "tty", "TTY to use instead of default", PLY_COMMAND_OPTION_TYPE_STRING,
                                         "no-boot-log", "Do not write boot log file", PLY_COMMAND_OPTION_TYPE_FLAG,
+                                        "ignore-serial-consoles", "Ignore serial consoles", PLY_COMMAND_OPTION_TYPE_FLAG,
                                         NULL);
 
         if (!ply_command_parser_parse_arguments (state.command_parser, state.loop, argv, argc)) {
@@ -2160,6 +2162,7 @@ main (int    argc,
                                         "no-boot-log", &no_boot_log,
                                         "no-daemon", &no_daemon,
                                         "debug", &debug,
+                                        "ignore-serial-consoles", &ignore_serial_consoles,
                                         "debug-file", &debug_buffer_path,
                                         "pid-file", &pid_file,
                                         "tty", &tty,
@@ -2303,7 +2306,8 @@ main (int    argc,
         find_system_default_splash (&state);
         find_distribution_default_splash (&state);
 
-        if (ply_kernel_command_line_has_argument ("plymouth.ignore-serial-consoles"))
+        if (ply_kernel_command_line_has_argument ("plymouth.ignore-serial-consoles") ||
+            ignore_serial_consoles == true)
                 device_manager_flags |= PLY_DEVICE_MANAGER_FLAGS_IGNORE_SERIAL_CONSOLES;
 
         if (ply_kernel_command_line_has_argument ("plymouth.ignore-udev") ||

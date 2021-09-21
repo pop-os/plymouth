@@ -294,28 +294,13 @@ load_settings (state_t    *state,
         }
 
         if (isnan (state->splash_delay)) {
-                char *delay_string;
-
-                delay_string = ply_key_file_get_value (key_file, "Daemon", "ShowDelay");
-
-                if (delay_string != NULL) {
-                        state->splash_delay = atof (delay_string);
-                        ply_trace ("Splash delay is set to %lf", state->splash_delay);
-                        free (delay_string);
-                }
+                state->splash_delay = ply_key_file_get_double(key_file, "Daemon", "ShowDelay", NAN);
+                ply_trace ("Splash delay is set to %lf", state->splash_delay);
         }
 
         if (isnan (state->device_timeout)) {
-                char *timeout_string;
-
-                timeout_string = ply_key_file_get_value (key_file, "Daemon", "DeviceTimeout");
-
-                if (timeout_string != NULL) {
-                        state->device_timeout = atof (timeout_string);
-                        ply_trace ("Device timeout is set to %lf", state->device_timeout);
-
-                        free (timeout_string);
-                }
+                state->device_timeout = ply_key_file_get_double(key_file, "Daemon", "DeviceTimeout", NAN);
+                ply_trace ("Device timeout is set to %lf", state->device_timeout);
         }
 
         scale_string = ply_key_file_get_value (key_file, "Daemon", "DeviceScale");
@@ -391,7 +376,7 @@ find_override_splash (state_t *state)
                 delay_string = ply_kernel_command_line_get_string_after_prefix ("plymouth.splash-delay=");
 
                 if (delay_string != NULL)
-                        state->splash_delay = atof (delay_string);
+                        state->splash_delay = ply_strtod (delay_string);
         }
 }
 

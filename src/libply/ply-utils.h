@@ -39,6 +39,8 @@
 #define CLAMP(a, b, c) (MIN (MAX ((a), (b)), (c)))
 #endif
 
+#define PLY_NUMBER_OF_ELEMENTS(arr) (sizeof (arr) / sizeof ((arr)[0]))
+
 #define PLY_UTF8_CHARACTER_SIZE_MAX 4
 
 typedef intptr_t ply_module_handle_t;

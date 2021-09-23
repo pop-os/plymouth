@@ -2357,6 +2357,10 @@ main (int    argc,
 
         ply_free_error_log ();
 
+        free (state.override_splash_path);
+        free (state.system_default_splash_path);
+        free (state.distribution_default_splash_path);
+
         return exit_code;
 }
 /* vim: set ts=4 ts=4 sw=4 expandtab autoindent cindent cino={.5s,(0: */

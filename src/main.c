@@ -262,14 +262,19 @@ show_messages (state_t *state)
 }
 
 static bool
-get_theme_path (const char *splash_string,
-                char      **theme_path)
+get_theme_path (const char  *splash_string,
+                const char  *configured_theme_dir,
+                char       **theme_path)
 {
         const char *paths[] = { PLYMOUTH_RUNTIME_THEME_PATH,
+                                configured_theme_dir,
                                 PLYMOUTH_THEME_PATH };
         size_t i;
 
         for (i = 0; i < PLY_NUMBER_OF_ELEMENTS (paths); ++i) {
+                if (paths[i] == NULL)
+                        continue;
+
                 asprintf (theme_path,
                           "%s/%s/%s.plymouth",
                           paths[i], splash_string, splash_string);
@@ -303,8 +308,13 @@ load_settings (state_t    *state,
 
         splash_string = ply_key_file_get_value (key_file, "Daemon", "Theme");
 
-        if (splash_string != NULL)
-                get_theme_path (splash_string, theme_path);
+        if (splash_string != NULL) {
+                char *configured_theme_dir;
+                configured_theme_dir = ply_key_file_get_value (key_file, "Daemon",
+                                                                         "ThemeDir");
+                get_theme_path (splash_string, configured_theme_dir, theme_path);
+                free (configured_theme_dir);
+        }
 
         if (isnan (state->splash_delay)) {
                 state->splash_delay = ply_key_file_get_double(key_file, "Daemon", "ShowDelay", NAN);
@@ -368,7 +378,7 @@ find_override_splash (state_t *state)
         if (splash_string != NULL) {
                 ply_trace ("Splash is configured to be '%s'", splash_string);
 
-                get_theme_path (splash_string, &state->override_splash_path);
+                get_theme_path (splash_string, NULL, &state->override_splash_path);
 
                 free (splash_string);
         }

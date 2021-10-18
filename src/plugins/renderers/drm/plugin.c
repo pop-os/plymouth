@@ -1164,6 +1164,7 @@ get_output_info (ply_renderer_backend_t *backend,
 {
         drmModeModeInfo *mode = NULL;
         drmModeConnector *connector;
+        bool has_90_rotation = false;
 
         memset (output, 0, sizeof(*output));
         output->connector_id = connector_id;
@@ -1178,6 +1179,9 @@ get_output_info (ply_renderer_backend_t *backend,
 
         output_get_controller_info (backend, connector, output);
         ply_renderer_connector_get_rotation_and_tiled (backend, connector, output);
+        if (output->rotation == PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE ||
+            output->rotation == PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE)
+            has_90_rotation = true;
 
         if (!output->tiled)
                 mode = get_preferred_mode (connector);
@@ -1192,7 +1196,8 @@ get_output_info (ply_renderer_backend_t *backend,
         }
         output->mode = *mode;
         output->device_scale = ply_get_device_scale (mode->hdisplay, mode->vdisplay,
-                                                     connector->mmWidth, connector->mmHeight);
+                                                     (!has_90_rotation) ? connector->mmWidth : connector->mmHeight,
+                                                     (!has_90_rotation) ? connector->mmHeight : connector->mmWidth);
         output->connector_type = connector->connector_type;
         output->connected = true;
 out:

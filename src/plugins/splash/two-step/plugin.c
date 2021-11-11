@@ -695,7 +695,7 @@ view_load (view_t *view)
                 ply_trace ("using %ldx%ld title centered at %ldx%ld for %ldx%ld screen",
                            width, title_height, x, y, screen_width, screen_height);
                 ply_label_show (view->title_label, view->display, x, y);
-                /* Use subtitle_height pixels seperation between title and subtitle */
+                /* Use subtitle_height pixels separation between title and subtitle */
                 y += title_height + subtitle_height;
         }
 
@@ -871,8 +871,8 @@ view_start_progress_animation (view_t *view)
                 view->animation_bottom = y + height;
         }
 
-        /* We don't really know how long shutdown will so
-         * don't show the progress animation
+        /* We don't really know how long shutdown will take,
+         * so don't show the progress animation
          */
         if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
             plugin->mode == PLY_BOOT_SPLASH_MODE_REBOOT)
@@ -1095,7 +1095,7 @@ create_plugin (ply_key_file_t *key_file)
                 ply_key_file_get_double (key_file, "two-step",
                                          "VerticalAlignment", 0.5);
 
-        /* Progressbar alignment, this defaults to the animation alignment
+        /* Progress bar alignment, this defaults to the animation alignment
          * for compatibility with older themes.
          */
         plugin->progress_bar_horizontal_alignment =
@@ -1381,7 +1381,7 @@ start_progress_animation (ply_boot_splash_plugin_t *plugin)
 
         plugin->is_animating = true;
 
-        /* We don't really know how long shutdown will, take
+        /* We don't really know how long shutdown will take,
          * but it's normally really fast, so just jump to
          * the end animation
          */

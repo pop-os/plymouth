@@ -1,0 +1,447 @@
+Index: plymouth/src/plugins/splash/two-step/plugin.c
+===================================================================
+--- plymouth.orig/src/plugins/splash/two-step/plugin.c
++++ plymouth/src/plugins/splash/two-step/plugin.c
+@@ -94,6 +94,14 @@ typedef enum
+         PROGRESS_FUNCTION_TYPE_LINEAR,
+ } progress_function_t;
+ 
++typedef enum
++{
++        CURSOR_ANIMATION_BLINK,
++        CURSOR_ANIMATION_BREATH,
++        CURSOR_ANIMATION_SOLID,
++        CURSOR_ANIMATION_NONE,
++} cursor_animation_t;
++
+ typedef struct
+ {
+         ply_boot_splash_plugin_t *plugin;
+@@ -109,7 +117,7 @@ typedef struct
+         ply_label_t              *message_label;
+         ply_label_t              *title_label;
+         ply_label_t              *subtitle_label;
+-        ply_rectangle_t           box_area, lock_area, watermark_area, dialog_area;
++        ply_rectangle_t           box_area, lock_area, endcap_area, watermark_area, dialog_area;
+         ply_trigger_t            *end_trigger;
+         ply_pixel_buffer_t       *background_buffer;
+         int                       animation_bottom;
+@@ -135,6 +143,7 @@ struct _ply_boot_splash_plugin
+         char                               *font;
+         ply_image_t                        *lock_image;
+         ply_image_t                        *box_image;
++        ply_image_t                        *endcap_image;
+         ply_image_t                        *corner_image;
+         ply_image_t                        *header_image;
+         ply_image_t                        *background_tile_image;
+@@ -192,8 +201,15 @@ struct _ply_boot_splash_plugin
+         uint32_t                            use_firmware_background : 1;
+         uint32_t                            dialog_clears_firmware_background : 1;
+         uint32_t                            message_below_animation : 1;
++        long                                message_below_animation_distance;
++
+         uint32_t                            transient_progress_bar : 1;
+         uint32_t                            in_fsck : 1;
++
++        cursor_animation_t                  cursor_animation;
++        double                              cursor_animation_speed;
++        bool                                cursor_currently_animating;
++        int                                 cursor_ticker;
+ };
+ 
+ ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
+@@ -848,6 +864,19 @@ use_animation (const ply_boot_splash_plu
+ }
+ 
+ static void
++on_timeout (ply_boot_splash_plugin_t *plugin)
++{
++        if (plugin->cursor_currently_animating) {
++                redraw_views (plugin);
++
++                ply_event_loop_watch_for_timeout (plugin->loop,
++                                                0.05,
++                                                (ply_event_loop_timeout_handler_t)
++                                                on_timeout, plugin);
++        }
++}
++
++static void
+ view_start_progress_animation (view_t *view)
+ {
+         ply_boot_splash_plugin_t *plugin;
+@@ -938,6 +967,9 @@ view_show_prompt (view_t     *view,
+                 view->lock_area.width = ply_image_get_width (plugin->lock_image);
+                 view->lock_area.height = ply_image_get_height (plugin->lock_image);
+ 
++                view->endcap_area.width = (plugin->endcap_image != NULL) ? ply_image_get_width (plugin->endcap_image) : 0;
++                view->endcap_area.height = (plugin->endcap_image != NULL) ? ply_image_get_height (plugin->endcap_image) : 0;
++
+                 entry_width = ply_entry_get_width (view->entry);
+                 entry_height = ply_entry_get_height (view->entry);
+ 
+@@ -948,8 +980,8 @@ view_show_prompt (view_t     *view,
+                         view->box_area.y = (screen_height - view->box_area.height) * plugin->dialog_vertical_alignment;
+                         view->dialog_area = view->box_area;
+                 } else {
+-                        view->dialog_area.width = view->lock_area.width + entry_width;
+-                        view->dialog_area.height = MAX(view->lock_area.height, entry_height);
++                        view->dialog_area.width = view->lock_area.width + view->endcap_area.width + entry_width;
++                        view->dialog_area.height = MAX((MAX(view->lock_area.height, view->endcap_area.height)), entry_height);
+                         view->dialog_area.x = (screen_width - view->dialog_area.width) * plugin->dialog_horizontal_alignment;
+                         view->dialog_area.y = (screen_height - view->dialog_area.height) * plugin->dialog_vertical_alignment;
+                 }
+@@ -966,6 +998,13 @@ view_show_prompt (view_t     *view,
+                 y = view->dialog_area.y +
+                     (view->dialog_area.height - entry_height) / 2.0;
+ 
++                if (plugin->endcap_image != NULL) {
++                        view->endcap_area.x = x + entry_width;
++                        view->endcap_area.y =
++                                view->dialog_area.y +
++                                (view->dialog_area.height - entry_height) / 2.0;
++                }
++
+                 ply_entry_show (view->entry, plugin->loop, view->display, x, y);
+ 
+                 show_keyboard_indicators = true;
+@@ -1070,7 +1109,7 @@ create_plugin (ply_key_file_t *key_file)
+         ply_boot_splash_plugin_t *plugin;
+         char *image_dir, *image_path;
+         char *transition;
+-        char *progress_function;
++        char *progress_function, *cursor_animation;
+ 
+         srand ((int) ply_get_timestamp ());
+         plugin = calloc (1, sizeof(ply_boot_splash_plugin_t));
+@@ -1087,6 +1126,10 @@ create_plugin (ply_key_file_t *key_file)
+         plugin->box_image = ply_image_new (image_path);
+         free (image_path);
+ 
++        asprintf (&image_path, "%s/endcap.png", image_dir);
++        plugin->endcap_image = ply_image_new (image_path);
++        free (image_path);
++
+         asprintf (&image_path, "%s/corner-image.png", image_dir);
+         plugin->corner_image = ply_image_new (image_path);
+         free (image_path);
+@@ -1215,6 +1258,9 @@ create_plugin (ply_key_file_t *key_file)
+         plugin->message_below_animation =
+                 ply_key_file_get_bool (key_file, "two-step", "MessageBelowAnimation");
+ 
++        plugin->message_below_animation_distance =
++                ply_key_file_get_long (key_file, "two-step", "MessageBelowAnimationDistance", 10);
++
+         progress_function = ply_key_file_get_value (key_file, "two-step", "ProgressFunction");
+ 
+         if (progress_function != NULL) {
+@@ -1232,6 +1278,37 @@ create_plugin (ply_key_file_t *key_file)
+                 free (progress_function);
+         }
+ 
++        /* Cursor */
++        /* Requires 'cursor.png' to be included in theme, otherwise it won't show */
++        plugin->cursor_ticker = 0;
++        plugin->cursor_currently_animating = false;
++
++        plugin->cursor_animation_speed =
++                ply_key_file_get_double (key_file, "two-step",
++                                       "CursorAnimationSpeed",
++                                       1 /* 1 = no change. Bigger is faster */);
++
++        cursor_animation = ply_key_file_get_value (key_file, "two-step", "CursorAnimation");
++
++        if (cursor_animation != NULL) {
++                if (strcmp (cursor_animation, "breath") == 0) {
++                        ply_trace ("Using cursor animation 'breath'");
++                        plugin->cursor_animation = CURSOR_ANIMATION_BREATH;
++                } else if (strcmp (cursor_animation, "blink") == 0) {
++                        ply_trace ("Using cursor animation 'blink'");
++                        plugin->cursor_animation = CURSOR_ANIMATION_BLINK;
++                } else if (strcmp (cursor_animation, "solid") == 0) {
++                        ply_trace ("Using cursor animation 'solid'");
++                        plugin->cursor_animation = CURSOR_ANIMATION_SOLID;
++                } else {
++                        ply_trace ("unknown or 'none' progress function %s, defaulting to 'none'", cursor_animation);
++                        plugin->cursor_animation = CURSOR_ANIMATION_NONE;
++                }
++
++                free (cursor_animation);
++
++        }
++
+         plugin->views = ply_list_new ();
+ 
+         return plugin;
+@@ -1287,6 +1364,9 @@ destroy_plugin (ply_boot_splash_plugin_t
+         if (plugin->box_image != NULL)
+                 ply_image_free (plugin->box_image);
+ 
++        if (plugin->endcap_image != NULL)
++                ply_image_free (plugin->endcap_image);
++
+         if (plugin->corner_image != NULL)
+                 ply_image_free (plugin->corner_image);
+ 
+@@ -1399,6 +1479,15 @@ start_progress_animation (ply_boot_splas
+ 
+         plugin->is_animating = true;
+ 
++        // If we have been asked to refresh the cursor refresh the whole screen.
++        if (!plugin->cursor_currently_animating && plugin->cursor_animation != CURSOR_ANIMATION_NONE) {
++                plugin->cursor_currently_animating = true;
++                ply_event_loop_watch_for_timeout (plugin->loop,
++                                                0.05,
++                                                (ply_event_loop_timeout_handler_t)
++                                                on_timeout, plugin);
++        }
++
+         /* We don't really know how long shutdown will, take
+          * but it's normally really fast, so just jump to
+          * the end animation
+@@ -1444,6 +1533,7 @@ static void
+ detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
+ {
+         plugin->loop = NULL;
++        plugin->cursor_currently_animating = false;
+ }
+ 
+ static void
+@@ -1514,6 +1604,7 @@ on_draw (view_t             *view,
+         ply_boot_splash_plugin_t *plugin;
+         ply_rectangle_t screen_area;
+         ply_rectangle_t image_area;
++        float cursor_opacity;
+ 
+         plugin = view->plugin;
+ 
+@@ -1523,7 +1614,7 @@ on_draw (view_t             *view,
+ 
+         if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY ||
+             plugin->state == PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY) {
+-                uint32_t *box_data, *lock_data;
++                uint32_t *box_data, *lock_data, *endcap_data;
+ 
+                 if (plugin->box_image) {
+                         box_data = ply_image_get_data (plugin->box_image);
+@@ -1535,20 +1626,47 @@ on_draw (view_t             *view,
+                 ply_entry_draw_area (view->entry,
+                                      pixel_buffer,
+                                      x, y, width, height);
++
++                if (plugin->cursor_animation != CURSOR_ANIMATION_NONE) {
++                        switch (plugin->cursor_animation) {
++                        case CURSOR_ANIMATION_BREATH:
++                                cursor_opacity = 0.5 * (1 + cos (plugin->cursor_animation_speed * ((plugin->cursor_ticker * M_PI) / 180.0)));
++                                break;
++                        case CURSOR_ANIMATION_BLINK:
++                                cursor_opacity = (((int)(plugin->cursor_ticker * plugin->cursor_animation_speed) / 10) % 10) % 2;
++                                break;
++                        case CURSOR_ANIMATION_SOLID:
++                                cursor_opacity = 1.0;
++                                break;
++                        case CURSOR_ANIMATION_NONE:
++                                cursor_opacity = 0.0;
++                                break;
++                        }
++                        plugin->cursor_ticker++;
++                        ply_entry_cursor_draw_area (view->entry,
++                                                    pixel_buffer,
++                                                    x, y,
++                                                    cursor_opacity);
++                }
++
+                 ply_keymap_icon_draw_area (view->keymap_icon,
+                                            pixel_buffer,
+                                            x, y, width, height);
+                 ply_capslock_icon_draw_area (view->capslock_icon,
+                                              pixel_buffer,
+                                              x, y, width, height);
+-                ply_label_draw_area (view->label,
+-                                     pixel_buffer,
+-                                     x, y, width, height);
+ 
+                 lock_data = ply_image_get_data (plugin->lock_image);
+                 ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
+                                                         &view->lock_area,
+                                                         lock_data);
++
++                if (plugin->endcap_image != NULL) {
++                        endcap_data = ply_image_get_data (plugin->endcap_image);
++                        ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
++                                                                &view->endcap_area,
++                                                                endcap_data);
++                }
+         } else {
+                 if (use_progress_bar (plugin))
+                         ply_progress_bar_draw_area (view->progress_bar, pixel_buffer,
+@@ -1684,6 +1802,15 @@ show_splash_screen (ply_boot_splash_plug
+                 }
+         }
+ 
++        if (plugin->endcap_image != NULL) {
++                ply_trace ("loading endcap image");
++
++                if (!ply_image_load (plugin->endcap_image)) {
++                        ply_image_free (plugin->endcap_image);
++                        plugin->endcap_image = NULL;
++                }
++        }
++
+         if (plugin->corner_image != NULL) {
+                 ply_trace ("loading corner image");
+ 
+@@ -1949,10 +2076,13 @@ show_prompt (ply_boot_splash_plugin_t *p
+         view_t *view;
+ 
+         ply_trace ("showing prompt");
++
+         node = ply_list_get_first_node (plugin->views);
+         while (node != NULL) {
+                 view = ply_list_node_get_data (node);
+                 view_show_prompt (view, prompt, entry_text, number_of_bullets);
++                if (prompt != NULL)
++                        view_show_message (view, prompt);
+                 node = ply_list_get_next_node (plugin->views, node);
+         }
+ }
+@@ -2010,7 +2140,7 @@ view_show_message (view_t     *view,
+                    const char  *message)
+ {
+         ply_boot_splash_plugin_t *plugin = view->plugin;
+-        int x, y, width, height;
++        int x, y, width, height, dialog_bottom;
+ 
+         if (plugin->message_below_animation)
+                 ply_label_set_alignment (view->message_label, PLY_LABEL_ALIGN_CENTER);
+@@ -2019,9 +2149,10 @@ view_show_message (view_t     *view,
+         width = ply_label_get_width (view->message_label);
+         height = ply_label_get_height (view->message_label);
+ 
++        dialog_bottom = view->dialog_area.y + view->dialog_area.height;
+         if (plugin->message_below_animation) {
+                 x = (ply_pixel_display_get_width (view->display) - width) * 0.5;
+-                y = view->animation_bottom + 10;
++                y = dialog_bottom + plugin->message_below_animation_distance;
+         } else {
+                 x = 10;
+                 y = 10;
+Index: plymouth/src/libply-splash-graphics/ply-entry.c
+===================================================================
+--- plymouth.orig/src/libply-splash-graphics/ply-entry.c
++++ plymouth/src/libply-splash-graphics/ply-entry.c
+@@ -64,12 +64,16 @@ struct _ply_entry
+         ply_rectangle_t      area;
+         ply_image_t         *text_field_image;
+         ply_image_t         *bullet_image;
++        ply_image_t         *cursor_image;
+         ply_label_t         *label;
+ 
+         char                *text;
+         int                  number_of_bullets;
+         int                  max_number_of_visible_bullets;
+ 
++        int                  cursor_x;
++        int                  cursor_y;
++
+         uint32_t             is_hidden : 1;
+         uint32_t             is_password : 1;
+ };
+@@ -93,6 +97,12 @@ ply_entry_new (const char *image_dir)
+         asprintf (&image_path, "%s/bullet.png", image_dir);
+         entry->bullet_image = ply_image_new (image_path);
+         free (image_path);
++
++        image_path = NULL;
++        asprintf (&image_path, "%s/cursor.png", image_dir);
++        entry->cursor_image = ply_image_new (image_path);
++        free (image_path);
++
+         entry->label = ply_label_new ();
+         ply_label_set_color (entry->label, 0, 0, 0, 1);
+ 
+@@ -114,6 +124,8 @@ ply_entry_free (ply_entry_t *entry)
+         ply_image_free (entry->bullet_image);
+         ply_label_free (entry->label);
+         free (entry->text);
++        if (entry->cursor_image != NULL)
++                ply_image_free (entry->cursor_image);
+ 
+         free (entry);
+ }
+@@ -138,6 +150,9 @@ ply_entry_load (ply_entry_t *entry)
+         if (!ply_image_load (entry->bullet_image))
+                 return false;
+ 
++        if (entry->cursor_image != NULL && !ply_image_load (entry->cursor_image))
++                return false;
++
+         entry->area.width = ply_image_get_width (entry->text_field_image);
+         entry->area.height = ply_image_get_height (entry->text_field_image);
+ 
+@@ -164,10 +179,11 @@ ply_entry_draw_area (ply_entry_t
+                      unsigned long       width,
+                      unsigned long       height)
+ {
+-        ply_rectangle_t bullet_area;
++        ply_rectangle_t bullet_area, cursor_area;
+         ply_rectangle_t clip_area;
+-        ply_pixel_buffer_t *bullet_buffer, *text_field_buffer;
++        ply_pixel_buffer_t *bullet_buffer, *cursor_buffer, *text_field_buffer;
+         int i, number_of_visible_bullets;
++        float cursor_opacity;
+ 
+         if (entry->is_hidden)
+                 return;
+@@ -212,6 +228,10 @@ ply_entry_draw_area (ply_entry_t
+                                                            bullet_area.x,
+                                                            bullet_area.y);
+                 }
++                if (entry->cursor_image != NULL) {
++                        entry->cursor_x = entry->area.x + number_of_visible_bullets * bullet_area.width + bullet_area.width / 2.0;
++                        entry->cursor_y = entry->area.y + entry->area.height / 2.0 - bullet_area.height;
++                }
+         } else {
+                 ply_label_set_text (entry->label, entry->text);
+                 ply_label_show (entry->label,
+@@ -225,6 +245,24 @@ ply_entry_draw_area (ply_entry_t
+         }
+ }
+ 
++void
++ply_entry_cursor_draw_area (ply_entry_t     *entry,
++                        ply_pixel_buffer_t *buffer,
++                        long                x,
++                        long                y,
++                        float               opacity)
++{
++        if (entry->cursor_image != NULL) {
++                ply_pixel_buffer_t *cursor_buffer;
++                cursor_buffer = ply_image_get_buffer (entry->cursor_image);
++                ply_pixel_buffer_fill_with_buffer_at_opacity (buffer,
++                                                                cursor_buffer,
++                                                                entry->cursor_x,
++                                                                entry->cursor_y,
++                                                                opacity);
++        }
++}
++
+ void
+ ply_entry_set_bullet_count (ply_entry_t *entry, int count)
+ {
+Index: plymouth/src/libply-splash-graphics/ply-entry.h
+===================================================================
+--- plymouth.orig/src/libply-splash-graphics/ply-entry.h
++++ plymouth/src/libply-splash-graphics/ply-entry.h
+@@ -49,6 +49,11 @@ void ply_entry_draw_area (ply_entry_t
+                           long                y,
+                           unsigned long       width,
+                           unsigned long       height);
++void ply_entry_cursor_draw_area (ply_entry_t     *entry,
++                        ply_pixel_buffer_t *buffer,
++                        long                x,
++                        long                y,
++                        float               opacity);
+ bool ply_entry_is_hidden (ply_entry_t *entry);
+ 
+ long ply_entry_get_width (ply_entry_t *entry);

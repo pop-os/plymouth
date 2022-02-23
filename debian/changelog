@@ -1,3 +1,9 @@
+plymouth (0.9.5git20210406-0pop1) UNRELEASED; urgency=medium
+
+  * Add an optional cursor and entrybox endcap for the two-step plugin.
+
+ -- Brock Szuszczewicz <bnr@tuta.io>  Thu, 17 Feb 2022 18:51:12 -0700
+
 plymouth (0.9.5git20210406-0ubuntu2) impish; urgency=medium
 
   * Add plymouth-switch-root-initramfs-Preload-text-renderin.patch to

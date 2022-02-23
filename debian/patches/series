@@ -15,3 +15,7 @@ plymouth-switch-root-initramfs-Preload-text-renderin.patch
 # Ubuntu themes
 ubuntu-logo.patch
 ubuntu-text.patch
+
+# Pop!_OS
+pop-basic.patch
+add-cursor-and-endcap.patch

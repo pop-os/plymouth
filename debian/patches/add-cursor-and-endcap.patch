@@ -331,7 +331,7 @@ Index: plymouth/src/plugins/splash/two-step/plugin.c
          if (plugin->message_below_animation) {
                  x = (ply_pixel_display_get_width (view->display) - width) * 0.5;
 -                y = view->animation_bottom + 10;
-+                y = dialog_bottom + plugin->message_below_animation_distance;
++                y = ( dialog_bottom != 0 ) ? dialog_bottom + plugin->message_below_animation_distance : view->animation_bottom + plugin->message_below_animation_distance;
          } else {
                  x = 10;
                  y = 10;

@@ -275,6 +275,15 @@ Index: plymouth/src/plugins/splash/two-step/plugin.c
          } else {
                  if (use_progress_bar (plugin))
                          ply_progress_bar_draw_area (view->progress_bar, pixel_buffer,
+@@ -1577,7 +1695,7 @@ on_draw (view_t             *view,
+                         ply_pixel_buffer_fill_with_argb32_data (pixel_buffer, &image_area, ply_image_get_data (plugin->corner_image));
+                 }
+ 
+-                if (plugin->header_image != NULL) {
++                if (plugin->header_image != NULL && plugin->mode == PLY_BOOT_SPLASH_MODE_SYSTEM_UPGRADE) {
+                         long sprite_height;
+ 
+ 
 @@ -1684,6 +1802,15 @@ show_splash_screen (ply_boot_splash_plug
                  }
          }

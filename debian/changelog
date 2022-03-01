@@ -1,4 +1,4 @@
-plymouth (0.9.5git20210406-0pop1) UNRELEASED; urgency=medium
+plymouth (0.9.5git20210406-0ubuntu2pop0) impish; urgency=medium
 
   * Add an optional cursor and entrybox endcap for the two-step plugin.
 

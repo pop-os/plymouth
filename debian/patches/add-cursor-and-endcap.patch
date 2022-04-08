@@ -1,17 +1,136 @@
-Index: plymouth/src/plugins/splash/two-step/plugin.c
+Index: plymouth2/src/libply-splash-graphics/ply-entry.c
 ===================================================================
---- plymouth.orig/src/plugins/splash/two-step/plugin.c
-+++ plymouth/src/plugins/splash/two-step/plugin.c
+--- plymouth2.orig/src/libply-splash-graphics/ply-entry.c
++++ plymouth2/src/libply-splash-graphics/ply-entry.c
+@@ -64,12 +64,16 @@ struct _ply_entry
+         ply_rectangle_t      area;
+         ply_image_t         *text_field_image;
+         ply_image_t         *bullet_image;
++        ply_image_t         *cursor_image;
+         ply_label_t         *label;
+ 
+         char                *text;
+         int                  number_of_bullets;
+         int                  max_number_of_visible_bullets;
+ 
++        int                  cursor_x;
++        int                  cursor_y;
++
+         uint32_t             is_hidden : 1;
+         uint32_t             is_password : 1;
+ };
+@@ -93,6 +97,12 @@ ply_entry_new (const char *image_dir)
+         asprintf (&image_path, "%s/bullet.png", image_dir);
+         entry->bullet_image = ply_image_new (image_path);
+         free (image_path);
++
++        image_path = NULL;
++        asprintf (&image_path, "%s/cursor.png", image_dir);
++        entry->cursor_image = ply_image_new (image_path);
++        free (image_path);
++
+         entry->label = ply_label_new ();
+         ply_label_set_color (entry->label, 0, 0, 0, 1);
+ 
+@@ -114,6 +124,8 @@ ply_entry_free (ply_entry_t *entry)
+         ply_image_free (entry->bullet_image);
+         ply_label_free (entry->label);
+         free (entry->text);
++        if (entry->cursor_image != NULL)
++          ply_image_free (entry->cursor_image);
+ 
+         free (entry);
+ }
+@@ -138,6 +150,9 @@ ply_entry_load (ply_entry_t *entry)
+         if (!ply_image_load (entry->bullet_image))
+                 return false;
+ 
++        if (entry->cursor_image != NULL && !ply_image_load (entry->cursor_image))
++          return false;
++
+         entry->area.width = ply_image_get_width (entry->text_field_image);
+         entry->area.height = ply_image_get_height (entry->text_field_image);
+ 
+@@ -164,10 +179,11 @@ ply_entry_draw_area (ply_entry_t
+                      unsigned long       width,
+                      unsigned long       height)
+ {
+-        ply_rectangle_t bullet_area;
++        ply_rectangle_t bullet_area, cursor_area;
+         ply_rectangle_t clip_area;
+-        ply_pixel_buffer_t *bullet_buffer, *text_field_buffer;
++        ply_pixel_buffer_t *bullet_buffer, *cursor_buffer, *text_field_buffer;
+         int i, number_of_visible_bullets;
++        float cursor_opacity;
+ 
+         if (entry->is_hidden)
+                 return;
+@@ -212,6 +228,10 @@ ply_entry_draw_area (ply_entry_t
+                                                            bullet_area.x,
+                                                            bullet_area.y);
+                 }
++                if (entry->cursor_image != NULL) {
++                  entry->cursor_x = entry->area.x + number_of_visible_bullets * bullet_area.width + bullet_area.width / 2.0;
++                  entry->cursor_y = entry->area.y + entry->area.height / 2.0 - bullet_area.height;
++                }
+         } else {
+                 ply_label_set_text (entry->label, entry->text);
+                 ply_label_show (entry->label,
+@@ -226,6 +246,24 @@ ply_entry_draw_area (ply_entry_t
+ }
+ 
+ void
++ply_entry_cursor_draw_area (ply_entry_t     *entry,
++                            ply_pixel_buffer_t *buffer,
++                            long                x,
++                            long                y,
++                            float               opacity)
++{
++  if (entry->cursor_image != NULL) {
++    ply_pixel_buffer_t *cursor_buffer;
++    cursor_buffer = ply_image_get_buffer (entry->cursor_image);
++    ply_pixel_buffer_fill_with_buffer_at_opacity (buffer,
++                                                  cursor_buffer,
++                                                  entry->cursor_x,
++                                                  entry->cursor_y,
++                                                  opacity);
++  }
++}
++
++void
+ ply_entry_set_bullet_count (ply_entry_t *entry, int count)
+ {
+         count = MAX (0, count);
+Index: plymouth2/src/libply-splash-graphics/ply-entry.h
+===================================================================
+--- plymouth2.orig/src/libply-splash-graphics/ply-entry.h
++++ plymouth2/src/libply-splash-graphics/ply-entry.h
+@@ -49,6 +49,11 @@ void ply_entry_draw_area (ply_entry_t
+                           long                y,
+                           unsigned long       width,
+                           unsigned long       height);
++void ply_entry_cursor_draw_area (ply_entry_t     *entry,
++                                 ply_pixel_buffer_t *buffer,
++                                 long                x,
++                                 long                y,
++                                 float               opacity);
+ bool ply_entry_is_hidden (ply_entry_t *entry);
+ 
+ long ply_entry_get_width (ply_entry_t *entry);
+Index: plymouth2/src/plugins/splash/two-step/plugin.c
+===================================================================
+--- plymouth2.orig/src/plugins/splash/two-step/plugin.c
++++ plymouth2/src/plugins/splash/two-step/plugin.c
 @@ -94,6 +94,14 @@ typedef enum
          PROGRESS_FUNCTION_TYPE_LINEAR,
  } progress_function_t;
  
 +typedef enum
 +{
-+        CURSOR_ANIMATION_BLINK,
-+        CURSOR_ANIMATION_BREATH,
-+        CURSOR_ANIMATION_SOLID,
-+        CURSOR_ANIMATION_NONE,
++  CURSOR_ANIMATION_BLINK,
++  CURSOR_ANIMATION_BREATH,
++  CURSOR_ANIMATION_SOLID,
++  CURSOR_ANIMATION_NONE,
 +} cursor_animation_t;
 +
  typedef struct
@@ -56,14 +175,14 @@ Index: plymouth/src/plugins/splash/two-step/plugin.c
  static void
 +on_timeout (ply_boot_splash_plugin_t *plugin)
 +{
-+        if (plugin->cursor_currently_animating) {
-+                redraw_views (plugin);
++  if (plugin->cursor_currently_animating) {
++    redraw_views (plugin);
 +
-+                ply_event_loop_watch_for_timeout (plugin->loop,
-+                                                0.05,
-+                                                (ply_event_loop_timeout_handler_t)
-+                                                on_timeout, plugin);
-+        }
++    ply_event_loop_watch_for_timeout (plugin->loop,
++                                      0.05,
++                                      (ply_event_loop_timeout_handler_t)
++                                      on_timeout, plugin);
++  }
 +}
 +
 +static void
@@ -80,26 +199,28 @@ Index: plymouth/src/plugins/splash/two-step/plugin.c
                  entry_width = ply_entry_get_width (view->entry);
                  entry_height = ply_entry_get_height (view->entry);
  
-@@ -948,8 +980,8 @@ view_show_prompt (view_t     *view,
+@@ -948,9 +980,9 @@ view_show_prompt (view_t     *view,
                          view->box_area.y = (screen_height - view->box_area.height) * plugin->dialog_vertical_alignment;
                          view->dialog_area = view->box_area;
                  } else {
 -                        view->dialog_area.width = view->lock_area.width + entry_width;
 -                        view->dialog_area.height = MAX(view->lock_area.height, entry_height);
-+                        view->dialog_area.width = view->lock_area.width + view->endcap_area.width + entry_width;
-+                        view->dialog_area.height = MAX((MAX(view->lock_area.height, view->endcap_area.height)), entry_height);
-                         view->dialog_area.x = (screen_width - view->dialog_area.width) * plugin->dialog_horizontal_alignment;
+-                        view->dialog_area.x = (screen_width - view->dialog_area.width) * plugin->dialog_horizontal_alignment;
++                  view->dialog_area.width = view->lock_area.width + view->endcap_area.width + entry_width;
++                  view->dialog_area.height = MAX((MAX(view->lock_area.height, view->endcap_area.height)), entry_height);
++                  view->dialog_area.x = (screen_width - view->dialog_area.width) * plugin->dialog_horizontal_alignment;
                          view->dialog_area.y = (screen_height - view->dialog_area.height) * plugin->dialog_vertical_alignment;
                  }
+ 
 @@ -966,6 +998,13 @@ view_show_prompt (view_t     *view,
                  y = view->dialog_area.y +
                      (view->dialog_area.height - entry_height) / 2.0;
  
 +                if (plugin->endcap_image != NULL) {
-+                        view->endcap_area.x = x + entry_width;
-+                        view->endcap_area.y =
-+                                view->dialog_area.y +
-+                                (view->dialog_area.height - entry_height) / 2.0;
++                  view->endcap_area.x = x + entry_width;
++                  view->endcap_area.y =
++                    view->dialog_area.y +
++                    (view->dialog_area.height - entry_height) / 2.0;
 +                }
 +
                  ply_entry_show (view->entry, plugin->loop, view->display, x, y);
@@ -130,7 +251,7 @@ Index: plymouth/src/plugins/splash/two-step/plugin.c
                  ply_key_file_get_bool (key_file, "two-step", "MessageBelowAnimation");
  
 +        plugin->message_below_animation_distance =
-+                ply_key_file_get_long (key_file, "two-step", "MessageBelowAnimationDistance", 10);
++          ply_key_file_get_long (key_file, "two-step", "MessageBelowAnimationDistance", 10);
 +
          progress_function = ply_key_file_get_value (key_file, "two-step", "ProgressFunction");
  
@@ -178,7 +299,7 @@ Index: plymouth/src/plugins/splash/two-step/plugin.c
                  ply_image_free (plugin->box_image);
  
 +        if (plugin->endcap_image != NULL)
-+                ply_image_free (plugin->endcap_image);
++          ply_image_free (plugin->endcap_image);
 +
          if (plugin->corner_image != NULL)
                  ply_image_free (plugin->corner_image);
@@ -189,11 +310,11 @@ Index: plymouth/src/plugins/splash/two-step/plugin.c
  
 +        // If we have been asked to refresh the cursor refresh the whole screen.
 +        if (!plugin->cursor_currently_animating && plugin->cursor_animation != CURSOR_ANIMATION_NONE) {
-+                plugin->cursor_currently_animating = true;
-+                ply_event_loop_watch_for_timeout (plugin->loop,
-+                                                0.05,
-+                                                (ply_event_loop_timeout_handler_t)
-+                                                on_timeout, plugin);
++          plugin->cursor_currently_animating = true;
++          ply_event_loop_watch_for_timeout (plugin->loop,
++                                            0.05,
++                                            (ply_event_loop_timeout_handler_t)
++                                            on_timeout, plugin);
 +        }
 +
          /* We don't really know how long shutdown will, take
@@ -267,10 +388,10 @@ Index: plymouth/src/plugins/splash/two-step/plugin.c
                                                          lock_data);
 +
 +                if (plugin->endcap_image != NULL) {
-+                        endcap_data = ply_image_get_data (plugin->endcap_image);
-+                        ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
-+                                                                &view->endcap_area,
-+                                                                endcap_data);
++                  endcap_data = ply_image_get_data (plugin->endcap_image);
++                  ply_pixel_buffer_fill_with_argb32_data (pixel_buffer,
++                                                          &view->endcap_area,
++                                                          endcap_data);
 +                }
          } else {
                  if (use_progress_bar (plugin))
@@ -284,37 +405,32 @@ Index: plymouth/src/plugins/splash/two-step/plugin.c
                          long sprite_height;
  
  
-@@ -1684,6 +1802,15 @@ show_splash_screen (ply_boot_splash_plug
+@@ -1683,6 +1801,15 @@ show_splash_screen (ply_boot_splash_plug
+                         plugin->box_image = NULL;
                  }
          }
- 
++        
 +        if (plugin->endcap_image != NULL) {
-+                ply_trace ("loading endcap image");
++          ply_trace ("loading endcap image");
 +
-+                if (!ply_image_load (plugin->endcap_image)) {
-+                        ply_image_free (plugin->endcap_image);
-+                        plugin->endcap_image = NULL;
-+                }
++          if (!ply_image_load (plugin->endcap_image)) {
++            ply_image_free (plugin->endcap_image);
++            plugin->endcap_image = NULL;
++          }
 +        }
-+
+ 
          if (plugin->corner_image != NULL) {
                  ply_trace ("loading corner image");
- 
-@@ -1949,10 +2076,13 @@ show_prompt (ply_boot_splash_plugin_t *p
-         view_t *view;
- 
-         ply_trace ("showing prompt");
-+
-         node = ply_list_get_first_node (plugin->views);
+@@ -1953,6 +2080,8 @@ show_prompt (ply_boot_splash_plugin_t *p
          while (node != NULL) {
                  view = ply_list_node_get_data (node);
                  view_show_prompt (view, prompt, entry_text, number_of_bullets);
 +                if (prompt != NULL)
-+                        view_show_message (view, prompt);
++                  view_show_message (view, prompt);
                  node = ply_list_get_next_node (plugin->views, node);
          }
  }
-@@ -2010,7 +2140,7 @@ view_show_message (view_t     *view,
+@@ -2010,7 +2139,7 @@ view_show_message (view_t     *view,
                     const char  *message)
  {
          ply_boot_splash_plugin_t *plugin = view->plugin;
@@ -323,7 +439,7 @@ Index: plymouth/src/plugins/splash/two-step/plugin.c
  
          if (plugin->message_below_animation)
                  ply_label_set_alignment (view->message_label, PLY_LABEL_ALIGN_CENTER);
-@@ -2019,9 +2149,10 @@ view_show_message (view_t     *view,
+@@ -2019,10 +2148,10 @@ view_show_message (view_t     *view,
          width = ply_label_get_width (view->message_label);
          height = ply_label_get_height (view->message_label);
  
@@ -331,126 +447,8 @@ Index: plymouth/src/plugins/splash/two-step/plugin.c
          if (plugin->message_below_animation) {
                  x = (ply_pixel_display_get_width (view->display) - width) * 0.5;
 -                y = view->animation_bottom + 10;
-+                y = ( dialog_bottom != 0 ) ? dialog_bottom + plugin->message_below_animation_distance : view->animation_bottom + plugin->message_below_animation_distance;
-         } else {
+-        } else {
++                y = ( dialog_bottom != 0 ) ? dialog_bottom + plugin->message_below_animation_distance : view->animation_bottom + plugin->message_below_animation_distance;        } else {
                  x = 10;
                  y = 10;
-Index: plymouth/src/libply-splash-graphics/ply-entry.c
-===================================================================
---- plymouth.orig/src/libply-splash-graphics/ply-entry.c
-+++ plymouth/src/libply-splash-graphics/ply-entry.c
-@@ -64,12 +64,16 @@ struct _ply_entry
-         ply_rectangle_t      area;
-         ply_image_t         *text_field_image;
-         ply_image_t         *bullet_image;
-+        ply_image_t         *cursor_image;
-         ply_label_t         *label;
- 
-         char                *text;
-         int                  number_of_bullets;
-         int                  max_number_of_visible_bullets;
- 
-+        int                  cursor_x;
-+        int                  cursor_y;
-+
-         uint32_t             is_hidden : 1;
-         uint32_t             is_password : 1;
- };
-@@ -93,6 +97,12 @@ ply_entry_new (const char *image_dir)
-         asprintf (&image_path, "%s/bullet.png", image_dir);
-         entry->bullet_image = ply_image_new (image_path);
-         free (image_path);
-+
-+        image_path = NULL;
-+        asprintf (&image_path, "%s/cursor.png", image_dir);
-+        entry->cursor_image = ply_image_new (image_path);
-+        free (image_path);
-+
-         entry->label = ply_label_new ();
-         ply_label_set_color (entry->label, 0, 0, 0, 1);
- 
-@@ -114,6 +124,8 @@ ply_entry_free (ply_entry_t *entry)
-         ply_image_free (entry->bullet_image);
-         ply_label_free (entry->label);
-         free (entry->text);
-+        if (entry->cursor_image != NULL)
-+                ply_image_free (entry->cursor_image);
- 
-         free (entry);
- }
-@@ -138,6 +150,9 @@ ply_entry_load (ply_entry_t *entry)
-         if (!ply_image_load (entry->bullet_image))
-                 return false;
- 
-+        if (entry->cursor_image != NULL && !ply_image_load (entry->cursor_image))
-+                return false;
-+
-         entry->area.width = ply_image_get_width (entry->text_field_image);
-         entry->area.height = ply_image_get_height (entry->text_field_image);
- 
-@@ -164,10 +179,11 @@ ply_entry_draw_area (ply_entry_t
-                      unsigned long       width,
-                      unsigned long       height)
- {
--        ply_rectangle_t bullet_area;
-+        ply_rectangle_t bullet_area, cursor_area;
-         ply_rectangle_t clip_area;
--        ply_pixel_buffer_t *bullet_buffer, *text_field_buffer;
-+        ply_pixel_buffer_t *bullet_buffer, *cursor_buffer, *text_field_buffer;
-         int i, number_of_visible_bullets;
-+        float cursor_opacity;
- 
-         if (entry->is_hidden)
-                 return;
-@@ -212,6 +228,10 @@ ply_entry_draw_area (ply_entry_t
-                                                            bullet_area.x,
-                                                            bullet_area.y);
-                 }
-+                if (entry->cursor_image != NULL) {
-+                        entry->cursor_x = entry->area.x + number_of_visible_bullets * bullet_area.width + bullet_area.width / 2.0;
-+                        entry->cursor_y = entry->area.y + entry->area.height / 2.0 - bullet_area.height;
-+                }
-         } else {
-                 ply_label_set_text (entry->label, entry->text);
-                 ply_label_show (entry->label,
-@@ -225,6 +245,24 @@ ply_entry_draw_area (ply_entry_t
          }
- }
- 
-+void
-+ply_entry_cursor_draw_area (ply_entry_t     *entry,
-+                        ply_pixel_buffer_t *buffer,
-+                        long                x,
-+                        long                y,
-+                        float               opacity)
-+{
-+        if (entry->cursor_image != NULL) {
-+                ply_pixel_buffer_t *cursor_buffer;
-+                cursor_buffer = ply_image_get_buffer (entry->cursor_image);
-+                ply_pixel_buffer_fill_with_buffer_at_opacity (buffer,
-+                                                                cursor_buffer,
-+                                                                entry->cursor_x,
-+                                                                entry->cursor_y,
-+                                                                opacity);
-+        }
-+}
-+
- void
- ply_entry_set_bullet_count (ply_entry_t *entry, int count)
- {
-Index: plymouth/src/libply-splash-graphics/ply-entry.h
-===================================================================
---- plymouth.orig/src/libply-splash-graphics/ply-entry.h
-+++ plymouth/src/libply-splash-graphics/ply-entry.h
-@@ -49,6 +49,11 @@ void ply_entry_draw_area (ply_entry_t
-                           long                y,
-                           unsigned long       width,
-                           unsigned long       height);
-+void ply_entry_cursor_draw_area (ply_entry_t     *entry,
-+                        ply_pixel_buffer_t *buffer,
-+                        long                x,
-+                        long                y,
-+                        float               opacity);
- bool ply_entry_is_hidden (ply_entry_t *entry);
- 
- long ply_entry_get_width (ply_entry_t *entry);

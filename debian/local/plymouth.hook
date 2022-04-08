@@ -102,8 +102,9 @@ do
 done
 
 # copy binaries and base plugins
-copy_exec /bin/plymouth
-copy_exec /sbin/plymouthd
+copy_exec /usr/bin/plymouth
+copy_exec /usr/sbin/plymouthd
+copy_exec /usr/libexec/plymouth/plymouthd-fd-escrow
 
 # copy base themes and logo
 cp -a "${THEMES}/details" "${DESTDIR}/${THEMES}"
@@ -145,25 +146,28 @@ case "${THEME_NAME}" in
 		fi
 		fc-cache -s -y "${DESTDIR}" > /dev/null 2>&1
 
-		# pango
-		if ls /usr/lib/@DEB_HOST_MULTIARCH@/pango/1* > /dev/null 2>&1
+		# copy /etc/default/keyboard (needed for keymap detection)
+		if [ -e /etc/default/keyboard ]
 		then
-			# wheezy
-			PANGO_VERSION="$(ls /usr/lib/@DEB_HOST_MULTIARCH@/pango)"
-
-			mkdir -p "${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d"
-			mkdir -p "${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/modules"
-			cp /usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d/libpango1.0-0.modules ${DESTDIR}/usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/module-files.d/
-			copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/pango/${PANGO_VERSION}/modules/pango-basic-fc.so
-		else
-			# jessie
-			copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/libpango-1.0.so.0
+			mkdir -p "${DESTDIR}/etc/default"
+			cp /etc/default/keyboard "${DESTDIR}/etc/default"
 		fi
+
 		;;
 esac
 
 # add drm modules
-copy_modules_dir kernel/drivers/gpu/drm mga r128 savage sis tdfx via
+if [ "$MODULES" = "dep" ]; then
+	for DRM_DEVICE in "/sys/class/drm"/*; do
+		DRM_DEVICE="$(readlink -f "$DRM_DEVICE")" \
+			&& sys_walk_mod_add "$DRM_DEVICE" \
+			|| echo "W: plymouth: couldn't include modules for '$DRM_DEVICE'"
+	done
+elif [ "$MODULES" = "list" ]; then
+	echo "W: plymouth: not including drm modules since MODULES=list"
+else
+	copy_modules_dir kernel/drivers/gpu/drm mga r128 savage sis tdfx via
+fi
 
 # copy renderers
 copy_exec /usr/lib/@DEB_HOST_MULTIARCH@/plymouth/renderers/frame-buffer.so

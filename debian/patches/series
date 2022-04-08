@@ -1,5 +1,6 @@
 0005-cmdline.patch
 drop-systemd-vconsole-setup-service.patch
+fallback-etc-default-keyboard.patch
 
 ## Ubuntu
 misc-changes.patch

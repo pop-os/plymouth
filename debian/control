@@ -4,10 +4,8 @@ Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Laurent Bigonville <bigon@debian.org>
 Uploaders: Sjoerd Simons <sjoerd@debian.org>
-Build-Depends: debhelper (>= 9.20160709~),
-               dh-autoreconf,
+Build-Depends: debhelper-compat (= 12),
                docbook-xsl,
-               gettext,
                libdrm-dev,
                libgtk-3-dev (>= 3.14.0),
                libpango1.0-dev,
@@ -16,7 +14,8 @@ Build-Depends: debhelper (>= 9.20160709~),
                pkg-config,
                systemd,
                xsltproc
-Standards-Version: 4.2.1
+Standards-Version: 4.6.0
+Rules-Requires-Root: no
 Homepage: http://www.freedesktop.org/wiki/Software/Plymouth
 Vcs-Git: https://salsa.debian.org/debian/plymouth.git
 Vcs-Browser: https://salsa.debian.org/debian/plymouth

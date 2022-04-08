@@ -1,7 +1,7 @@
-Index: plymouth2/src/libply-splash-graphics/ply-entry.c
+Index: plymouth/src/libply-splash-graphics/ply-entry.c
 ===================================================================
---- plymouth2.orig/src/libply-splash-graphics/ply-entry.c
-+++ plymouth2/src/libply-splash-graphics/ply-entry.c
+--- plymouth.orig/src/libply-splash-graphics/ply-entry.c
++++ plymouth/src/libply-splash-graphics/ply-entry.c
 @@ -64,12 +64,16 @@ struct _ply_entry
          ply_rectangle_t      area;
          ply_image_t         *text_field_image;
@@ -101,10 +101,10 @@ Index: plymouth2/src/libply-splash-graphics/ply-entry.c
  ply_entry_set_bullet_count (ply_entry_t *entry, int count)
  {
          count = MAX (0, count);
-Index: plymouth2/src/libply-splash-graphics/ply-entry.h
+Index: plymouth/src/libply-splash-graphics/ply-entry.h
 ===================================================================
---- plymouth2.orig/src/libply-splash-graphics/ply-entry.h
-+++ plymouth2/src/libply-splash-graphics/ply-entry.h
+--- plymouth.orig/src/libply-splash-graphics/ply-entry.h
++++ plymouth/src/libply-splash-graphics/ply-entry.h
 @@ -49,6 +49,11 @@ void ply_entry_draw_area (ply_entry_t
                            long                y,
                            unsigned long       width,
@@ -117,10 +117,10 @@ Index: plymouth2/src/libply-splash-graphics/ply-entry.h
  bool ply_entry_is_hidden (ply_entry_t *entry);
  
  long ply_entry_get_width (ply_entry_t *entry);
-Index: plymouth2/src/plugins/splash/two-step/plugin.c
+Index: plymouth/src/plugins/splash/two-step/plugin.c
 ===================================================================
---- plymouth2.orig/src/plugins/splash/two-step/plugin.c
-+++ plymouth2/src/plugins/splash/two-step/plugin.c
+--- plymouth.orig/src/plugins/splash/two-step/plugin.c
++++ plymouth/src/plugins/splash/two-step/plugin.c
 @@ -94,6 +94,14 @@ typedef enum
          PROGRESS_FUNCTION_TYPE_LINEAR,
  } progress_function_t;
@@ -153,7 +153,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
          ply_image_t                        *corner_image;
          ply_image_t                        *header_image;
          ply_image_t                        *background_tile_image;
-@@ -192,8 +201,15 @@ struct _ply_boot_splash_plugin
+@@ -193,8 +202,15 @@ struct _ply_boot_splash_plugin
          uint32_t                            use_firmware_background : 1;
          uint32_t                            dialog_clears_firmware_background : 1;
          uint32_t                            message_below_animation : 1;
@@ -169,7 +169,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
  };
  
  ply_boot_splash_plugin_interface_t *ply_boot_splash_plugin_get_interface (void);
-@@ -848,6 +864,19 @@ use_animation (const ply_boot_splash_plu
+@@ -849,6 +865,19 @@ use_animation (const ply_boot_splash_plu
  }
  
  static void
@@ -189,7 +189,23 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
  view_start_progress_animation (view_t *view)
  {
          ply_boot_splash_plugin_t *plugin;
-@@ -938,6 +967,9 @@ view_show_prompt (view_t     *view,
+@@ -895,6 +924,15 @@ view_start_progress_animation (view_t *v
+                 view->animation_bottom = y + height;
+         }
+ 
++        // If we have been asked to refresh the cursor refresh the whole screen.
++        if (!plugin->cursor_currently_animating && plugin->cursor_animation != CURSOR_ANIMATION_NONE) {
++           plugin->cursor_currently_animating = true;
++           ply_event_loop_watch_for_timeout (plugin->loop,
++                                              0.05,
++                                              (ply_event_loop_timeout_handler_t)
++                                              on_timeout, plugin);
++        }
++
+         /* We don't really know how long shutdown will take,
+          * so don't show the progress animation
+          */
+@@ -939,6 +977,9 @@ view_show_prompt (view_t     *view,
                  view->lock_area.width = ply_image_get_width (plugin->lock_image);
                  view->lock_area.height = ply_image_get_height (plugin->lock_image);
  
@@ -199,7 +215,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
                  entry_width = ply_entry_get_width (view->entry);
                  entry_height = ply_entry_get_height (view->entry);
  
-@@ -948,9 +980,9 @@ view_show_prompt (view_t     *view,
+@@ -949,9 +990,9 @@ view_show_prompt (view_t     *view,
                          view->box_area.y = (screen_height - view->box_area.height) * plugin->dialog_vertical_alignment;
                          view->dialog_area = view->box_area;
                  } else {
@@ -212,7 +228,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
                          view->dialog_area.y = (screen_height - view->dialog_area.height) * plugin->dialog_vertical_alignment;
                  }
  
-@@ -966,6 +998,13 @@ view_show_prompt (view_t     *view,
+@@ -967,6 +1008,13 @@ view_show_prompt (view_t     *view,
                  y = view->dialog_area.y +
                      (view->dialog_area.height - entry_height) / 2.0;
  
@@ -226,16 +242,16 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
                  ply_entry_show (view->entry, plugin->loop, view->display, x, y);
  
                  show_keyboard_indicators = true;
-@@ -1070,7 +1109,7 @@ create_plugin (ply_key_file_t *key_file)
+@@ -1071,7 +1119,7 @@ create_plugin (ply_key_file_t *key_file)
          ply_boot_splash_plugin_t *plugin;
          char *image_dir, *image_path;
          char *transition;
 -        char *progress_function;
 +        char *progress_function, *cursor_animation;
+         char *show_animation_fraction;
  
          srand ((int) ply_get_timestamp ());
-         plugin = calloc (1, sizeof(ply_boot_splash_plugin_t));
-@@ -1087,6 +1126,10 @@ create_plugin (ply_key_file_t *key_file)
+@@ -1089,6 +1137,10 @@ create_plugin (ply_key_file_t *key_file)
          plugin->box_image = ply_image_new (image_path);
          free (image_path);
  
@@ -246,7 +262,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
          asprintf (&image_path, "%s/corner-image.png", image_dir);
          plugin->corner_image = ply_image_new (image_path);
          free (image_path);
-@@ -1215,6 +1258,9 @@ create_plugin (ply_key_file_t *key_file)
+@@ -1217,6 +1269,9 @@ create_plugin (ply_key_file_t *key_file)
          plugin->message_below_animation =
                  ply_key_file_get_bool (key_file, "two-step", "MessageBelowAnimation");
  
@@ -256,9 +272,9 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
          progress_function = ply_key_file_get_value (key_file, "two-step", "ProgressFunction");
  
          if (progress_function != NULL) {
-@@ -1232,6 +1278,37 @@ create_plugin (ply_key_file_t *key_file)
-                 free (progress_function);
-         }
+@@ -1241,6 +1296,37 @@ create_plugin (ply_key_file_t *key_file)
+                 plugin->show_animation_fraction = SHOW_ANIMATION_FRACTION;
+         free (show_animation_fraction);
  
 +        /* Cursor */
 +        /* Requires 'cursor.png' to be included in theme, otherwise it won't show */
@@ -294,7 +310,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
          plugin->views = ply_list_new ();
  
          return plugin;
-@@ -1287,6 +1364,9 @@ destroy_plugin (ply_boot_splash_plugin_t
+@@ -1296,6 +1382,9 @@ destroy_plugin (ply_boot_splash_plugin_t
          if (plugin->box_image != NULL)
                  ply_image_free (plugin->box_image);
  
@@ -304,23 +320,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
          if (plugin->corner_image != NULL)
                  ply_image_free (plugin->corner_image);
  
-@@ -1399,6 +1479,15 @@ start_progress_animation (ply_boot_splas
- 
-         plugin->is_animating = true;
- 
-+        // If we have been asked to refresh the cursor refresh the whole screen.
-+        if (!plugin->cursor_currently_animating && plugin->cursor_animation != CURSOR_ANIMATION_NONE) {
-+          plugin->cursor_currently_animating = true;
-+          ply_event_loop_watch_for_timeout (plugin->loop,
-+                                            0.05,
-+                                            (ply_event_loop_timeout_handler_t)
-+                                            on_timeout, plugin);
-+        }
-+
-         /* We don't really know how long shutdown will, take
-          * but it's normally really fast, so just jump to
-          * the end animation
-@@ -1444,6 +1533,7 @@ static void
+@@ -1453,6 +1542,7 @@ static void
  detach_from_event_loop (ply_boot_splash_plugin_t *plugin)
  {
          plugin->loop = NULL;
@@ -328,7 +328,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
  }
  
  static void
-@@ -1514,6 +1604,7 @@ on_draw (view_t             *view,
+@@ -1523,6 +1613,7 @@ on_draw (view_t             *view,
          ply_boot_splash_plugin_t *plugin;
          ply_rectangle_t screen_area;
          ply_rectangle_t image_area;
@@ -336,7 +336,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
  
          plugin = view->plugin;
  
-@@ -1523,7 +1614,7 @@ on_draw (view_t             *view,
+@@ -1532,7 +1623,7 @@ on_draw (view_t             *view,
  
          if (plugin->state == PLY_BOOT_SPLASH_DISPLAY_QUESTION_ENTRY ||
              plugin->state == PLY_BOOT_SPLASH_DISPLAY_PASSWORD_ENTRY) {
@@ -345,7 +345,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
  
                  if (plugin->box_image) {
                          box_data = ply_image_get_data (plugin->box_image);
-@@ -1535,20 +1626,47 @@ on_draw (view_t             *view,
+@@ -1544,20 +1635,47 @@ on_draw (view_t             *view,
                  ply_entry_draw_area (view->entry,
                                       pixel_buffer,
                                       x, y, width, height);
@@ -396,7 +396,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
          } else {
                  if (use_progress_bar (plugin))
                          ply_progress_bar_draw_area (view->progress_bar, pixel_buffer,
-@@ -1577,7 +1695,7 @@ on_draw (view_t             *view,
+@@ -1586,7 +1704,7 @@ on_draw (view_t             *view,
                          ply_pixel_buffer_fill_with_argb32_data (pixel_buffer, &image_area, ply_image_get_data (plugin->corner_image));
                  }
  
@@ -405,7 +405,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
                          long sprite_height;
  
  
-@@ -1683,6 +1801,15 @@ show_splash_screen (ply_boot_splash_plug
+@@ -1692,6 +1810,15 @@ show_splash_screen (ply_boot_splash_plug
                          plugin->box_image = NULL;
                  }
          }
@@ -421,7 +421,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
  
          if (plugin->corner_image != NULL) {
                  ply_trace ("loading corner image");
-@@ -1953,6 +2080,8 @@ show_prompt (ply_boot_splash_plugin_t *p
+@@ -1962,6 +2089,8 @@ show_prompt (ply_boot_splash_plugin_t *p
          while (node != NULL) {
                  view = ply_list_node_get_data (node);
                  view_show_prompt (view, prompt, entry_text, number_of_bullets);
@@ -430,7 +430,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
                  node = ply_list_get_next_node (plugin->views, node);
          }
  }
-@@ -2010,7 +2139,7 @@ view_show_message (view_t     *view,
+@@ -2019,7 +2148,7 @@ view_show_message (view_t     *view,
                     const char  *message)
  {
          ply_boot_splash_plugin_t *plugin = view->plugin;
@@ -439,7 +439,7 @@ Index: plymouth2/src/plugins/splash/two-step/plugin.c
  
          if (plugin->message_below_animation)
                  ply_label_set_alignment (view->message_label, PLY_LABEL_ALIGN_CENTER);
-@@ -2019,10 +2148,10 @@ view_show_message (view_t     *view,
+@@ -2028,10 +2157,10 @@ view_show_message (view_t     *view,
          width = ply_label_get_width (view->message_label);
          height = ply_label_get_height (view->message_label);
  

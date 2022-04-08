@@ -1,3 +1,9 @@
+plymouth (22.02.122-0pop1) jammy; urgency=medium
+
+  * Rebase Plymouth on 22.02.122
+
+ -- Brock Szuszczewicz <bnr@tuta.com>  Thu, 07 Apr 2022 6:27:19 +0100
+
 plymouth (0.9.5+git20211018-1ubuntu3) jammy; urgency=medium
 
   * themes/ubuntu-logo/ubuntu-logo.png:

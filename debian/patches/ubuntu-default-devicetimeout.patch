@@ -15,7 +15,7 @@ Index: testbuild/src/main.c
 ===================================================================
 --- testbuild.orig/src/main.c
 +++ testbuild/src/main.c
-@@ -2333,6 +2333,10 @@ main (int    argc,
+@@ -2338,6 +2338,10 @@
          find_system_default_splash (&state);
          find_distribution_default_splash (&state);
  
@@ -23,6 +23,7 @@ Index: testbuild/src/main.c
 +        if (isnan (state.device_timeout) || state.device_timeout <= 0.0)
 +                state.device_timeout = 8.0;
 +
-         if (ply_kernel_command_line_has_argument ("plymouth.ignore-serial-consoles"))
+         if (ply_kernel_command_line_has_argument ("plymouth.ignore-serial-consoles") ||
+             ignore_serial_consoles == true)
                  device_manager_flags |= PLY_DEVICE_MANAGER_FLAGS_IGNORE_SERIAL_CONSOLES;
- 
+

@@ -174,6 +174,7 @@ struct _ply_boot_splash_plugin
         uint32_t                            progress_bar_bg_color;
         uint32_t                            progress_bar_fg_color;
 
+        double                              show_animation_fraction;
         progress_function_t                 progress_function;
 
         ply_trigger_t                      *idle_trigger;
@@ -694,7 +695,7 @@ view_load (view_t *view)
                 ply_trace ("using %ldx%ld title centered at %ldx%ld for %ldx%ld screen",
                            width, title_height, x, y, screen_width, screen_height);
                 ply_label_show (view->title_label, view->display, x, y);
-                /* Use subtitle_height pixels seperation between title and subtitle */
+                /* Use subtitle_height pixels separation between title and subtitle */
                 y += title_height + subtitle_height;
         }
 
@@ -870,8 +871,8 @@ view_start_progress_animation (view_t *view)
                 view->animation_bottom = y + height;
         }
 
-        /* We don't really know how long shutdown will so
-         * don't show the progress animation
+        /* We don't really know how long shutdown will take,
+         * so don't show the progress animation
          */
         if (plugin->mode == PLY_BOOT_SPLASH_MODE_SHUTDOWN ||
             plugin->mode == PLY_BOOT_SPLASH_MODE_REBOOT)
@@ -1048,6 +1049,7 @@ create_plugin (ply_key_file_t *key_file)
         char *image_dir, *image_path;
         char *transition;
         char *progress_function;
+        char *show_animation_fraction;
 
         srand ((int) ply_get_timestamp ());
         plugin = calloc (1, sizeof(ply_boot_splash_plugin_t));
@@ -1093,7 +1095,7 @@ create_plugin (ply_key_file_t *key_file)
                 ply_key_file_get_double (key_file, "two-step",
                                          "VerticalAlignment", 0.5);
 
-        /* Progressbar alignment, this defaults to the animation alignment
+        /* Progress bar alignment, this defaults to the animation alignment
          * for compatibility with older themes.
          */
         plugin->progress_bar_horizontal_alignment =
@@ -1208,6 +1210,13 @@ create_plugin (ply_key_file_t *key_file)
 
                 free (progress_function);
         }
+
+        show_animation_fraction = ply_key_file_get_value (key_file, "two-step", "ShowAnimationPercent");
+        if (show_animation_fraction != NULL)
+                plugin->show_animation_fraction = strtod (show_animation_fraction, NULL);
+        else
+                plugin->show_animation_fraction = SHOW_ANIMATION_FRACTION;
+        free (show_animation_fraction);
 
         plugin->views = ply_list_new ();
 
@@ -1372,7 +1381,7 @@ start_progress_animation (ply_boot_splash_plugin_t *plugin)
 
         plugin->is_animating = true;
 
-        /* We don't really know how long shutdown will, take
+        /* We don't really know how long shutdown will take,
          * but it's normally really fast, so just jump to
          * the end animation
          */
@@ -1795,7 +1804,7 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
          * become_idle gets called.
          */
         if (plugin->mode_settings[plugin->mode].use_end_animation &&
-            fraction_done >= SHOW_ANIMATION_FRACTION) {
+            fraction_done >= plugin->show_animation_fraction) {
                 if (plugin->stop_trigger == NULL) {
                         ply_trace ("boot progressed to end");
 
@@ -1809,7 +1818,7 @@ on_boot_progress (ply_boot_splash_plugin_t *plugin,
         } else {
                 double total_duration;
 
-                fraction_done *= (1 / SHOW_ANIMATION_FRACTION);
+                fraction_done *= (1 / plugin->show_animation_fraction);
 
                 switch (plugin->progress_function) {
                 /* Fun made-up smoothing function to make the growth asymptotic:

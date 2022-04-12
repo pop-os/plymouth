@@ -19,3 +19,5 @@ Index: plymouth_0.9.5git20210406-0ubuntu2.debian/src/plymouthd.defaults
 +Theme=pop-basic
  ShowDelay=0
  DeviceTimeout=8
+
+

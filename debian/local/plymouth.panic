@@ -15,4 +15,4 @@ prereqs)
         ;;
 esac
 
-/bin/plymouth quit
+/usr/bin/plymouth quit

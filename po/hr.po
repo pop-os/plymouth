@@ -1,25 +1,26 @@
-# Fabio Tomat <f.t.public@gmail.com>, 2019. #zanata, 2021.
+# gogo <trebelnik2@gmail.com>, 2021.
 msgid ""
 msgstr ""
 "Project-Id-Version: plymouth 0.9.5\n"
 "Report-Msgid-Bugs-To: https://gitlab.freedesktop.org/plymouth/plymouth/"
 "issues\n"
 "POT-Creation-Date: 2020-07-08 14:59-0400\n"
-"PO-Revision-Date: 2021-07-11 19:04+0000\n"
-"Last-Translator: Fabio Tomat <f.t.public@gmail.com>\n"
-"Language-Team: Friulian <https://translate.fedoraproject.org/projects/"
-"plymouth/master/fur/>\n"
-"Language: fur\n"
+"PO-Revision-Date: 2021-10-29 17:02+0200\n"
+"Last-Translator: gogo <trebelnik2@gmail.com>\n"
+"Language-Team: Croatian <https://translate.fedoraproject.org/projects/\n"
+"plymouth/master/hr/>\n"
+"Language: hr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.7.1\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
+"X-Generator: Weblate 4.4.2\n"
 
 #: src/plugins/splash/two-step/plugin.c:1727
 #, c-format
 msgid "%d%% complete"
-msgstr "%d%% completât"
+msgstr "%d%% završeno"
 
 #: themes/bgrt/bgrt.plymouth.desktop:3
 msgid "BGRT"
@@ -28,7 +29,7 @@ msgstr "BGRT"
 #: themes/bgrt/bgrt.plymouth.desktop:44
 #: themes/spinner/spinner.plymouth.desktop:40
 msgid "Installing Updates..."
-msgstr "Daûr a instalâ i inzornaments..."
+msgstr "Instalacija nadopuna..."
 
 #: themes/bgrt/bgrt.plymouth.desktop:45 themes/bgrt/bgrt.plymouth.desktop:52
 #: themes/bgrt/bgrt.plymouth.desktop:59
@@ -36,18 +37,18 @@ msgstr "Daûr a instalâ i inzornaments..."
 #: themes/spinner/spinner.plymouth.desktop:48
 #: themes/spinner/spinner.plymouth.desktop:55
 msgid "Do not turn off your computer"
-msgstr "No sta distudâ il computer"
+msgstr "Ne isključujte svoje računalo"
 
 #: themes/bgrt/bgrt.plymouth.desktop:51
 #: themes/spinner/spinner.plymouth.desktop:47
 msgid "Upgrading System..."
-msgstr "Inzornament dal sisteme..."
+msgstr "Nadogradnja sustava..."
 
 #: themes/bgrt/bgrt.plymouth.desktop:58
 #: themes/spinner/spinner.plymouth.desktop:54
 msgid "Upgrading Firmware..."
-msgstr "Inzornament dal firmware..."
+msgstr "Nadogradnja firmvera..."
 
 #: themes/spinner/spinner.plymouth.desktop:3
 msgid "Spinner"
-msgstr "Roulette"
+msgstr "Puls okretanja"

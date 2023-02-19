@@ -175,6 +175,13 @@ Description: boot animation, logger and I/O multiplexer - ubuntu theme
 
 Package: plymouth-theme-ubuntu-text
 Architecture: linux-any
+Depends: plymouth-theme-pop-text
+Description: Transitional package for plymouth-theme-pop-text
+ This is a transitional package for plymouth-theme-pop-text, and can be
+ safely removed after the installation is complete
+
+Package: plymouth-theme-pop-text
+Architecture: linux-any
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
@@ -189,7 +196,7 @@ Description: boot animation, logger and I/O multiplexer - ubuntu text theme
  boot systems Plymouth can also usefully handle user interaction such as
  password prompts for encrypted file systems.
  .
- This package contains the default ubuntu-text text theme used when no
+ This package contains the default pop-text text theme used when no
  support for a graphical theme is found on your system.
  
 Package: plymouth-theme-spinner

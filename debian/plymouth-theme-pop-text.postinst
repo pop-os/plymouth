@@ -24,14 +24,14 @@ case "$1" in
 	rmdir -p --ignore-fail-on-non-empty /lib/plymouth/ 2>/dev/null || :
 
 	sed -re \
-		"/\[ubuntu-text\]/ {
+		"/\[pop-text\]/ {
 			N;
 			s/(title=Ubuntu ).*\$/\1$(lsb_release -rs)/
-		}" /usr/share/plymouth/themes/ubuntu-text/ubuntu-text.plymouth.in \
-			> /usr/share/plymouth/themes/ubuntu-text/ubuntu-text.plymouth
+		}" /usr/share/plymouth/themes/pop-text/pop-text.plymouth.in \
+			> /usr/share/plymouth/themes/pop-text/pop-text.plymouth
 	update-alternatives \
 		--install /usr/share/plymouth/themes/text.plymouth text.plymouth \
-		/usr/share/plymouth/themes/ubuntu-text/ubuntu-text.plymouth 50
+		/usr/share/plymouth/themes/pop-text/pop-text.plymouth 50
 
 	if which update-initramfs >/dev/null 2>&1
 	then

@@ -1,4 +1,4 @@
-Description: Add ubuntu-text splash plugin and theme
+Description: Add pop-text splash plugin and theme
 Author: Scott James Remnant <scott@ubuntu.com>
 Forwarded: not-needed
 Last-Update: 2011-01-21
@@ -11,7 +11,7 @@ Index: plymouth-0.9.5git20210629/configure.ac
             src/plugins/splash/Makefile
             src/plugins/splash/fade-throbber/Makefile
             src/plugins/splash/tribar/Makefile
-+           src/plugins/splash/ubuntu-text/Makefile
++           src/plugins/splash/pop-text/Makefile
             src/plugins/splash/text/Makefile
             src/plugins/splash/details/Makefile
             src/plugins/splash/space-flares/Makefile
@@ -19,7 +19,7 @@ Index: plymouth-0.9.5git20210629/configure.ac
             themes/script/Makefile
             themes/ubuntu-logo/Makefile
             themes/bgrt/Makefile
-+           themes/ubuntu-text/Makefile
++           themes/pop-text/Makefile
             images/Makefile
  	   scripts/plymouth-generate-initrd
  	   scripts/plymouth-populate-initrd
@@ -29,31 +29,31 @@ Index: plymouth-0.9.5git20210629/themes/Makefile.am
 +++ plymouth-0.9.5git20210629/themes/Makefile.am
 @@ -1,2 +1,2 @@
 -SUBDIRS = spinfinity fade-in text details solar glow script spinner tribar ubuntu-logo bgrt
-+SUBDIRS = spinfinity fade-in text details solar glow script spinner tribar ubuntu-logo bgrt ubuntu-text
++SUBDIRS = spinfinity fade-in text details solar glow script spinner tribar ubuntu-logo bgrt pop-text
  MAINTAINERCLEANFILES = Makefile.in
-Index: plymouth-0.9.5git20210629/themes/ubuntu-text/ubuntu-text.plymouth.in
+Index: plymouth-0.9.5git20210629/themes/pop-text/pop-text.plymouth.in
 ===================================================================
 --- /dev/null
-+++ plymouth-0.9.5git20210629/themes/ubuntu-text/ubuntu-text.plymouth.in
++++ plymouth-0.9.5git20210629/themes/pop-text/pop-text.plymouth.in
 @@ -0,0 +1,11 @@
 +[Plymouth Theme]
 +Name=Ubuntu Text
-+Description=Text mode theme based on ubuntu-logo theme
-+ModuleName=ubuntu-text
++Description=Text mode theme based on pop-logo theme
++ModuleName=pop-text
 +
-+[ubuntu-text]
-+title=Ubuntu 18.04 LTS
-+black=0x2c001e
++[pop-text]
++title=Pop!_OS 22.04 LTS
++black=0x36322f
 +white=0xffffff
 +brown=0xff4012
 +blue=0x988592
-Index: plymouth-0.9.5git20210629/themes/ubuntu-text/Makefile.am
+Index: plymouth-0.9.5git20210629/themes/pop-text/Makefile.am
 ===================================================================
 --- /dev/null
-+++ plymouth-0.9.5git20210629/themes/ubuntu-text/Makefile.am
++++ plymouth-0.9.5git20210629/themes/pop-text/Makefile.am
 @@ -0,0 +1,4 @@
-+themedir = $(datadir)/plymouth/themes/ubuntu-text
-+dist_theme_DATA = ubuntu-text.plymouth.in
++themedir = $(datadir)/plymouth/themes/pop-text
++dist_theme_DATA = pop-text.plymouth.in
 +
 +MAINTAINERCLEANFILES = Makefile.in
 Index: plymouth-0.9.5git20210629/src/plugins/splash/Makefile.am
@@ -62,12 +62,12 @@ Index: plymouth-0.9.5git20210629/src/plugins/splash/Makefile.am
 +++ plymouth-0.9.5git20210629/src/plugins/splash/Makefile.am
 @@ -1,2 +1,2 @@
 -SUBDIRS = fade-throbber text details space-flares two-step script tribar
-+SUBDIRS = fade-throbber text details space-flares two-step script tribar ubuntu-text
++SUBDIRS = fade-throbber text details space-flares two-step script tribar pop-text
  MAINTAINERCLEANFILES = Makefile.in
-Index: plymouth-0.9.5git20210629/src/plugins/splash/ubuntu-text/Makefile.am
+Index: plymouth-0.9.5git20210629/src/plugins/splash/pop-text/Makefile.am
 ===================================================================
 --- /dev/null
-+++ plymouth-0.9.5git20210629/src/plugins/splash/ubuntu-text/Makefile.am
++++ plymouth-0.9.5git20210629/src/plugins/splash/pop-text/Makefile.am
 @@ -0,0 +1,23 @@
 +INCLUDES = -I$(top_srcdir)                                                    \
 +           -I$(srcdir)/../../../libply                                        \
@@ -78,7 +78,7 @@ Index: plymouth-0.9.5git20210629/src/plugins/splash/ubuntu-text/Makefile.am
 +           -I$(srcdir)
 +
 +plugindir = $(libdir)/plymouth
-+plugin_LTLIBRARIES = ubuntu-text.la
++plugin_LTLIBRARIES = pop-text.la
 +
 +ubuntu_text_la_CFLAGS = $(PLYMOUTH_CFLAGS)                                           \
 +                 -DPLYMOUTH_BACKGROUND_COLOR=$(background_color)              \
@@ -92,12 +92,12 @@ Index: plymouth-0.9.5git20210629/src/plugins/splash/ubuntu-text/Makefile.am
 +ubuntu_text_la_SOURCES = $(srcdir)/plugin.c
 +
 +MAINTAINERCLEANFILES = Makefile.in
-Index: plymouth-0.9.5git20210629/src/plugins/splash/ubuntu-text/plugin.c
+Index: plymouth-0.9.5git20210629/src/plugins/splash/pop-text/plugin.c
 ===================================================================
 --- /dev/null
-+++ plymouth-0.9.5git20210629/src/plugins/splash/ubuntu-text/plugin.c
++++ plymouth-0.9.5git20210629/src/plugins/splash/pop-text/plugin.c
 @@ -0,0 +1,805 @@
-+/* ubuntu-text.c - boot splash plugin
++/* pop-text.c - boot splash plugin
 + *
 + * Copyright (C) 2010 Canonical Ltd.
 + * Copyright (C) 2008 Red Hat, Inc.
@@ -431,20 +431,20 @@ Index: plymouth-0.9.5git20210629/src/plugins/splash/ubuntu-text/plugin.c
 +  plugin->brown = 0xff4012;
 +  plugin->blue  = 0x988592;
 +
-+  option = ply_key_file_get_value (key_file, "ubuntu-text", "black");
++  option = ply_key_file_get_value (key_file, "pop-text", "black");
 +  if (option)
 +    sscanf(option, "0x%x", &plugin->black);
-+  option = ply_key_file_get_value (key_file, "ubuntu-text", "white");
++  option = ply_key_file_get_value (key_file, "pop-text", "white");
 +  if (option)
 +    sscanf(option, "0x%x", &plugin->white);
-+  option = ply_key_file_get_value (key_file, "ubuntu-text", "brown");
++  option = ply_key_file_get_value (key_file, "pop-text", "brown");
 +  if (option)
 +    sscanf(option, "0x%x", &plugin->brown);
-+  option = ply_key_file_get_value (key_file, "ubuntu-text", "blue");
++  option = ply_key_file_get_value (key_file, "pop-text", "blue");
 +  if (option)
 +    sscanf(option, "0x%x", &plugin->blue);
 +
-+  plugin->title = ply_key_file_get_value (key_file, "ubuntu-text", "title");
++  plugin->title = ply_key_file_get_value (key_file, "pop-text", "title");
 +
 +  return plugin;
 +}

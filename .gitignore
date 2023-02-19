@@ -46,7 +46,7 @@ ABOUT-NLS
 m4
 
 debian/plymouth-theme-ubuntu-logo.debhelper.log
-debian/plymouth-theme-ubuntu-text.debhelper.log
+debian/plymouth-theme-pop-text.debhelper.log
 debian/plymouth-theme-spinner.debhelper.log
 debian/libplymouth5-dev.debhelper.log
 debian/plymouth-themes.debhelper.log
@@ -56,7 +56,7 @@ debian/libplymouth5.debhelper.log
 debian/plymouth.debhelper.log
 
 debian/plymouth-theme-ubuntu-logo.substvars
-debian/plymouth-theme-ubuntu-text.substvars
+debian/plymouth-theme-pop-text.substvars
 debian/plymouth-theme-spinner.substvars
 debian/libplymouth5-dev.substvars
 debian/plymouth-themes.substvars
@@ -66,7 +66,7 @@ debian/libplymouth5.substvars
 debian/plymouth.substvars
 
 debian/plymouth-theme-ubuntu-logo/
-debian/plymouth-theme-ubuntu-text/
+debian/plymouth-theme-pop-text/
 debian/plymouth-theme-spinner/
 debian/libplymouth5-dev/
 debian/plymouth-themes/

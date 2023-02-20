@@ -3,10 +3,10 @@ Author: Scott James Remnant <scott@ubuntu.com>
 Forwarded: not-needed
 Last-Update: 2011-01-21
 
-Index: plymouth-0.9.5git20210629/configure.ac
+Index: plymouth/configure.ac
 ===================================================================
---- plymouth-0.9.5git20210629.orig/configure.ac
-+++ plymouth-0.9.5git20210629/configure.ac
+--- plymouth.orig/configure.ac
++++ plymouth/configure.ac
 @@ -306,6 +306,7 @@ AC_CONFIG_FILES([Makefile po/Makefile.in
             src/plugins/splash/Makefile
             src/plugins/splash/fade-throbber/Makefile
@@ -23,18 +23,18 @@ Index: plymouth-0.9.5git20210629/configure.ac
             images/Makefile
  	   scripts/plymouth-generate-initrd
  	   scripts/plymouth-populate-initrd
-Index: plymouth-0.9.5git20210629/themes/Makefile.am
+Index: plymouth/themes/Makefile.am
 ===================================================================
---- plymouth-0.9.5git20210629.orig/themes/Makefile.am
-+++ plymouth-0.9.5git20210629/themes/Makefile.am
+--- plymouth.orig/themes/Makefile.am
++++ plymouth/themes/Makefile.am
 @@ -1,2 +1,2 @@
 -SUBDIRS = spinfinity fade-in text details solar glow script spinner tribar ubuntu-logo bgrt
 +SUBDIRS = spinfinity fade-in text details solar glow script spinner tribar ubuntu-logo bgrt pop-text
  MAINTAINERCLEANFILES = Makefile.in
-Index: plymouth-0.9.5git20210629/themes/pop-text/pop-text.plymouth.in
+Index: plymouth/themes/pop-text/pop-text.plymouth.in
 ===================================================================
 --- /dev/null
-+++ plymouth-0.9.5git20210629/themes/pop-text/pop-text.plymouth.in
++++ plymouth/themes/pop-text/pop-text.plymouth.in
 @@ -0,0 +1,11 @@
 +[Plymouth Theme]
 +Name=Ubuntu Text
@@ -47,27 +47,27 @@ Index: plymouth-0.9.5git20210629/themes/pop-text/pop-text.plymouth.in
 +white=0xffffff
 +brown=0xff4012
 +blue=0x988592
-Index: plymouth-0.9.5git20210629/themes/pop-text/Makefile.am
+Index: plymouth/themes/pop-text/Makefile.am
 ===================================================================
 --- /dev/null
-+++ plymouth-0.9.5git20210629/themes/pop-text/Makefile.am
++++ plymouth/themes/pop-text/Makefile.am
 @@ -0,0 +1,4 @@
 +themedir = $(datadir)/plymouth/themes/pop-text
 +dist_theme_DATA = pop-text.plymouth.in
 +
 +MAINTAINERCLEANFILES = Makefile.in
-Index: plymouth-0.9.5git20210629/src/plugins/splash/Makefile.am
+Index: plymouth/src/plugins/splash/Makefile.am
 ===================================================================
---- plymouth-0.9.5git20210629.orig/src/plugins/splash/Makefile.am
-+++ plymouth-0.9.5git20210629/src/plugins/splash/Makefile.am
+--- plymouth.orig/src/plugins/splash/Makefile.am
++++ plymouth/src/plugins/splash/Makefile.am
 @@ -1,2 +1,2 @@
 -SUBDIRS = fade-throbber text details space-flares two-step script tribar
 +SUBDIRS = fade-throbber text details space-flares two-step script tribar pop-text
  MAINTAINERCLEANFILES = Makefile.in
-Index: plymouth-0.9.5git20210629/src/plugins/splash/pop-text/Makefile.am
+Index: plymouth/src/plugins/splash/pop-text/Makefile.am
 ===================================================================
 --- /dev/null
-+++ plymouth-0.9.5git20210629/src/plugins/splash/pop-text/Makefile.am
++++ plymouth/src/plugins/splash/pop-text/Makefile.am
 @@ -0,0 +1,23 @@
 +INCLUDES = -I$(top_srcdir)                                                    \
 +           -I$(srcdir)/../../../libply                                        \
@@ -80,22 +80,22 @@ Index: plymouth-0.9.5git20210629/src/plugins/splash/pop-text/Makefile.am
 +plugindir = $(libdir)/plymouth
 +plugin_LTLIBRARIES = pop-text.la
 +
-+ubuntu_text_la_CFLAGS = $(PLYMOUTH_CFLAGS)                                           \
++pop_text_la_CFLAGS = $(PLYMOUTH_CFLAGS)                                           \
 +                 -DPLYMOUTH_BACKGROUND_COLOR=$(background_color)              \
 +                 -DPLYMOUTH_BACKGROUND_END_COLOR=$(background_end_color)      \
 +                 -DPLYMOUTH_BACKGROUND_START_COLOR=$(background_start_color)
 +
-+ubuntu_text_la_LDFLAGS = -module -avoid-version -export-dynamic
-+ubuntu_text_la_LIBADD = $(PLYMOUTH_LIBS)                                            \
++pop_text_la_LDFLAGS = -module -avoid-version -export-dynamic
++pop_text_la_LIBADD = $(PLYMOUTH_LIBS)                                            \
 +                 ../../../libply/libply.la                                   \
 +                 ../../../libply-splash-core/libply-splash-core.la
-+ubuntu_text_la_SOURCES = $(srcdir)/plugin.c
++pop_text_la_SOURCES = $(srcdir)/plugin.c
 +
 +MAINTAINERCLEANFILES = Makefile.in
-Index: plymouth-0.9.5git20210629/src/plugins/splash/pop-text/plugin.c
+Index: plymouth/src/plugins/splash/pop-text/plugin.c
 ===================================================================
 --- /dev/null
-+++ plymouth-0.9.5git20210629/src/plugins/splash/pop-text/plugin.c
++++ plymouth/src/plugins/splash/pop-text/plugin.c
 @@ -0,0 +1,805 @@
 +/* pop-text.c - boot splash plugin
 + *

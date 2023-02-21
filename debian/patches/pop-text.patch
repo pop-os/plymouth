@@ -46,7 +46,7 @@ Index: plymouth/themes/pop-text/pop-text.plymouth.in
 +black=0x36322f
 +white=0xffffff
 +brown=0x48b9c7
-+blue=0x988592
++blue=0xffffff
 Index: plymouth/themes/pop-text/Makefile.am
 ===================================================================
 --- /dev/null

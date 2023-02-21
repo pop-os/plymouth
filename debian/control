@@ -33,7 +33,7 @@ Conflicts: console-common
 Breaks: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
 Replaces: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
 Suggests: desktop-base, plymouth-themes
-Recommends: plymouth-theme-ubuntu-text | plymouth-theme
+Recommends: plymouth-theme-pop-text | plymouth-theme
 Description: boot animation, logger and I/O multiplexer
  Plymouth provides a boot-time I/O multiplexing framework - the most obvious
  use for which is to provide an attractive graphical animation in place of
@@ -188,7 +188,7 @@ Depends:
  plymouth (= ${binary:Version}),
  lsb-release,
 Provides: plymouth-theme,
-Description: boot animation, logger and I/O multiplexer - ubuntu text theme
+Description: boot animation, logger and I/O multiplexer - pop text theme
  Plymouth provides a boot-time I/O multiplexing framework - the most obvious
  use for which is to provide an attractive graphical animation in place of
  the text messages that normally get shown during boot. (The messages are

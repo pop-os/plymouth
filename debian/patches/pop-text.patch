@@ -37,7 +37,7 @@ Index: plymouth/themes/pop-text/pop-text.plymouth.in
 +++ plymouth/themes/pop-text/pop-text.plymouth.in
 @@ -0,0 +1,11 @@
 +[Plymouth Theme]
-+Name=Ubuntu Text
++Name=Pop Text
 +Description=Text mode theme based on pop-logo theme
 +ModuleName=pop-text
 +
@@ -45,7 +45,7 @@ Index: plymouth/themes/pop-text/pop-text.plymouth.in
 +title=Pop!_OS 22.04 LTS
 +black=0x36322f
 +white=0xffffff
-+brown=0xff4012
++brown=0x48b9c7
 +blue=0x988592
 Index: plymouth/themes/pop-text/Makefile.am
 ===================================================================

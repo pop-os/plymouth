@@ -26,12 +26,14 @@ case "$1" in
 	sed -re \
 		"/\[pop-text\]/ {
 			N;
-			s/(title=Ubuntu ).*\$/\1$(lsb_release -rs)/
+			s/(title=Pop ).*\$/\1$(lsb_release -rs)/
 		}" /usr/share/plymouth/themes/pop-text/pop-text.plymouth.in \
 			> /usr/share/plymouth/themes/pop-text/pop-text.plymouth
 	update-alternatives \
 		--install /usr/share/plymouth/themes/text.plymouth text.plymouth \
-		/usr/share/plymouth/themes/pop-text/pop-text.plymouth 50
+		/usr/share/plymouth/themes/pop-text/pop-text.plymouth 30
+  update-alternatives --set \
+    text.plymouth /usr/share/plymouth/themes/pop-text/pop-text.plymouth
 
 	if which update-initramfs >/dev/null 2>&1
 	then

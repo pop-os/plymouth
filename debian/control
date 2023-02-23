@@ -176,11 +176,15 @@ Description: boot animation, logger and I/O multiplexer - ubuntu theme
 Package: plymouth-theme-ubuntu-text
 Architecture: linux-any
 Depends: plymouth-theme-pop-text
+Priority: optional
+Section: oldlibs
 Description: Transitional package for plymouth-theme-pop-text
  This is a transitional package for plymouth-theme-pop-text, and can be
  safely removed after the installation is complete
 
 Package: plymouth-theme-pop-text
+Replaces: plymouth-theme-ubuntu-text (<<22.02.122-0pop2~)
+Breaks: plymouth-theme-ubuntu-text (<<22.02.122-0pop2~)
 Architecture: linux-any
 Depends:
  ${misc:Depends},

@@ -66,7 +66,7 @@ currthemes="${THEME_NAME} ${TEXTTHEME_NAME} ${IMAGE_NAME}"
 for currtheme in $currthemes
 do
 	case "${currtheme}" in
-		text|details|tribar|ubuntu-text)
+		text|details|tribar|pop-text)
 			PLUGINS="text.so details.so"
 			;;
 
@@ -115,7 +115,7 @@ then
 fi
 
 case "${THEME_NAME}" in
-	""|ubuntu-text|text|details)
+	""|pop-text|text|details)
 
 		;;
 

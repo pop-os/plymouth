@@ -33,7 +33,7 @@ Conflicts: console-common
 Breaks: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
 Replaces: plymouth-drm (<< 0.9.0-6~), plymouth-themes (<< 0.9.0-8~)
 Suggests: desktop-base, plymouth-themes
-Recommends: plymouth-theme-ubuntu-text | plymouth-theme
+Recommends: plymouth-theme-pop-text | plymouth-theme
 Description: boot animation, logger and I/O multiplexer
  Plymouth provides a boot-time I/O multiplexing framework - the most obvious
  use for which is to provide an attractive graphical animation in place of
@@ -175,13 +175,24 @@ Description: boot animation, logger and I/O multiplexer - ubuntu theme
 
 Package: plymouth-theme-ubuntu-text
 Architecture: linux-any
+Depends: plymouth-theme-pop-text
+Priority: optional
+Section: oldlibs
+Description: Transitional package for plymouth-theme-pop-text
+ This is a transitional package for plymouth-theme-pop-text, and can be
+ safely removed after the installation is complete
+
+Package: plymouth-theme-pop-text
+Replaces: plymouth-theme-ubuntu-text (<<22.02.122-0pop2~)
+Breaks: plymouth-theme-ubuntu-text (<<22.02.122-0pop2~)
+Architecture: linux-any
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
  plymouth (= ${binary:Version}),
  lsb-release,
 Provides: plymouth-theme,
-Description: boot animation, logger and I/O multiplexer - ubuntu text theme
+Description: boot animation, logger and I/O multiplexer - pop text theme
  Plymouth provides a boot-time I/O multiplexing framework - the most obvious
  use for which is to provide an attractive graphical animation in place of
  the text messages that normally get shown during boot. (The messages are
@@ -189,7 +200,7 @@ Description: boot animation, logger and I/O multiplexer - ubuntu text theme
  boot systems Plymouth can also usefully handle user interaction such as
  password prompts for encrypted file systems.
  .
- This package contains the default ubuntu-text text theme used when no
+ This package contains the default pop-text text theme used when no
  support for a graphical theme is found on your system.
  
 Package: plymouth-theme-spinner
